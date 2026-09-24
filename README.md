@@ -5,6 +5,11 @@
 <h1 align="center">FICSIT Planner</h1>
 
 <p align="center">
+  <a href="https://github.com/Albis0/ficsit_planner/actions/workflows/ci.yml"><img src="https://github.com/Albis0/ficsit_planner/actions/workflows/ci.yml/badge.svg" alt="CI"></a>
+  <a href="LICENSE"><img src="https://img.shields.io/badge/license-GPL--3.0--or--later-blue" alt="License: GPL-3.0-or-later"></a>
+</p>
+
+<p align="center">
   <img src="public/icons/Desc_SpaceElevatorPart_1_C.webp" width="40" alt="Smart Plating">
   <img src="public/icons/Desc_SpaceElevatorPart_2_C.webp" width="40" alt="Versatile Framework">
   <img src="public/icons/Desc_SpaceElevatorPart_3_C.webp" width="40" alt="Automated Wiring">
@@ -86,8 +91,15 @@ The build is a static site. To serve it from a sub-folder, for example GitHub Pa
 BASE_PATH=/ficsit_planner/ bun run build
 ```
 
+On Windows, run that in PowerShell (`$env:BASE_PATH = '/ficsit_planner/'; bun run build`). Git Bash rewrites
+arguments that look like Unix paths into Windows paths, so the base comes out as `/Program Files/Git/...`. Prefix
+the command with `MSYS_NO_PATHCONV=1` if you want to stay in Git Bash.
+
 App icons (favicon, PWA and iOS icons) are generated from `public/logo.png` with `bun run pwa-icons`. Commit the
 files it writes to `public/`.
+
+See [CONTRIBUTING.md](CONTRIBUTING.md) for code style and what to check before a change goes in, and
+[CHANGELOG.md](CHANGELOG.md) for what changed between versions.
 
 ## How the solver works
 
@@ -177,5 +189,20 @@ Commit the changed files under `src/data` and `public/icons` afterwards.
 - World resource limits (used to weigh scarce ores) come from SatisfactoryTools. They were last compared with
   its current numbers on 2026-09-24 and were unchanged.
 - Somersloop slot counts come from the game data, not the wiki. The current build gives Smelters 0 slots.
-- Item and building icons are Coffee Stain Studios' art, extracted from a local install for this fan tool.
-  Satisfactory is a trademark of Coffee Stain Studios. This project is not affiliated with them.
+
+## License
+
+The planner's code is free software under the **GNU General Public License v3.0 or later**. See
+[LICENSE](LICENSE). You can use, study, change and share it. If you distribute it, changed or not, you have to
+share the source under the same license.
+
+These parts are not the project's own work, so the GPL doesn't cover them:
+
+- **Game content.** Item and building icons (`public/icons/`) and the game data extracted into `src/data/`
+  (names, recipes, numbers) belong to Coffee Stain Studios. They are included only so this free, non-commercial
+  fan tool can work, and all rights to them stay with Coffee Stain. Satisfactory is a trademark of Coffee Stain
+  Studios. This project is not affiliated with or endorsed by them.
+- **Dependencies** keep their own licenses. HiGHS, React, React Flow, dagre, zustand and Workbox are MIT. The
+  Barlow fonts are SIL Open Font License 1.1. CUE4Parse, which the icon extractor uses, is Apache-2.0. All of
+  them can be combined with GPLv3.
+- **World resource limits** come from [SatisfactoryTools](https://github.com/greeny/SatisfactoryTools), MIT.
