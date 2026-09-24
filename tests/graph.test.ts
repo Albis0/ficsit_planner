@@ -31,3 +31,22 @@ test('every node declares a left input and a right output, so belts never enter 
   }
   expect(nodes.some((n) => n.id === 'target:Desc_ModularFrame_C')).toBe(true);
 });
+
+test('on phones the line runs top to bottom: inputs on top, outputs below', () => {
+  const r = solve(highs, {
+    targets: [{ item: 'Desc_IronPlateReinforced_C', rate: 5 }],
+    supplies: [],
+    enabledRecipes: new Set(data.recipes.filter((x) => x.kind === 'standard').map((x) => x.id)),
+    resourceCaps: {},
+    objective: 'resources',
+  });
+  const { nodes, edges } = buildGraph(r, 9, 'TB');
+  const byId = new Map(nodes.map((n) => [n.id, n]));
+  for (const e of edges) {
+    const src = byId.get(e.source)!;
+    const dst = byId.get(e.target)!;
+    expect(src.handles!.find((h) => h.type === 'source')?.position).toBe('bottom');
+    expect(dst.handles!.find((h) => h.type === 'target')?.position).toBe('top');
+    expect(dst.position.y).toBeGreaterThan(src.position.y);
+  }
+});

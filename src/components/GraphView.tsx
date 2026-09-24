@@ -20,10 +20,10 @@ import { createContext, type ReactNode, useContext, useEffect, useMemo, useState
 import { groupClocks } from '../lib/clocks';
 import { data } from '../lib/data';
 import type { ExtractionUse } from '../lib/extraction';
-import { buildGraph, type EndpointNodeData, type FlowEdgeData, type MachineNodeData } from '../lib/graph';
+import { buildGraph, type Direction, type EndpointNodeData, type FlowEdgeData, type MachineNodeData } from '../lib/graph';
 import { useT } from '../lib/i18n';
 import { recipeLabel } from '../lib/text';
-import { COARSE, useMediaQuery } from '../lib/useMediaQuery';
+import { COARSE, PHONE, useMediaQuery } from '../lib/useMediaQuery';
 import type { SolveResult } from '../lib/solver';
 import { usePlan, useStore } from '../store';
 import { Icon } from './Icon';
@@ -31,6 +31,11 @@ import { Slot } from './Slot';
 
 /** Hovered node and its direct neighbours; everything else fades so one line can be followed. */
 const Focus = createContext<{ node?: string; near: Set<string> }>({ near: new Set() });
+
+/** Which way the line runs, so node handles sit on the matching sides. */
+const Flow = createContext<Direction>('LR');
+const inSide = (dir: Direction) => (dir === 'TB' ? Position.Top : Position.Left);
+const outSide = (dir: Direction) => (dir === 'TB' ? Position.Bottom : Position.Right);
 
 /** Extractor counts per raw resource, shown on the ore/fluid source nodes. */
 const Extraction = createContext<Map<string, ExtractionUse>>(new Map());
@@ -60,12 +65,13 @@ const zoomSelector = (s: { transform: [number, number, number] }) =>
 function MachineNode({ id, data: d, selected }: NodeProps) {
   const { name, num } = useT();
   const { use } = d as MachineNodeData;
+  const dir = useContext(Flow);
   const { recipe } = use;
   const faded = useFaded(id);
   const tuned = use.shards > 0 || use.sloops > 0;
   return (
     <div className={`machine-node ${recipe.kind} ${faded ? 'faded' : ''} ${selected ? 'selected' : ''} ${tuned ? 'tuned' : ''}`}>
-      <Handle type="target" position={Position.Left} />
+      <Handle type="target" position={inSide(dir)} />
       <div className="machine-strip">
         <span>{name(data.machines[recipe.machine])}</span>
         <span className="machine-power">{num(use.power)} MW</span>
@@ -91,7 +97,7 @@ function MachineNode({ id, data: d, selected }: NodeProps) {
           </span>
         </span>
       </div>
-      <Handle type="source" position={Position.Right} />
+      <Handle type="source" position={outSide(dir)} />
     </div>
   );
 }
@@ -146,6 +152,7 @@ function EndpointNode({ id, data: d }: NodeProps) {
   const { kind, item, rate } = d as EndpointNodeData;
   const faded = useFaded(id);
   const ex = useContext(Extraction).get(item);
+  const dir = useContext(Flow);
   const label = { raw: t('rawInput'), supply: t('onHand'), missing: t('bringIn'), target: t('output'), surplus: t('surplus') }[kind];
   const it = data.items[item];
   const source = kind === 'raw' || kind === 'supply' || kind === 'missing';
@@ -154,7 +161,7 @@ function EndpointNode({ id, data: d }: NodeProps) {
       className={`endpoint-node ${kind} ${faded ? 'faded' : ''}`}
       style={it.form !== 'solid' ? { ['--fluid-color' as string]: it.color ?? 'var(--fluid)' } : undefined}
     >
-      {!source && <Handle type="target" position={Position.Left} />}
+      {!source && <Handle type="target" position={inSide(dir)} />}
       <Slot id={item} size={60} tone={kind === 'target' ? 'target' : 'default'} />
       <span className="endpoint-text">
         <span className="endpoint-kind">{label}</span>
@@ -174,7 +181,7 @@ function EndpointNode({ id, data: d }: NodeProps) {
           <small>{t('perMin')}</small>
         </span>
       )}
-      {source && <Handle type="source" position={Position.Right} />}
+      {source && <Handle type="source" position={outSide(dir)} />}
     </div>
   );
 }
@@ -269,9 +276,9 @@ const READABLE_ZOOM_NARROW = 0.6;
 
 /**
  * Opening camera: fit the whole factory when it stays readable; otherwise start at a readable
- * zoom from the ore end (left) so the line reads the way it's built, and let the user pan right.
+ * zoom from the ore end (left, or top on phones) so the line reads the way it's built.
  */
-function openingViewport(nodes: Node[], width: number, height: number): Viewport {
+function openingViewport(nodes: Node[], width: number, height: number, dir: Direction): Viewport {
   const readable = width < 900 ? READABLE_ZOOM_NARROW : READABLE_ZOOM;
   const minX = Math.min(...nodes.map((n) => n.position.x));
   const minY = Math.min(...nodes.map((n) => n.position.y));
@@ -279,6 +286,14 @@ function openingViewport(nodes: Node[], width: number, height: number): Viewport
   const maxY = Math.max(...nodes.map((n) => n.position.y + (n.height ?? 0)));
   const pad = width < 600 ? 16 : 48;
   const fit = Math.min((width - pad * 2) / (maxX - minX), (height - pad * 2) / (maxY - minY), 1.1);
+  if (dir === 'TB') {
+    // Top to bottom: at least one machine across the screen, starting from the ores at the top.
+    const across = (width - pad * 2) / Math.max(...nodes.map((n) => n.width ?? 0));
+    const zoom = Math.max(fit, Math.min(0.8, across));
+    const x = (width - (maxX - minX) * zoom) / 2 - minX * zoom;
+    const y = fit >= zoom ? (height - (maxY - minY) * zoom) / 2 - minY * zoom : pad - minY * zoom;
+    return { x, y, zoom };
+  }
   const zoom = Math.max(fit, readable);
   const x = fit >= readable ? (width - (maxX - minX) * zoom) / 2 - minX * zoom : pad - minX * zoom;
   const y = (maxY - minY) * zoom <= height - pad * 2 ? (height - (maxY - minY) * zoom) / 2 - minY * zoom : pad - minY * zoom;
@@ -288,7 +303,7 @@ function openingViewport(nodes: Node[], width: number, height: number): Viewport
 // Camera survives re-solves that keep the same machines (e.g. tweaking a clock speed).
 let camera: { sig: string; viewport?: Viewport } = { sig: '' };
 
-function Canvas({ nodes, edges, sig }: { nodes: Node[]; edges: Edge[]; sig: string }) {
+function Canvas({ nodes, edges, sig, dir }: { nodes: Node[]; edges: Edge[]; sig: string; dir: Direction }) {
   const inspect = useStore((s) => s.inspect);
   const set = useStore((s) => s.set);
   const [hover, setHover] = useState<string>();
@@ -338,7 +353,7 @@ function Canvas({ nodes, edges, sig }: { nodes: Node[]; edges: Edge[]; sig: stri
         onInit={(flow) => {
           if (!restore) {
             const box = document.querySelector('.floor-view')?.getBoundingClientRect();
-            if (box) flow.setViewport(openingViewport(nodes, box.width, box.height));
+            if (box) flow.setViewport(openingViewport(nodes, box.width, box.height, dir));
           }
           camera = { sig, viewport: flow.getViewport() };
         }}
@@ -358,24 +373,28 @@ function Canvas({ nodes, edges, sig }: { nodes: Node[]; edges: Edge[]; sig: stri
 
 export function GraphView({ result, extraction }: { result: SolveResult; extraction: ExtractionUse[] }) {
   const tier = useStore((s) => s.tier);
+  const dir: Direction = useMediaQuery(PHONE) ? 'TB' : 'LR';
   // Uncontrolled flow remounted per solve: nodes stay draggable, and each new solve lays out fresh.
   const { nodes, edges, key, sig } = useMemo(() => {
-    const g = buildGraph(result, tier);
+    const g = buildGraph(result, tier, dir);
     return {
       ...g,
       key: ++solveCount,
-      sig: g.nodes
-        .map((n) => n.id)
-        .sort()
-        .join('|'),
+      sig:
+        g.nodes
+          .map((n) => n.id)
+          .sort()
+          .join('|') + dir,
     };
-  }, [result, tier]);
+  }, [result, tier, dir]);
   const exMap = useMemo(() => new Map(extraction.map((u) => [u.item, u])), [extraction]);
   return (
     <Extraction.Provider value={exMap}>
-      <ReactFlowProvider key={key}>
-        <Canvas nodes={nodes} edges={edges} sig={sig} />
-      </ReactFlowProvider>
+      <Flow.Provider value={dir}>
+        <ReactFlowProvider key={key}>
+          <Canvas nodes={nodes} edges={edges} sig={sig} dir={dir} />
+        </ReactFlowProvider>
+      </Flow.Provider>
     </Extraction.Provider>
   );
 }

@@ -1143,6 +1143,13 @@ button.slot:hover {
   background: var(--line-2);
 }
 
+/* Phones run the line top to bottom; the same handle lies on its side. */
+.react-flow__handle-top,
+.react-flow__handle-bottom {
+  width: 18px;
+  height: 10px;
+}
+
 .react-flow__node-machine {
   cursor: pointer;
 }

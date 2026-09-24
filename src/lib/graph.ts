@@ -3,6 +3,9 @@ import { Position, type Edge, type Node, type NodeHandle } from '@xyflow/react';
 import { data, transportFor, type Transport } from './data';
 import type { RecipeUse, SolveResult } from './solver';
 
+/** Left to right on wide screens; top to bottom on phones, where a long line fits the tall screen. */
+export type Direction = 'LR' | 'TB';
+
 export type EndpointKind = 'raw' | 'supply' | 'missing' | 'target' | 'surplus';
 
 export interface MachineNodeData extends Record<string, unknown> {
@@ -29,9 +32,17 @@ const HANDLE = { width: 10, height: 18 };
  * Handle positions spelled out up front. Without them React Flow assumes top/bottom handles for any
  * node it hasn't measured yet, and a belt can end up entering the output from above.
  */
-function handlesFor(size: { width: number; height: number }, sides: { target: boolean; source: boolean }): NodeHandle[] {
-  const y = size.height / 2 - HANDLE.height / 2;
+function handlesFor(size: { width: number; height: number }, sides: { target: boolean; source: boolean }, dir: Direction): NodeHandle[] {
   const list: NodeHandle[] = [];
+  if (dir === 'TB') {
+    // Same handle turned on its side.
+    const x = size.width / 2 - HANDLE.height / 2;
+    const flat = { width: HANDLE.height, height: HANDLE.width };
+    if (sides.target) list.push({ type: 'target', position: Position.Top, x, y: -flat.height / 2, ...flat });
+    if (sides.source) list.push({ type: 'source', position: Position.Bottom, x, y: size.height - flat.height / 2, ...flat });
+    return list;
+  }
+  const y = size.height / 2 - HANDLE.height / 2;
   if (sides.target) list.push({ type: 'target', position: Position.Left, x: -HANDLE.width / 2, y, ...HANDLE });
   if (sides.source) list.push({ type: 'source', position: Position.Right, x: size.width - HANDLE.width / 2, y, ...HANDLE });
   return list;
@@ -47,7 +58,7 @@ const SIZE = {
  * consumers greedily (largest first), which keeps the number of belts low compared
  * to splitting every producer proportionally across every consumer.
  */
-export function buildGraph(result: SolveResult, tier: number): { nodes: Node[]; edges: Edge[] } {
+export function buildGraph(result: SolveResult, tier: number, dir: Direction = 'LR'): { nodes: Node[]; edges: Edge[] } {
   const nodes: Node[] = [];
   const producers = new Map<string, { node: string; rate: number }[]>();
   const consumers = new Map<string, { node: string; rate: number }[]>();
@@ -67,7 +78,7 @@ export function buildGraph(result: SolveResult, tier: number): { nodes: Node[]; 
       position: { x: 0, y: 0 },
       data: { kind, item, rate } satisfies EndpointNodeData,
       ...SIZE.endpoint,
-      handles: handlesFor(SIZE.endpoint, { source, target: !source }),
+      handles: handlesFor(SIZE.endpoint, { source, target: !source }, dir),
     });
     return id;
   };
@@ -84,7 +95,7 @@ export function buildGraph(result: SolveResult, tier: number): { nodes: Node[]; 
       position: { x: 0, y: 0 },
       data: { use: u } satisfies MachineNodeData,
       ...SIZE.machine,
-      handles: handlesFor(SIZE.machine, { source: true, target: true }),
+      handles: handlesFor(SIZE.machine, { source: true, target: true }, dir),
     });
     for (const o of u.outputs) push(producers, o.item, id, o.rate);
     for (const i of u.inputs) push(consumers, i.item, id, i.rate);
@@ -121,13 +132,17 @@ export function buildGraph(result: SolveResult, tier: number): { nodes: Node[]; 
     }
   }
 
-  layout(nodes, edges);
+  layout(nodes, edges, dir);
   return { nodes, edges };
 }
 
-function layout(nodes: Node[], edges: Edge[]) {
+function layout(nodes: Node[], edges: Edge[], dir: Direction) {
   const g = new dagre.graphlib.Graph();
-  g.setGraph({ rankdir: 'LR', nodesep: 44, ranksep: 220, marginx: 40, marginy: 40 });
+  g.setGraph(
+    dir === 'TB'
+      ? { rankdir: 'TB', nodesep: 30, ranksep: 110, marginx: 20, marginy: 20 }
+      : { rankdir: 'LR', nodesep: 44, ranksep: 220, marginx: 40, marginy: 40 },
+  );
   g.setDefaultEdgeLabel(() => ({}));
   for (const n of nodes) g.setNode(n.id, { width: n.width, height: n.height });
   for (const e of edges) g.setEdge(e.source, e.target);
