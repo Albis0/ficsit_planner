@@ -43,8 +43,8 @@ Remove that target with the **×** on its card before going on. *Expect:* you're
 - [ ] **3.1** On first open, the whole factory fits the floor. *Expect:* machines show the same card at every zoom.
   Zoomed far out, the belts lose their text labels.
 - [ ] **3.2** Scroll to zoom in. *Expect:* each machine card has a cut top-right corner and a coloured strip (orange
-  standard, teal alternate, violet converter) with the product icon, the building name and the power in MW. Below
-  it: the building icon, the recipe name, and "3 × 83.33%" on one line (count and clock together).
+  standard, teal alternate, violet converter) with the product's icon and name and the power in MW on a dark tag.
+  Below it: the building's icon and name, and "3 × 83.33%" on one line (count and clock together).
 - [ ] **3.3** Look at the belt labels when zoomed in. *Expect:* the item icon on the left, the item name on top,
   and the rate with the belt tier (for example "5/min Mk.1") underneath. No label sits on top of a machine.
 - [ ] **3.4** Click **→** (left to right) in the bottom right. *Expect:* the graph is redrawn running left to
@@ -70,8 +70,9 @@ Remove that target with the **×** on its card before going on. *Expect:* you're
 
 ## 5. Power shards and somersloops
 
-- [ ] **5.1** Under **Your inventory**, enter 2 somersloops and 5 power shards, then click **Auto place**.
-  *Expect:* a list of where they went appears under the button.
+- [ ] **5.1** Under **Your inventory**, enter 2 somersloops and 5 power shards, then click **Auto place** (next to
+  the title). *Expect:* a list of where they went appears under the rows. If nothing gains from them, a yellow
+  message shows right under the title instead.
 - [ ] **5.2** Look at the graph. *Expect:* machines with power shards have a **blue** edge along the bottom,
   machines with somersloops a **pink** one, and a machine with both is half blue, half pink. No yellow glow.
 - [ ] **5.3** Look at the readouts along the top. *Expect:* Power shards in blue, Somersloops in pink, and no
@@ -92,6 +93,9 @@ Remove that target with the **×** on its card before going on. *Expect:* you're
   targets can't be made within your resource limits…". Clear the limit: the graph comes back.
 - [ ] **7.2** On the graph, click the Iron Ore amount and type a smaller number. *Expect:* a "Targets scaled to
   your pinned inputs" strip, and every target shrinks to fit. **Unpin all** undoes it.
+- [ ] **7.3** In the summary strip under **Raw input**, type a smaller number into the Iron Ore box, then click its
+  up arrow. *Expect:* the box turns orange with a ×, the same "scaled" strip appears, and the graph's Iron Ore
+  node shows the new amount as pinned. Click ×: back to the normal amount.
 
 ## 8. Side panel and factories
 

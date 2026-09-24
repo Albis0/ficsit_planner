@@ -1,9 +1,11 @@
+import { data } from '../lib/data';
 import type { ExtractionUse } from '../lib/extraction';
 import { useT } from '../lib/i18n';
 import type { SolveResult } from '../lib/solver';
 import { usePlan, useStore } from '../store';
 import { Icon } from './Icon';
 import { MissingList } from './MissingList';
+import { RateInput } from './RateInput';
 import { Slot } from './Slot';
 
 export function Summary({ result, extraction }: { result: SolveResult; extraction: ExtractionUse[] }) {
@@ -56,12 +58,11 @@ export function Summary({ result, extraction }: { result: SolveResult; extractio
           </div>
         )}
         <div className="readout wide">
-          <span className="readout-label">{t('rawInput')}</span>
-          <span className="slots">
-            {result.raw.map((r) => (
-              <Slot key={r.item} id={r.item} rate={r.rate} size={48} />
-            ))}
+          <span className="readout-label">
+            {t('rawInput')}
+            <span className="readout-note">{t('rawEditHint')}</span>
           </span>
+          <RawInputs raw={result.raw} />
         </div>
         {result.surplus.length > 0 && (
           <div className="readout">
@@ -97,5 +98,44 @@ export function Summary({ result, extraction }: { result: SolveResult; extractio
         </div>
       )}
     </div>
+  );
+}
+
+/**
+ * Raw inputs you can retype or step right here, not only on the graph. Changing one pins it: the
+ * factory is built around that amount and the targets scale to fit.
+ */
+function RawInputs({ raw }: { raw: SolveResult['raw'] }) {
+  const { t, name } = useT();
+  const fixed = usePlan().fixed;
+  const setFixed = useStore((s) => s.setFixed);
+  return (
+    <span className="raw-inputs">
+      {raw.map((r) => {
+        const it = data.items[r.item];
+        const pinned = fixed[r.item] !== undefined;
+        return (
+          <span key={r.item} className={`raw-chip ${pinned ? 'pinned' : ''}`} title={`${name(it)}: ${t('pinHint')}`}>
+            <Icon id={r.item} size={32} />
+            <RateInput
+              value={Math.round((fixed[r.item] ?? r.rate) * 100) / 100}
+              label={`${t('rawInput')}: ${name(it)}`}
+              onChange={(v) => v > 0 && setFixed(r.item, v)}
+              step
+            />
+            {pinned && (
+              <button
+                type="button"
+                className="icon-button unpin"
+                aria-label={`${t('unpin')}: ${name(it)}`}
+                onClick={() => setFixed(r.item, undefined)}
+              >
+                ×
+              </button>
+            )}
+          </span>
+        );
+      })}
+    </span>
   );
 }

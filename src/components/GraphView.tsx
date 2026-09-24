@@ -88,23 +88,28 @@ function MachineNode({ id, data: d, selected }: NodeProps) {
       style={bar ? { ['--mod-bar' as string]: bar } : undefined}
     >
       <Handle type="target" position={inSide(dir)} />
-      {/* The in-game build menu look: a coloured strip with what it makes and what it draws, the building below. */}
+      {/* The in-game build menu look: a coloured strip naming what it makes and what it draws, the building below. */}
       <div className="machine-strip">
         <Icon id={recipe.outputs[0].item} size={30} className="strip-icon" />
-        <span className="machine-type">{name(data.machines[recipe.machine])}</span>
-        <span className="machine-power">{num(use.power)} MW</span>
+        <span className="machine-product">{recipeLabel(name(recipe), recipe.kind)}</span>
+        <span className="machine-power">
+          {num(use.power)}
+          <small>MW</small>
+        </span>
       </div>
       <div className="machine-body">
         <Icon id={recipe.machine} size={60} className="machine-icon" />
         <span className="machine-info">
-          <span className="machine-recipe-name">{recipeLabel(name(recipe), recipe.kind)}</span>
+          <span className="machine-type">{name(data.machines[recipe.machine])}</span>
           {/* Count and clock read as one: "3 × 83.33%" is three machines at 83.33% each. */}
           <span className="machine-run">
             {groups.map((g, i) => (
               // biome-ignore lint/suspicious/noArrayIndexKey: clock groups are derived in a fixed order and never reordered.
               <span key={i} className={g.clock > 1 + 1e-6 ? 'over' : undefined}>
                 {i > 0 && <span className="plus">+</span>}
-                <b>{g.n}</b> × {num(g.clock * 100)}%
+                <b>{g.n}</b>
+                <span className="times">×</span>
+                {num(g.clock * 100)}%
               </span>
             ))}
           </span>

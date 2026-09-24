@@ -65,26 +65,30 @@ export function InventoryPanel({ result }: { result?: SolveResult }) {
   };
 
   return (
-    <section className="stack">
-      <h3 className="section-title">{t('inventory')}</h3>
+    <section className="stack inventory">
+      {/* The action sits with the title; what it did (or why it couldn't) shows right under it. */}
+      <div className="section-head">
+        <h3 className="section-title">{t('inventory')}</h3>
+        <div className="inventory-actions">
+          {placed.length > 0 && (
+            <button type="button" className="text-button" onClick={() => updatePlan({ mods: {} })}>
+              {t('clearMods')}
+            </button>
+          )}
+          <button
+            type="button"
+            className="primary-button"
+            disabled={busy || !result || (inventory.sloops === 0 && inventory.shards === 0)}
+            onClick={place}
+          >
+            {busy ? t('placing') : t('autoPlace')}
+          </button>
+        </div>
+      </div>
+      {tried && !busy && placed.length === 0 && <p className="hint warn">{t('nothingPlaced')}</p>}
       <p className="hint">{t('inventoryHint')}</p>
       {row(SLOOP_ICON, t('sloops'), 'sloops', result?.sloops ?? 0)}
       {row(SHARD_ICON, t('shards'), 'shards', result?.shards ?? 0)}
-      <div className="inventory-actions">
-        <button
-          type="button"
-          className="primary-button"
-          disabled={busy || !result || (inventory.sloops === 0 && inventory.shards === 0)}
-          onClick={place}
-        >
-          {busy ? t('placing') : t('autoPlace')}
-        </button>
-        {placed.length > 0 && (
-          <button type="button" className="text-button" onClick={() => updatePlan({ mods: {} })}>
-            {t('clearMods')}
-          </button>
-        )}
-      </div>
       {placed.length > 0 && (
         <ul className="placements">
           {placed.map((u) => (
@@ -102,7 +106,6 @@ export function InventoryPanel({ result }: { result?: SolveResult }) {
           ))}
         </ul>
       )}
-      {tried && !busy && placed.length === 0 && <p className="hint warn">{t('nothingPlaced')}</p>}
     </section>
   );
 }

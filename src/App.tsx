@@ -146,7 +146,18 @@ export default function App() {
       <main className="floor">
         {result && !error && !blocked && <Summary result={result} extraction={extraction} />}
         <div className="floor-view">
-          {error && <div className="floor-message error">{failureText(error, t)}</div>}
+          {error && (
+            <div className="floor-message error">
+              <div className="failure">
+                {failureText(error, t)}
+                {Object.keys(plan.fixed).length > 0 && (
+                  <button type="button" className="primary-button" onClick={() => s.updatePlan({ fixed: {} })}>
+                    {t('unpinAll')}
+                  </button>
+                )}
+              </div>
+            </div>
+          )}
           {empty && <QuickPick />}
           {!error && blocked && (
             <div className="floor-message">

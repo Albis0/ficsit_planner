@@ -89,6 +89,7 @@ export const en = {
   pinInput: 'Amount you have',
   pinHint: 'Enter what you have; the factory scales to it',
   pinned: 'pinned',
+  rawEditHint: 'change one to build around it',
   unpin: 'Unpin',
   scaledBanner: 'Targets scaled to your pinned inputs:',
   unpinAll: 'Unpin all',

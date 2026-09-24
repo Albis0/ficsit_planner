@@ -2,6 +2,22 @@
 
 All notable changes to FICSIT Planner. Dates are when the version was finished.
 
+## 0.4.2 — 2026-09-24
+
+### Added
+
+- Raw inputs in the summary strip are editable: type an amount or step it up and down to pin it, and × to unpin.
+  The graph's ore nodes still work too.
+- When pinned inputs can't make anything, the error has an **Unpin all** button.
+
+### Changed
+
+- Every icon on a machine card sits next to its own name: the product's icon and name on the strip, the
+  building's icon and name in the body.
+- The power draw sits on a dark tag in power yellow, and "3 × 88.89%" uses plain digits with the clock nearly as
+  big as the count, so both read more easily.
+- **Auto place** moved up next to the Your inventory title, with its message right under it.
+
 ## 0.4.1 — 2026-09-24
 
 ### Changed

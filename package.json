@@ -1,7 +1,7 @@
 {
   "name": "ficsit-planner",
   "private": true,
-  "version": "0.4.1",
+  "version": "0.4.2",
   "description": "Offline production planner for Satisfactory, as an installable web app",
   "license": "GPL-3.0-or-later",
   "homepage": "https://ficsit-planner.pages.dev",

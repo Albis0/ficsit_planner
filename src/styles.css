@@ -1337,6 +1337,51 @@ button.slot:hover {
   color: var(--sloop);
 }
 
+.readout-note {
+  margin-left: 10px;
+  font: 500 13px var(--font-body);
+  letter-spacing: 0;
+  text-transform: none;
+  color: var(--faint);
+}
+
+/* Raw inputs in the summary: icon and an amount you can retype or step; a pinned one turns orange. */
+.raw-inputs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 10px;
+}
+
+.raw-chip {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 4px 3px 6px;
+  background: var(--raised);
+  border: 1px solid var(--line);
+}
+
+.raw-chip.pinned {
+  border-color: var(--ficsit);
+}
+
+.raw-chip .rate-input {
+  width: 84px;
+  padding: 4px 8px;
+  font-size: 19px;
+  color: var(--paper);
+}
+
+.raw-chip.pinned .rate-input {
+  color: var(--ficsit);
+}
+
+.raw-chip .unpin {
+  width: 26px;
+  height: 26px;
+  font-size: 20px;
+}
+
 .slots {
   display: flex;
   flex-wrap: wrap;
@@ -1490,11 +1535,11 @@ button.slot:hover {
   display: flex;
   align-items: center;
   gap: 8px;
-  padding: 3px 26px 3px 8px;
+  padding: 3px 24px 3px 8px;
   background: var(--kind);
   color: var(--ficsit-ink);
-  font: 700 17px / 1.2 var(--font-display);
-  letter-spacing: 0.05em;
+  font: 700 18px / 1.2 var(--font-display);
+  letter-spacing: 0.04em;
   text-transform: uppercase;
 }
 
@@ -1503,7 +1548,7 @@ button.slot:hover {
   filter: drop-shadow(0 1px 1px rgb(0 0 0 / 0.45));
 }
 
-.machine-type {
+.machine-product {
   flex: 1;
   min-width: 0;
   overflow: hidden;
@@ -1511,10 +1556,24 @@ button.slot:hover {
   white-space: nowrap;
 }
 
+/* Power draw on a dark tag in the game's power yellow: wide, plain digits read at any zoom. */
 .machine-power {
   flex: none;
-  font-size: 21px;
-  letter-spacing: 0.02em;
+  display: flex;
+  align-items: baseline;
+  gap: 3px;
+  padding: 1px 7px 2px;
+  background: rgb(18 20 22 / 0.9);
+  color: var(--power);
+  font: 700 17px / 1.25 var(--font-body);
+  letter-spacing: 0;
+  text-transform: none;
+}
+
+.machine-power small {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--dim);
 }
 
 /* Shards and somersloops: a blue, pink or half-and-half edge along the bottom. */
@@ -1549,25 +1608,37 @@ button.slot:hover {
   min-width: 0;
 }
 
-.machine-recipe-name {
+.machine-type {
   font: 600 21px / 1.15 var(--font-display);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
+/* "3 × 88.89%": plain (not condensed) digits, the clock nearly as big as the count. */
 .machine-run {
   display: flex;
   flex-wrap: wrap;
   align-items: baseline;
-  gap: 0 6px;
-  font: 600 18px / 1.2 var(--font-display);
-  color: var(--dim);
+  gap: 0 8px;
+  font: 600 20px / 1.2 var(--font-body);
+  color: var(--paper);
+}
+
+.machine-run > span {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 5px;
 }
 
 .machine-run b {
-  font-size: 28px;
-  color: var(--paper);
+  font-size: 26px;
+  font-weight: 700;
+}
+
+.machine-run .times {
+  font-size: 16px;
+  color: var(--faint);
 }
 
 .machine-run .over {
@@ -1579,7 +1650,7 @@ button.slot:hover {
 }
 
 .machine-run .plus {
-  margin-right: 6px;
+  margin-right: 3px;
   color: var(--faint);
 }
 
@@ -2283,11 +2354,32 @@ button.slot:hover {
   color: var(--alert);
 }
 
+/* Section title with its action on the same line. */
+.section-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  max-width: 560px;
+}
+
 .inventory-actions {
   display: flex;
   align-items: center;
   gap: 18px;
-  margin-top: 4px;
+}
+
+.inventory .inventory-row,
+.inventory .placements {
+  max-width: 560px;
+}
+
+.failure {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 18px;
+  max-width: 720px;
 }
 
 .primary-button {
@@ -2785,8 +2877,13 @@ button.slot:hover {
     font-size: 16px;
   }
 
-  .readouts .slots {
+  .readouts .slots,
+  .readouts .raw-inputs {
     flex-wrap: nowrap;
+  }
+
+  .readout-note {
+    display: none;
   }
 
   .readouts .slot {
