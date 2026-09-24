@@ -11,10 +11,10 @@ import { TableView } from './components/TableView';
 import { TargetsPanel } from './components/TargetsPanel';
 import { data, recipeById, recipeUnlocked } from './lib/data';
 import { effectiveExtraction, planExtraction } from './lib/extraction';
-import { getHighs } from './lib/highs';
 import { useT } from './lib/i18n';
-import { solve, type SolveResult } from './lib/solver';
-import { failureText, toFailure, type SolveFailure } from './lib/solveFailure';
+import type { SolveResult } from './lib/solver';
+import { solveAsync } from './lib/solverClient';
+import { failureText, type SolveFailure } from './lib/solveFailure';
 import { usePlan, useStore } from './store';
 import { applyScale } from './lib/zoom';
 
@@ -41,10 +41,8 @@ function useSolution() {
     setState((s) => ({ ...s, busy: true }));
     // Debounce so typing "120" doesn't solve for 1 and 12 first.
     const timer = setTimeout(async () => {
-      const highs = await getHighs();
-      if (cancelled) return;
       try {
-        const result = solve(highs, {
+        const result = await solveAsync({
           targets: active,
           supplies: plan.supplies,
           enabledRecipes: usable,
@@ -55,7 +53,7 @@ function useSolution() {
         });
         if (!cancelled) setState({ result, busy: false });
       } catch (e) {
-        if (!cancelled) setState({ error: toFailure(e), busy: false });
+        if (!cancelled) setState({ error: e as SolveFailure, busy: false });
       }
     }, 180);
     return () => {

@@ -1,9 +1,9 @@
 import { useState } from 'react';
 import { data, recipeById, recipeUnlocked } from '../lib/data';
-import { getHighs } from '../lib/highs';
 import { useT } from '../lib/i18n';
 import { recipeLabel } from '../lib/text';
-import { autoAssign, type SolveResult } from '../lib/solver';
+import type { SolveResult } from '../lib/solver';
+import { autoAssignAsync } from '../lib/solverClient';
 import { usePlan, useStore } from '../store';
 import { Icon } from './Icon';
 import { RateInput } from './RateInput';
@@ -25,12 +25,8 @@ export function InventoryPanel({ result }: { result?: SolveResult }) {
 
   const place = async () => {
     setBusy(true);
-    // Let the button repaint before the solver loop blocks the thread.
-    await new Promise((r) => setTimeout(r, 30));
     try {
-      const highs = await getHighs();
-      const mods = autoAssign(
-        highs,
+      const mods = await autoAssignAsync(
         {
           targets: plan.targets.filter((x) => x.rate > 0),
           supplies: plan.supplies,
@@ -42,6 +38,8 @@ export function InventoryPanel({ result }: { result?: SolveResult }) {
         inventory,
       );
       updatePlan({ mods });
+    } catch {
+      // The plan itself failed to solve; the error already shows on the factory floor.
     } finally {
       setTried(true);
       setBusy(false);
