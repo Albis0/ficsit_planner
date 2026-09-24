@@ -85,51 +85,45 @@ function MachineNode({ id, data: d, selected }: NodeProps) {
   const faded = useFaded(id);
   const bar = modBar(use.shards, use.sloops);
   const groups = groupClocks(use.clocks);
+  const product = recipe.outputs[0].item;
+  // Far away one line has to say it all, so mixed clocks collapse to the machine count.
+  const shown = far && groups.length > 1 ? [] : groups;
   return (
     <div
       className={`machine-node ${recipe.kind} ${faded ? 'faded' : ''} ${selected ? 'selected' : ''} ${far ? 'far' : ''}`}
       style={bar ? { ['--mod-bar' as string]: bar } : undefined}
     >
       <Handle type="target" position={inSide(dir)} />
-      <div className="machine-strip">
-        <span>{name(data.machines[recipe.machine])}</span>
-        <span className="machine-power">{num(use.power)} MW</span>
-      </div>
-      {far ? (
-        <div className="machine-body">
-          <Icon id={recipe.outputs[0].item} size={80} />
-          <span className="far-text">
-            <span className="far-count">
-              {use.built}
-              <small>×</small>
-            </span>
-            <span className="far-name">{name(data.items[recipe.outputs[0].item])}</span>
-          </span>
-        </div>
-      ) : (
-        <div className="machine-body">
-          <Icon id={recipe.machine} size={56} className="machine-icon" />
-          <span className="machine-info">
-            <span className="machine-recipe-name">{recipeLabel(name(recipe), recipe.kind)}</span>
-            {/* Count and clock read as one: "3 × 83.33%" is three machines at 83.33% each. */}
-            <span className="machine-run">
-              {groups.map((g, i) => (
-                // biome-ignore lint/suspicious/noArrayIndexKey: clock groups are derived in a fixed order and never reordered.
-                <span key={i} className={g.clock > 1 + 1e-6 ? 'over' : undefined}>
-                  {i > 0 && <span className="plus">+</span>}
-                  <b>{g.n}</b> × {num(g.clock * 100)}%
-                </span>
-              ))}
-            </span>
-            {(use.shards > 0 || use.sloops > 0) && (
-              <span className="machine-mods">
-                {use.shards > 0 && <span className="mod-badge shard">{use.shards} ◆</span>}
-                {use.sloops > 0 && <span className="mod-badge sloop">{use.sloops} ●</span>}
-              </span>
-            )}
-          </span>
+      {!far && (
+        <div className="machine-head">
+          <Icon id={recipe.machine} size={24} />
+          <span className="machine-type">{name(data.machines[recipe.machine])}</span>
+          <span className="machine-power">{num(use.power)} MW</span>
         </div>
       )}
+      <div className="machine-body">
+        <Icon id={product} size={far ? 68 : 52} className="machine-product" />
+        <span className="machine-info">
+          <span className="machine-recipe-name">{far ? name(data.items[product]) : recipeLabel(name(recipe), recipe.kind)}</span>
+          {/* Count and clock read as one: "3 × 83.33%" is three machines at 83.33% each. */}
+          <span className="machine-run">
+            {shown.length === 0 && <b>{use.built}</b>}
+            {shown.map((g, i) => (
+              // biome-ignore lint/suspicious/noArrayIndexKey: clock groups are derived in a fixed order and never reordered.
+              <span key={i} className={g.clock > 1 + 1e-6 ? 'over' : undefined}>
+                {i > 0 && <span className="plus">+</span>}
+                <b>{g.n}</b> × {num(g.clock * 100)}%
+              </span>
+            ))}
+          </span>
+          {!far && (use.shards > 0 || use.sloops > 0) && (
+            <span className="machine-mods">
+              {use.shards > 0 && <span className="mod-badge shard">{use.shards} ◆</span>}
+              {use.sloops > 0 && <span className="mod-badge sloop">{use.sloops} ●</span>}
+            </span>
+          )}
+        </span>
+      </div>
       <Handle type="source" position={outSide(dir)} />
     </div>
   );

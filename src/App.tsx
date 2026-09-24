@@ -96,7 +96,8 @@ export default function App() {
       className="app"
       data-pane={s.pane}
       data-empty={empty || undefined}
-      style={s.sideWidth ? { ['--side-w' as string]: `${s.sideWidth}px` } : undefined}
+      data-deck={s.deckClosed ? 'closed' : undefined}
+      style={s.deckHeight ? { ['--deck-h' as string]: `${s.deckHeight}px` } : undefined}
     >
       <header className="topbar">
         <div className="brand">
@@ -120,11 +121,21 @@ export default function App() {
       <aside className="side">
         <div className="tabs" role="tablist">
           {tabs.map(([id, label, badge]) => (
-            <button key={id} type="button" role="tab" aria-selected={s.tab === id} onClick={() => s.set({ tab: id })}>
+            <button key={id} type="button" role="tab" aria-selected={s.tab === id} onClick={() => s.set({ tab: id, deckClosed: false })}>
               {label}
               {badge != null && <span className="tab-badge">{badge}</span>}
             </button>
           ))}
+          <button
+            type="button"
+            className="deck-toggle"
+            aria-expanded={!s.deckClosed}
+            title={s.deckClosed ? t('showPanel') : t('hidePanel')}
+            onClick={() => s.set({ deckClosed: !s.deckClosed })}
+          >
+            <span aria-hidden>{s.deckClosed ? '▾' : '▴'}</span>
+            <span className="deck-toggle-label">{s.deckClosed ? t('showPanel') : t('hidePanel')}</span>
+          </button>
         </div>
         {s.tab === 'targets' && <TargetsPanel result={result} />}
         {s.tab === 'recipes' && <RecipesPanel />}

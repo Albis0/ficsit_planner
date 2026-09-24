@@ -59,7 +59,7 @@ export function Summary({ result, extraction }: { result: SolveResult; extractio
           <span className="readout-label">{t('rawInput')}</span>
           <span className="slots">
             {result.raw.map((r) => (
-              <Slot key={r.item} id={r.item} rate={r.rate} size={52} />
+              <Slot key={r.item} id={r.item} rate={r.rate} size={48} />
             ))}
           </span>
         </div>
@@ -68,7 +68,7 @@ export function Summary({ result, extraction }: { result: SolveResult; extractio
             <span className="readout-label">{t('surplus')}</span>
             <span className="slots">
               {result.surplus.map((r) => (
-                <Slot key={r.item} id={r.item} rate={r.rate} size={52} tone="muted" />
+                <Slot key={r.item} id={r.item} rate={r.rate} size={48} tone="muted" />
               ))}
             </span>
           </div>

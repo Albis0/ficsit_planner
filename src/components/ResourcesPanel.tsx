@@ -24,8 +24,8 @@ export function ResourcesPanel({ result }: { result?: SolveResult }) {
   const usesWell = [...uses.values()].some((u) => u.extractor.id === 'Build_FrackingExtractor_C');
 
   return (
-    <div className="panel-body">
-      <section className="stack">
+    <div className="panel-body resources">
+      <section className="stack extraction">
         <h3 className="section-title">{t('extraction')}</h3>
         <p className="hint">{t('extractionHint')}</p>
         <div className="miner-picker" role="radiogroup" aria-label={t('miner')}>
@@ -67,56 +67,58 @@ export function ResourcesPanel({ result }: { result?: SolveResult }) {
         </div>
       </section>
 
-      <section className="stack">
+      <section className="stack resource-list">
         <h3 className="section-title">{t('resources')}</h3>
         <p className="hint">{t('resourceHint')}</p>
-        {sorted.map((item) => {
-          const world = data.worldLimits[item.id];
-          const cap = plan.caps[item.id] ?? world;
-          const use = uses.get(item.id);
-          const share = cap && use ? Math.min(use.rate / cap, 1) : 0;
-          return (
-            <div key={item.id} className={`resource-card ${use ? 'used' : ''}`}>
-              <div className="item-card flat">
-                <Slot id={item.id} rate={use?.rate} size={52} />
-                <span className="item-card-name">{name(item)}</span>
-                <span className="item-card-rate">
-                  <RateInput
-                    value={plan.caps[item.id] ?? Number.NaN}
-                    label={`${t('limit')}: ${name(item)}`}
-                    placeholder={world == null ? t('unlimited') : num(world)}
-                    onChange={(v) => setCap(item.id, v)}
-                    onClear={() => setCap(item.id, undefined)}
-                  />
-                  <span className="unit">{t('perMin')}</span>
-                </span>
-              </div>
-              {use && (
-                <>
-                  <div className="meter" aria-hidden>
-                    <span style={{ width: `${share * 100}%` }} className={share > 0.999 ? 'full' : undefined} />
-                  </div>
-                  <div className="extract-row">
-                    <Icon id={use.extractor.id} size={28} />
-                    <span className="extract-name">{name(use.extractor)}</span>
-                    {use.extractor.purity ? (
-                      PURITIES.map((p) => (
-                        <span key={p} className={`extract-count ${p === ex.purity ? 'chosen' : ''}`} title={t(p)}>
-                          <b>{use.counts[p]}</b>
-                          <small>{t(p)}</small>
+        <div className="resource-cards">
+          {sorted.map((item) => {
+            const world = data.worldLimits[item.id];
+            const cap = plan.caps[item.id] ?? world;
+            const use = uses.get(item.id);
+            const share = cap && use ? Math.min(use.rate / cap, 1) : 0;
+            return (
+              <div key={item.id} className={`resource-card ${use ? 'used' : ''}`}>
+                <div className="item-card flat">
+                  <Slot id={item.id} rate={use?.rate} size={52} />
+                  <span className="item-card-name">{name(item)}</span>
+                  <span className="item-card-rate">
+                    <RateInput
+                      value={plan.caps[item.id] ?? Number.NaN}
+                      label={`${t('limit')}: ${name(item)}`}
+                      placeholder={world == null ? t('unlimited') : num(world)}
+                      onChange={(v) => setCap(item.id, v)}
+                      onClear={() => setCap(item.id, undefined)}
+                    />
+                    <span className="unit">{t('perMin')}</span>
+                  </span>
+                </div>
+                {use && (
+                  <>
+                    <div className="meter" aria-hidden>
+                      <span style={{ width: `${share * 100}%` }} className={share > 0.999 ? 'full' : undefined} />
+                    </div>
+                    <div className="extract-row">
+                      <Icon id={use.extractor.id} size={28} />
+                      <span className="extract-name">{name(use.extractor)}</span>
+                      {use.extractor.purity ? (
+                        PURITIES.map((p) => (
+                          <span key={p} className={`extract-count ${p === ex.purity ? 'chosen' : ''}`} title={t(p)}>
+                            <b>{use.counts[p]}</b>
+                            <small>{t(p)}</small>
+                          </span>
+                        ))
+                      ) : (
+                        <span className="extract-count chosen">
+                          <b>{use.built}</b>
                         </span>
-                      ))
-                    ) : (
-                      <span className="extract-count chosen">
-                        <b>{use.built}</b>
-                      </span>
-                    )}
-                  </div>
-                </>
-              )}
-            </div>
-          );
-        })}
+                      )}
+                    </div>
+                  </>
+                )}
+              </div>
+            );
+          })}
+        </div>
         {usesWell && <p className="hint">{t('wellNote')}</p>}
       </section>
     </div>

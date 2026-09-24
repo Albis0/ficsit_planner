@@ -106,10 +106,14 @@ button:disabled {
 
 /* ---------- Frame ---------- */
 
+/*
+  Top bar, then the panel (targets, recipes, resources) across the whole width, then the factory
+  floor across the whole width under it. Dragging the panel's bottom edge trades height between them.
+*/
 .app {
   display: grid;
-  grid-template-columns: var(--side-w, 460px) minmax(0, 1fr);
-  grid-template-rows: 64px 1fr;
+  grid-template-columns: minmax(0, 1fr);
+  grid-template-rows: 64px var(--deck-h, clamp(220px, 32vh, 400px)) minmax(0, 1fr);
   height: 100%;
   /* It's an app, not a page: clicks and drags shouldn't paint text selections. */
   -webkit-user-select: none;
@@ -122,9 +126,9 @@ button:disabled {
   user-select: text;
 }
 
-/* Nothing to plan yet: the floor takes the whole width and asks what to make. */
+/* Nothing to plan yet: the floor takes the whole screen and asks what to make. */
 .app[data-empty] {
-  grid-template-columns: minmax(0, 1fr);
+  grid-template-rows: 64px minmax(0, 1fr);
 }
 
 .app[data-empty] .side {
@@ -253,25 +257,25 @@ button:disabled {
   border-left: 1px solid var(--line);
 }
 
-/* Drag handle on the side panel's right edge. */
+/* Drag handle on the panel's bottom edge. */
 .splitter {
   position: absolute;
-  top: 0;
-  bottom: 0;
-  right: -6px;
+  left: 0;
+  right: 0;
+  bottom: -6px;
   z-index: 20;
-  width: 12px;
-  cursor: col-resize;
+  height: 12px;
+  cursor: row-resize;
   touch-action: none;
 }
 
 .splitter::after {
   content: '';
   position: absolute;
-  top: 0;
-  bottom: 0;
-  left: 5px;
-  width: 2px;
+  left: 0;
+  right: 0;
+  top: 5px;
+  height: 2px;
   transition: background 120ms;
 }
 
@@ -286,7 +290,7 @@ button:disabled {
 }
 
 .resizing {
-  cursor: col-resize;
+  cursor: row-resize;
 }
 
 /* ---------- Buttons and fields ---------- */
@@ -355,6 +359,61 @@ button:disabled {
   outline: none;
   border-color: var(--ficsit);
   box-shadow: 0 0 0 1px var(--ficsit);
+}
+
+/* An amount with up and down buttons stacked on its right, like a spinner. */
+.rate-field {
+  display: inline-flex;
+  align-items: stretch;
+}
+
+.rate-field .rate-input {
+  border-right: 0;
+}
+
+.rate-step {
+  display: flex;
+  flex-direction: column;
+  border: 1px solid var(--line-2);
+}
+
+.rate-step button {
+  -webkit-tap-highlight-color: transparent;
+  flex: 1;
+  width: 30px;
+  display: grid;
+  place-items: center;
+  padding: 0;
+  border: 0;
+  background: var(--panel);
+  color: var(--dim);
+}
+
+.rate-step button + button {
+  border-top: 1px solid var(--line-2);
+}
+
+.rate-step button:hover:not(:disabled) {
+  background: var(--ficsit);
+  color: var(--ficsit-ink);
+}
+
+.rate-step span::before {
+  display: block;
+  font-size: 10px;
+  line-height: 1;
+}
+
+.step-up span::before {
+  content: '\25B2';
+}
+
+.step-down span::before {
+  content: '\25BC';
+}
+
+.rate-field:focus-within .rate-step {
+  border-color: var(--ficsit);
 }
 
 .unit {
@@ -460,11 +519,12 @@ button.slot:hover {
 
 .side {
   position: relative;
+  z-index: 2;
   display: flex;
   flex-direction: column;
   min-height: 0;
   background: var(--panel-2);
-  border-right: 1px solid var(--line);
+  border-bottom: 1px solid var(--line-2);
 }
 
 .tabs {
@@ -474,11 +534,10 @@ button.slot:hover {
 }
 
 .tabs button {
-  flex: 1;
   position: relative;
   border: 0;
   background: transparent;
-  padding: 16px 8px 13px;
+  padding: 14px 30px 11px;
   font: 700 19px / 1 var(--font-display);
   letter-spacing: 0.05em;
   text-transform: uppercase;
@@ -502,6 +561,41 @@ button.slot:hover {
   background: var(--ficsit);
 }
 
+/* Folds the panel down to its tabs, so the factory gets the whole screen. */
+.tabs .deck-toggle {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0 20px;
+  font: 600 16px var(--font-display);
+  letter-spacing: 0.03em;
+  text-transform: none;
+  color: var(--faint);
+}
+
+.tabs .deck-toggle:hover {
+  color: var(--ficsit);
+}
+
+.app[data-deck='closed'] {
+  grid-template-rows: 64px auto minmax(0, 1fr);
+}
+
+.app[data-deck='closed'] .side > :not(.tabs),
+.app[data-deck='closed'] .tabs button[aria-selected='true']::after {
+  display: none;
+}
+
+.app[data-deck='closed'] .tabs {
+  border-bottom: 0;
+}
+
+.app[data-deck='closed'] .tabs button[aria-selected='true'] {
+  background: transparent;
+  color: var(--faint);
+}
+
 .tab-badge {
   margin-left: 8px;
   font-weight: 500;
@@ -522,6 +616,14 @@ button.slot:hover {
   display: flex;
   flex-direction: column;
   gap: 8px;
+}
+
+/* Across the width: targets, on hand and inventory side by side. */
+.panel-body.targets {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(360px, 1fr));
+  align-items: start;
+  gap: 24px 36px;
 }
 
 .section-title {
@@ -639,17 +741,23 @@ button.slot:hover {
 
 /* ---------- Recipes ---------- */
 
+/* Tools in a column on the left, the recipes flowing in columns across the rest. */
 .panel-body.recipes {
+  flex-direction: row;
   padding: 0;
   gap: 0;
+  overflow: hidden;
 }
 
 .recipe-tools {
+  flex: none;
+  width: 400px;
   display: flex;
   flex-direction: column;
   gap: 12px;
   padding: 18px 20px;
-  border-bottom: 1px solid var(--line);
+  border-right: 1px solid var(--line);
+  overflow-y: auto;
 }
 
 .recipe-tools .segmented {
@@ -706,13 +814,17 @@ button.slot:hover {
 
 .recipe-list {
   flex: 1;
+  min-width: 0;
   min-height: 0;
   overflow-y: auto;
-  padding: 16px 20px 32px;
+  padding: 16px 20px 12px;
+  column-width: 400px;
+  column-gap: 28px;
 }
 
-.recipe-group + .recipe-group {
-  margin-top: 22px;
+.recipe-group {
+  break-inside: avoid;
+  padding-bottom: 20px;
 }
 
 .recipe-row {
@@ -859,6 +971,38 @@ button.slot:hover {
   flex-direction: column;
   gap: 6px;
   margin-top: 6px;
+}
+
+/* Extraction settings on the left, every resource in a grid across the rest. */
+.panel-body.resources {
+  flex-direction: row;
+  padding: 0;
+  gap: 0;
+  overflow: hidden;
+}
+
+.panel-body.resources > .stack {
+  min-height: 0;
+  overflow-y: auto;
+  padding: 18px 20px 20px;
+}
+
+.panel-body.resources > .extraction {
+  flex: none;
+  width: 400px;
+  border-right: 1px solid var(--line);
+}
+
+.panel-body.resources > .resource-list {
+  flex: 1;
+  min-width: 0;
+}
+
+.resource-cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(380px, 1fr));
+  align-items: start;
+  gap: 8px 16px;
 }
 
 .field .item-card-rate {
@@ -1137,8 +1281,8 @@ button.slot:hover {
   display: flex;
   flex-direction: column;
   justify-content: center;
-  gap: 4px;
-  padding: 12px 22px;
+  gap: 3px;
+  padding: 9px 22px;
   background: var(--panel);
   min-width: 130px;
   border: 0;
@@ -1168,7 +1312,7 @@ button.slot:hover {
 }
 
 .readout-value {
-  font: 700 38px / 1 var(--font-display);
+  font: 700 34px / 1 var(--font-display);
 }
 
 .readout-value small {
@@ -1307,7 +1451,12 @@ button.slot:hover {
   cursor: pointer;
 }
 
+/*
+  A machine: a dark plate with its recipe kind along the top edge (orange standard, teal alternate,
+  violet converter), the building and its power in a quiet header, then what it makes, big.
+*/
 .machine-node {
+  --kind: var(--ficsit);
   position: relative;
   width: 300px;
   height: 118px;
@@ -1315,37 +1464,53 @@ button.slot:hover {
   flex-direction: column;
   background: var(--raised);
   border: 1px solid var(--line-2);
-  clip-path: polygon(0 0, calc(100% - 18px) 0, 100% 18px, 100% 100%, 0 100%);
+  border-top: 4px solid var(--kind);
   transition: opacity 120ms;
+}
+
+.machine-node.alternate {
+  --kind: var(--alt);
+}
+
+.machine-node.converter {
+  --kind: var(--converter);
 }
 
 .react-flow__node:hover .machine-node,
 .machine-node.selected {
-  border-color: var(--ficsit);
+  border-color: var(--kind);
 }
 
 .machine-node.selected {
-  box-shadow: inset 0 0 0 1px var(--ficsit);
+  box-shadow:
+    0 0 0 2px var(--kind),
+    0 10px 30px rgb(0 0 0 / 0.45);
 }
 
-.machine-strip {
+.machine-head {
   display: flex;
-  justify-content: space-between;
-  gap: 8px;
-  padding: 4px 24px 4px 12px;
-  background: var(--ficsit);
-  color: var(--ficsit-ink);
-  font: 700 16px / 1.3 var(--font-display);
-  letter-spacing: 0.05em;
+  align-items: center;
+  gap: 7px;
+  padding: 5px 12px 0 9px;
+  font: 700 14px / 1.2 var(--font-display);
+  letter-spacing: 0.06em;
   text-transform: uppercase;
+  color: var(--faint);
 }
 
-.machine-node.alternate .machine-strip {
-  background: var(--alt);
+.machine-type {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--dim);
 }
 
-.machine-node.converter .machine-strip {
-  background: var(--converter);
+.machine-power {
+  flex: none;
+  color: var(--power);
+  letter-spacing: 0.02em;
 }
 
 /* Shards and somersloops: a blue, pink or half-and-half edge along the bottom. */
@@ -1364,11 +1529,11 @@ button.slot:hover {
   min-height: 0;
   display: flex;
   align-items: center;
-  gap: 10px;
-  padding: 0 12px 4px 8px;
+  gap: 12px;
+  padding: 0 12px 6px 10px;
 }
 
-.machine-icon {
+.machine-product {
   flex: none;
   filter: drop-shadow(0 3px 4px rgb(0 0 0 / 0.55));
 }
@@ -1376,12 +1541,12 @@ button.slot:hover {
 .machine-info {
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  gap: 1px;
   min-width: 0;
 }
 
 .machine-recipe-name {
-  font: 600 20px / 1.15 var(--font-display);
+  font: 600 21px / 1.15 var(--font-display);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -1397,7 +1562,7 @@ button.slot:hover {
 }
 
 .machine-run b {
-  font-size: 28px;
+  font-size: 26px;
   color: var(--paper);
 }
 
@@ -1435,15 +1600,32 @@ button.slot:hover {
   color: var(--sloop);
 }
 
-/* Zoomed far out: the product's icon and the machine count, big enough to read. */
-.machine-node.far .machine-strip {
-  min-height: 18px;
-  font-size: 0;
+/* Zoomed far out: the same plate with only what it makes and how many, big enough to read. */
+.machine-node.far {
+  border-top-width: 10px;
 }
 
 .machine-node.far .machine-body {
-  gap: 12px;
-  padding-left: 12px;
+  gap: 14px;
+  padding: 0 14px 8px 12px;
+}
+
+.machine-node.far .machine-recipe-name {
+  font-size: 36px;
+  line-height: 1.05;
+}
+
+.machine-node.far .machine-run {
+  font-size: 32px;
+  line-height: 1.05;
+}
+
+.machine-node.far .machine-run b {
+  font-size: 50px;
+}
+
+.machine-node.far::after {
+  height: 14px;
 }
 
 .far-text {
@@ -1458,19 +1640,6 @@ button.slot:hover {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-}
-
-.machine-node.far::after {
-  height: 14px;
-}
-
-.far-count {
-  font: 700 56px / 1 var(--font-display);
-}
-
-.far-count small {
-  font-size: 32px;
-  color: var(--faint);
 }
 
 .endpoint-node.far {
@@ -1498,8 +1667,7 @@ button.slot:hover {
 
 .endpoint-node.target {
   --accent: var(--ficsit);
-  border-color: var(--ficsit);
-  background: color-mix(in srgb, var(--ficsit) 12%, var(--panel));
+  border-color: color-mix(in srgb, var(--ficsit) 70%, transparent);
 }
 
 .endpoint-node.missing {
@@ -2382,11 +2550,6 @@ button.slot:hover {
 }
 
 @media (max-width: 1100px) {
-  .app {
-    grid-template-columns: var(--side-w, 360px) minmax(0, 1fr);
-  }
-
-  /* Narrow panel: a long name gets the room, and breaks rather than running under the amount. */
   .item-card {
     gap: 10px;
   }
@@ -2394,6 +2557,11 @@ button.slot:hover {
   .item-card-name {
     font-size: 18px;
     overflow-wrap: anywhere;
+  }
+
+  .recipe-tools,
+  .panel-body.resources > .extraction {
+    width: 340px;
   }
 
   .topbar {
@@ -2420,7 +2588,7 @@ button.slot:hover {
 
   .tabs button {
     font-size: 17px;
-    padding-inline: 4px;
+    padding-inline: 20px;
   }
 
   .inspector {
@@ -2446,6 +2614,55 @@ button.slot:hover {
   .app[data-empty] .mobile-nav,
   .splitter {
     display: none;
+  }
+
+  .app[data-empty] {
+    grid-template-rows: auto minmax(0, 1fr);
+  }
+
+  /* One pane at a time: the panel is a full-height page again, laid out in a single column. */
+  .app[data-deck='closed'] .side > :not(.tabs) {
+    display: flex;
+  }
+
+  .panel-body.targets {
+    display: flex;
+    align-items: stretch;
+  }
+
+  .panel-body.recipes,
+  .panel-body.resources {
+    flex-direction: column;
+    overflow-y: auto;
+  }
+
+  .recipe-tools,
+  .panel-body.resources > .extraction {
+    width: auto;
+    border-right: 0;
+    overflow: visible;
+  }
+
+  .recipe-tools {
+    border-bottom: 1px solid var(--line);
+  }
+
+  .recipe-list,
+  .panel-body.resources > .stack {
+    overflow: visible;
+  }
+
+  .recipe-list {
+    column-width: auto;
+    padding-bottom: 24px;
+  }
+
+  .panel-body.resources > .stack {
+    padding: 16px 14px 24px;
+  }
+
+  .resource-cards {
+    grid-template-columns: minmax(0, 1fr);
   }
 
   /* Top bar: small mark, scrolling factory tabs, everything else in the menu. */
@@ -2497,7 +2714,7 @@ button.slot:hover {
   }
 
   .side {
-    border-right: 0;
+    border-bottom: 0;
   }
 
   .mobile-nav {
@@ -2538,7 +2755,42 @@ button.slot:hover {
     background: var(--ficsit);
   }
 
-  .mobile-nav .tab-badge {
+  .mobile-nav /* Folds the panel down to its tabs, so the factory gets the whole screen. */
+  .tabs .deck-toggle {
+    margin-left: auto;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 0 20px;
+    font: 600 16px var(--font-display);
+    letter-spacing: 0.03em;
+    text-transform: none;
+    color: var(--faint);
+  }
+
+  .tabs .deck-toggle:hover {
+    color: var(--ficsit);
+  }
+
+  .app[data-deck='closed'] {
+    grid-template-rows: 64px auto minmax(0, 1fr);
+  }
+
+  .app[data-deck='closed'] .side > :not(.tabs),
+  .app[data-deck='closed'] .tabs button[aria-selected='true']::after {
+    display: none;
+  }
+
+  .app[data-deck='closed'] .tabs {
+    border-bottom: 0;
+  }
+
+  .app[data-deck='closed'] .tabs button[aria-selected='true'] {
+    background: transparent;
+    color: var(--faint);
+  }
+
+  .tab-badge {
     margin-left: 4px;
   }
 
@@ -2756,8 +3008,76 @@ button.slot:hover {
   }
 }
 
+/*
+  Phones, and touch screens where the amount has finger-sized − and + beside it: the target card
+  puts the name over the amount so neither gets squeezed.
+*/
+@media (max-width: 900px), (pointer: coarse) {
+  /* Card: slot on the left, the name over the amount and its buttons. */
+  .item-card:not(.flat) {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    grid-template-areas:
+      'slot name remove'
+      'slot rate rate';
+    gap: 6px 12px;
+  }
+
+  .item-card:not(.flat) > .slot {
+    grid-area: slot;
+  }
+
+  .item-card:not(.flat) > .item-card-name {
+    grid-area: name;
+  }
+
+  .item-card:not(.flat) > .item-card-rate {
+    grid-area: rate;
+  }
+
+  .item-card:not(.flat) > .icon-button {
+    grid-area: remove;
+  }
+}
+
 /* Touch screens: finger-sized targets. */
 @media (pointer: coarse) {
+  .rate-step {
+    display: contents;
+  }
+
+  .rate-field .rate-input {
+    border-right: 1px solid var(--line-2);
+    border-left: 0;
+    width: 76px;
+  }
+
+  .rate-step button {
+    width: 44px;
+    border: 1px solid var(--line-2);
+  }
+
+  .rate-step button + button {
+    border-top: 1px solid var(--line-2);
+  }
+
+  .step-down {
+    order: -1;
+  }
+
+  .step-up span::before,
+  .step-down span::before {
+    font: 700 24px / 1 var(--font-display);
+  }
+
+  .step-up span::before {
+    content: '+';
+  }
+
+  .step-down span::before {
+    content: '\2212';
+  }
+
   .segmented button,
   .tier-button,
   .install-button,

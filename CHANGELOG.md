@@ -2,6 +2,24 @@
 
 All notable changes to FICSIT Planner. Dates are when the version was finished.
 
+## 0.4.0 — 2026-09-24
+
+### Changed
+
+- The panel (targets, recipes, resources) now runs across the top, and the factory floor takes the full width
+  under it. Each tab lays itself out across the width: targets, on hand and inventory side by side; recipe tools
+  on the left with the recipes in columns; extraction on the left with every resource in a grid.
+- Drag the panel's bottom edge to trade height with the floor, or hide the panel down to its tabs.
+- Machines are a plain plate with the recipe kind along the top edge, the building and its power in a small
+  header, and the product icon, name and "3 × 83.33%" underneath. Zoomed out, the same plate keeps just the
+  product and the count, in big type.
+- Output nodes lost their brown wash.
+
+### Added
+
+- Up and down buttons on target, on-hand and inventory amounts, one whole number per click (12.5 goes to 13 or
+  12). The arrow keys do the same. On touch screens they are − and + either side of the field.
+
 ## 0.3.0 — 2026-09-24
 
 ### Added

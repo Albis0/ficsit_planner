@@ -18,15 +18,15 @@ It takes about 20 minutes on a desktop, plus 10 on a phone.
 
 - [ ] **1.1** Open the site. *Expect:* a "Where are you in the game?" window with tier cards.
 - [ ] **1.2** Pick **Tier 3**. *Expect:* the window closes. The top bar says **Tier 3**. The page shows only
-  "What are we making?", a search box and item cards. There is no side panel on the left.
+  "What are we making?", a search box and item cards. There is no panel above it.
 - [ ] **1.3** Look at the cards. *Expect:* items you can't make at Tier 3 (for example Modular Engine, Magnetic
   Field Generator) are dimmed and carry a small **TIER N** tag. Smart Plating, Iron Plate and Rotor have no tag.
 - [ ] **1.4** Triple-click the "What are we making?" heading, then drag across a card. *Expect:* nothing gets
   highlighted as selected text.
 - [ ] **1.5** Type `motor` in the search box. *Expect:* only Motor and Turbo Motor are shown, both with their
   tier tag. Clear the box: the shortcuts come back.
-- [ ] **1.6** Type `plate` and press **Enter**. *Expect:* the first match is added as a target, the side panel
-  appears with it under **Targets**, and the factory graph is drawn.
+- [ ] **1.6** Type `plate` and press **Enter**. *Expect:* the first match is added as a target, the panel
+  appears across the top with it under **Targets**, and the factory graph is drawn across the full width below.
 
 Remove that target with the **×** on its card before going on. *Expect:* you're back on the first screen.
 
@@ -34,7 +34,7 @@ Remove that target with the **×** on its card before going on. *Expect:* you're
 
 - [ ] **2.1** Still on Tier 3, click **Magnetic Field Generator**. *Expect:* no graph. A box in the middle says
   "Can't build this yet: Magnetic Field Generator unlocks at Tier 8. You're on Tier 3", with **Switch to Tier 8**
-  and **Bring in 5/min** buttons. The side panel shows the target.
+  and **Bring in 5/min** buttons. The panel above shows the target.
 - [ ] **2.2** Click **Switch to Tier 8**. *Expect:* the top bar says Tier 8 and a full factory graph appears.
 - [ ] **2.3** Remove the target and click **Smart Plating**. *Expect:* a graph with about 7 machines.
 
@@ -42,9 +42,9 @@ Remove that target with the **×** on its card before going on. *Expect:* you're
 
 - [ ] **3.1** On first open, the whole factory fits the floor. *Expect:* if it's small, each machine shows a big
   product icon, a count like "3×" and the product name. There are no text labels on the belts.
-- [ ] **3.2** Scroll to zoom in. *Expect:* past a point, machines switch to the detailed card: the machine type
-  and power on the orange strip, the building icon, the recipe name, and "3 × 83.33%" on one line (count and
-  clock together).
+- [ ] **3.2** Scroll to zoom in. *Expect:* past a point, machines switch to the detailed plate: a coloured top edge
+  (orange standard, teal alternate, violet converter), a small header with the building and its power, then the
+  product icon, the recipe name, and "3 × 83.33%" on one line (count and clock together).
 - [ ] **3.3** Look at the belt labels when zoomed in. *Expect:* the item icon on the left, the item name on top,
   and the rate with the belt tier (for example "5/min Mk.1") underneath. No label sits on top of a machine.
 - [ ] **3.4** Click **→** (left to right) in the bottom right. *Expect:* the graph is redrawn running left to
@@ -95,9 +95,13 @@ Remove that target with the **×** on its card before going on. *Expect:* you're
 
 ## 8. Side panel and factories
 
-- [ ] **8.1** Drag the side panel's right edge to the right. *Expect:* the panel gets wider and the graph narrower,
-  with an orange line on the edge while you drag. Reload: the width is kept. Double-click the edge: back to the
-  default width.
+- [ ] **8.1** Drag the panel's bottom edge down. *Expect:* the panel gets taller and the graph shorter, with an
+  orange line on the edge while you drag. Reload: the height is kept. Double-click the edge: back to the default.
+- [ ] **8.1b** Click **Hide panel** (right end of the tabs). *Expect:* only the tabs stay, and the graph gets the
+  rest of the screen. Click any tab: the panel comes back on that tab.
+- [ ] **8.1c** On a target, click the up arrow twice and the down arrow once. *Expect:* the amount goes up by one
+  each click and down by one. Type `12.5`, click down: it becomes 12. At 0 the down arrow is greyed out. With the
+  field focused, the ↑ and ↓ keys do the same.
 - [ ] **8.2** Click **+** next to the factory tab. *Expect:* a new empty factory showing the first screen. Switch
   back to the first tab: its plan is still there.
 - [ ] **8.3** Double-click a tab name, rename it, press **Enter**. Then **Duplicate** and **Delete** (click twice

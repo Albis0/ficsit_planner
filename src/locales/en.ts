@@ -122,5 +122,9 @@ export const en = {
   dismiss: 'OK',
   menu: 'Menu',
   resizePanel: 'Drag to resize the panel. Double-click to reset.',
+  hidePanel: 'Hide panel',
+  showPanel: 'Show panel',
+  increase: 'Up one',
+  decrease: 'Down one',
   rename: 'Rename',
 };

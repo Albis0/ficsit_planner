@@ -56,8 +56,10 @@ interface State {
   pane: 'side' | 'floor';
   /** Factory tab being renamed. Not persisted. */
   renaming?: string;
-  /** Side panel width set by dragging its edge; unset uses the layout default. */
-  sideWidth?: number;
+  /** Height of the panel above the factory floor, set by dragging its edge; unset uses the layout default. */
+  deckHeight?: number;
+  /** Panel above the floor folded down to its tabs, so the factory gets the whole screen. */
+  deckClosed?: boolean;
   /** Graph direction picked by the player; unset lets the layout choose what fits the screen. */
   graphDir?: 'LR' | 'TB';
 
@@ -65,7 +67,19 @@ interface State {
     patch: Partial<
       Pick<
         State,
-        'lang' | 'tier' | 'onboarded' | 'inventory' | 'view' | 'tab' | 'active' | 'inspect' | 'pane' | 'renaming' | 'sideWidth' | 'graphDir'
+        | 'lang'
+        | 'tier'
+        | 'onboarded'
+        | 'inventory'
+        | 'view'
+        | 'tab'
+        | 'active'
+        | 'inspect'
+        | 'pane'
+        | 'renaming'
+        | 'deckHeight'
+        | 'deckClosed'
+        | 'graphDir'
       >
     >,
   ) => void;
@@ -188,7 +202,8 @@ export const useStore = create<State>()(
         tab: s.tab,
         plans: s.plans,
         active: s.active,
-        sideWidth: s.sideWidth,
+        deckHeight: s.deckHeight,
+        deckClosed: s.deckClosed,
         graphDir: s.graphDir,
       }),
       migrate: migrateState,
@@ -198,7 +213,7 @@ export const useStore = create<State>()(
 );
 
 type Persisted = Partial<
-  Pick<State, 'lang' | 'tier' | 'onboarded' | 'inventory' | 'view' | 'tab' | 'plans' | 'active' | 'sideWidth' | 'graphDir'>
+  Pick<State, 'lang' | 'tier' | 'onboarded' | 'inventory' | 'view' | 'tab' | 'plans' | 'active' | 'deckHeight' | 'deckClosed' | 'graphDir'>
 >;
 
 export function migrateState(persisted: unknown, version: number): Persisted {

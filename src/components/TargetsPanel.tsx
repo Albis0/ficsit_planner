@@ -28,7 +28,7 @@ function Cards({
         <Slot id={item.id} size={size} />
         <span className="item-card-name">{name(item)}</span>
         <span className="item-card-rate">
-          <RateInput value={target.rate} label={name(item)} onChange={(v) => onRate(i, v)} />
+          <RateInput value={target.rate} label={name(item)} onChange={(v) => onRate(i, v)} step />
           <span className="unit">{t('perMin')}</span>
         </span>
         <button type="button" className="icon-button" aria-label={`${t('remove')} ${name(item)}`} onClick={() => onRemove(i)}>
@@ -45,7 +45,7 @@ export function TargetsPanel({ result }: { result?: SolveResult }) {
   const s = useStore();
 
   return (
-    <div className="panel-body">
+    <div className="panel-body targets">
       <section className="stack">
         <Cards list={plan.targets} size={64} onRate={s.setTarget} onRemove={s.removeTarget} />
         <ItemPicker items={craftableItems} label={t('addProduct')} onPick={s.addTarget} exclude={plan.targets.map((x) => x.item)} />

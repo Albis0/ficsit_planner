@@ -59,7 +59,7 @@ export function InventoryPanel({ result }: { result?: SolveResult }) {
             {used} {t('inUse')}
           </span>
         </span>
-        <RateInput value={inventory[key]} label={label} onChange={(v) => set({ inventory: { ...inventory, [key]: Math.floor(v) } })} />
+        <RateInput value={inventory[key]} label={label} onChange={(v) => set({ inventory: { ...inventory, [key]: Math.floor(v) } })} step />
       </div>
     );
   };

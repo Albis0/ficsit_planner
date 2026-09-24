@@ -2,27 +2,28 @@ import { useRef } from 'react';
 import { useT } from '../lib/i18n';
 import { useStore } from '../store';
 
-const MIN = 300;
-/** Room the factory floor keeps next to the widest panel. */
-const FLOOR_MIN = 420;
+const MIN = 170;
+/** Room the factory floor keeps under the tallest panel, plus the top bar. */
+const FLOOR_MIN = 300;
+const TOP = 64;
 const STEP = 24;
 
-const clamp = (w: number) => Math.round(Math.max(MIN, Math.min(window.innerWidth - FLOOR_MIN, w)));
+const clamp = (h: number) => Math.round(Math.max(MIN, Math.min(window.innerHeight - TOP - FLOOR_MIN, h)));
 
-/** Drag handle on the side panel's edge. Arrow keys move it too; double-click goes back to the default. */
+/** Drag handle on the bottom edge of the panel above the floor. Arrow keys move it too; double-click goes back to the default. */
 export function Splitter() {
   const { t } = useT();
-  const width = useStore((s) => s.sideWidth);
+  const height = useStore((s) => s.deckHeight);
   const set = useStore((s) => s.set);
-  const start = useRef<{ x: number; w: number }>(undefined);
+  const start = useRef<{ y: number; h: number }>(undefined);
 
-  const current = () => width ?? document.querySelector('.side')?.getBoundingClientRect().width ?? 460;
+  const current = () => height ?? document.querySelector('.side')?.getBoundingClientRect().height ?? 320;
 
   return (
     <div
       className="splitter"
       role="separator"
-      aria-orientation="vertical"
+      aria-orientation="horizontal"
       aria-label={t('resizePanel')}
       aria-valuenow={Math.round(current())}
       aria-valuemin={MIN}
@@ -30,20 +31,20 @@ export function Splitter() {
       title={t('resizePanel')}
       onPointerDown={(e) => {
         e.currentTarget.setPointerCapture(e.pointerId);
-        start.current = { x: e.clientX, w: current() };
+        start.current = { y: e.clientY, h: current() };
         document.body.classList.add('resizing');
       }}
       onPointerMove={(e) => {
-        if (start.current) set({ sideWidth: clamp(start.current.w + e.clientX - start.current.x) });
+        if (start.current) set({ deckHeight: clamp(start.current.h + e.clientY - start.current.y) });
       }}
       onPointerUp={() => {
         start.current = undefined;
         document.body.classList.remove('resizing');
       }}
-      onDoubleClick={() => set({ sideWidth: undefined })}
+      onDoubleClick={() => set({ deckHeight: undefined })}
       onKeyDown={(e) => {
-        if (e.key === 'ArrowLeft') set({ sideWidth: clamp(current() - STEP) });
-        if (e.key === 'ArrowRight') set({ sideWidth: clamp(current() + STEP) });
+        if (e.key === 'ArrowUp') set({ deckHeight: clamp(current() - STEP) });
+        if (e.key === 'ArrowDown') set({ deckHeight: clamp(current() + STEP) });
       }}
     />
   );
