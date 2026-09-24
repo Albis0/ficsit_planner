@@ -2,6 +2,17 @@
 
 All notable changes to FICSIT Planner. Dates are when the version was finished.
 
+## 0.4.1 — 2026-09-24
+
+### Changed
+
+- Machine cards are back to the build-menu look (cut corner, coloured strip), with the icons swapped: the strip
+  holds the product's icon, the building name and a larger power figure; the body shows the building with the
+  recipe and "3 × 83.33%" beside it.
+- Zooming out no longer swaps machines for a stripped-down poster; the card stays the same at every zoom, and
+  the opening view doesn't zoom out as far.
+- Output nodes have their orange wash back.
+
 ## 0.4.0 — 2026-09-24
 
 ### Changed

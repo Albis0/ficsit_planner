@@ -40,11 +40,11 @@ Remove that target with the **×** on its card before going on. *Expect:* you're
 
 ## 3. Factory graph
 
-- [ ] **3.1** On first open, the whole factory fits the floor. *Expect:* if it's small, each machine shows a big
-  product icon, a count like "3×" and the product name. There are no text labels on the belts.
-- [ ] **3.2** Scroll to zoom in. *Expect:* past a point, machines switch to the detailed plate: a coloured top edge
-  (orange standard, teal alternate, violet converter), a small header with the building and its power, then the
-  product icon, the recipe name, and "3 × 83.33%" on one line (count and clock together).
+- [ ] **3.1** On first open, the whole factory fits the floor. *Expect:* machines show the same card at every zoom.
+  Zoomed far out, the belts lose their text labels.
+- [ ] **3.2** Scroll to zoom in. *Expect:* each machine card has a cut top-right corner and a coloured strip (orange
+  standard, teal alternate, violet converter) with the product icon, the building name and the power in MW. Below
+  it: the building icon, the recipe name, and "3 × 83.33%" on one line (count and clock together).
 - [ ] **3.3** Look at the belt labels when zoomed in. *Expect:* the item icon on the left, the item name on top,
   and the rate with the belt tier (for example "5/min Mk.1") underneath. No label sits on top of a machine.
 - [ ] **3.4** Click **→** (left to right) in the bottom right. *Expect:* the graph is redrawn running left to

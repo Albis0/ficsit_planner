@@ -60,13 +60,11 @@ const useFaded = (id: string) => {
   return f.node !== undefined && !f.near.has(id);
 };
 
-/** Below this zoom nodes switch to a poster view (big product icon and count) and belt labels hide. */
+/** Below this zoom belt labels hide, so the machines stay readable. */
 const FAR_ZOOM = 0.55;
 
 const zoomSelector = (s: { transform: [number, number, number] }) =>
   s.transform[2] < FAR_ZOOM ? 'far' : s.transform[2] < 0.8 ? 'mid' : 'near';
-
-const farSelector = (s: { transform: [number, number, number] }) => s.transform[2] < FAR_ZOOM;
 
 /** Bottom edge colour for machines holding power shards (blue), somersloops (pink) or both (half and half). */
 function modBar(shards: number, sloops: number): string | undefined {
@@ -80,35 +78,29 @@ function MachineNode({ id, data: d, selected }: NodeProps) {
   const { name, num } = useT();
   const { use } = d as MachineNodeData;
   const dir = useContext(Flow);
-  const far = useFlowStore(farSelector);
   const { recipe } = use;
   const faded = useFaded(id);
   const bar = modBar(use.shards, use.sloops);
   const groups = groupClocks(use.clocks);
-  const product = recipe.outputs[0].item;
-  // Far away one line has to say it all, so mixed clocks collapse to the machine count.
-  const shown = far && groups.length > 1 ? [] : groups;
   return (
     <div
-      className={`machine-node ${recipe.kind} ${faded ? 'faded' : ''} ${selected ? 'selected' : ''} ${far ? 'far' : ''}`}
+      className={`machine-node ${recipe.kind} ${faded ? 'faded' : ''} ${selected ? 'selected' : ''}`}
       style={bar ? { ['--mod-bar' as string]: bar } : undefined}
     >
       <Handle type="target" position={inSide(dir)} />
-      {!far && (
-        <div className="machine-head">
-          <Icon id={recipe.machine} size={24} />
-          <span className="machine-type">{name(data.machines[recipe.machine])}</span>
-          <span className="machine-power">{num(use.power)} MW</span>
-        </div>
-      )}
+      {/* The in-game build menu look: a coloured strip with what it makes and what it draws, the building below. */}
+      <div className="machine-strip">
+        <Icon id={recipe.outputs[0].item} size={30} className="strip-icon" />
+        <span className="machine-type">{name(data.machines[recipe.machine])}</span>
+        <span className="machine-power">{num(use.power)} MW</span>
+      </div>
       <div className="machine-body">
-        <Icon id={product} size={far ? 68 : 52} className="machine-product" />
+        <Icon id={recipe.machine} size={60} className="machine-icon" />
         <span className="machine-info">
-          <span className="machine-recipe-name">{far ? name(data.items[product]) : recipeLabel(name(recipe), recipe.kind)}</span>
+          <span className="machine-recipe-name">{recipeLabel(name(recipe), recipe.kind)}</span>
           {/* Count and clock read as one: "3 × 83.33%" is three machines at 83.33% each. */}
           <span className="machine-run">
-            {shown.length === 0 && <b>{use.built}</b>}
-            {shown.map((g, i) => (
+            {groups.map((g, i) => (
               // biome-ignore lint/suspicious/noArrayIndexKey: clock groups are derived in a fixed order and never reordered.
               <span key={i} className={g.clock > 1 + 1e-6 ? 'over' : undefined}>
                 {i > 0 && <span className="plus">+</span>}
@@ -116,7 +108,7 @@ function MachineNode({ id, data: d, selected }: NodeProps) {
               </span>
             ))}
           </span>
-          {!far && (use.shards > 0 || use.sloops > 0) && (
+          {(use.shards > 0 || use.sloops > 0) && (
             <span className="machine-mods">
               {use.shards > 0 && <span className="mod-badge shard">{use.shards} ◆</span>}
               {use.sloops > 0 && <span className="mod-badge sloop">{use.sloops} ●</span>}
@@ -181,22 +173,8 @@ function EndpointNode({ id, data: d }: NodeProps) {
   const ex = useContext(Extraction).get(item);
   const dir = useContext(Flow);
   const label = { raw: t('rawInput'), supply: t('onHand'), missing: t('bringIn'), target: t('output'), surplus: t('surplus') }[kind];
-  const far = useFlowStore(farSelector);
   const it = data.items[item];
   const source = kind === 'raw' || kind === 'supply' || kind === 'missing';
-  if (far) {
-    return (
-      <div className={`endpoint-node ${kind} far ${faded ? 'faded' : ''}`}>
-        {!source && <Handle type="target" position={inSide(dir)} />}
-        <Icon id={item} size={64} />
-        <span className="far-text">
-          <span className="endpoint-rate">{num(rate)}</span>
-          <span className="far-name">{name(it)}</span>
-        </span>
-        {source && <Handle type="source" position={outSide(dir)} />}
-      </div>
-    );
-  }
   return (
     <div
       className={`endpoint-node ${kind} ${faded ? 'faded' : ''}`}
@@ -369,13 +347,12 @@ function FloorControls() {
 let solveCount = 0;
 
 /** Zoomed out further than this, fitting the whole factory at once isn't worth it. */
-const MIN_FIT = 0.3;
+const MIN_FIT = 0.45;
 /** Where the camera starts on a factory too big to fit: close enough to read, at the ore end. */
-const START_ZOOM = 0.5;
+const START_ZOOM = 0.6;
 
 /**
- * Opening camera: the whole factory filling the floor while that stays readable (far away, nodes
- * switch to big icons); otherwise a readable zoom from the ore end, the way the line is built.
+ * Opening camera: the whole factory filling the floor while that stays readable; otherwise a readable zoom from the ore end, the way the line is built.
  */
 function openingViewport(nodes: Node[], width: number, height: number, dir: Direction): Viewport {
   const minX = Math.min(...nodes.map((n) => n.position.x));

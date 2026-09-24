@@ -1452,19 +1452,20 @@ button.slot:hover {
 }
 
 /*
-  A machine: a dark plate with its recipe kind along the top edge (orange standard, teal alternate,
-  violet converter), the building and its power in a quiet header, then what it makes, big.
+  A machine, in the game's build-menu look: a panel with a cut corner and a coloured strip along the
+  top (orange standard, teal alternate, violet converter) holding the product and the power draw, then
+  the building itself with the recipe and "3 × 83.33%" beside it.
 */
 .machine-node {
   --kind: var(--ficsit);
   position: relative;
-  width: 300px;
-  height: 118px;
+  width: 310px;
+  height: 130px;
   display: flex;
   flex-direction: column;
   background: var(--raised);
   border: 1px solid var(--line-2);
-  border-top: 4px solid var(--kind);
+  clip-path: polygon(0 0, calc(100% - 20px) 0, 100% 20px, 100% 100%, 0 100%);
   transition: opacity 120ms;
 }
 
@@ -1482,20 +1483,24 @@ button.slot:hover {
 }
 
 .machine-node.selected {
-  box-shadow:
-    0 0 0 2px var(--kind),
-    0 10px 30px rgb(0 0 0 / 0.45);
+  box-shadow: inset 0 0 0 2px var(--kind);
 }
 
-.machine-head {
+.machine-strip {
   display: flex;
   align-items: center;
-  gap: 7px;
-  padding: 5px 12px 0 9px;
-  font: 700 14px / 1.2 var(--font-display);
-  letter-spacing: 0.06em;
+  gap: 8px;
+  padding: 3px 26px 3px 8px;
+  background: var(--kind);
+  color: var(--ficsit-ink);
+  font: 700 17px / 1.2 var(--font-display);
+  letter-spacing: 0.05em;
   text-transform: uppercase;
-  color: var(--faint);
+}
+
+.strip-icon {
+  flex: none;
+  filter: drop-shadow(0 1px 1px rgb(0 0 0 / 0.45));
 }
 
 .machine-type {
@@ -1504,12 +1509,11 @@ button.slot:hover {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  color: var(--dim);
 }
 
 .machine-power {
   flex: none;
-  color: var(--power);
+  font-size: 21px;
   letter-spacing: 0.02em;
 }
 
@@ -1529,11 +1533,11 @@ button.slot:hover {
   min-height: 0;
   display: flex;
   align-items: center;
-  gap: 12px;
-  padding: 0 12px 6px 10px;
+  gap: 10px;
+  padding: 0 12px 6px 8px;
 }
 
-.machine-product {
+.machine-icon {
   flex: none;
   filter: drop-shadow(0 3px 4px rgb(0 0 0 / 0.55));
 }
@@ -1562,7 +1566,7 @@ button.slot:hover {
 }
 
 .machine-run b {
-  font-size: 26px;
+  font-size: 28px;
   color: var(--paper);
 }
 
@@ -1600,57 +1604,6 @@ button.slot:hover {
   color: var(--sloop);
 }
 
-/* Zoomed far out: the same plate with only what it makes and how many, big enough to read. */
-.machine-node.far {
-  border-top-width: 10px;
-}
-
-.machine-node.far .machine-body {
-  gap: 14px;
-  padding: 0 14px 8px 12px;
-}
-
-.machine-node.far .machine-recipe-name {
-  font-size: 36px;
-  line-height: 1.05;
-}
-
-.machine-node.far .machine-run {
-  font-size: 32px;
-  line-height: 1.05;
-}
-
-.machine-node.far .machine-run b {
-  font-size: 50px;
-}
-
-.machine-node.far::after {
-  height: 14px;
-}
-
-.far-text {
-  display: flex;
-  flex-direction: column;
-  min-width: 0;
-}
-
-.far-name {
-  font: 600 30px / 1.1 var(--font-display);
-  color: var(--dim);
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.endpoint-node.far {
-  gap: 12px;
-}
-
-.endpoint-node.far .endpoint-rate {
-  font-size: 40px;
-  line-height: 1;
-}
-
 .endpoint-node {
   --accent: var(--line-2);
   width: 280px;
@@ -1667,7 +1620,8 @@ button.slot:hover {
 
 .endpoint-node.target {
   --accent: var(--ficsit);
-  border-color: color-mix(in srgb, var(--ficsit) 70%, transparent);
+  border-color: var(--ficsit);
+  background: color-mix(in srgb, var(--ficsit) 12%, var(--panel));
 }
 
 .endpoint-node.missing {

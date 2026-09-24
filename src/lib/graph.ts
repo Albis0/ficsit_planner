@@ -65,7 +65,7 @@ function handlesFor(size: { width: number; height: number }, sides: { target: bo
 }
 
 export const SIZE = {
-  machine: { width: 300, height: 118 },
+  machine: { width: 310, height: 130 },
   endpoint: { width: 280, height: 84 },
 };
 
