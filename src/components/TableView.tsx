@@ -72,15 +72,19 @@ export function TableView({ result, extraction }: { result: SolveResult; extract
                   {name(data.machines[u.recipe.machine])}
                 </span>
               </td>
-              <td className="n strong" data-label={t('count')}>{u.built}</td>
+              <td className="n strong" data-label={t('count')}>
+                {u.built}
+              </td>
               <td className="n clocks" data-label={t('clock')}>
                 {groupClocks(u.clocks)
-                  .map((g) => (groupClocks(u.clocks).length > 1 ? `${g.n}× ` : '') + `${num(g.clock * 100)}%`)
+                  .map((g) => `${groupClocks(u.clocks).length > 1 ? `${g.n}× ` : ''}${num(g.clock * 100)}%`)
                   .join(', ')}
                 {u.shards > 0 && <span className="mod-badge shard">{u.shards} ◆</span>}
                 {u.sloops > 0 && <span className="mod-badge sloop">{u.sloops} ●</span>}
               </td>
-              <td className="n" data-label={t('power')}>{num(u.power)} MW</td>
+              <td className="n" data-label={t('power')}>
+                {num(u.power)} MW
+              </td>
               <td data-label={t('inputs')}>{flows(u.inputs)}</td>
               <td data-label={t('outputs')}>{flows(u.outputs)}</td>
             </tr>

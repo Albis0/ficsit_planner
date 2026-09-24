@@ -11,7 +11,6 @@ interface Props {
   exclude?: string[];
 }
 
-
 /** A button that unfolds into a searchable item list. Type to filter, arrows to move, Enter to pick. */
 export function ItemPicker({ items, label, onPick, exclude = [] }: Props) {
   const { t, name } = useT();
@@ -35,8 +34,6 @@ export function ItemPicker({ items, label, onPick, exclude = [] }: Props) {
     if (open) input.current?.focus();
   }, [open]);
 
-  useEffect(() => setCursor(0), [q]);
-
   useEffect(() => {
     list.current?.children[cursor]?.scrollIntoView({ block: 'nearest' });
   }, [cursor]);
@@ -59,7 +56,9 @@ export function ItemPicker({ items, label, onPick, exclude = [] }: Props) {
   if (!open) {
     return (
       <button type="button" className="add-button" onClick={() => setOpen(true)}>
-        <span aria-hidden className="add-plus">+</span>
+        <span aria-hidden className="add-plus">
+          +
+        </span>
         {label}
       </button>
     );
@@ -72,7 +71,10 @@ export function ItemPicker({ items, label, onPick, exclude = [] }: Props) {
         className="picker-search"
         placeholder={t('searchItems')}
         value={q}
-        onChange={(e) => setQ(e.target.value)}
+        onChange={(e) => {
+          setQ(e.target.value);
+          setCursor(0);
+        }}
         role="combobox"
         aria-expanded
         aria-controls="picker-list"
@@ -91,12 +93,16 @@ export function ItemPicker({ items, label, onPick, exclude = [] }: Props) {
           }
         }}
       />
+      {/* Combobox pattern: focus stays in the search field and aria-activedescendant points at the option. */}
+      {/* biome-ignore lint/a11y/noNoninteractiveElementToInteractiveRole: listbox of the combobox above */}
       <ul className="picker-list" id="picker-list" role="listbox" ref={list}>
         {matches.length === 0 && <li className="picker-empty">{t('noResults')}</li>}
         {matches.map((i, k) => (
+          // biome-ignore lint/a11y/useFocusableInteractive: options are reached through aria-activedescendant, not focus.
           <li
             key={i.id}
             id={`pick-${i.id}`}
+            // biome-ignore lint/a11y/noNoninteractiveElementToInteractiveRole: an option of the listbox above.
             role="option"
             aria-selected={k === cursor}
             className={k === cursor ? 'active' : undefined}

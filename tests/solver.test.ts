@@ -1,7 +1,8 @@
 import { beforeAll, describe, expect, test } from 'bun:test';
 import loadHighs, { type Highs } from 'highs';
 import { data } from '../src/lib/data';
-import { solve, type SolveInput } from '../src/lib/solver';
+import { toFailure } from '../src/lib/solveFailure';
+import { SolverError, type SolveInput, solve } from '../src/lib/solver';
 
 let highs: Highs;
 beforeAll(async () => {
@@ -60,6 +61,30 @@ describe('inputs and limits', () => {
 
   test('a resource cap below demand is infeasible', () => {
     expect(() => plan({ targets: [{ item: 'Desc_IronPlate_C', rate: 60 }], resourceCaps: { Desc_OreIron_C: 10 } })).toThrow();
+  });
+
+  const failure = (patch: Partial<SolveInput>) => {
+    try {
+      plan(patch);
+    } catch (e) {
+      return e;
+    }
+  };
+
+  test('a failed solve says why with a code the UI can translate', () => {
+    const capped = failure({ targets: [{ item: 'Desc_IronPlate_C', rate: 60 }], resourceCaps: { Desc_OreIron_C: 10 } });
+    expect(capped).toBeInstanceOf(SolverError);
+    expect(toFailure(capped)).toEqual({ code: 'infeasible', status: 'Infeasible' });
+
+    // With the ingot recipe off, pinned ore can't reach the plates, so there is nothing to scale.
+    const enabled = standard();
+    enabled.delete('Recipe_IngotIron_C');
+    const pinned = failure({ targets: [{ item: 'Desc_IronPlate_C', rate: 10 }], enabledRecipes: enabled, fixed: { Desc_OreIron_C: 60 } });
+    expect(toFailure(pinned)).toEqual({ code: 'pinnedInfeasible', status: undefined });
+  });
+
+  test('unexpected errors become a generic stop', () => {
+    expect(toFailure(new Error('wasm abort'))).toEqual({ code: 'stopped', status: 'wasm abort' });
   });
 
   test('alternates get used when they save scarce resources', () => {
@@ -182,7 +207,10 @@ describe('auto placement fills leftovers', () => {
   const { autoAssign } = require('../src/lib/solver');
   test('uses the whole somersloop stock when machines can take it', () => {
     const input = {
-      targets: [{ item: 'Desc_ModularFrame_C', rate: 10 }, { item: 'Desc_Rotor_C', rate: 4 }],
+      targets: [
+        { item: 'Desc_ModularFrame_C', rate: 10 },
+        { item: 'Desc_Rotor_C', rate: 4 },
+      ],
       supplies: [],
       enabledRecipes: standard(),
       resourceCaps: {},

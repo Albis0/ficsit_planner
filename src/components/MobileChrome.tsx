@@ -22,7 +22,12 @@ export function MobileNav() {
   return (
     <nav className="mobile-nav" aria-label={t('menu')}>
       {items.map(([id, label, badge]) => (
-        <button key={id} type="button" aria-current={pane === 'side' && tab === id ? 'page' : undefined} onClick={() => set({ tab: id, pane: 'side' })}>
+        <button
+          key={id}
+          type="button"
+          aria-current={pane === 'side' && tab === id ? 'page' : undefined}
+          onClick={() => set({ tab: id, pane: 'side' })}
+        >
           {label}
           {badge ? <span className="tab-badge">{badge}</span> : null}
         </button>
@@ -44,7 +49,9 @@ export function MobileMenu({ onClose, onTier }: { onClose: () => void; onTier: (
     dialog.current?.showModal();
   }, []);
 
+  // A tap on the backdrop lands on the dialog element itself; Escape is handled by onCancel.
   return (
+    // biome-ignore lint/a11y/useKeyWithClickEvents: keyboard users close the sheet with Escape or the Close button.
     <dialog
       ref={dialog}
       className="sheet"
@@ -53,7 +60,6 @@ export function MobileMenu({ onClose, onTier }: { onClose: () => void; onTier: (
         e.preventDefault();
         onClose();
       }}
-      // A tap on the backdrop lands on the dialog element itself.
       onClick={(e) => e.target === dialog.current && onClose()}
     >
       <div className="sheet-body">

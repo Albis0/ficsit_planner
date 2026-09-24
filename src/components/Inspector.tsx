@@ -62,7 +62,7 @@ export function Inspector({ result }: { result: SolveResult }) {
           />
           <span className="unit">%</span>
         </div>
-        <div className="shard-slots" aria-label={`${t('shards')}: ${shards}`}>
+        <div className="shard-slots" role="img" aria-label={`${t('shards')}: ${shards}`}>
           {[0, 1, 2].map((i) => (
             <span key={i} className={`shard-slot ${i < shards ? 'filled' : ''}`} />
           ))}
@@ -78,7 +78,7 @@ export function Inspector({ result }: { result: SolveResult }) {
           <p className="hint">{t('noSloopSlots')}</p>
         ) : (
           <div className="sloop-slots" role="radiogroup" aria-label={t('sloops')}>
-            {Array.from({ length: machine.somersloopSlots + 1 }, (_, n) => (
+            {Array.from({ length: machine.somersloopSlots + 1 }, (_, n) => n).map((n) => (
               <button
                 key={n}
                 type="button"

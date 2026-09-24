@@ -27,9 +27,7 @@ export function RecipesPanel() {
   const groups = useMemo(() => {
     const f = searchKey(q.trim());
     const match = (r: Recipe) =>
-      !f ||
-      searchKey(name(r)).includes(f) ||
-      [...r.inputs, ...r.outputs].some((s) => searchKey(name(data.items[s.item])).includes(f));
+      !f || searchKey(name(r)).includes(f) || [...r.inputs, ...r.outputs].some((s) => searchKey(name(data.items[s.item])).includes(f));
     const map = new Map<string, Recipe[]>();
     for (const r of data.recipes) {
       if (filter !== 'all' && r.kind !== filter) continue;
@@ -43,7 +41,7 @@ export function RecipesPanel() {
   const visibleIds = groups.flatMap(([, rs]) => rs.map((r) => r.id));
   const visibleOn = visibleIds.filter((id) => on.has(id)).length;
 
-  const stacks = (list: Stack[]) => list.map((s, i) => <Slot key={s.item + i} id={s.item} rate={s.rate} size={46} />);
+  const stacks = (list: Stack[]) => list.map((s) => <Slot key={s.item} id={s.item} rate={s.rate} size={46} />);
 
   return (
     <div className="panel-body recipes">

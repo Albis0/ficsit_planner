@@ -1,9 +1,5 @@
 /** Lower-cased, accent-free form of a name, so a search for "alclad" also finds "Alclad". */
-export const searchKey = (s: string) =>
-  s
-    .toLowerCase()
-    .normalize('NFD')
-    .replace(/[̀-ͯ]/g, '');
+export const searchKey = (s: string) => s.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
 
 /** Alternate recipes are named "Alternate: Cast Screw"; the kind is shown separately, so drop the prefix. */
 export const recipeLabel = (label: string, kind: string) => (kind === 'alternate' ? label.replace(/^[^:]+:\s*/, '') : label);

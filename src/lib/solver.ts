@@ -344,8 +344,7 @@ export function autoAssign(solver: Highs, input: SolveInput, stock: { sloops: nu
   const run = () => solve(solver, { ...input, mods });
   let result = run();
 
-  const inputValue = (u: RecipeUse, r: SolveResult) =>
-    u.recipe.inputs.reduce((s, i) => s + i.rate * (r.prices.get(i.item) ?? 0), 0);
+  const inputValue = (u: RecipeUse, r: SolveResult) => u.recipe.inputs.reduce((s, i) => s + i.rate * (r.prices.get(i.item) ?? 0), 0);
 
   const loopable = result.recipes
     .filter((u) => data.machines[u.recipe.machine].somersloopSlots > 0)

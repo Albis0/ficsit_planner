@@ -12,7 +12,7 @@ import { ResourcesPanel } from './components/ResourcesPanel';
 import { Summary } from './components/Summary';
 import { TableView } from './components/TableView';
 import { TargetsPanel } from './components/TargetsPanel';
-import { data, recipeById, recipeUnlocked } from './lib/data';
+import { recipeById, recipeUnlocked } from './lib/data';
 import { effectiveExtraction, planExtraction } from './lib/extraction';
 import { useT } from './lib/i18n';
 import type { SolveResult } from './lib/solver';
@@ -30,10 +30,7 @@ function useSolution() {
 
   const active = useMemo(() => plan.targets.filter((t) => t.rate > 0), [plan.targets]);
   // Recipes above the unlocked tier (or needing a building that isn't unlocked) stay ticked but sit out.
-  const usable = useMemo(
-    () => new Set(plan.enabled.filter((id) => recipeUnlocked(recipeById.get(id)!, tier))),
-    [plan.enabled, tier],
-  );
+  const usable = useMemo(() => new Set(plan.enabled.filter((id) => recipeUnlocked(recipeById.get(id)!, tier))), [plan.enabled, tier]);
 
   useEffect(() => {
     if (active.length === 0) {
@@ -111,7 +108,7 @@ export default function App() {
           </button>
           <span className="control-label">{t('objective')}</span>
           <ObjectiveSwitch />
-          <div className="scale" aria-label={t('uiSize')}>
+          <div className="scale" role="group" aria-label={t('uiSize')}>
             <button type="button" aria-label="-" disabled={scaleIndex === 0} onClick={() => s.set({ scale: SCALES[scaleIndex - 1] })}>
               A−
             </button>
@@ -132,14 +129,14 @@ export default function App() {
       </header>
 
       <aside className="side">
-        <nav className="tabs" role="tablist">
+        <div className="tabs" role="tablist">
           {tabs.map(([id, label, badge]) => (
             <button key={id} type="button" role="tab" aria-selected={s.tab === id} onClick={() => s.set({ tab: id })}>
               {label}
               {badge != null && <span className="tab-badge">{badge}</span>}
             </button>
           ))}
-        </nav>
+        </div>
         {s.tab === 'targets' && <TargetsPanel result={result} />}
         {s.tab === 'recipes' && <RecipesPanel />}
         {s.tab === 'resources' && <ResourcesPanel result={result} />}
@@ -150,7 +147,13 @@ export default function App() {
         <div className="floor-view">
           {error && <div className="floor-message error">{failureText(error, t)}</div>}
           {!error && !result && !busy && <QuickPick />}
-          {!error && result && (s.view === 'graph' ? <GraphView result={result} extraction={extraction} /> : <TableView result={result} extraction={extraction} />)}
+          {!error &&
+            result &&
+            (s.view === 'graph' ? (
+              <GraphView result={result} extraction={extraction} />
+            ) : (
+              <TableView result={result} extraction={extraction} />
+            ))}
           {!error && result && <Inspector result={result} />}
           {busy && <div className="busy">{t('solving')}</div>}
           {result && (

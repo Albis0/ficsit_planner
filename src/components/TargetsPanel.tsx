@@ -9,7 +9,17 @@ import { Slot } from './Slot';
 
 const supplyItems = Object.values(data.items).filter((i) => !i.raw);
 
-function Cards({ list, size, onRate, onRemove }: { list: Target[]; size: number; onRate: (i: number, v: number) => void; onRemove: (i: number) => void }) {
+function Cards({
+  list,
+  size,
+  onRate,
+  onRemove,
+}: {
+  list: Target[];
+  size: number;
+  onRate: (i: number, v: number) => void;
+  onRemove: (i: number) => void;
+}) {
   const { t, name } = useT();
   return list.map((target, i) => {
     const item = data.items[target.item];
@@ -45,7 +55,12 @@ export function TargetsPanel({ result }: { result?: SolveResult }) {
         <h3 className="section-title">{t('suppliesTitle')}</h3>
         <p className="hint">{t('suppliesHint')}</p>
         <Cards list={plan.supplies} size={52} onRate={s.setSupply} onRemove={s.removeSupply} />
-        <ItemPicker items={supplyItems} label={t('addSupply')} onPick={(id) => s.addSupply(id)} exclude={plan.supplies.map((x) => x.item)} />
+        <ItemPicker
+          items={supplyItems}
+          label={t('addSupply')}
+          onPick={(id) => s.addSupply(id)}
+          exclude={plan.supplies.map((x) => x.item)}
+        />
       </section>
 
       <InventoryPanel result={result} />

@@ -8,7 +8,12 @@ const docsDir = path.join(gameDir, 'CommunityResources', 'Docs');
 const outFile = path.join(import.meta.dirname, '..', 'src', 'data', 'gamedata.json');
 
 const load = (lang) =>
-  JSON.parse(fs.readFileSync(path.join(docsDir, `${lang}.json`)).toString('utf16le').replace(/^\uFEFF/, ''));
+  JSON.parse(
+    fs
+      .readFileSync(path.join(docsDir, `${lang}.json`))
+      .toString('utf16le')
+      .replace(/^\uFEFF/, ''),
+  );
 
 const en = load('en-US');
 
@@ -36,7 +41,7 @@ for (const nc of ['FGBuildableManufacturer', 'FGBuildableManufacturerVariablePow
 const colorOf = (s) => {
   const m = s?.match(/B=(\d+),G=(\d+),R=(\d+),A=(\d+)/);
   if (!m || m[4] === '0') return undefined;
-  return '#' + [m[3], m[2], m[1]].map((v) => Number(v).toString(16).padStart(2, '0')).join('');
+  return `#${[m[3], m[2], m[1]].map((v) => Number(v).toString(16).padStart(2, '0')).join('')}`;
 };
 
 const allItems = {};
@@ -49,15 +54,14 @@ for (const g of en) {
       name: c.mDisplayName,
       form,
       sink: Number.parseInt(c.mResourceSinkPoints ?? '0', 10) || 0,
-      color: form === 'solid' ? undefined : colorOf(form === 'gas' ? c.mGasColor : c.mFluidColor) ?? colorOf(c.mFluidColor),
+      color: form === 'solid' ? undefined : (colorOf(form === 'gas' ? c.mGasColor : c.mFluidColor) ?? colorOf(c.mFluidColor)),
       raw: nativeName(g) === 'FGResourceDescriptor',
     };
   }
 }
 
 // ---- Recipes -----------------------------------------------------------------
-const parseStacks = (s) =>
-  [...(s ?? '').matchAll(/([A-Za-z0-9_-]+_C)'",Amount=([\d.]+)/g)].map((m) => ({ item: m[1], amount: num(m[2]) }));
+const parseStacks = (s) => [...(s ?? '').matchAll(/([A-Za-z0-9_-]+_C)'",Amount=([\d.]+)/g)].map((m) => ({ item: m[1], amount: num(m[2]) }));
 
 // Schematics tell us how a recipe is unlocked: hard drive research (alternate) or a milestone tier.
 const unlockedBy = new Map();
@@ -94,9 +98,7 @@ for (const c of byNative(en, 'FGRecipe')) {
   const unlock = unlockedBy.get(c.ClassName);
   const alt = unlock?.type === 'EST_Alternate' || c.ClassName.includes('Alternate');
   const m = machines[machine];
-  const power = m.variable
-    ? num(c.mVariablePowerConsumptionConstant) + num(c.mVariablePowerConsumptionFactor) / 2
-    : m.power;
+  const power = m.variable ? num(c.mVariablePowerConsumptionConstant) + num(c.mVariablePowerConsumptionFactor) / 2 : m.power;
 
   recipes.push({
     id: c.ClassName,
@@ -186,14 +188,24 @@ const withTier = (list, nc) =>
 items = Object.fromEntries([...used].filter((id) => allItems[id]).map((id) => [id, allItems[id]]));
 const beltsOut = withTier(belts, 'FGBuildableConveyorBelt');
 const pipesOut = withTier(pipes, 'FGBuildablePipeline');
-console.log('belt tiers', beltsOut.map((b) => `${b.name}@T${b.tier}`).join(' '), '| pipes', pipesOut.map((p) => `${p.name}@T${p.tier}`).join(' '));
-console.log('machine tiers', Object.values(machines).map((m) => `${m.name}@T${m.tier}`).join(', '));
+console.log(
+  'belt tiers',
+  beltsOut.map((b) => `${b.name}@T${b.tier}`).join(' '),
+  '| pipes',
+  pipesOut.map((p) => `${p.name}@T${p.tier}`).join(' '),
+);
+console.log(
+  'machine tiers',
+  Object.values(machines)
+    .map((m) => `${m.name}@T${m.tier}`)
+    .join(', '),
+);
 
 // Icon texture paths for the .NET icon extractor (tools/icon-extractor). Machines use their building descriptor.
 const iconPath = (s) => s?.match(/Texture2D \/Game\/(.+)\.\w+$/)?.[1];
 const iconManifest = {};
 // Somersloops are never a recipe input or output, but the inventory panel shows them.
-const extraIcons = ["Desc_WAT1_C"];
+const extraIcons = ['Desc_WAT1_C'];
 const allClasses = new Map(en.flatMap((g) => g.Classes.map((c) => [c.ClassName, c])));
 for (const id of [...Object.keys(items), ...extraIcons]) {
   const p = iconPath(allClasses.get(id)?.mSmallIcon);
@@ -207,9 +219,7 @@ fs.writeFileSync(path.join(path.dirname(outFile), 'icon-manifest.json'), JSON.st
 console.log('icons in manifest', Object.keys(iconManifest).length);
 
 // Record which game build the data came from, so a checkout without the game still knows.
-const versionFile = fs
-  .readdirSync(path.join(gameDir, 'Engine', 'Binaries', 'Win64'))
-  .find((f) => f.endsWith('-Shipping.version'));
+const versionFile = fs.readdirSync(path.join(gameDir, 'Engine', 'Binaries', 'Win64')).find((f) => f.endsWith('-Shipping.version'));
 const build = versionFile ? JSON.parse(fs.readFileSync(path.join(gameDir, 'Engine', 'Binaries', 'Win64', versionFile), 'utf8')) : {};
 const meta = {
   gameVersion: build.GameVersion ?? 'unknown',
@@ -217,7 +227,7 @@ const meta = {
   engine: build.MajorVersion ? `${build.MajorVersion}.${build.MinorVersion}.${build.PatchVersion}` : 'unknown',
   extractedAt: new Date().toISOString().slice(0, 10),
 };
-fs.writeFileSync(path.join(path.dirname(outFile), 'meta.json'), JSON.stringify(meta, null, 2) + '\n');
+fs.writeFileSync(path.join(path.dirname(outFile), 'meta.json'), `${JSON.stringify(meta, null, 2)}\n`);
 console.log('game', meta);
 
 recipes.sort((a, b) => a.name.localeCompare(b.name));

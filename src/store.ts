@@ -61,7 +61,11 @@ interface State {
   /** Factory tab being renamed. Not persisted. */
   renaming?: string;
 
-  set: (patch: Partial<Pick<State, 'lang' | 'scale' | 'tier' | 'onboarded' | 'inventory' | 'view' | 'tab' | 'active' | 'inspect' | 'pane' | 'renaming'>>) => void;
+  set: (
+    patch: Partial<
+      Pick<State, 'lang' | 'scale' | 'tier' | 'onboarded' | 'inventory' | 'view' | 'tab' | 'active' | 'inspect' | 'pane' | 'renaming'>
+    >,
+  ) => void;
   setFixed: (item: string, rate: number | undefined) => void;
   updatePlan: (patch: Partial<Plan> | ((p: Plan) => Partial<Plan>)) => void;
   addPlan: (name: string) => void;
@@ -124,8 +128,7 @@ export const useStore = create<State>()(
         },
         renamePlan: (id, name) => set({ plans: get().plans.map((p) => (p.id === id ? { ...p, name } : p)) }),
 
-        addTarget: (item) =>
-          update((p) => (p.targets.some((t) => t.item === item) ? {} : { targets: [...p.targets, { item, rate: 10 }] })),
+        addTarget: (item) => update((p) => (p.targets.some((t) => t.item === item) ? {} : { targets: [...p.targets, { item, rate: 10 }] })),
         setTarget: (i, rate) => update((p) => ({ targets: p.targets.map((t, j) => (j === i ? { ...t, rate } : t)) })),
         removeTarget: (i) => update((p) => ({ targets: p.targets.filter((_, j) => j !== i) })),
         addSupply: (item, rate = 10) =>
@@ -174,7 +177,17 @@ export const useStore = create<State>()(
     {
       name: 'ficsit-planner',
       version: 2,
-      partialize: (s) => ({ lang: s.lang, scale: s.scale, tier: s.tier, onboarded: s.onboarded, inventory: s.inventory, view: s.view, tab: s.tab, plans: s.plans, active: s.active }),
+      partialize: (s) => ({
+        lang: s.lang,
+        scale: s.scale,
+        tier: s.tier,
+        onboarded: s.onboarded,
+        inventory: s.inventory,
+        view: s.view,
+        tab: s.tab,
+        plans: s.plans,
+        active: s.active,
+      }),
       migrate: migrateState,
       merge: mergeState,
     },
@@ -188,7 +201,13 @@ export function migrateState(persisted: unknown, version: number): Persisted {
   if (version < 2) {
     // v1 kept a single plan at the top level.
     const plan: Plan = { ...newPlan('Factory 1'), ...(old as Partial<Plan>) };
-    return { lang: old.lang as Lang, view: (old.view as State['view']) ?? 'graph', tab: (old.tab as State['tab']) ?? 'targets', plans: [plan], active: plan.id };
+    return {
+      lang: old.lang as Lang,
+      view: (old.view as State['view']) ?? 'graph',
+      tab: (old.tab as State['tab']) ?? 'targets',
+      plans: [plan],
+      active: plan.id,
+    };
   }
   return old as Persisted;
 }

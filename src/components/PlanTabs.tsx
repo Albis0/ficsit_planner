@@ -9,9 +9,9 @@ export function PlanActions({ rename = false, onDone }: { rename?: boolean; onDo
   const set = useStore((s) => s.set);
   const duplicatePlan = useStore((s) => s.duplicatePlan);
   const removePlan = useStore((s) => s.removePlan);
-  const [confirming, setConfirming] = useState(false);
-
-  useEffect(() => setConfirming(false), [active]);
+  // Which factory the Delete button is asking about, so switching tabs drops the question.
+  const [asking, setAsking] = useState<string>();
+  const confirming = asking === active;
 
   return (
     <span className="plan-actions">
@@ -41,11 +41,11 @@ export function PlanActions({ rename = false, onDone }: { rename?: boolean; onDo
         type="button"
         className={`text-button ${confirming ? 'danger' : ''}`}
         onClick={() => {
-          if (!confirming) return setConfirming(true);
+          if (!confirming) return setAsking(active);
           removePlan(active);
           onDone?.();
         }}
-        onBlur={() => setConfirming(false)}
+        onBlur={() => setAsking(undefined)}
       >
         {confirming ? t('confirmDelete') : t('deletePlan')}
       </button>

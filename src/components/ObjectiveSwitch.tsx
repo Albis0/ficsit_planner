@@ -8,7 +8,12 @@ export function ObjectiveSwitch({ wide = false }: { wide?: boolean }) {
   const updatePlan = useStore((s) => s.updatePlan);
   return (
     <div className={`segmented ${wide ? 'wide' : ''}`} role="radiogroup" aria-label={t('objective')}>
-      <button type="button" role="radio" aria-checked={plan.objective === 'resources'} onClick={() => updatePlan({ objective: 'resources' })}>
+      <button
+        type="button"
+        role="radio"
+        aria-checked={plan.objective === 'resources'}
+        onClick={() => updatePlan({ objective: 'resources' })}
+      >
         {t('objResources')}
       </button>
       <button type="button" role="radio" aria-checked={plan.objective === 'power'} onClick={() => updatePlan({ objective: 'power' })}>

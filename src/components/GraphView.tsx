@@ -16,7 +16,7 @@ import {
   type Viewport,
 } from '@xyflow/react';
 import '@xyflow/react/dist/base.css';
-import { createContext, useContext, useEffect, useMemo, useState } from 'react';
+import { createContext, type ReactNode, useContext, useEffect, useMemo, useState } from 'react';
 import { groupClocks } from '../lib/clocks';
 import { data } from '../lib/data';
 import type { ExtractionUse } from '../lib/extraction';
@@ -38,15 +38,24 @@ const Extraction = createContext<Map<string, ExtractionUse>>(new Map());
 /** Belt colours by tier, Mk.1 to Mk.6: a ramp so faster belts read as "hotter". */
 export const BELT_COLORS = ['#8b939b', '#5f95d0', '#46b5a5', '#85c35a', '#e2b53e', '#ee7a3a'];
 
-const beltIndex = (id: string) => Math.max(0, data.belts.findIndex((b) => b.id === id));
-const pipeIndex = (id: string) => Math.max(0, data.pipes.findIndex((p) => p.id === id));
+const beltIndex = (id: string) =>
+  Math.max(
+    0,
+    data.belts.findIndex((b) => b.id === id),
+  );
+const pipeIndex = (id: string) =>
+  Math.max(
+    0,
+    data.pipes.findIndex((p) => p.id === id),
+  );
 
 const useFaded = (id: string) => {
   const f = useContext(Focus);
   return f.node !== undefined && !f.near.has(id);
 };
 
-const zoomSelector = (s: { transform: [number, number, number] }) => (s.transform[2] < 0.45 ? 'far' : s.transform[2] < 0.8 ? 'mid' : 'near');
+const zoomSelector = (s: { transform: [number, number, number] }) =>
+  s.transform[2] < 0.45 ? 'far' : s.transform[2] < 0.8 ? 'mid' : 'near';
 
 function MachineNode({ id, data: d, selected }: NodeProps) {
   const { name, num } = useT();
@@ -71,6 +80,7 @@ function MachineNode({ id, data: d, selected }: NodeProps) {
           <span className="machine-recipe-name">{recipeLabel(name(recipe), recipe.kind)}</span>
           <span className="machine-clock">
             {groupClocks(use.clocks).map((g, i) => (
+              // biome-ignore lint/suspicious/noArrayIndexKey: clock groups are derived in a fixed order and never reordered.
               <span key={i} className={g.clock > 1 + 1e-6 ? 'over' : undefined}>
                 {groupClocks(use.clocks).length > 1 && `${g.n}× `}
                 {num(g.clock * 100)}%
@@ -102,6 +112,7 @@ function PinnableRate({ item, rate }: { item: string; rate: number }) {
     return (
       <input
         className="rate-input pin-input nodrag"
+        // biome-ignore lint/a11y/noAutofocus: the field only appears after the user clicks the rate to edit it.
         autoFocus
         inputMode="decimal"
         defaultValue={String(Math.round(rate * 100) / 100)}
@@ -182,8 +193,8 @@ function FlowEdge({ source, target, sourceX, sourceY, targetX, targetY, sourcePo
   const showLabel = zoom !== 'far' || lit;
   const state = `${faded ? 'faded' : ''} ${lit ? 'lit' : ''}`;
 
-  let body;
-  let tierColor;
+  let body: ReactNode;
+  let tierColor: string;
   if (fluid) {
     const mk = pipeIndex(transport.id);
     const w = mk === 0 ? 9 : 12;
@@ -199,7 +210,10 @@ function FlowEdge({ source, target, sourceX, sourceY, targetX, targetY, sourcePo
     tierColor = BELT_COLORS[Math.min(mk, BELT_COLORS.length - 1)];
     const w = 12 + 5 * (lanes - 1);
     body = (
-      <g className={`belt-edge ${state}`} style={{ ['--belt' as string]: tierColor, ['--belt-speed' as string]: `${1.4 / Math.sqrt(mk + 1)}s` }}>
+      <g
+        className={`belt-edge ${state}`}
+        style={{ ['--belt' as string]: tierColor, ['--belt-speed' as string]: `${1.4 / Math.sqrt(mk + 1)}s` }}
+      >
         <path d={path} className="belt-rails" style={{ strokeWidth: w }} />
         <path d={path} className="belt-bed" style={{ strokeWidth: w - 5 }} />
         <path d={path} className="belt-slats" style={{ strokeWidth: w - 5 }} />
@@ -347,7 +361,14 @@ export function GraphView({ result, extraction }: { result: SolveResult; extract
   // Uncontrolled flow remounted per solve: nodes stay draggable, and each new solve lays out fresh.
   const { nodes, edges, key, sig } = useMemo(() => {
     const g = buildGraph(result, tier);
-    return { ...g, key: ++solveCount, sig: g.nodes.map((n) => n.id).sort().join('|') };
+    return {
+      ...g,
+      key: ++solveCount,
+      sig: g.nodes
+        .map((n) => n.id)
+        .sort()
+        .join('|'),
+    };
   }, [result, tier]);
   const exMap = useMemo(() => new Map(extraction.map((u) => [u.item, u])), [extraction]);
   return (

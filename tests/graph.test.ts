@@ -11,7 +11,10 @@ beforeAll(async () => {
 
 test('every node declares a left input and a right output, so belts never enter from the top', () => {
   const r = solve(highs, {
-    targets: [{ item: 'Desc_ModularFrame_C', rate: 30 }, { item: 'Desc_Plastic_C', rate: 20 }],
+    targets: [
+      { item: 'Desc_ModularFrame_C', rate: 30 },
+      { item: 'Desc_Plastic_C', rate: 20 },
+    ],
     supplies: [],
     enabledRecipes: new Set(data.recipes.filter((x) => x.kind === 'standard').map((x) => x.id)),
     resourceCaps: {},

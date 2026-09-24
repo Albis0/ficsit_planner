@@ -16,7 +16,9 @@ const GROUPS: { phase: number; tiers: number[] }[] = [
 
 /** Buildings that open up at exactly this tier, so the choice is recognisable from the game. */
 const unlocksAt = (tier: number) => [
-  ...Object.values(data.machines).filter((m) => m.tier === tier).map((m) => m.id),
+  ...Object.values(data.machines)
+    .filter((m) => m.tier === tier)
+    .map((m) => m.id),
   ...data.extractors.filter((e) => e.tier === tier).map((e) => e.id),
   ...data.belts.filter((b) => b.tier === tier).map((b) => b.id),
   ...data.pipes.filter((p) => p.tier === tier).map((p) => p.id),
@@ -41,7 +43,7 @@ export function TierDialog({ onClose }: { onClose: () => void }) {
   const label = (id: string) =>
     name(data.machines[id] ?? data.extractors.find((e) => e.id === id)) !== '?'
       ? name(data.machines[id] ?? data.extractors.find((e) => e.id === id))
-      : [...data.belts, ...data.pipes].find((x) => x.id === id)?.name ?? '';
+      : ([...data.belts, ...data.pipes].find((x) => x.id === id)?.name ?? '');
 
   return (
     <dialog

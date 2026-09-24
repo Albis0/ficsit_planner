@@ -46,7 +46,7 @@ body,
 body {
   background: var(--bg);
   color: var(--paper);
-  font: 400 16px/1.45 var(--font-body);
+  font: 400 16px / 1.45 var(--font-body);
   font-variant-numeric: tabular-nums;
   -webkit-font-smoothing: antialiased;
   overflow: hidden;
@@ -126,7 +126,7 @@ button:disabled {
 
 .brand-name {
   align-self: center;
-  font: 700 28px/1 var(--font-display);
+  font: 700 28px / 1 var(--font-display);
   letter-spacing: 0.08em;
   color: var(--ficsit);
 }
@@ -242,7 +242,7 @@ button:disabled {
   border: 0;
   background: transparent;
   padding: 6px 14px;
-  font: 600 16px/1.3 var(--font-display);
+  font: 600 16px / 1.3 var(--font-display);
   letter-spacing: 0.02em;
   color: var(--dim);
 }
@@ -307,7 +307,7 @@ button:disabled {
   text-align: right;
   background: var(--bg);
   border: 1px solid var(--line-2);
-  font: 700 20px/1.2 var(--font-display);
+  font: 700 20px / 1.2 var(--font-display);
   color: var(--ficsit);
 }
 
@@ -387,7 +387,9 @@ button:disabled {
   padding: 0;
   background: linear-gradient(180deg, var(--slot-top), var(--slot-bottom));
   border: 1px solid var(--line-2);
-  box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.06), 0 1px 2px rgb(0 0 0 / 0.4);
+  box-shadow:
+    inset 0 1px 0 rgb(255 255 255 / 0.06),
+    0 1px 2px rgb(0 0 0 / 0.4);
 }
 
 button.slot:hover {
@@ -411,9 +413,11 @@ button.slot:hover {
   position: absolute;
   right: 4px;
   bottom: 1px;
-  font: 700 max(13px, calc(var(--slot-size) * 0.27))/1 var(--font-display);
+  font: 700 max(13px, calc(var(--slot-size) * 0.27)) / 1 var(--font-display);
   color: #fff;
-  text-shadow: 0 1px 2px #000, 0 0 3px #000;
+  text-shadow:
+    0 1px 2px #000,
+    0 0 3px #000;
   pointer-events: none;
 }
 
@@ -439,7 +443,7 @@ button.slot:hover {
   border: 0;
   background: transparent;
   padding: 16px 8px 13px;
-  font: 700 19px/1 var(--font-display);
+  font: 700 19px / 1 var(--font-display);
   letter-spacing: 0.05em;
   text-transform: uppercase;
   color: var(--faint);
@@ -486,7 +490,7 @@ button.slot:hover {
 
 .section-title {
   margin: 0;
-  font: 700 18px/1.2 var(--font-display);
+  font: 700 18px / 1.2 var(--font-display);
   letter-spacing: 0.05em;
   text-transform: uppercase;
   color: var(--dim);
@@ -524,7 +528,7 @@ button.slot:hover {
 .item-card-name {
   flex: 1;
   min-width: 0;
-  font: 600 20px/1.15 var(--font-display);
+  font: 600 20px / 1.15 var(--font-display);
   letter-spacing: 0.01em;
 }
 
@@ -713,7 +717,7 @@ button.slot:hover {
 }
 
 .recipe-name {
-  font: 600 19px/1.2 var(--font-display);
+  font: 600 19px / 1.2 var(--font-display);
 }
 
 .recipe-io {
@@ -732,7 +736,7 @@ button.slot:hover {
 
 .io-arrow {
   color: var(--ficsit);
-  font: 700 28px/1 var(--font-display);
+  font: 700 28px / 1 var(--font-display);
   margin: 0 4px;
 }
 
@@ -758,7 +762,7 @@ button.slot:hover {
   display: inline-block;
   margin-left: 10px;
   padding: 0 6px;
-  font: 600 13px/1.6 var(--font-display);
+  font: 600 13px / 1.6 var(--font-display);
   letter-spacing: 0.03em;
   vertical-align: 2px;
 }
@@ -880,7 +884,7 @@ button.slot:hover {
 }
 
 .extract-count b {
-  font: 700 20px/1.1 var(--font-display);
+  font: 700 20px / 1.1 var(--font-display);
 }
 
 .extract-count small {
@@ -919,7 +923,7 @@ button.slot:hover {
   place-items: center;
   padding: 40px;
   text-align: center;
-  font: 600 24px/1.4 var(--font-display);
+  font: 600 24px / 1.4 var(--font-display);
 }
 
 .floor-message.error {
@@ -992,7 +996,7 @@ button.slot:hover {
 
 .quick-title {
   margin: 0;
-  font: 700 44px/1 var(--font-display);
+  font: 700 44px / 1 var(--font-display);
   letter-spacing: 0.02em;
 }
 
@@ -1014,7 +1018,7 @@ button.slot:hover {
   padding: 14px 8px 12px;
   background: color-mix(in srgb, var(--panel) 88%, transparent);
   border: 1px solid var(--line);
-  font: 600 16px/1.15 var(--font-display);
+  font: 600 16px / 1.15 var(--font-display);
   text-align: center;
   color: var(--dim);
 }
@@ -1068,7 +1072,7 @@ button.slot:hover {
 }
 
 .readout-value {
-  font: 700 38px/1 var(--font-display);
+  font: 700 38px / 1 var(--font-display);
 }
 
 .readout-value small {
@@ -1170,7 +1174,7 @@ button.slot:hover {
   padding: 4px 24px 4px 12px;
   background: var(--ficsit);
   color: var(--ficsit-ink);
-  font: 700 16px/1.3 var(--font-display);
+  font: 700 16px / 1.3 var(--font-display);
   letter-spacing: 0.05em;
   text-transform: uppercase;
 }
@@ -1196,7 +1200,7 @@ button.slot:hover {
 }
 
 .machine-count {
-  font: 700 48px/1 var(--font-display);
+  font: 700 48px / 1 var(--font-display);
   min-width: 1.3em;
 }
 
@@ -1214,7 +1218,7 @@ button.slot:hover {
 }
 
 .machine-recipe-name {
-  font: 600 21px/1.1 var(--font-display);
+  font: 600 21px / 1.1 var(--font-display);
   overflow: hidden;
   text-overflow: ellipsis;
   display: -webkit-box;
@@ -1277,7 +1281,7 @@ button.slot:hover {
 }
 
 .endpoint-kind {
-  font: 700 13px/1.2 var(--font-display);
+  font: 700 13px / 1.2 var(--font-display);
   letter-spacing: 0.07em;
   text-transform: uppercase;
   color: var(--faint);
@@ -1288,7 +1292,7 @@ button.slot:hover {
 }
 
 .endpoint-name {
-  font: 600 19px/1.15 var(--font-display);
+  font: 600 19px / 1.15 var(--font-display);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -1440,7 +1444,7 @@ button.slot:hover {
 }
 
 .inspector-recipe {
-  font: 700 24px/1.1 var(--font-display);
+  font: 700 24px / 1.1 var(--font-display);
 }
 
 .inspector-row {
@@ -1614,7 +1618,7 @@ button.slot:hover {
 }
 
 .plan-table .strong {
-  font: 700 26px/1 var(--font-display);
+  font: 700 26px / 1 var(--font-display);
   color: var(--ficsit);
 }
 
@@ -1728,7 +1732,7 @@ button.slot:hover {
   padding: 0 6px;
   background: var(--ficsit);
   color: var(--ficsit-ink);
-  font: 700 12px/1.5 var(--font-display);
+  font: 700 12px / 1.5 var(--font-display);
   letter-spacing: 0.04em;
   text-transform: uppercase;
 }
@@ -1911,7 +1915,9 @@ button.slot:hover {
 
 .machine-node.tuned {
   border-color: var(--power);
-  box-shadow: 0 0 0 1px var(--power), 0 0 18px color-mix(in srgb, var(--power) 35%, transparent);
+  box-shadow:
+    0 0 0 1px var(--power),
+    0 0 18px color-mix(in srgb, var(--power) 35%, transparent);
   clip-path: none;
 }
 
@@ -1954,7 +1960,7 @@ button.slot:hover {
   flex: 1;
   display: flex;
   flex-direction: column;
-  font: 600 17px/1.15 var(--font-display);
+  font: 600 17px / 1.15 var(--font-display);
 }
 
 .placement-name small {
@@ -2214,7 +2220,7 @@ button.slot:hover {
     padding: 6px 2px;
     border: 0;
     background: transparent;
-    font: 700 15px/1.1 var(--font-display);
+    font: 700 15px / 1.1 var(--font-display);
     letter-spacing: 0.04em;
     text-transform: uppercase;
     color: var(--faint);
@@ -2405,7 +2411,7 @@ button.slot:hover {
   }
 
   .plan-table td.recipe-cell {
-    font: 700 19px/1.2 var(--font-display);
+    font: 700 19px / 1.2 var(--font-display);
   }
 
   .plan-table td.recipe-cell::before {
