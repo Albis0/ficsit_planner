@@ -1964,3 +1964,8 @@ button.slot:hover {
 .hint.warn {
   color: var(--power);
 }
+
+.data-version {
+  margin-top: 20px;
+  font-size: 13px;
+}

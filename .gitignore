@@ -5,5 +5,3 @@ src-tauri/gen
 *.log
 tools/icon-extractor/bin
 tools/icon-extractor/obj
-# Game icons are extracted locally from your own install (bun run icons); they're Coffee Stain's art.
-public/icons

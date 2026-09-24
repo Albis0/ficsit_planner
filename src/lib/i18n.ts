@@ -139,6 +139,7 @@ const strings = {
   buildings: { tr: 'Bina', en: 'Buildings' },
   parts: { tr: 'Parçalar', en: 'Parts' },
   locked: { tr: "Bu tier'da açık değil", en: 'Not unlocked at this tier' },
+  dataFrom: { tr: 'Oyun verisi:', en: 'Game data:' },
   wellNote: { tr: 'Resource well için ayrıca basınçlandırıcı gerekir (150 MW).', en: 'Resource wells also need a pressurizer (150 MW).' },
 } satisfies Record<string, Record<Lang, string>>;
 

@@ -2,6 +2,7 @@ import { useEffect, useRef } from 'react';
 import { data } from '../lib/data';
 import { useT } from '../lib/i18n';
 import { useStore } from '../store';
+import meta from '../data/meta.json';
 import { Icon } from './Icon';
 
 /** Space Elevator phases and the milestone tiers finishing each one unlocks (from the wiki). */
@@ -77,6 +78,9 @@ export function TierDialog({ onClose }: { onClose: () => void }) {
           </section>
         ))}
       </div>
+      <p className="hint data-version">
+        {t('dataFrom')} Satisfactory {meta.gameVersion} (build {meta.changelist}), {meta.extractedAt}
+      </p>
     </dialog>
   );
 }

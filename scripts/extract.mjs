@@ -214,6 +214,20 @@ for (const id of [...Object.keys(machines), ...extractors.map((e) => e.id), ...b
 fs.writeFileSync(path.join(path.dirname(outFile), 'icon-manifest.json'), JSON.stringify(iconManifest, null, 1));
 console.log('icons in manifest', Object.keys(iconManifest).length);
 
+// Record which game build the data came from, so a checkout without the game still knows.
+const versionFile = fs
+  .readdirSync(path.join(gameDir, 'Engine', 'Binaries', 'Win64'))
+  .find((f) => f.endsWith('-Shipping.version'));
+const build = versionFile ? JSON.parse(fs.readFileSync(path.join(gameDir, 'Engine', 'Binaries', 'Win64', versionFile), 'utf8')) : {};
+const meta = {
+  gameVersion: build.GameVersion ?? 'unknown',
+  changelist: build.Changelist ?? null,
+  engine: build.MajorVersion ? `${build.MajorVersion}.${build.MinorVersion}.${build.PatchVersion}` : 'unknown',
+  extractedAt: new Date().toISOString().slice(0, 10),
+};
+fs.writeFileSync(path.join(path.dirname(outFile), 'meta.json'), JSON.stringify(meta, null, 2) + '\n');
+console.log('game', meta);
+
 recipes.sort((a, b) => a.name.localeCompare(b.name));
 fs.mkdirSync(path.dirname(outFile), { recursive: true });
 fs.writeFileSync(outFile, JSON.stringify({ items, recipes, machines, worldLimits, belts: beltsOut, pipes: pipesOut, extractors }));
