@@ -7,3 +7,5 @@ tools/icon-extractor/obj
 .wrangler
 .dev.vars*
 .env*
+# Local work notes, not part of the project.
+reports/

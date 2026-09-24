@@ -7,6 +7,7 @@ import {
   ReactFlow,
   ReactFlowProvider,
   getBezierPath,
+  useInternalNode,
   useReactFlow,
   useStore as useFlowStore,
   type Edge,
@@ -20,10 +21,10 @@ import { createContext, type ReactNode, useContext, useEffect, useMemo, useState
 import { groupClocks } from '../lib/clocks';
 import { data } from '../lib/data';
 import type { ExtractionUse } from '../lib/extraction';
-import { buildGraph, type Direction, type EndpointNodeData, type FlowEdgeData, type MachineNodeData } from '../lib/graph';
+import { buildGraph, type Direction, type EndpointNodeData, type FlowEdgeData, type MachineNodeData, type Point } from '../lib/graph';
 import { useT } from '../lib/i18n';
 import { recipeLabel } from '../lib/text';
-import { COARSE, PHONE, useMediaQuery } from '../lib/useMediaQuery';
+import { COARSE, useMediaQuery } from '../lib/useMediaQuery';
 import type { SolveResult } from '../lib/solver';
 import { usePlan, useStore } from '../store';
 import { Icon } from './Icon';
@@ -59,44 +60,76 @@ const useFaded = (id: string) => {
   return f.node !== undefined && !f.near.has(id);
 };
 
+/** Below this zoom nodes switch to a poster view (big product icon and count) and belt labels hide. */
+const FAR_ZOOM = 0.55;
+
 const zoomSelector = (s: { transform: [number, number, number] }) =>
-  s.transform[2] < 0.45 ? 'far' : s.transform[2] < 0.8 ? 'mid' : 'near';
+  s.transform[2] < FAR_ZOOM ? 'far' : s.transform[2] < 0.8 ? 'mid' : 'near';
+
+const farSelector = (s: { transform: [number, number, number] }) => s.transform[2] < FAR_ZOOM;
+
+/** Bottom edge colour for machines holding power shards (blue), somersloops (pink) or both (half and half). */
+function modBar(shards: number, sloops: number): string | undefined {
+  if (shards > 0 && sloops > 0) return 'linear-gradient(90deg, var(--shard) 50%, var(--sloop) 50%)';
+  if (shards > 0) return 'var(--shard)';
+  if (sloops > 0) return 'var(--sloop)';
+  return undefined;
+}
 
 function MachineNode({ id, data: d, selected }: NodeProps) {
   const { name, num } = useT();
   const { use } = d as MachineNodeData;
   const dir = useContext(Flow);
+  const far = useFlowStore(farSelector);
   const { recipe } = use;
   const faded = useFaded(id);
-  const tuned = use.shards > 0 || use.sloops > 0;
+  const bar = modBar(use.shards, use.sloops);
+  const groups = groupClocks(use.clocks);
   return (
-    <div className={`machine-node ${recipe.kind} ${faded ? 'faded' : ''} ${selected ? 'selected' : ''} ${tuned ? 'tuned' : ''}`}>
+    <div
+      className={`machine-node ${recipe.kind} ${faded ? 'faded' : ''} ${selected ? 'selected' : ''} ${far ? 'far' : ''}`}
+      style={bar ? { ['--mod-bar' as string]: bar } : undefined}
+    >
       <Handle type="target" position={inSide(dir)} />
       <div className="machine-strip">
         <span>{name(data.machines[recipe.machine])}</span>
         <span className="machine-power">{num(use.power)} MW</span>
       </div>
-      <div className="machine-body">
-        <Icon id={recipe.machine} size={64} className="machine-icon" />
-        <span className="machine-count">
-          {use.built}
-          <small>×</small>
-        </span>
-        <span className="machine-recipe">
-          <span className="machine-recipe-name">{recipeLabel(name(recipe), recipe.kind)}</span>
-          <span className="machine-clock">
-            {groupClocks(use.clocks).map((g, i) => (
-              // biome-ignore lint/suspicious/noArrayIndexKey: clock groups are derived in a fixed order and never reordered.
-              <span key={i} className={g.clock > 1 + 1e-6 ? 'over' : undefined}>
-                {groupClocks(use.clocks).length > 1 && `${g.n}× `}
-                {num(g.clock * 100)}%
-              </span>
-            ))}
-            {use.shards > 0 && <span className="mod-badge shard">{use.shards} ◆</span>}
-            {use.sloops > 0 && <span className="mod-badge sloop">{use.sloops} ●</span>}
+      {far ? (
+        <div className="machine-body">
+          <Icon id={recipe.outputs[0].item} size={80} />
+          <span className="far-text">
+            <span className="far-count">
+              {use.built}
+              <small>×</small>
+            </span>
+            <span className="far-name">{name(data.items[recipe.outputs[0].item])}</span>
           </span>
-        </span>
-      </div>
+        </div>
+      ) : (
+        <div className="machine-body">
+          <Icon id={recipe.machine} size={56} className="machine-icon" />
+          <span className="machine-info">
+            <span className="machine-recipe-name">{recipeLabel(name(recipe), recipe.kind)}</span>
+            {/* Count and clock read as one: "3 × 83.33%" is three machines at 83.33% each. */}
+            <span className="machine-run">
+              {groups.map((g, i) => (
+                // biome-ignore lint/suspicious/noArrayIndexKey: clock groups are derived in a fixed order and never reordered.
+                <span key={i} className={g.clock > 1 + 1e-6 ? 'over' : undefined}>
+                  {i > 0 && <span className="plus">+</span>}
+                  <b>{g.n}</b> × {num(g.clock * 100)}%
+                </span>
+              ))}
+            </span>
+            {(use.shards > 0 || use.sloops > 0) && (
+              <span className="machine-mods">
+                {use.shards > 0 && <span className="mod-badge shard">{use.shards} ◆</span>}
+                {use.sloops > 0 && <span className="mod-badge sloop">{use.sloops} ●</span>}
+              </span>
+            )}
+          </span>
+        </div>
+      )}
       <Handle type="source" position={outSide(dir)} />
     </div>
   );
@@ -154,8 +187,22 @@ function EndpointNode({ id, data: d }: NodeProps) {
   const ex = useContext(Extraction).get(item);
   const dir = useContext(Flow);
   const label = { raw: t('rawInput'), supply: t('onHand'), missing: t('bringIn'), target: t('output'), surplus: t('surplus') }[kind];
+  const far = useFlowStore(farSelector);
   const it = data.items[item];
   const source = kind === 'raw' || kind === 'supply' || kind === 'missing';
+  if (far) {
+    return (
+      <div className={`endpoint-node ${kind} far ${faded ? 'faded' : ''}`}>
+        {!source && <Handle type="target" position={inSide(dir)} />}
+        <Icon id={item} size={64} />
+        <span className="far-text">
+          <span className="endpoint-rate">{num(rate)}</span>
+          <span className="far-name">{name(it)}</span>
+        </span>
+        {source && <Handle type="source" position={outSide(dir)} />}
+      </div>
+    );
+  }
   return (
     <div
       className={`endpoint-node ${kind} ${faded ? 'faded' : ''}`}
@@ -186,14 +233,49 @@ function EndpointNode({ id, data: d }: NodeProps) {
   );
 }
 
+/**
+ * A belt through the route's bends. Each stretch leaves and arrives straight along the line's
+ * direction, so it never overshoots or loops where several belts meet at one input.
+ */
+function routePath(pts: Point[], dir: Direction): string {
+  let d = `M${pts[0].x},${pts[0].y}`;
+  for (let i = 1; i < pts.length; i++) {
+    const a = pts[i - 1];
+    const b = pts[i];
+    if (dir === 'LR') {
+      const mx = (a.x + b.x) / 2;
+      d += ` C${mx},${a.y} ${mx},${b.y} ${b.x},${b.y}`;
+    } else {
+      const my = (a.y + b.y) / 2;
+      d += ` C${a.x},${my} ${b.x},${my} ${b.x},${b.y}`;
+    }
+  }
+  return d;
+}
+
+const moved = (a: Point | undefined, b: Point) => !a || Math.abs(a.x - b.x) > 0.5 || Math.abs(a.y - b.y) > 0.5;
+
 /** A conveyor belt (rails, bed, moving slats) or a pipe (casing, flowing fluid) along the edge. */
 function FlowEdge({ source, target, sourceX, sourceY, targetX, targetY, sourcePosition, targetPosition, data: d }: EdgeProps) {
   const { name, num, t } = useT();
   const focus = useContext(Focus);
   const zoom = useFlowStore(zoomSelector);
-  const { item, rate, transport, lanes } = d as FlowEdgeData;
+  const { item, rate, transport, lanes, route } = d as FlowEdgeData;
   const it = data.items[item];
-  const [path, lx, ly] = getBezierPath({ sourceX, sourceY, targetX, targetY, sourcePosition, targetPosition });
+  const dir = useContext(Flow);
+  const from = useInternalNode(source)?.internals.positionAbsolute;
+  const to = useInternalNode(target)?.internals.positionAbsolute;
+  let path: string;
+  let lx: number;
+  let ly: number;
+  if (route && !moved(from, route.from) && !moved(to, route.to)) {
+    // As laid out: follow the route around the machines, through the label's reserved spot.
+    path = routePath([{ x: sourceX, y: sourceY }, ...route.points, { x: targetX, y: targetY }], dir);
+    lx = route.label.x;
+    ly = route.label.y;
+  } else {
+    [path, lx, ly] = getBezierPath({ sourceX, sourceY, targetX, targetY, sourcePosition, targetPosition });
+  }
   const fluid = it.form !== 'solid';
   const lit = focus.node !== undefined && (source === focus.node || target === focus.node);
   const faded = focus.node !== undefined && !lit;
@@ -238,15 +320,19 @@ function FlowEdge({ source, target, sourceX, sourceY, targetX, targetY, sourcePo
             style={{ transform: `translate(-50%, -50%) translate(${lx}px, ${ly}px)` }}
             title={name(it)}
           >
-            <Icon id={item} size={24} />
-            {zoom === 'near' && <span className="edge-item">{name(it)}</span>}
-            <span className="edge-rate">
-              {num(rate)}
-              {t('perMin')}
-            </span>
-            <span className="edge-tier" style={{ background: tierColor }}>
-              {lanes > 1 && `${lanes}× `}
-              {transport.name}
+            <Icon id={item} size={zoom === 'near' ? 30 : 24} />
+            <span className="edge-text">
+              {zoom === 'near' && <span className="edge-item">{name(it)}</span>}
+              <span className="edge-meta">
+                <span className="edge-rate">
+                  {num(rate)}
+                  {t('perMin')}
+                </span>
+                <span className="edge-tier" style={{ background: tierColor }}>
+                  {lanes > 1 && `${lanes}× `}
+                  {transport.name}
+                </span>
+              </span>
             </span>
           </div>
         </EdgeLabelRenderer>
@@ -258,45 +344,60 @@ function FlowEdge({ source, target, sourceX, sourceY, targetX, targetY, sourcePo
 const nodeTypes = { machine: MachineNode, endpoint: EndpointNode };
 const edgeTypes = { flow: FlowEdge };
 
-function FitButton() {
+/** The direction switch (left to right or top to bottom) and fit to screen. */
+function FloorControls() {
   const { t } = useT();
   const flow = useReactFlow();
+  const dir = useContext(Flow);
+  const set = useStore((s) => s.set);
   return (
-    <button type="button" className="floor-button fit" onClick={() => flow.fitView({ padding: 0.06, duration: 250 })}>
-      {t('fit')}
-    </button>
+    <div className="floor-controls">
+      <div className="segmented" role="radiogroup" aria-label={t('direction')}>
+        <button type="button" role="radio" aria-checked={dir === 'LR'} title={t('leftToRight')} onClick={() => set({ graphDir: 'LR' })}>
+          <span aria-hidden>→</span>
+          <span className="sr-only">{t('leftToRight')}</span>
+        </button>
+        <button type="button" role="radio" aria-checked={dir === 'TB'} title={t('topToBottom')} onClick={() => set({ graphDir: 'TB' })}>
+          <span aria-hidden>↓</span>
+          <span className="sr-only">{t('topToBottom')}</span>
+        </button>
+      </div>
+      <button type="button" className="floor-button" title={t('fit')} onClick={() => flow.fitView({ padding: 0.04, duration: 250 })}>
+        <span className="fit-icon" aria-hidden>
+          ⤢
+        </span>
+        <span className="fit-label">{t('fit')}</span>
+      </button>
+    </div>
   );
 }
 
 let solveCount = 0;
 
-const READABLE_ZOOM = 0.85;
-/** Narrow floors (phones, portrait tablets) show more of the line at once; pinch zoom is right there. */
-const READABLE_ZOOM_NARROW = 0.6;
+/** Zoomed out further than this, fitting the whole factory at once isn't worth it. */
+const MIN_FIT = 0.3;
+/** Where the camera starts on a factory too big to fit: close enough to read, at the ore end. */
+const START_ZOOM = 0.5;
 
 /**
- * Opening camera: fit the whole factory when it stays readable; otherwise start at a readable
- * zoom from the ore end (left, or top on phones) so the line reads the way it's built.
+ * Opening camera: the whole factory filling the floor while that stays readable (far away, nodes
+ * switch to big icons); otherwise a readable zoom from the ore end, the way the line is built.
  */
 function openingViewport(nodes: Node[], width: number, height: number, dir: Direction): Viewport {
-  const readable = width < 900 ? READABLE_ZOOM_NARROW : READABLE_ZOOM;
   const minX = Math.min(...nodes.map((n) => n.position.x));
   const minY = Math.min(...nodes.map((n) => n.position.y));
   const maxX = Math.max(...nodes.map((n) => n.position.x + (n.width ?? 0)));
   const maxY = Math.max(...nodes.map((n) => n.position.y + (n.height ?? 0)));
-  const pad = width < 600 ? 16 : 48;
+  const pad = width < 600 ? 12 : 28;
   const fit = Math.min((width - pad * 2) / (maxX - minX), (height - pad * 2) / (maxY - minY), 1.1);
-  if (dir === 'TB') {
-    // Top to bottom: at least one machine across the screen, starting from the ores at the top.
-    const across = (width - pad * 2) / Math.max(...nodes.map((n) => n.width ?? 0));
-    const zoom = Math.max(fit, Math.min(0.8, across));
-    const x = (width - (maxX - minX) * zoom) / 2 - minX * zoom;
-    const y = fit >= zoom ? (height - (maxY - minY) * zoom) / 2 - minY * zoom : pad - minY * zoom;
-    return { x, y, zoom };
+  const centred = (size: number, span: number, min: number, zoom: number) => (size - span * zoom) / 2 - min * zoom;
+  if (fit >= MIN_FIT) {
+    return { x: centred(width, maxX - minX, minX, fit), y: centred(height, maxY - minY, minY, fit), zoom: fit };
   }
-  const zoom = Math.max(fit, readable);
-  const x = fit >= readable ? (width - (maxX - minX) * zoom) / 2 - minX * zoom : pad - minX * zoom;
-  const y = (maxY - minY) * zoom <= height - pad * 2 ? (height - (maxY - minY) * zoom) / 2 - minY * zoom : pad - minY * zoom;
+  // Too big: start from the inputs, centred the other way when that side fits.
+  const zoom = START_ZOOM;
+  const x = dir === 'LR' || (maxX - minX) * zoom > width ? pad - minX * zoom : centred(width, maxX - minX, minX, zoom);
+  const y = dir === 'TB' || (maxY - minY) * zoom > height ? pad - minY * zoom : centred(height, maxY - minY, minY, zoom);
   return { x, y, zoom };
 }
 
@@ -345,7 +446,7 @@ function Canvas({ nodes, edges, sig, dir }: { nodes: Node[]; edges: Edge[]; sig:
         nodesConnectable={false}
         nodesDraggable={!coarse}
         edgesFocusable={false}
-        minZoom={0.1}
+        minZoom={0.15}
         maxZoom={2}
         proOptions={{ hideAttribution: true }}
         defaultViewport={restore}
@@ -365,7 +466,7 @@ function Canvas({ nodes, edges, sig, dir }: { nodes: Node[]; edges: Edge[]; sig:
         {/* Foundation grid: minor lines every 8 m tile, a heavier seam every 4 tiles. */}
         <Background id="minor" variant={BackgroundVariant.Lines} gap={40} lineWidth={1} color="#2a2e33" />
         <Background id="major" variant={BackgroundVariant.Lines} gap={160} lineWidth={1} color="#383e45" />
-        <FitButton />
+        <FloorControls />
       </ReactFlow>
     </Focus.Provider>
   );
@@ -373,10 +474,11 @@ function Canvas({ nodes, edges, sig, dir }: { nodes: Node[]; edges: Edge[]; sig:
 
 export function GraphView({ result, extraction }: { result: SolveResult; extraction: ExtractionUse[] }) {
   const tier = useStore((s) => s.tier);
-  const dir: Direction = useMediaQuery(PHONE) ? 'TB' : 'LR';
+  const chosen = useStore((s) => s.graphDir);
   // Uncontrolled flow remounted per solve: nodes stay draggable, and each new solve lays out fresh.
-  const { nodes, edges, key, sig } = useMemo(() => {
-    const g = buildGraph(result, tier, dir);
+  const { nodes, edges, dir, key, sig } = useMemo(() => {
+    const box = document.querySelector('.floor-view')?.getBoundingClientRect();
+    const g = buildGraph(result, tier, { dir: chosen, box: box && { width: box.width, height: box.height } });
     return {
       ...g,
       key: ++solveCount,
@@ -384,9 +486,9 @@ export function GraphView({ result, extraction }: { result: SolveResult; extract
         g.nodes
           .map((n) => n.id)
           .sort()
-          .join('|') + dir,
+          .join('|') + g.dir,
     };
-  }, [result, tier, dir]);
+  }, [result, tier, chosen]);
   const exMap = useMemo(() => new Map(extraction.map((u) => [u.item, u])), [extraction]);
   return (
     <Extraction.Provider value={exMap}>

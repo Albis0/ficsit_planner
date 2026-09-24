@@ -23,6 +23,10 @@
   --converter: #bda2f5;
   --fluid: #4aa3df;
   --power: #f7d154;
+  /* Power shards glow blue in the game, somersloops pink; on-hand items get their own green. */
+  --shard: #52b2ff;
+  --sloop: #f27ad2;
+  --supply: #82cf6c;
   --alert: #ff6f61;
   --floor: #191c1f;
 
@@ -104,9 +108,27 @@ button:disabled {
 
 .app {
   display: grid;
-  grid-template-columns: 460px 1fr;
+  grid-template-columns: var(--side-w, 460px) minmax(0, 1fr);
   grid-template-rows: 64px 1fr;
   height: 100%;
+  /* It's an app, not a page: clicks and drags shouldn't paint text selections. */
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+.app input,
+.app textarea {
+  -webkit-user-select: text;
+  user-select: text;
+}
+
+/* Nothing to plan yet: the floor takes the whole width and asks what to make. */
+.app[data-empty] {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.app[data-empty] .side {
+  display: none;
 }
 
 .topbar {
@@ -231,6 +253,42 @@ button:disabled {
   border-left: 1px solid var(--line);
 }
 
+/* Drag handle on the side panel's right edge. */
+.splitter {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  right: -6px;
+  z-index: 20;
+  width: 12px;
+  cursor: col-resize;
+  touch-action: none;
+}
+
+.splitter::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 5px;
+  width: 2px;
+  transition: background 120ms;
+}
+
+.splitter:hover::after,
+.splitter:focus-visible::after,
+.resizing .splitter::after {
+  background: var(--ficsit);
+}
+
+.splitter:focus-visible {
+  outline: none;
+}
+
+.resizing {
+  cursor: col-resize;
+}
+
 /* ---------- Buttons and fields ---------- */
 
 .segmented {
@@ -239,14 +297,6 @@ button:disabled {
   border: 1px solid var(--line);
   padding: 3px;
   gap: 3px;
-}
-
-.segmented.wide {
-  display: flex;
-}
-
-.segmented.wide button {
-  flex: 1;
 }
 
 .segmented button {
@@ -409,6 +459,7 @@ button.slot:hover {
 /* ---------- Side panel ---------- */
 
 .side {
+  position: relative;
   display: flex;
   flex-direction: column;
   min-height: 0;
@@ -944,9 +995,29 @@ button.slot:hover {
   color: var(--faint);
 }
 
-.floor-button {
+.floor-controls {
   position: absolute;
+  right: 18px;
+  bottom: 18px;
   z-index: 5;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.fit-icon {
+  display: none;
+  font-size: 20px;
+  line-height: 1;
+}
+
+.floor-controls .segmented button {
+  padding: 4px 12px;
+  font-size: 20px;
+  line-height: 1.2;
+}
+
+.floor-button {
   border: 1px solid var(--line-2);
   background: var(--panel);
   padding: 8px 16px;
@@ -959,21 +1030,13 @@ button.slot:hover {
   border-color: var(--ficsit);
 }
 
-.floor-button.fit {
-  right: 18px;
-  bottom: 18px;
-}
-
 /* ---------- Quick pick (empty state) ---------- */
 
 .quick-pick {
   position: absolute;
   inset: 0;
   overflow-y: auto;
-  padding: 40px 48px 60px;
-  display: flex;
-  flex-direction: column;
-  gap: 14px;
+  padding: 48px 48px 60px;
   background:
     linear-gradient(#24282c 1px, transparent 1px) 0 0 / 40px 40px,
     linear-gradient(90deg, #24282c 1px, transparent 1px) 0 0 / 40px 40px;
@@ -985,8 +1048,55 @@ button.slot:hover {
   letter-spacing: 0.02em;
 }
 
+.quick-inner {
+  max-width: 1120px;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
 .quick-pick .section-title {
   margin-top: 18px;
+}
+
+.quick-search {
+  width: 100%;
+  max-width: 620px;
+  margin: 6px 0 4px;
+  padding: 14px 18px;
+  background: var(--bg);
+  border: 1px solid var(--line-2);
+  outline: none;
+  font-size: 19px;
+}
+
+.quick-search:focus {
+  border-color: var(--ficsit);
+}
+
+.quick-item {
+  position: relative;
+}
+
+.quick-item.locked {
+  opacity: 0.55;
+}
+
+.quick-item.locked:hover {
+  opacity: 1;
+}
+
+.tier-tag {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  padding: 1px 6px;
+  background: var(--line-2);
+  color: var(--paper);
+  font: 700 12px / 1.3 var(--font-display);
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
 }
 
 .quick-grid {
@@ -1019,8 +1129,7 @@ button.slot:hover {
 .summary {
   display: flex;
   flex-wrap: wrap;
-  gap: 1px;
-  background: var(--line);
+  background: var(--panel);
   border-bottom: 1px solid var(--line);
 }
 
@@ -1033,6 +1142,7 @@ button.slot:hover {
   background: var(--panel);
   min-width: 130px;
   border: 0;
+  border-right: 1px solid var(--line);
   text-align: left;
 }
 
@@ -1046,7 +1156,8 @@ button.slot:hover {
 
 .readout.wide {
   flex: 1;
-  min-width: 280px;
+  min-width: 200px;
+  border-right: 0;
 }
 
 .readout-label {
@@ -1075,11 +1186,11 @@ button.slot:hover {
 }
 
 .readout-value.shard {
-  color: var(--power);
+  color: var(--shard);
 }
 
 .readout-value.sloop {
-  color: var(--converter);
+  color: var(--sloop);
 }
 
 .slots {
@@ -1098,9 +1209,9 @@ button.slot:hover {
 .missing {
   flex-basis: 100%;
   display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 8px 12px;
+  flex-direction: column;
+  gap: 8px;
+  border-top: 1px solid var(--line);
   padding: 12px 22px;
   background: color-mix(in srgb, var(--alert) 15%, var(--panel));
   font-size: 16px;
@@ -1116,6 +1227,63 @@ button.slot:hover {
 .chip.alert:hover {
   background: var(--alert);
   color: var(--bg);
+}
+
+.missing-title {
+  font-weight: 600;
+}
+
+.missing-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.missing-list li {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 12px;
+}
+
+.missing-text {
+  flex: 1;
+  min-width: 220px;
+}
+
+.missing-fixes {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.chip.fix {
+  border: 1px solid var(--ficsit);
+  background: var(--ficsit);
+  color: var(--ficsit-ink);
+  padding: 4px 10px;
+  font-weight: 600;
+}
+
+.chip.fix:hover {
+  background: var(--ficsit-deep);
+}
+
+/* Every target is out of reach: the reasons and fixes in the middle of the floor. */
+.blocked {
+  max-width: 680px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  padding: 28px 30px;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-top: 3px solid var(--alert);
+  text-align: left;
+  font: 400 17px / 1.45 var(--font-body);
 }
 
 /* ---------- Graph nodes ---------- */
@@ -1140,8 +1308,9 @@ button.slot:hover {
 }
 
 .machine-node {
-  width: 330px;
-  height: 124px;
+  position: relative;
+  width: 300px;
+  height: 118px;
   display: flex;
   flex-direction: column;
   background: var(--raised);
@@ -1179,30 +1348,32 @@ button.slot:hover {
   background: var(--converter);
 }
 
+/* Shards and somersloops: a blue, pink or half-and-half edge along the bottom. */
+.machine-node::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 6px;
+  background: var(--mod-bar, transparent);
+}
+
 .machine-body {
   flex: 1;
+  min-height: 0;
   display: flex;
   align-items: center;
-  gap: 8px;
-  padding: 0 14px 0 8px;
+  gap: 10px;
+  padding: 0 12px 4px 8px;
 }
 
 .machine-icon {
+  flex: none;
   filter: drop-shadow(0 3px 4px rgb(0 0 0 / 0.55));
 }
 
-.machine-count {
-  font: 700 48px / 1 var(--font-display);
-  min-width: 1.3em;
-}
-
-.machine-count small {
-  font-size: 24px;
-  color: var(--faint);
-  margin-left: 1px;
-}
-
-.machine-recipe {
+.machine-info {
   display: flex;
   flex-direction: column;
   gap: 2px;
@@ -1210,35 +1381,110 @@ button.slot:hover {
 }
 
 .machine-recipe-name {
-  font: 600 21px / 1.1 var(--font-display);
+  font: 600 20px / 1.15 var(--font-display);
   overflow: hidden;
   text-overflow: ellipsis;
-  display: -webkit-box;
-  -webkit-line-clamp: 2;
-  -webkit-box-orient: vertical;
+  white-space: nowrap;
 }
 
-.machine-clock {
-  font: 600 16px var(--font-display);
+.machine-run {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0 6px;
+  font: 600 18px / 1.2 var(--font-display);
   color: var(--dim);
 }
 
+.machine-run b {
+  font-size: 28px;
+  color: var(--paper);
+}
+
+.machine-run .over {
+  color: var(--shard);
+}
+
+.machine-run .over b {
+  color: var(--shard);
+}
+
+.machine-run .plus {
+  margin-right: 6px;
+  color: var(--faint);
+}
+
+.machine-mods {
+  display: flex;
+  gap: 10px;
+}
+
 .mod-badge {
-  margin-left: 8px;
   font: 700 15px var(--font-display);
 }
 
+.placements .mod-badge {
+  margin-left: 8px;
+}
+
 .mod-badge.shard {
-  color: var(--power);
+  color: var(--shard);
 }
 
 .mod-badge.sloop {
-  color: var(--converter);
+  color: var(--sloop);
+}
+
+/* Zoomed far out: the product's icon and the machine count, big enough to read. */
+.machine-node.far .machine-strip {
+  min-height: 18px;
+  font-size: 0;
+}
+
+.machine-node.far .machine-body {
+  gap: 12px;
+  padding-left: 12px;
+}
+
+.far-text {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.far-name {
+  font: 600 30px / 1.1 var(--font-display);
+  color: var(--dim);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.machine-node.far::after {
+  height: 14px;
+}
+
+.far-count {
+  font: 700 56px / 1 var(--font-display);
+}
+
+.far-count small {
+  font-size: 32px;
+  color: var(--faint);
+}
+
+.endpoint-node.far {
+  gap: 12px;
+}
+
+.endpoint-node.far .endpoint-rate {
+  font-size: 40px;
+  line-height: 1;
 }
 
 .endpoint-node {
   --accent: var(--line-2);
-  width: 300px;
+  width: 280px;
   height: 84px;
   display: flex;
   align-items: center;
@@ -1263,6 +1509,17 @@ button.slot:hover {
 
 .endpoint-node.surplus {
   border-style: dashed;
+}
+
+/* Already on hand: delivered, not built, so it looks like a different kind of thing. */
+.endpoint-node.supply {
+  --accent: var(--supply);
+  border-color: color-mix(in srgb, var(--supply) 55%, transparent);
+  background: color-mix(in srgb, var(--supply) 11%, var(--panel));
+}
+
+.endpoint-node.supply .endpoint-kind {
+  color: var(--supply);
 }
 
 .endpoint-text {
@@ -1360,8 +1617,8 @@ button.slot:hover {
   position: absolute;
   display: flex;
   align-items: center;
-  gap: 6px;
-  padding: 3px 9px 3px 5px;
+  gap: 7px;
+  padding: 4px 9px 4px 5px;
   background: var(--bg);
   border: 1px solid var(--line);
   font-size: 14px;
@@ -1374,8 +1631,21 @@ button.slot:hover {
   z-index: 10;
 }
 
+.edge-text {
+  display: flex;
+  flex-direction: column;
+  line-height: 1.1;
+}
+
 .edge-item {
+  font-size: 13px;
   color: var(--dim);
+}
+
+.edge-meta {
+  display: flex;
+  align-items: center;
+  gap: 6px;
 }
 
 .edge-rate {
@@ -1452,6 +1722,39 @@ button.slot:hover {
   color: var(--faint);
 }
 
+.stepper {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+}
+
+.stepper button {
+  width: 38px;
+  height: 38px;
+  border: 1px solid var(--line-2);
+  background: var(--bg);
+  color: var(--paper);
+  font: 700 22px / 1 var(--font-display);
+}
+
+.stepper button:hover:not(:disabled) {
+  border-color: var(--ficsit);
+  color: var(--ficsit);
+}
+
+.stepper b {
+  min-width: 1.6em;
+  text-align: center;
+  font: 700 28px / 1 var(--font-display);
+}
+
+.stepper .slot-label {
+  flex-basis: 100%;
+  margin: 0;
+  color: var(--faint);
+}
+
 .clock-control {
   display: flex;
   align-items: center;
@@ -1489,9 +1792,9 @@ button.slot:hover {
 }
 
 .shard-slot.filled {
-  background: var(--power);
-  border-color: var(--power);
-  box-shadow: 0 0 10px color-mix(in srgb, var(--power) 60%, transparent);
+  background: var(--shard);
+  border-color: var(--shard);
+  box-shadow: 0 0 10px color-mix(in srgb, var(--shard) 60%, transparent);
 }
 
 .sloop-slots button {
@@ -1505,13 +1808,13 @@ button.slot:hover {
 }
 
 .sloop-slots button.filled {
-  background: color-mix(in srgb, var(--converter) 35%, var(--panel));
-  border-color: var(--converter);
+  background: color-mix(in srgb, var(--sloop) 35%, var(--panel));
+  border-color: var(--sloop);
   color: var(--paper);
 }
 
 .sloop-slots button[aria-checked='true'] {
-  outline: 2px solid var(--converter);
+  outline: 2px solid var(--sloop);
   outline-offset: 2px;
 }
 
@@ -1905,25 +2208,6 @@ button.slot:hover {
 
 /* ---------- Where shards and somersloops went ---------- */
 
-.machine-node.tuned {
-  border-color: var(--power);
-  box-shadow:
-    0 0 0 1px var(--power),
-    0 0 18px color-mix(in srgb, var(--power) 35%, transparent);
-  clip-path: none;
-}
-
-.machine-clock {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: baseline;
-  gap: 0 8px;
-}
-
-.machine-clock .over {
-  color: var(--power);
-}
-
 .placements {
   list-style: none;
   margin: 4px 0 0;
@@ -1945,7 +2229,7 @@ button.slot:hover {
 }
 
 .placements button:hover {
-  border-color: var(--power);
+  border-color: var(--ficsit);
 }
 
 .placement-name {
@@ -2099,7 +2383,17 @@ button.slot:hover {
 
 @media (max-width: 1100px) {
   .app {
-    grid-template-columns: 360px 1fr;
+    grid-template-columns: var(--side-w, 360px) minmax(0, 1fr);
+  }
+
+  /* Narrow panel: a long name gets the room, and breaks rather than running under the amount. */
+  .item-card {
+    gap: 10px;
+  }
+
+  .item-card-name {
+    font-size: 18px;
+    overflow-wrap: anywhere;
   }
 
   .topbar {
@@ -2142,6 +2436,15 @@ button.slot:hover {
 
   .app[data-pane='floor'] .side,
   .app[data-pane='side'] .floor {
+    display: none;
+  }
+
+  .app[data-empty][data-pane] .floor {
+    display: flex;
+  }
+
+  .app[data-empty] .mobile-nav,
+  .splitter {
     display: none;
   }
 
@@ -2307,9 +2610,19 @@ button.slot:hover {
     display: none;
   }
 
-  .floor-button.fit {
+  /* Bottom right like on desktop, with Fit as an icon so it fits beside Factory / List. */
+  .floor-controls {
     right: 10px;
     bottom: 10px;
+    gap: 6px;
+  }
+
+  .fit-label {
+    display: none;
+  }
+
+  .fit-icon {
+    display: inline;
   }
 
   .busy {
@@ -2454,7 +2767,8 @@ button.slot:hover {
   }
 
   .icon-button,
-  .sloop-slots button {
+  .sloop-slots button,
+  .stepper button {
     width: 44px;
     height: 44px;
   }

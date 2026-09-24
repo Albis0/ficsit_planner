@@ -1,14 +1,13 @@
-import { data } from '../lib/data';
 import type { ExtractionUse } from '../lib/extraction';
 import { useT } from '../lib/i18n';
 import type { SolveResult } from '../lib/solver';
 import { usePlan, useStore } from '../store';
 import { Icon } from './Icon';
+import { MissingList } from './MissingList';
 import { Slot } from './Slot';
 
 export function Summary({ result, extraction }: { result: SolveResult; extraction: ExtractionUse[] }) {
-  const { t, name, num } = useT();
-  const addSupply = useStore((s) => s.addSupply);
+  const { t, num } = useT();
   const set = useStore((s) => s.set);
   const inventory = useStore((s) => s.inventory);
   const updatePlan = useStore((s) => s.updatePlan);
@@ -91,15 +90,10 @@ export function Summary({ result, extraction }: { result: SolveResult; extractio
           </button>
         </div>
       )}
-      {result.missing.length > 0 && (
+      {result.missing.length > 0 && result.recipes.length > 0 && (
         <div className="missing" role="alert">
-          <span>{t('missing')}</span>
-          {result.missing.map((m) => (
-            <button key={m.item} type="button" className="chip alert" onClick={() => addSupply(m.item, Math.ceil(m.rate))}>
-              <Icon id={m.item} size={24} />+ {name(data.items[m.item])} {num(m.rate)}
-              {t('perMin')}
-            </button>
-          ))}
+          <span className="missing-title">{t('missing')}</span>
+          <MissingList missing={result.missing} />
         </div>
       )}
     </div>

@@ -12,7 +12,6 @@ export const defaultEnabled = () => data.recipes.filter((r) => r.kind === 'stand
 export interface Plan {
   id: string;
   name: string;
-  objective: 'resources' | 'power';
   targets: Target[];
   supplies: Target[];
   enabled: string[];
@@ -30,7 +29,6 @@ const uid = () => Math.random().toString(36).slice(2, 10);
 export const newPlan = (name: string): Plan => ({
   id: uid(),
   name,
-  objective: 'resources',
   targets: [],
   supplies: [],
   enabled: defaultEnabled(),
@@ -58,9 +56,18 @@ interface State {
   pane: 'side' | 'floor';
   /** Factory tab being renamed. Not persisted. */
   renaming?: string;
+  /** Side panel width set by dragging its edge; unset uses the layout default. */
+  sideWidth?: number;
+  /** Graph direction picked by the player; unset lets the layout choose what fits the screen. */
+  graphDir?: 'LR' | 'TB';
 
   set: (
-    patch: Partial<Pick<State, 'lang' | 'tier' | 'onboarded' | 'inventory' | 'view' | 'tab' | 'active' | 'inspect' | 'pane' | 'renaming'>>,
+    patch: Partial<
+      Pick<
+        State,
+        'lang' | 'tier' | 'onboarded' | 'inventory' | 'view' | 'tab' | 'active' | 'inspect' | 'pane' | 'renaming' | 'sideWidth' | 'graphDir'
+      >
+    >,
   ) => void;
   setFixed: (item: string, rate: number | undefined) => void;
   updatePlan: (patch: Partial<Plan> | ((p: Plan) => Partial<Plan>)) => void;
@@ -181,6 +188,8 @@ export const useStore = create<State>()(
         tab: s.tab,
         plans: s.plans,
         active: s.active,
+        sideWidth: s.sideWidth,
+        graphDir: s.graphDir,
       }),
       migrate: migrateState,
       merge: mergeState,
@@ -188,7 +197,9 @@ export const useStore = create<State>()(
   ),
 );
 
-type Persisted = Partial<Pick<State, 'lang' | 'tier' | 'onboarded' | 'inventory' | 'view' | 'tab' | 'plans' | 'active'>>;
+type Persisted = Partial<
+  Pick<State, 'lang' | 'tier' | 'onboarded' | 'inventory' | 'view' | 'tab' | 'plans' | 'active' | 'sideWidth' | 'graphDir'>
+>;
 
 export function migrateState(persisted: unknown, version: number): Persisted {
   const old = persisted as Record<string, unknown>;

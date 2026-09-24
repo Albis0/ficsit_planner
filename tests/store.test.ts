@@ -11,7 +11,6 @@ describe('saved state', () => {
     const migrated = migrateState({ lang: 'en', view: 'table', targets: [{ item: realItem, rate: 30 }], objective: 'power' }, 1);
     expect(migrated.plans).toHaveLength(1);
     expect(migrated.plans![0].targets).toEqual([{ item: realItem, rate: 30 }]);
-    expect(migrated.plans![0].objective).toBe('power');
     expect(migrated.active).toBe(migrated.plans![0].id);
     expect(migrated.view).toBe('table');
   });

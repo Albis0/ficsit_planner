@@ -48,15 +48,15 @@ and works without a network. There's nothing to download and run. It works on ph
 | :-: | --- |
 | <img src="public/icons/Desc_ModularFrame_C.webp" width="36" alt="Modular Frame"> | **Targets and factories.** Add as many products per factory as you want, each at its own rate. Factories live in tabs you can rename, duplicate and delete. Everything is saved in the browser. |
 | <img src="public/icons/Desc_IronPlate_C.webp" width="36" alt="Iron Plate"> | **On-hand items.** Parts that arrive from another factory or by train. The planner uses them instead of building them from scratch. |
-| <img src="public/icons/Build_AssemblerMk1_C.webp" width="36" alt="Assembler"> | **Recipe control.** Standard, alternate and converter recipes are grouped by product, and each one can be switched on or off. If an input can't be made with the enabled recipes, it gets flagged with a one-click "add as on hand" button. |
+| <img src="public/icons/Build_AssemblerMk1_C.webp" width="36" alt="Assembler"> | **Recipe control.** Standard, alternate and converter recipes are grouped by product, and each one can be switched on or off. If something can't be made, the planner says why (the tier that unlocks it, or the recipe that's off) and offers the fix in one click, or to bring it in as on hand. |
 | <img src="public/icons/Desc_SpaceElevatorPart_2_C.webp" width="36" alt="Versatile Framework"> | **Knows your progress.** On first launch you pick the highest milestone tier you've unlocked. Recipes, buildings, belts, pipes and miners above that tier stay out of the plan until you raise it. |
-| <img src="public/icons/Desc_Battery_C.webp" width="36" alt="Battery"> | **Two goals.** *Fewer resources* (raw use weighted by how scarce each ore is in the world) or *less power*. |
+| <img src="public/icons/Desc_Battery_C.webp" width="36" alt="Battery"> | **Start anywhere.** The first screen is one question: what are we making? Search every item, or start from the Space Elevator parts and common parts. Items above your tier show the tier that unlocks them. |
 | <img src="public/icons/Desc_OreIron_C.webp" width="36" alt="Iron Ore"> | **Resource limits.** Set a per-minute cap for each raw resource. Leave it empty to use the whole world's supply. |
 | <img src="public/icons/Desc_Coal_C.webp" width="36" alt="Coal"> | **Pinned inputs.** Click the rate on an ore node and type what you actually have. Every target scales to what that input can feed and keeps its ratio. |
-| <img src="public/icons/Desc_CrystalShard_C.webp" width="36" alt="Power Shard"> | **Clock speed.** Select a machine to set it, like the in-game panel. Power follows the game's formula. Overclocked lines keep machines at 100% and push only as many past it as needed, so they use the fewest power shards. |
+| <img src="public/icons/Desc_CrystalShard_C.webp" width="36" alt="Power Shard"> | **Machines and clock speed.** Select a machine and set how many to build, or the clock speed: the other follows, so the work is spread evenly and the clock you see is the clock they run at. Power follows the game's formula. Overclocked lines keep machines at 100% and push only as many past it as needed, so they use the fewest power shards. |
 | <img src="public/icons/Desc_WAT1_C.webp" width="36" alt="Somersloop"> | **Somersloops and auto place.** Set somersloops per machine, or enter how many somersloops and power shards you own and let the planner put them where they save the most. |
 | <img src="public/icons/Build_MinerMk2_C.webp" width="36" alt="Miner Mk.2"> | **Extraction.** Choose the miner, node purity and extractor clock to see how many miners and pumps each resource needs, and their power. |
-| <img src="public/icons/Build_ConveyorBeltMk5_C.webp" width="36" alt="Conveyor Belt Mk.5"> | **Two views.** The factory graph colours belts by tier and doubles up lanes when one belt can't carry the flow. Hover or tap a machine to follow its line. The table lists the total build cost of every machine and extractor. |
+| <img src="public/icons/Build_ConveyorBeltMk5_C.webp" width="36" alt="Conveyor Belt Mk.5"> | **Two views.** The factory graph lays itself out left to right or top to bottom, whichever fits your screen better (or pick one), routes belts around machines, colours them by tier and doubles up lanes when one belt can't carry the flow. Zoomed out, each machine shows its product and count in big type. Machines holding power shards get a blue edge, somersloops a pink one. Hover or tap a machine to follow its line. The table lists the total build cost of every machine and extractor. |
 | <img src="public/icons/BP_ItemDescriptorPortableMiner_C.webp" width="36" alt="Portable Miner"> | **Anywhere.** Works offline, installs as an app, and fits phones: one pane at a time with a bottom bar, and the factory runs top to bottom. |
 
 ## Install as an app
@@ -69,7 +69,8 @@ and works without a network. There's nothing to download and run. It works on ph
 After the first visit everything is cached, including the solver and all icons. The planner then works without a
 network. Updates install on their own the next time you open it, and your factories stay saved in the browser.
 
-To make everything bigger or smaller, use the browser's zoom (Ctrl + / Ctrl −, or pinch on a touch screen).
+To make everything bigger or smaller, use the browser's zoom (Ctrl + / Ctrl −, or pinch on a touch screen). On a
+desktop, drag the side panel's right edge to make it wider or narrower; double-click the edge to reset it.
 
 ## Development
 
@@ -127,10 +128,10 @@ See [CONTRIBUTING.md](CONTRIBUTING.md) for code style and what to check before a
   raw resource used, and one "missing" variable for every item no enabled recipe can make.
 - **Constraints:** for every item, net production ≥ demand − on-hand supply. Raw resources are capped by the
   player's limit, or by the world limit when there is none.
-- **Objective:** *fewer resources* minimises raw use weighted by scarcity (iron's world limit ÷ the resource's
-  limit), plus a tiny machine-power term so it never builds machines it doesn't need. *Less power* minimises
-  machine power, with the resource weights as a small tie-breaker. Missing items cost 10⁵ each, so they only
-  appear when nothing else works.
+- **Objective:** minimise raw use weighted by scarcity (iron's world limit ÷ the resource's limit), plus a tiny
+  machine-power term so it never builds machines it doesn't need. Missing items cost 10⁵ each, so they only appear
+  when nothing else works. The solver can also minimise power instead; the app doesn't offer it, because with
+  standard recipes both goals nearly always pick the same factory.
 - **Pinned inputs** are solved in two passes. The first maximises a scale factor *k* on all targets, with the
   pinned resources as hard limits. The second solves the normal objective at that *k*.
 - **Shadow prices** of the item rows give the marginal raw cost of each item. Auto place uses them to send
@@ -148,18 +149,19 @@ the belt count low. dagre lays the graph out left to right, or top to bottom on 
 | --- | --- |
 | `src/lib/solver.ts` | LP model, solve, somersloop/shard auto placement |
 | `src/lib/solver.worker.ts`, `solverClient.ts` | the solver in a Web Worker, and its promise API |
-| `src/lib/graph.ts` | solution → nodes and belts, layout |
+| `src/lib/graph.ts` | solution → nodes and belts; layout tries both directions and three rankings, keeps the one that fits the screen with the fewest crossings, and routes belts through space kept for their labels |
 | `src/lib/extraction.ts` | miner and pump counts per node purity |
-| `src/lib/data.ts` | typed access to the game data, belt/pipe choice per flow |
+| `src/lib/data.ts` | typed access to the game data, belt/pipe choice per flow, unlock tiers and why an item can't be made |
 | `src/locales/en.ts`, `src/lib/lang.ts`, `src/lib/i18n.ts` | UI strings, language registry, `useT()` |
 | `src/lib/install.ts`, `src/components/PwaStatus.tsx` | install button and offline status |
 | `index.html`, `vite.config.ts` | page title, search and social preview tags, PWA manifest, `robots.txt` and sitemap |
 | `public/_headers`, `public/404.html`, `wrangler.jsonc` | Cloudflare Pages headers, not-found page, project config |
 | `src/store.ts` | app state (zustand), saved to `localStorage` |
-| `src/components/` | panels, graph view, table view, inspector, phone navigation |
+| `src/components/` | panels, graph view, table view, inspector, phone navigation, side panel splitter |
 | `scripts/extract.mjs` | game data extractor |
 | `tools/icon-extractor/` | .NET icon extractor |
-| `tests/` | solver, extraction, auto placement, graph, saved state and string tests |
+| `tests/` | solver, extraction, auto placement, graph layout, unlock tiers, saved state and string tests |
+| `docs/manual-test.md` | a click-through checklist for testing the app by hand before a release |
 
 Saved state is versioned. After a game data refresh, recipes and items that no longer exist are dropped from
 saved factories when they load.

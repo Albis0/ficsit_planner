@@ -32,7 +32,7 @@ export function InventoryPanel({ result }: { result?: SolveResult }) {
           supplies: plan.supplies,
           enabledRecipes: new Set(plan.enabled.filter((id) => recipeUnlocked(recipeById.get(id)!, tier))),
           resourceCaps: plan.caps,
-          objective: plan.objective,
+          objective: 'resources',
           fixed: plan.fixed,
         },
         inventory,

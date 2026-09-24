@@ -121,5 +121,31 @@ export function transportFor(item: Item, rate: number, tier = 99): { transport: 
   return { transport: best, lanes: Math.ceil(rate / best.rate - 1e-6) };
 }
 
+/** Tier that makes a recipe usable: the later of its own unlock and its building's. */
+export const recipeTier = (r: Recipe) => Math.max(r.tier ?? 0, data.machines[r.machine].tier);
+
 /** Is the recipe usable at this tier: its own unlock and its building's. */
-export const recipeUnlocked = (r: Recipe, tier: number) => (r.tier ?? 0) <= tier && data.machines[r.machine].tier <= tier;
+export const recipeUnlocked = (r: Recipe, tier: number) => recipeTier(r) <= tier;
+
+/**
+ * Earliest tier at which an item can be made with a standard recipe (alternates need hard drives,
+ * so they don't count). Undefined when nothing standard makes it.
+ */
+export function itemTier(id: string): number | undefined {
+  const tiers = (producersOf.get(id) ?? []).filter((r) => r.kind === 'standard').map(recipeTier);
+  return tiers.length ? Math.min(...tiers) : undefined;
+}
+
+/** Why an item the plan needs has no working recipe, so the UI can offer the matching fix. */
+export type MissingReason = { kind: 'tier'; tier: number } | { kind: 'off'; recipe: string } | { kind: 'none' };
+
+export function whyMissing(id: string, tier: number, enabled: Set<string>): MissingReason {
+  const producers = producersOf.get(id) ?? [];
+  const off = producers.filter((r) => recipeUnlocked(r, tier) && !enabled.has(r.id));
+  // Turning one recipe back on is enough; the standard one if it's among them.
+  const pick = off.find((r) => r.kind === 'standard') ?? off[0];
+  if (pick) return { kind: 'off', recipe: pick.id };
+  const needed = itemTier(id);
+  if (needed !== undefined && needed > tier) return { kind: 'tier', tier: needed };
+  return { kind: 'none' };
+}

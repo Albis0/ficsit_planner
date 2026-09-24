@@ -1,7 +1,6 @@
 import { useEffect, useRef } from 'react';
 import { useT } from '../lib/i18n';
 import { usePlan, useStore } from '../store';
-import { ObjectiveSwitch } from './ObjectiveSwitch';
 import { PlanActions } from './PlanTabs';
 import { InstallButton } from './PwaStatus';
 
@@ -39,7 +38,7 @@ export function MobileNav() {
   );
 }
 
-/** Phone sheet holding what the desktop top bar shows inline: tier, objective, install, factory actions. */
+/** Phone sheet holding what the desktop top bar shows inline: tier, install, factory actions. */
 export function MobileMenu({ onClose, onTier }: { onClose: () => void; onTier: () => void }) {
   const { t } = useT();
   const tier = useStore((s) => s.tier);
@@ -75,10 +74,6 @@ export function MobileMenu({ onClose, onTier }: { onClose: () => void; onTier: (
           >
             {t('tier')} <b>{tier}</b>
           </button>
-        </div>
-        <div className="sheet-row column">
-          <span className="control-label">{t('objective')}</span>
-          <ObjectiveSwitch wide />
         </div>
         <div className="sheet-row">
           <span className="control-label">{t('planName')}</span>

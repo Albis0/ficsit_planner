@@ -32,7 +32,7 @@ test('every node declares a left input and a right output, so belts never enter 
   expect(nodes.some((n) => n.id === 'target:Desc_ModularFrame_C')).toBe(true);
 });
 
-test('on phones the line runs top to bottom: inputs on top, outputs below', () => {
+test('top to bottom: inputs on top, outputs below', () => {
   const r = solve(highs, {
     targets: [{ item: 'Desc_IronPlateReinforced_C', rate: 5 }],
     supplies: [],
@@ -40,7 +40,7 @@ test('on phones the line runs top to bottom: inputs on top, outputs below', () =
     resourceCaps: {},
     objective: 'resources',
   });
-  const { nodes, edges } = buildGraph(r, 9, 'TB');
+  const { nodes, edges } = buildGraph(r, 9, { dir: 'TB' });
   const byId = new Map(nodes.map((n) => [n.id, n]));
   for (const e of edges) {
     const src = byId.get(e.source)!;
@@ -49,4 +49,16 @@ test('on phones the line runs top to bottom: inputs on top, outputs below', () =
     expect(dst.handles!.find((h) => h.type === 'target')?.position).toBe('top');
     expect(dst.position.y).toBeGreaterThan(src.position.y);
   }
+});
+
+test('without a fixed direction, a tall screen gets top to bottom and a wide one left to right', () => {
+  const r = solve(highs, {
+    targets: [{ item: 'Desc_SpaceElevatorPart_1_C', rate: 5 }],
+    supplies: [],
+    enabledRecipes: new Set(data.recipes.filter((x) => x.kind === 'standard').map((x) => x.id)),
+    resourceCaps: {},
+    objective: 'resources',
+  });
+  expect(buildGraph(r, 9, { box: { width: 400, height: 900 } }).dir).toBe('TB');
+  expect(buildGraph(r, 9, { box: { width: 1600, height: 500 } }).dir).toBe('LR');
 });

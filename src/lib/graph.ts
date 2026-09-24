@@ -3,7 +3,7 @@ import { Position, type Edge, type Node, type NodeHandle } from '@xyflow/react';
 import { data, transportFor, type Transport } from './data';
 import type { RecipeUse, SolveResult } from './solver';
 
-/** Left to right on wide screens; top to bottom on phones, where a long line fits the tall screen. */
+/** Left to right or top to bottom. The layout picks whichever fits the screen, unless the player chose. */
 export type Direction = 'LR' | 'TB';
 
 export type EndpointKind = 'raw' | 'supply' | 'missing' | 'target' | 'surplus';
@@ -18,12 +18,28 @@ export interface EndpointNodeData extends Record<string, unknown> {
   rate: number;
 }
 
+export interface Point {
+  x: number;
+  y: number;
+}
+
+/** The belt's path from the layout: around machines, through a spot kept free for its label. */
+export interface Route {
+  /** Bends between the two machines; the label sits on the middle one. */
+  points: Point[];
+  label: Point;
+  /** Where both machines were laid out. Once either is dragged, the belt falls back to a plain curve. */
+  from: Point;
+  to: Point;
+}
+
 export interface FlowEdgeData extends Record<string, unknown> {
   item: string;
   rate: number;
   transport: Transport;
   /** Belts/pipes side by side when the best unlocked one can't carry it alone. */
   lanes: number;
+  route?: Route;
 }
 
 const HANDLE = { width: 10, height: 18 };
@@ -48,18 +64,36 @@ function handlesFor(size: { width: number; height: number }, sides: { target: bo
   return list;
 }
 
-const SIZE = {
-  machine: { width: 330, height: 124 },
-  endpoint: { width: 300, height: 84 },
+export const SIZE = {
+  machine: { width: 300, height: 118 },
+  endpoint: { width: 280, height: 84 },
 };
+
+/**
+ * Space kept for each belt label, so labels never sit on a machine. Dagre gives labels a rank of
+ * their own, so ranksep is the gap on both sides of that label rank together.
+ */
+const LABEL = { width: 176, height: 50 };
+const SPACING = {
+  LR: { nodesep: 34, ranksep: 70 },
+  TB: { nodesep: 30, ranksep: 70 },
+};
+
+export interface GraphOptions {
+  /** Fixed direction; without it both are tried against the screen and the better fit wins. */
+  dir?: Direction;
+  /** The floor the graph is shown on, for picking the direction. */
+  box?: { width: number; height: number };
+}
 
 /**
  * Turns an LP solution into a factory graph. Each item's producers are matched to its
  * consumers greedily (largest first), which keeps the number of belts low compared
  * to splitting every producer proportionally across every consumer.
  */
-export function buildGraph(result: SolveResult, tier: number, dir: Direction = 'LR'): { nodes: Node[]; edges: Edge[] } {
+export function buildGraph(result: SolveResult, tier: number, opts: GraphOptions = {}): { nodes: Node[]; edges: Edge[]; dir: Direction } {
   const nodes: Node[] = [];
+  const sides = new Map<string, { source: boolean; target: boolean }>();
   const producers = new Map<string, { node: string; rate: number }[]>();
   const consumers = new Map<string, { node: string; rate: number }[]>();
   const push = (m: typeof producers, item: string, node: string, rate: number) => {
@@ -78,8 +112,9 @@ export function buildGraph(result: SolveResult, tier: number, dir: Direction = '
       position: { x: 0, y: 0 },
       data: { kind, item, rate } satisfies EndpointNodeData,
       ...SIZE.endpoint,
-      handles: handlesFor(SIZE.endpoint, { source, target: !source }, dir),
+      handles: [],
     });
+    sides.set(id, { source, target: !source });
     return id;
   };
 
@@ -95,8 +130,9 @@ export function buildGraph(result: SolveResult, tier: number, dir: Direction = '
       position: { x: 0, y: 0 },
       data: { use: u } satisfies MachineNodeData,
       ...SIZE.machine,
-      handles: handlesFor(SIZE.machine, { source: true, target: true }, dir),
+      handles: [],
     });
+    sides.set(id, { source: true, target: true });
     for (const o of u.outputs) push(producers, o.item, id, o.rate);
     for (const i of u.inputs) push(consumers, i.item, id, i.rate);
   }
@@ -132,23 +168,89 @@ export function buildGraph(result: SolveResult, tier: number, dir: Direction = '
     }
   }
 
-  layout(nodes, edges, dir);
-  return { nodes, edges };
+  const dir = layout(nodes, edges, opts);
+  for (const n of nodes) n.handles = handlesFor({ width: n.width!, height: n.height! }, sides.get(n.id)!, dir);
+  return { nodes, edges, dir };
 }
 
-function layout(nodes: Node[], edges: Edge[], dir: Direction) {
-  const g = new dagre.graphlib.Graph();
-  g.setGraph(
-    dir === 'TB'
-      ? { rankdir: 'TB', nodesep: 30, ranksep: 110, marginx: 20, marginy: 20 }
-      : { rankdir: 'LR', nodesep: 44, ranksep: 220, marginx: 40, marginy: 40 },
-  );
-  g.setDefaultEdgeLabel(() => ({}));
+type Ranker = 'network-simplex' | 'tight-tree' | 'longest-path';
+const RANKERS: Ranker[] = ['network-simplex', 'tight-tree', 'longest-path'];
+
+interface Placement {
+  dir: Direction;
+  pos: Map<string, Point>;
+  routes: Map<string, { points: Point[]; label: Point }>;
+  width: number;
+  height: number;
+  crossings: number;
+}
+
+function place(nodes: Node[], edges: Edge[], dir: Direction, ranker: Ranker): Placement {
+  const g = new dagre.graphlib.Graph({ multigraph: true });
+  g.setGraph({ rankdir: dir, ranker, ...SPACING[dir], marginx: 30, marginy: 30 });
   for (const n of nodes) g.setNode(n.id, { width: n.width, height: n.height });
-  for (const e of edges) g.setEdge(e.source, e.target);
+  for (const e of edges) g.setEdge(e.source, e.target, { ...LABEL, labelpos: 'c' }, e.id);
   dagre.layout(g);
+  const pos = new Map<string, Point>();
   for (const n of nodes) {
     const p = g.node(n.id);
-    n.position = { x: p.x - (n.width ?? 0) / 2, y: p.y - (n.height ?? 0) / 2 };
+    pos.set(n.id, { x: p.x - (n.width ?? 0) / 2, y: p.y - (n.height ?? 0) / 2 });
   }
+  const routes = new Map<string, { points: Point[]; label: Point }>();
+  for (const e of edges) {
+    const r = g.edge({ v: e.source, w: e.target, name: e.id });
+    // The first and last points sit on the machines' borders; the handles replace them.
+    routes.set(e.id, { points: r.points.slice(1, -1), label: { x: r.x, y: r.y } });
+  }
+  const { width = 0, height = 0 } = g.graph();
+  return { dir, pos, routes, width, height, crossings: crossings(nodes, edges, pos, dir) };
+}
+
+/** Belts that cross, counting each belt as a straight line from its output handle to its input handle. */
+function crossings(nodes: Node[], edges: Edge[], pos: Map<string, Point>, dir: Direction): number {
+  const size = new Map(nodes.map((n) => [n.id, { w: n.width ?? 0, h: n.height ?? 0 }]));
+  const out = (id: string) => {
+    const p = pos.get(id)!;
+    const s = size.get(id)!;
+    return dir === 'LR' ? { x: p.x + s.w, y: p.y + s.h / 2 } : { x: p.x + s.w / 2, y: p.y + s.h };
+  };
+  const into = (id: string) => {
+    const p = pos.get(id)!;
+    const s = size.get(id)!;
+    return dir === 'LR' ? { x: p.x, y: p.y + s.h / 2 } : { x: p.x + s.w / 2, y: p.y };
+  };
+  const lines = edges.map((e) => ({ e, a: out(e.source), b: into(e.target) }));
+  const side = (p: Point, q: Point, r: Point) => Math.sign((q.x - p.x) * (r.y - p.y) - (q.y - p.y) * (r.x - p.x));
+  let n = 0;
+  for (let i = 0; i < lines.length; i++) {
+    for (let j = i + 1; j < lines.length; j++) {
+      const l = lines[i];
+      const m = lines[j];
+      if (l.e.source === m.e.source || l.e.target === m.e.target) continue;
+      if (side(l.a, l.b, m.a) * side(l.a, l.b, m.b) < 0 && side(m.a, m.b, l.a) * side(m.a, m.b, l.b) < 0) n++;
+    }
+  }
+  return n;
+}
+
+/**
+ * Tries each ranking strategy in each allowed direction. Within a direction the fewest crossing
+ * belts wins; between directions, the one that shows the whole factory bigger on this screen,
+ * unless it's only slightly better than the way the screen is shaped.
+ */
+function layout(nodes: Node[], edges: Edge[], { dir, box }: GraphOptions): Direction {
+  const natural: Direction = box && box.height > box.width ? 'TB' : 'LR';
+  const dirs: Direction[] = dir ? [dir] : box ? ['LR', 'TB'] : ['LR'];
+  const best = dirs.map((d) => RANKERS.map((r) => place(nodes, edges, d, r)).reduce((a, b) => (b.crossings < a.crossings ? b : a)));
+  const fit = (p: Placement) => (box ? Math.min(box.width / p.width, box.height / p.height) : 1);
+  const pick = best.reduce((a, b) => {
+    const [x, y] = a.dir === natural ? [a, b] : [b, a];
+    return fit(y) > fit(x) * 1.2 ? y : x;
+  });
+  for (const n of nodes) n.position = pick.pos.get(n.id)!;
+  for (const e of edges) {
+    const r = pick.routes.get(e.id)!;
+    (e.data as FlowEdgeData).route = { ...r, from: pick.pos.get(e.source)!, to: pick.pos.get(e.target)! };
+  }
+  return pick.dir;
 }

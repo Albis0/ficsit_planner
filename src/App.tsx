@@ -1,14 +1,15 @@
 import { useEffect, useMemo, useState } from 'react';
 import { GraphView } from './components/GraphView';
 import { Inspector } from './components/Inspector';
+import { MissingList } from './components/MissingList';
 import { MobileMenu, MobileNav } from './components/MobileChrome';
-import { ObjectiveSwitch } from './components/ObjectiveSwitch';
 import { PlanTabs } from './components/PlanTabs';
 import { InstallButton, PwaStatus } from './components/PwaStatus';
 import { QuickPick } from './components/QuickPick';
 import { TierDialog } from './components/TierPicker';
 import { RecipesPanel } from './components/RecipesPanel';
 import { ResourcesPanel } from './components/ResourcesPanel';
+import { Splitter } from './components/Splitter';
 import { Summary } from './components/Summary';
 import { TableView } from './components/TableView';
 import { TargetsPanel } from './components/TargetsPanel';
@@ -44,7 +45,7 @@ function useSolution() {
           supplies: plan.supplies,
           enabledRecipes: usable,
           resourceCaps: plan.caps,
-          objective: plan.objective,
+          objective: 'resources',
           mods: plan.mods,
           fixed: plan.fixed,
         });
@@ -57,7 +58,7 @@ function useSolution() {
       cancelled = true;
       clearTimeout(timer);
     };
-  }, [active, plan.supplies, usable, plan.caps, plan.objective, plan.mods, plan.fixed]);
+  }, [active, plan.supplies, usable, plan.caps, plan.mods, plan.fixed]);
 
   return state;
 }
@@ -85,8 +86,18 @@ export default function App() {
     ['resources', t('resources'), null],
   ] as const;
 
+  // Nothing planned yet: the whole floor asks what to make, and the side panel waits.
+  const empty = plan.targets.length === 0;
+  // Every target is out of reach (e.g. above the unlocked tier): explain instead of drawing a lone "bring in".
+  const blocked = result && result.recipes.length === 0 && result.missing.length > 0;
+
   return (
-    <div className="app" data-pane={s.pane}>
+    <div
+      className="app"
+      data-pane={s.pane}
+      data-empty={empty || undefined}
+      style={s.sideWidth ? { ['--side-w' as string]: `${s.sideWidth}px` } : undefined}
+    >
       <header className="topbar">
         <div className="brand">
           <span className="brand-mark" aria-hidden />
@@ -100,8 +111,6 @@ export default function App() {
           <button type="button" className="tier-button" title={t('whereAreYou')} onClick={() => setTierOpen(true)}>
             {t('tier')} <b>{s.tier}</b>
           </button>
-          <span className="control-label">{t('objective')}</span>
-          <ObjectiveSwitch />
         </div>
         <button type="button" className="menu-button" aria-label={t('menu')} onClick={() => setMenuOpen(true)}>
           ⋯
@@ -120,23 +129,33 @@ export default function App() {
         {s.tab === 'targets' && <TargetsPanel result={result} />}
         {s.tab === 'recipes' && <RecipesPanel />}
         {s.tab === 'resources' && <ResourcesPanel result={result} />}
+        <Splitter />
       </aside>
 
       <main className="floor">
-        {result && !error && <Summary result={result} extraction={extraction} />}
+        {result && !error && !blocked && <Summary result={result} extraction={extraction} />}
         <div className="floor-view">
           {error && <div className="floor-message error">{failureText(error, t)}</div>}
-          {!error && !result && !busy && <QuickPick />}
+          {empty && <QuickPick />}
+          {!error && blocked && (
+            <div className="floor-message">
+              <div className="blocked">
+                <h2 className="quick-title">{t('cantMakeYet')}</h2>
+                <MissingList missing={result.missing} />
+              </div>
+            </div>
+          )}
           {!error &&
             result &&
+            !blocked &&
             (s.view === 'graph' ? (
               <GraphView result={result} extraction={extraction} />
             ) : (
               <TableView result={result} extraction={extraction} />
             ))}
-          {!error && result && <Inspector result={result} />}
+          {!error && result && !blocked && <Inspector result={result} />}
           {busy && <div className="busy">{t('solving')}</div>}
-          {result && (
+          {result && !blocked && (
             <div className="floor-bar">
               <div className="segmented" role="radiogroup">
                 <button type="button" role="radio" aria-checked={s.view === 'graph'} onClick={() => s.set({ view: 'graph' })}>
