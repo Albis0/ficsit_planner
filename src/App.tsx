@@ -19,9 +19,6 @@ import type { SolveResult } from './lib/solver';
 import { solveAsync } from './lib/solverClient';
 import { failureText, type SolveFailure } from './lib/solveFailure';
 import { usePlan, useStore } from './store';
-import { applyScale } from './lib/zoom';
-
-const SCALES = [0.9, 1, 1.1, 1.25, 1.4];
 
 function useSolution() {
   const plan = usePlan();
@@ -79,11 +76,6 @@ export default function App() {
     document.documentElement.lang = lang;
   }, [lang]);
 
-  useEffect(() => {
-    applyScale(s.scale);
-  }, [s.scale]);
-
-  const scaleIndex = Math.max(0, SCALES.indexOf(s.scale));
   const [tierOpen, setTierOpen] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
 
@@ -108,20 +100,6 @@ export default function App() {
           </button>
           <span className="control-label">{t('objective')}</span>
           <ObjectiveSwitch />
-          <div className="scale" role="group" aria-label={t('uiSize')}>
-            <button type="button" aria-label="-" disabled={scaleIndex === 0} onClick={() => s.set({ scale: SCALES[scaleIndex - 1] })}>
-              A−
-            </button>
-            <span>{Math.round(s.scale * 100)}%</span>
-            <button
-              type="button"
-              aria-label="+"
-              disabled={scaleIndex === SCALES.length - 1}
-              onClick={() => s.set({ scale: SCALES[scaleIndex + 1] })}
-            >
-              A+
-            </button>
-          </div>
         </div>
         <button type="button" className="menu-button" aria-label={t('menu')} onClick={() => setMenuOpen(true)}>
           ⋯

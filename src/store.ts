@@ -42,8 +42,6 @@ export const newPlan = (name: string): Plan => ({
 
 interface State {
   lang: Lang;
-  /** Whole-UI zoom, 1 = 100%. */
-  scale: number;
   /** Highest milestone tier the player has unlocked in their save. Recipes and buildings above it sit out. */
   tier: number;
   /** Whether the first-run "where are you in the game" question was answered. */
@@ -62,9 +60,7 @@ interface State {
   renaming?: string;
 
   set: (
-    patch: Partial<
-      Pick<State, 'lang' | 'scale' | 'tier' | 'onboarded' | 'inventory' | 'view' | 'tab' | 'active' | 'inspect' | 'pane' | 'renaming'>
-    >,
+    patch: Partial<Pick<State, 'lang' | 'tier' | 'onboarded' | 'inventory' | 'view' | 'tab' | 'active' | 'inspect' | 'pane' | 'renaming'>>,
   ) => void;
   setFixed: (item: string, rate: number | undefined) => void;
   updatePlan: (patch: Partial<Plan> | ((p: Plan) => Partial<Plan>)) => void;
@@ -95,7 +91,6 @@ export const useStore = create<State>()(
 
       return {
         lang: 'en',
-        scale: 1,
         tier: MAX_TIER,
         onboarded: false,
         inventory: { sloops: 0, shards: 0 },
@@ -179,7 +174,6 @@ export const useStore = create<State>()(
       version: 2,
       partialize: (s) => ({
         lang: s.lang,
-        scale: s.scale,
         tier: s.tier,
         onboarded: s.onboarded,
         inventory: s.inventory,
@@ -194,7 +188,7 @@ export const useStore = create<State>()(
   ),
 );
 
-type Persisted = Partial<Pick<State, 'lang' | 'scale' | 'tier' | 'onboarded' | 'inventory' | 'view' | 'tab' | 'plans' | 'active'>>;
+type Persisted = Partial<Pick<State, 'lang' | 'tier' | 'onboarded' | 'inventory' | 'view' | 'tab' | 'plans' | 'active'>>;
 
 export function migrateState(persisted: unknown, version: number): Persisted {
   const old = persisted as Record<string, unknown>;

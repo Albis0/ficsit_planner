@@ -62,6 +62,8 @@ and works without a network. There's nothing to download and run. It works on ph
 After the first visit everything is cached, including the solver and all icons. The planner then works without a
 network. Updates install on their own the next time you open it, and your factories stay saved in the browser.
 
+To make everything bigger or smaller, use the browser's zoom (Ctrl + / Ctrl −, or pinch on a touch screen).
+
 ## Development
 
 Needs [Bun](https://bun.sh).

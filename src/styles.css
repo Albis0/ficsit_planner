@@ -257,32 +257,6 @@ button:disabled {
   color: var(--ficsit-ink);
 }
 
-.scale {
-  display: flex;
-  align-items: center;
-  border: 1px solid var(--line);
-  background: var(--bg);
-}
-
-.scale button {
-  border: 0;
-  background: transparent;
-  padding: 6px 10px;
-  font: 700 16px var(--font-display);
-  color: var(--dim);
-}
-
-.scale button:not(:disabled):hover {
-  color: var(--ficsit);
-}
-
-.scale span {
-  min-width: 3.2em;
-  text-align: center;
-  font: 600 15px var(--font-display);
-  color: var(--faint);
-}
-
 .text-button {
   border: 0;
   padding: 2px 0;
@@ -2127,7 +2101,6 @@ button.slot:hover {
   }
 
   .topbar-controls .control-label,
-  .scale,
   .floor-hint {
     display: none;
   }
@@ -2462,7 +2435,6 @@ button.slot:hover {
 /* Touch screens: finger-sized targets. */
 @media (pointer: coarse) {
   .segmented button,
-  .scale button,
   .tier-button,
   .install-button,
   .floor-button,

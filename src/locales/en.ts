@@ -75,7 +75,6 @@ export const en = {
   quickPickHint: 'Pick one, then adjust the rate under Targets. Anything else is under Add product.',
   projectParts: 'Space Elevator parts',
   commonParts: 'Common parts',
-  uiSize: 'Size',
   seconds: 's',
   pinInput: 'Amount you have',
   pinHint: 'Enter what you have; the factory scales to it',
