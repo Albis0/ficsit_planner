@@ -1,5 +1,5 @@
 // Reads the game's CommunityResources/Docs JSON and writes a compact src/data/gamedata.json.
-// Usage: npm run extract -- "<path to Satisfactory install>"
+// Usage: bun run extract "<path to Satisfactory install>"
 import fs from 'node:fs';
 import path from 'node:path';
 
