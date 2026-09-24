@@ -5,7 +5,6 @@ export type Form = 'solid' | 'liquid' | 'gas';
 export interface Item {
   id: string;
   name: string;
-  nameTr: string;
   form: Form;
   sink: number;
   color?: string;
@@ -22,7 +21,6 @@ export type RecipeKind = 'standard' | 'alternate' | 'converter';
 export interface Recipe {
   id: string;
   name: string;
-  nameTr: string;
   kind: RecipeKind;
   /** Milestone tier that unlocks it, when it comes from a milestone. */
   tier?: number;
@@ -42,7 +40,6 @@ export interface Cost {
 export interface Machine {
   id: string;
   name: string;
-  nameTr: string;
   power: number;
   powerExp: number;
   variable: boolean;
@@ -62,7 +59,6 @@ export interface Transport {
 export interface Extractor {
   id: string;
   name: string;
-  nameTr: string;
   /** Per minute on a normal node at 100% clock. */
   rate: number;
   power: number;

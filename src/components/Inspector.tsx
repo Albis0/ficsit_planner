@@ -1,5 +1,6 @@
 import { data } from '../lib/data';
 import { useT } from '../lib/i18n';
+import { recipeLabel } from '../lib/text';
 import { groupClocks } from '../lib/clocks';
 import { amplification, NO_MOD, shardsFor, type SolveResult } from '../lib/solver';
 import { usePlan, useStore } from '../store';
@@ -32,7 +33,7 @@ export function Inspector({ result }: { result: SolveResult }) {
         <Icon id={recipe.machine} size={48} />
         <div className="inspector-title">
           <span className="inspector-machine">{name(machine)}</span>
-          <span className="inspector-recipe">{name(recipe).replace(/^(Alternatif|Alternate): /, '')}</span>
+          <span className="inspector-recipe">{recipeLabel(name(recipe), recipe.kind)}</span>
         </div>
         <button type="button" className="icon-button" aria-label={t('close')} onClick={() => set({ inspect: undefined })}>
           ×

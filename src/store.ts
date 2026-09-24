@@ -1,7 +1,7 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import { data } from './lib/data';
-import type { Lang } from './lib/i18n';
+import { isLang, type Lang } from './lib/lang';
 import { DEFAULT_EXTRACTION, type ExtractionSettings } from './lib/extraction';
 import type { RecipeMod, Target } from './lib/solver';
 
@@ -77,7 +77,7 @@ interface State {
   setMod: (recipe: string, mod: RecipeMod | undefined) => void;
 }
 
-const first = newPlan('Fabrika 1');
+const first = newPlan('Factory 1');
 
 export const useStore = create<State>()(
   persist(
@@ -86,7 +86,7 @@ export const useStore = create<State>()(
         set({ plans: get().plans.map((p) => (p.id === get().active ? { ...p, ...fn(p) } : p)) });
 
       return {
-        lang: 'tr',
+        lang: 'en',
         scale: 1,
         tier: MAX_TIER,
         onboarded: false,
@@ -113,7 +113,7 @@ export const useStore = create<State>()(
         },
         removePlan: (id) => {
           const plans = get().plans.filter((p) => p.id !== id);
-          if (plans.length === 0) plans.push(newPlan('Fabrika 1'));
+          if (plans.length === 0) plans.push(newPlan('Factory 1'));
           const active = get().active === id ? plans[Math.max(0, get().plans.findIndex((p) => p.id === id) - 1)].id : get().active;
           set({ plans, active, inspect: undefined });
         },
@@ -170,34 +170,40 @@ export const useStore = create<State>()(
       name: 'ficsit-planner',
       version: 2,
       partialize: (s) => ({ lang: s.lang, scale: s.scale, tier: s.tier, onboarded: s.onboarded, inventory: s.inventory, view: s.view, tab: s.tab, plans: s.plans, active: s.active }),
-      migrate: (persisted, version) => {
-        const old = persisted as Record<string, unknown>;
-        if (version < 2) {
-          // v1 kept a single plan at the top level.
-          const plan: Plan = { ...newPlan('Fabrika 1'), ...(old as Partial<Plan>) };
-          return { lang: old.lang ?? 'tr', view: old.view ?? 'graph', tab: old.tab ?? 'targets', plans: [plan], active: plan.id };
-        }
-        return old;
-      },
-      // Drop ids that no longer exist after a game update re-extract.
-      merge: (persisted, current) => {
-        const p = persisted as Partial<State>;
-        const valid = new Set(data.recipes.map((r) => r.id));
-        const plans = (p.plans ?? current.plans).map((saved) => {
-          const plan = { ...newPlan(saved.name ?? 'Fabrika'), ...saved };
-          return {
-            ...plan,
-            enabled: plan.enabled.filter((id) => valid.has(id)),
-            targets: plan.targets.filter((t) => data.items[t.item]),
-            supplies: plan.supplies.filter((t) => data.items[t.item]),
-            mods: Object.fromEntries(Object.entries(plan.mods).filter(([id]) => valid.has(id))),
-          };
-        });
-        const active = plans.some((x) => x.id === p.active) ? p.active! : plans[0].id;
-        return { ...current, ...p, plans, active };
-      },
+      migrate: migrateState,
+      merge: mergeState,
     },
   ),
 );
+
+type Persisted = Partial<Pick<State, 'lang' | 'scale' | 'tier' | 'onboarded' | 'inventory' | 'view' | 'tab' | 'plans' | 'active'>>;
+
+export function migrateState(persisted: unknown, version: number): Persisted {
+  const old = persisted as Record<string, unknown>;
+  if (version < 2) {
+    // v1 kept a single plan at the top level.
+    const plan: Plan = { ...newPlan('Factory 1'), ...(old as Partial<Plan>) };
+    return { lang: old.lang as Lang, view: (old.view as State['view']) ?? 'graph', tab: (old.tab as State['tab']) ?? 'targets', plans: [plan], active: plan.id };
+  }
+  return old as Persisted;
+}
+
+/** Drops ids that no longer exist after a game data re-extract, and a language this build doesn’t ship. */
+export function mergeState<S extends State>(persisted: unknown, current: S): S {
+  const p = persisted as Persisted;
+  const valid = new Set(data.recipes.map((r) => r.id));
+  const plans = (p.plans ?? current.plans).map((saved) => {
+    const plan = { ...newPlan(saved.name ?? 'Factory'), ...saved };
+    return {
+      ...plan,
+      enabled: plan.enabled.filter((id) => valid.has(id)),
+      targets: plan.targets.filter((t) => data.items[t.item]),
+      supplies: plan.supplies.filter((t) => data.items[t.item]),
+      mods: Object.fromEntries(Object.entries(plan.mods).filter(([id]) => valid.has(id))),
+    };
+  });
+  const active = plans.some((x) => x.id === p.active) ? p.active! : plans[0].id;
+  return { ...current, ...p, lang: isLang(p.lang) ? p.lang : current.lang, plans, active };
+}
 
 export const usePlan = () => useStore((s) => s.plans.find((p) => p.id === s.active) ?? s.plans[0]);

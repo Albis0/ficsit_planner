@@ -14,6 +14,7 @@ import { effectiveExtraction, planExtraction } from './lib/extraction';
 import { getHighs } from './lib/highs';
 import { useT } from './lib/i18n';
 import { solve, type SolveResult } from './lib/solver';
+import { failureText, toFailure, type SolveFailure } from './lib/solveFailure';
 import { usePlan, useStore } from './store';
 import { applyScale } from './lib/zoom';
 
@@ -22,7 +23,7 @@ const SCALES = [0.9, 1, 1.1, 1.25, 1.4];
 function useSolution() {
   const plan = usePlan();
   const tier = useStore((s) => s.tier);
-  const [state, setState] = useState<{ result?: SolveResult; error?: string; busy: boolean }>({ busy: false });
+  const [state, setState] = useState<{ result?: SolveResult; error?: SolveFailure; busy: boolean }>({ busy: false });
 
   const active = useMemo(() => plan.targets.filter((t) => t.rate > 0), [plan.targets]);
   // Recipes above the unlocked tier (or needing a building that isn't unlocked) stay ticked but sit out.
@@ -54,7 +55,7 @@ function useSolution() {
         });
         if (!cancelled) setState({ result, busy: false });
       } catch (e) {
-        if (!cancelled) setState({ error: (e as Error).message, busy: false });
+        if (!cancelled) setState({ error: toFailure(e), busy: false });
       }
     }, 180);
     return () => {
@@ -128,13 +129,6 @@ export default function App() {
               A+
             </button>
           </div>
-          <div className="segmented lang" role="radiogroup" aria-label="Dil / Language">
-            {(['tr', 'en'] as const).map((l) => (
-              <button key={l} type="button" role="radio" aria-checked={s.lang === l} onClick={() => s.set({ lang: l })}>
-                {l.toUpperCase()}
-              </button>
-            ))}
-          </div>
         </div>
       </header>
 
@@ -155,7 +149,7 @@ export default function App() {
       <main className="floor">
         {result && !error && <Summary result={result} extraction={extraction} />}
         <div className="floor-view">
-          {error && <div className="floor-message error">{error}</div>}
+          {error && <div className="floor-message error">{failureText(error, t)}</div>}
           {!error && !result && !busy && <QuickPick />}
           {!error && result && (s.view === 'graph' ? <GraphView result={result} extraction={extraction} /> : <TableView result={result} extraction={extraction} />)}
           {!error && result && <Inspector result={result} />}

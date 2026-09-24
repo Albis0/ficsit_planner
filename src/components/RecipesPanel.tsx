@@ -1,13 +1,13 @@
 import { useMemo, useState } from 'react';
 import { data, recipeUnlocked, type Recipe, type RecipeKind, type Stack } from '../lib/data';
 import { useT } from '../lib/i18n';
+import { recipeLabel, searchKey } from '../lib/text';
 import { defaultEnabled, MAX_TIER, usePlan, useStore } from '../store';
 import { Icon } from './Icon';
 import { Slot } from './Slot';
 
 type Filter = 'all' | RecipeKind;
 
-const fold = (s: string) => s.toLocaleLowerCase('tr').normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/ı/g, 'i');
 const tiers = Array.from({ length: MAX_TIER + 1 }, (_, i) => i);
 
 export function RecipesPanel() {
@@ -25,12 +25,11 @@ export function RecipesPanel() {
 
   // Group by main product so every way to make screws sits together.
   const groups = useMemo(() => {
-    const f = fold(q.trim());
+    const f = searchKey(q.trim());
     const match = (r: Recipe) =>
       !f ||
-      fold(r.nameTr).includes(f) ||
-      fold(r.name).includes(f) ||
-      [...r.inputs, ...r.outputs].some((s) => fold(data.items[s.item]?.nameTr ?? '').includes(f) || fold(data.items[s.item]?.name ?? '').includes(f));
+      searchKey(name(r)).includes(f) ||
+      [...r.inputs, ...r.outputs].some((s) => searchKey(name(data.items[s.item])).includes(f));
     const map = new Map<string, Recipe[]>();
     for (const r of data.recipes) {
       if (filter !== 'all' && r.kind !== filter) continue;
@@ -105,7 +104,7 @@ export function RecipesPanel() {
                   <input type="checkbox" checked={on.has(r.id)} onChange={() => toggle(r.id)} />
                   <span className="recipe-main">
                     <span className="recipe-name">
-                      {name(r).replace(/^(Alternatif|Alternate): /, '')}
+                      {recipeLabel(name(r), r.kind)}
                       {r.kind !== 'standard' && <span className={`kind ${r.kind}`}>{t(r.kind)}</span>}
                       {r.tier !== undefined && (
                         <span className="tier-tag" title={locked ? t('aboveTier') : undefined}>

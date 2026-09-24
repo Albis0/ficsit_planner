@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import type { Item } from '../lib/data';
 import { useT } from '../lib/i18n';
+import { searchKey } from '../lib/text';
 import { Icon } from './Icon';
 
 interface Props {
@@ -10,7 +11,6 @@ interface Props {
   exclude?: string[];
 }
 
-const fold = (s: string) => s.toLocaleLowerCase('tr').normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/ı/g, 'i');
 
 /** A button that unfolds into a searchable item list. Type to filter, arrows to move, Enter to pick. */
 export function ItemPicker({ items, label, onPick, exclude = [] }: Props) {
@@ -23,11 +23,11 @@ export function ItemPicker({ items, label, onPick, exclude = [] }: Props) {
   const root = useRef<HTMLDivElement>(null);
 
   const matches = useMemo(() => {
-    const f = fold(q.trim());
+    const f = searchKey(q.trim());
     const skip = new Set(exclude);
     return items
       .filter((i) => !skip.has(i.id))
-      .filter((i) => !f || fold(i.nameTr).includes(f) || fold(i.name).includes(f))
+      .filter((i) => !f || searchKey(name(i)).includes(f))
       .sort((a, b) => name(a).localeCompare(name(b)));
   }, [q, items, exclude, name]);
 

@@ -22,6 +22,7 @@ import { data } from '../lib/data';
 import type { ExtractionUse } from '../lib/extraction';
 import { buildGraph, type EndpointNodeData, type FlowEdgeData, type MachineNodeData } from '../lib/graph';
 import { useT } from '../lib/i18n';
+import { recipeLabel } from '../lib/text';
 import type { SolveResult } from '../lib/solver';
 import { usePlan, useStore } from '../store';
 import { Icon } from './Icon';
@@ -66,7 +67,7 @@ function MachineNode({ id, data: d, selected }: NodeProps) {
           <small>×</small>
         </span>
         <span className="machine-recipe">
-          <span className="machine-recipe-name">{name(recipe).replace(/^(Alternatif|Alternate): /, '')}</span>
+          <span className="machine-recipe-name">{recipeLabel(name(recipe), recipe.kind)}</span>
           <span className="machine-clock">
             {groupClocks(use.clocks).map((g, i) => (
               <span key={i} className={g.clock > 1 + 1e-6 ? 'over' : undefined}>
@@ -194,7 +195,7 @@ function FlowEdge({ source, target, sourceX, sourceY, targetX, targetY, sourcePo
     );
   } else {
     const mk = beltIndex(transport.id);
-    tierColor = BELT_COLORS[mk];
+    tierColor = BELT_COLORS[Math.min(mk, BELT_COLORS.length - 1)];
     const w = 12 + 5 * (lanes - 1);
     body = (
       <g className={`belt-edge ${state}`} style={{ ['--belt' as string]: tierColor, ['--belt-speed' as string]: `${1.4 / Math.sqrt(mk + 1)}s` }}>

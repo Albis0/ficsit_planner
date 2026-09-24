@@ -2,6 +2,7 @@ import { useMemo } from 'react';
 import { data, rawItems } from '../lib/data';
 import { effectiveExtraction, MINERS, PURITIES, planExtraction } from '../lib/extraction';
 import { useT } from '../lib/i18n';
+import { minerLabel } from '../lib/text';
 import type { SolveResult } from '../lib/solver';
 import { usePlan, useStore } from '../store';
 import { Icon } from './Icon';
@@ -39,7 +40,7 @@ export function ResourcesPanel({ result }: { result?: SolveResult }) {
               onClick={() => setEx({ miner: m.id })}
             >
               <Icon id={m.id} size={44} />
-              <span>{name(m).replace(/^(Madenci|Miner) /, '')}</span>
+              <span>{minerLabel(name(m))}</span>
             </button>
           ))}
         </div>

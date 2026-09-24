@@ -70,6 +70,19 @@ export interface SolveResult {
   prices: Map<string, number>;
 }
 
+export type SolverErrorCode = 'infeasible' | 'pinnedInfeasible' | 'stopped';
+
+/** A failed solve. The code is translated for display; status is HiGHS’ own model status. */
+export class SolverError extends Error {
+  constructor(
+    readonly code: SolverErrorCode,
+    readonly status?: string,
+  ) {
+    super(status ? `${code}: ${status}` : code);
+    this.name = 'SolverError';
+  }
+}
+
 const EPS = 1e-6;
 const MISSING_PENALTY = 1e5;
 const MAX_SCALE = 1e4;
@@ -245,10 +258,10 @@ export function solve(solver: Highs, input: SolveInput): SolveResult {
   let scale = 1;
   if (Object.keys(input.fixed ?? {}).length > 0) {
     const first = solver.solve(model.lp('max-scale'), { output_flag: false });
-    if (first.Status !== 'Optimal') throw new Error(`Çözücü durdu: ${first.Status}`);
+    if (first.Status !== 'Optimal') throw new SolverError('stopped', first.Status);
     scale = Math.max(0, first.Columns.k?.Primal ?? 0);
     if (scale < 1e-9) {
-      throw new Error('Sabitlediğin girdilerle bu hedefler hiç üretilemiyor. Eksik bir tarif ya da ham madde var; sabitlemeyi kaldır ya da tarif aç.');
+      throw new SolverError('pinnedInfeasible');
     }
     // Shave a hair off so the second phase stays feasible under float noise.
     scale *= 1 - 1e-9;
@@ -256,11 +269,7 @@ export function solve(solver: Highs, input: SolveInput): SolveResult {
 
   const res = solver.solve(model.lp({ scale }), { output_flag: false });
   if (res.Status !== 'Optimal') {
-    throw new Error(
-      res.Status === 'Infeasible'
-        ? 'Bu hedef, kaynak limitlerinle üretilemiyor. Limitleri artır ya da hedefi düşür.'
-        : `Çözücü durdu: ${res.Status}`,
-    );
+    throw new SolverError(res.Status === 'Infeasible' ? 'infeasible' : 'stopped', res.Status);
   }
   const val = (name: string) => Math.max(0, res.Columns[name]?.Primal ?? 0);
 

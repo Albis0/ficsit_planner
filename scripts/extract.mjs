@@ -11,13 +11,9 @@ const load = (lang) =>
   JSON.parse(fs.readFileSync(path.join(docsDir, `${lang}.json`)).toString('utf16le').replace(/^\uFEFF/, ''));
 
 const en = load('en-US');
-const tr = load('tr');
 
 const nativeName = (g) => g.NativeClass.match(/FactoryGame\.(\w+)'/)?.[1];
 const byNative = (docs, nc) => docs.find((g) => nativeName(g) === nc)?.Classes ?? [];
-
-const trNames = new Map();
-for (const g of tr) for (const c of g.Classes) if (c.mDisplayName) trNames.set(c.ClassName, c.mDisplayName);
 
 const num = (s) => Number.parseFloat(s);
 
@@ -28,7 +24,6 @@ for (const nc of ['FGBuildableManufacturer', 'FGBuildableManufacturerVariablePow
     machines[c.ClassName] = {
       id: c.ClassName,
       name: c.mDisplayName,
-      nameTr: trNames.get(c.ClassName) ?? c.mDisplayName,
       power: num(c.mPowerConsumption),
       powerExp: num(c.mPowerConsumptionExponent),
       variable: nc === 'FGBuildableManufacturerVariablePower',
@@ -52,7 +47,6 @@ for (const g of en) {
     allItems[c.ClassName] = {
       id: c.ClassName,
       name: c.mDisplayName,
-      nameTr: trNames.get(c.ClassName) ?? c.mDisplayName,
       form,
       sink: Number.parseInt(c.mResourceSinkPoints ?? '0', 10) || 0,
       color: form === 'solid' ? undefined : colorOf(form === 'gas' ? c.mGasColor : c.mFluidColor) ?? colorOf(c.mFluidColor),
@@ -107,7 +101,6 @@ for (const c of byNative(en, 'FGRecipe')) {
   recipes.push({
     id: c.ClassName,
     name: c.mDisplayName,
-    nameTr: trNames.get(c.ClassName) ?? c.mDisplayName,
     kind: alt ? 'alternate' : machine === CONVERTER && outputs.every((o) => allItems[o.item]?.raw) ? 'converter' : 'standard',
     tier: unlock?.type === 'EST_Milestone' ? unlock.tier : undefined,
     machine,
@@ -125,7 +118,7 @@ for (const c of byNative(en, 'FGRecipe')) {
 for (const it of Object.values(allItems)) if (it.raw) used.add(it.id);
 let items = Object.fromEntries([...used].filter((id) => allItems[id]).map((id) => [id, allItems[id]]));
 
-// World extraction limits for Satisfactory 1.0, from SatisfactoryTools (greeny/SatisfactoryTools, src/Data/Data.ts).
+// World extraction limits from SatisfactoryTools (greeny/SatisfactoryTools, src/Data/Data.ts); last compared with upstream on 2026-09-24.
 const worldLimits = {
   Desc_OreIron_C: 92100,
   Desc_OreCopper_C: 36900,
@@ -160,7 +153,6 @@ for (const nc of ['FGBuildableResourceExtractor', 'FGBuildableWaterPump', 'FGBui
     extractors.push({
       id: c.ClassName,
       name: c.mDisplayName,
-      nameTr: trNames.get(c.ClassName) ?? c.mDisplayName,
       rate: ((num(c.mItemsPerCycle) / (fluid ? 1000 : 1)) * 60) / num(c.mExtractCycleTime),
       power: num(c.mPowerConsumption),
       powerExp: num(c.mPowerConsumptionExponent),

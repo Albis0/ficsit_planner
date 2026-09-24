@@ -2,6 +2,7 @@ import { useMemo } from 'react';
 import { data, type Cost } from '../lib/data';
 import type { ExtractionUse } from '../lib/extraction';
 import { useT } from '../lib/i18n';
+import { recipeLabel } from '../lib/text';
 import type { SolveResult, Target } from '../lib/solver';
 import { useStore } from '../store';
 import { groupClocks } from '../lib/clocks';
@@ -62,7 +63,7 @@ export function TableView({ result, extraction }: { result: SolveResult; extract
               onClick={() => set({ inspect: u.recipe.id })}
             >
               <td>
-                {name(u.recipe).replace(/^(Alternatif|Alternate): /, '')}
+                {recipeLabel(name(u.recipe), u.recipe.kind)}
                 {u.recipe.kind !== 'standard' && <span className={`kind ${u.recipe.kind}`}>{t(u.recipe.kind)}</span>}
               </td>
               <td className="dim">

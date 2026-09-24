@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { data, recipeById, recipeUnlocked } from '../lib/data';
 import { getHighs } from '../lib/highs';
 import { useT } from '../lib/i18n';
+import { recipeLabel } from '../lib/text';
 import { autoAssign, type SolveResult } from '../lib/solver';
 import { usePlan, useStore } from '../store';
 import { Icon } from './Icon';
@@ -93,7 +94,7 @@ export function InventoryPanel({ result }: { result?: SolveResult }) {
               <button type="button" onClick={() => set({ inspect: u.recipe.id, view: 'graph' })}>
                 <Icon id={u.recipe.machine} size={32} />
                 <span className="placement-name">
-                  {name(u.recipe).replace(/^(Alternatif|Alternate): /, '')}
+                  {recipeLabel(name(u.recipe), u.recipe.kind)}
                   <small>{name(data.machines[u.recipe.machine])}</small>
                 </span>
                 {u.shards > 0 && <span className="mod-badge shard">{u.shards} ◆</span>}
