@@ -81,7 +81,7 @@ export default function App() {
   }, [lang]);
 
   useEffect(() => {
-    applyScale(s.scale).catch(() => {});
+    applyScale(s.scale);
   }, [s.scale]);
 
   const scaleIndex = Math.max(0, SCALES.indexOf(s.scale));
