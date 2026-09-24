@@ -1969,3 +1969,51 @@ button.slot:hover {
   margin-top: 20px;
   font-size: 13px;
 }
+
+/* ---------- Install and offline ---------- */
+
+.install {
+  position: relative;
+}
+
+.install-button {
+  border: 1px solid var(--ficsit);
+  background: transparent;
+  padding: 6px 12px;
+  font: 600 16px var(--font-display);
+  color: var(--ficsit);
+}
+
+.install-button:hover {
+  background: color-mix(in srgb, var(--ficsit) 14%, transparent);
+}
+
+.install-hint {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  z-index: 30;
+  width: 240px;
+  padding: 10px 12px;
+  background: var(--raised);
+  border: 1px solid var(--line-2);
+  font-size: 14px;
+  color: var(--paper);
+}
+
+.toast {
+  position: fixed;
+  left: 50%;
+  bottom: calc(24px + env(safe-area-inset-bottom));
+  z-index: 40;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 10px 12px 10px 16px;
+  transform: translateX(-50%);
+  background: var(--raised);
+  border: 1px solid var(--line-2);
+  border-left: 4px solid var(--ficsit);
+  box-shadow: 0 12px 30px rgb(0 0 0 / 0.5);
+  font-size: 15px;
+}

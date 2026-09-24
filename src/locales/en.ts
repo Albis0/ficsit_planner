@@ -107,4 +107,8 @@ export const en = {
   errPinnedInfeasible:
     'Your pinned inputs can’t make any of these targets. A recipe or raw resource is missing: unpin, or enable a recipe.',
   errStopped: 'The solver stopped: {status}',
+  install: 'Install app',
+  installIosHint: 'To install, tap Share, then Add to Home Screen.',
+  offlineReady: 'Ready to work offline',
+  dismiss: 'OK',
 };

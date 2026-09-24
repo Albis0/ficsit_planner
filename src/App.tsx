@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { GraphView } from './components/GraphView';
 import { Inspector } from './components/Inspector';
 import { PlanTabs } from './components/PlanTabs';
+import { InstallButton, PwaStatus } from './components/PwaStatus';
 import { QuickPick } from './components/QuickPick';
 import { TierDialog } from './components/TierPicker';
 import { RecipesPanel } from './components/RecipesPanel';
@@ -101,6 +102,7 @@ export default function App() {
         </div>
         <PlanTabs />
         <div className="topbar-controls">
+          <InstallButton />
           <button type="button" className="tier-button" title={t('whereAreYou')} onClick={() => setTierOpen(true)}>
             {t('tier')} <b>{s.tier}</b>
           </button>
@@ -168,6 +170,7 @@ export default function App() {
         </div>
       </main>
       {(!s.onboarded || tierOpen) && <TierDialog onClose={() => setTierOpen(false)} />}
+      <PwaStatus />
     </div>
   );
 }
