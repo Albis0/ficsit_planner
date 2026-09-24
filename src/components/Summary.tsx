@@ -20,59 +20,61 @@ export function Summary({ result, extraction }: { result: SolveResult; extractio
 
   return (
     <div className="summary">
-      <div className="readout power">
-        <span className="readout-label">{t('power')}</span>
-        <span className="readout-value">
-          {num(result.power + extractionPower)} <small>MW</small>
-        </span>
-        <span className="readout-sub">
-          {num(result.power)} {t('factoryPower')}, {num(extractionPower)} {t('extraction').toLocaleLowerCase()}
-        </span>
-      </div>
-      <div className="readout">
-        <span className="readout-label">{t('machines')}</span>
-        <span className="readout-value">{machines}</span>
-      </div>
-      <button type="button" className="readout link" onClick={() => set({ tab: 'resources' })}>
-        <span className="readout-label">{t('extractors')}</span>
-        <span className="readout-value">{extractors}</span>
-      </button>
-      {result.shards > 0 && (
-        <div className="readout">
-          <span className="readout-label">{t('shards')}</span>
-          <span className={`readout-value shard ${result.shards > inventory.shards ? 'over' : ''}`}>
-            {result.shards}
-            <small> / {inventory.shards}</small>
+      <div className="readouts">
+        <div className="readout power">
+          <span className="readout-label">{t('power')}</span>
+          <span className="readout-value">
+            {num(result.power + extractionPower)} <small>MW</small>
+          </span>
+          <span className="readout-sub">
+            {num(result.power)} {t('factoryPower')}, {num(extractionPower)} {t('extraction').toLocaleLowerCase()}
           </span>
         </div>
-      )}
-      {result.sloops > 0 && (
         <div className="readout">
-          <span className="readout-label">{t('sloops')}</span>
-          <span className={`readout-value sloop ${result.sloops > inventory.sloops ? 'over' : ''}`}>
-            {result.sloops}
-            <small> / {inventory.sloops}</small>
-          </span>
+          <span className="readout-label">{t('machines')}</span>
+          <span className="readout-value">{machines}</span>
         </div>
-      )}
-      <div className="readout wide">
-        <span className="readout-label">{t('rawInput')}</span>
-        <span className="slots">
-          {result.raw.map((r) => (
-            <Slot key={r.item} id={r.item} rate={r.rate} size={52} />
-          ))}
-        </span>
-      </div>
-      {result.surplus.length > 0 && (
-        <div className="readout">
-          <span className="readout-label">{t('surplus')}</span>
+        <button type="button" className="readout link" onClick={() => set({ tab: 'resources' })}>
+          <span className="readout-label">{t('extractors')}</span>
+          <span className="readout-value">{extractors}</span>
+        </button>
+        {result.shards > 0 && (
+          <div className="readout">
+            <span className="readout-label">{t('shards')}</span>
+            <span className={`readout-value shard ${result.shards > inventory.shards ? 'over' : ''}`}>
+              {result.shards}
+              <small> / {inventory.shards}</small>
+            </span>
+          </div>
+        )}
+        {result.sloops > 0 && (
+          <div className="readout">
+            <span className="readout-label">{t('sloops')}</span>
+            <span className={`readout-value sloop ${result.sloops > inventory.sloops ? 'over' : ''}`}>
+              {result.sloops}
+              <small> / {inventory.sloops}</small>
+            </span>
+          </div>
+        )}
+        <div className="readout wide">
+          <span className="readout-label">{t('rawInput')}</span>
           <span className="slots">
-            {result.surplus.map((r) => (
-              <Slot key={r.item} id={r.item} rate={r.rate} size={52} tone="muted" />
+            {result.raw.map((r) => (
+              <Slot key={r.item} id={r.item} rate={r.rate} size={52} />
             ))}
           </span>
         </div>
-      )}
+        {result.surplus.length > 0 && (
+          <div className="readout">
+            <span className="readout-label">{t('surplus')}</span>
+            <span className="slots">
+              {result.surplus.map((r) => (
+                <Slot key={r.item} id={r.item} rate={r.rate} size={52} tone="muted" />
+              ))}
+            </span>
+          </div>
+        )}
+      </div>
       {pinned && (
         <div className="scaled" role="status">
           <span>{t('scaledBanner')}</span>

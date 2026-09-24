@@ -56,8 +56,12 @@ interface State {
   active: string;
   /** Machine opened in the inspector. Not persisted. */
   inspect?: string;
+  /** On phones the side panel and the factory floor take turns filling the screen. Not persisted. */
+  pane: 'side' | 'floor';
+  /** Factory tab being renamed. Not persisted. */
+  renaming?: string;
 
-  set: (patch: Partial<Pick<State, 'lang' | 'scale' | 'tier' | 'onboarded' | 'inventory' | 'view' | 'tab' | 'active' | 'inspect'>>) => void;
+  set: (patch: Partial<Pick<State, 'lang' | 'scale' | 'tier' | 'onboarded' | 'inventory' | 'view' | 'tab' | 'active' | 'inspect' | 'pane' | 'renaming'>>) => void;
   setFixed: (item: string, rate: number | undefined) => void;
   updatePlan: (patch: Partial<Plan> | ((p: Plan) => Partial<Plan>)) => void;
   addPlan: (name: string) => void;
@@ -93,6 +97,7 @@ export const useStore = create<State>()(
         inventory: { sloops: 0, shards: 0 },
         view: 'graph',
         tab: 'targets',
+        pane: 'floor',
         plans: [first],
         active: first.id,
 

@@ -23,6 +23,7 @@ import type { ExtractionUse } from '../lib/extraction';
 import { buildGraph, type EndpointNodeData, type FlowEdgeData, type MachineNodeData } from '../lib/graph';
 import { useT } from '../lib/i18n';
 import { recipeLabel } from '../lib/text';
+import { COARSE, useMediaQuery } from '../lib/useMediaQuery';
 import type { SolveResult } from '../lib/solver';
 import { usePlan, useStore } from '../store';
 import { Icon } from './Icon';
@@ -249,20 +250,23 @@ function FitButton() {
 let solveCount = 0;
 
 const READABLE_ZOOM = 0.85;
+/** Narrow floors (phones, portrait tablets) show more of the line at once; pinch zoom is right there. */
+const READABLE_ZOOM_NARROW = 0.6;
 
 /**
  * Opening camera: fit the whole factory when it stays readable; otherwise start at a readable
  * zoom from the ore end (left) so the line reads the way it's built, and let the user pan right.
  */
 function openingViewport(nodes: Node[], width: number, height: number): Viewport {
+  const readable = width < 900 ? READABLE_ZOOM_NARROW : READABLE_ZOOM;
   const minX = Math.min(...nodes.map((n) => n.position.x));
   const minY = Math.min(...nodes.map((n) => n.position.y));
   const maxX = Math.max(...nodes.map((n) => n.position.x + (n.width ?? 0)));
   const maxY = Math.max(...nodes.map((n) => n.position.y + (n.height ?? 0)));
-  const pad = 48;
+  const pad = width < 600 ? 16 : 48;
   const fit = Math.min((width - pad * 2) / (maxX - minX), (height - pad * 2) / (maxY - minY), 1.1);
-  const zoom = Math.max(fit, READABLE_ZOOM);
-  const x = fit >= READABLE_ZOOM ? (width - (maxX - minX) * zoom) / 2 - minX * zoom : pad - minX * zoom;
+  const zoom = Math.max(fit, readable);
+  const x = fit >= readable ? (width - (maxX - minX) * zoom) / 2 - minX * zoom : pad - minX * zoom;
   const y = (maxY - minY) * zoom <= height - pad * 2 ? (height - (maxY - minY) * zoom) / 2 - minY * zoom : pad - minY * zoom;
   return { x, y, zoom };
 }
@@ -275,6 +279,8 @@ function Canvas({ nodes, edges, sig }: { nodes: Node[]; edges: Edge[]; sig: stri
   const set = useStore((s) => s.set);
   const [hover, setHover] = useState<string>();
   const [restore] = useState(() => (camera.sig === sig ? camera.viewport : undefined));
+  // Dragging nodes with a finger fights panning; touch screens pan and pinch only.
+  const coarse = useMediaQuery(COARSE);
 
   const neighbours = useMemo(() => {
     const map = new Map<string, Set<string>>();
@@ -308,6 +314,7 @@ function Canvas({ nodes, edges, sig }: { nodes: Node[]; edges: Edge[]; sig: stri
         nodeTypes={nodeTypes}
         edgeTypes={edgeTypes}
         nodesConnectable={false}
+        nodesDraggable={!coarse}
         edgesFocusable={false}
         minZoom={0.1}
         maxZoom={2}

@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useRegisterSW } from 'virtual:pwa-register/react';
 import { useT } from '../lib/i18n';
 import { promptInstall, useInstallMode } from '../lib/install';
@@ -29,6 +29,11 @@ export function PwaStatus() {
   const {
     offlineReady: [offlineReady, setOfflineReady],
   } = useRegisterSW();
+  useEffect(() => {
+    if (!offlineReady) return;
+    const timer = setTimeout(() => setOfflineReady(false), 6000);
+    return () => clearTimeout(timer);
+  }, [offlineReady, setOfflineReady]);
   if (!offlineReady) return null;
   return (
     <div className="toast" role="status">

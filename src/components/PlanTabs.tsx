@@ -2,25 +2,73 @@ import { useEffect, useRef, useState } from 'react';
 import { useT } from '../lib/i18n';
 import { useStore } from '../store';
 
+/** Rename (phones only, where there's no double-click), duplicate and delete for the active factory. */
+export function PlanActions({ rename = false, onDone }: { rename?: boolean; onDone?: () => void }) {
+  const { t } = useT();
+  const active = useStore((s) => s.active);
+  const set = useStore((s) => s.set);
+  const duplicatePlan = useStore((s) => s.duplicatePlan);
+  const removePlan = useStore((s) => s.removePlan);
+  const [confirming, setConfirming] = useState(false);
+
+  useEffect(() => setConfirming(false), [active]);
+
+  return (
+    <span className="plan-actions">
+      {rename && (
+        <button
+          type="button"
+          className="text-button"
+          onClick={() => {
+            set({ renaming: active });
+            onDone?.();
+          }}
+        >
+          {t('rename')}
+        </button>
+      )}
+      <button
+        type="button"
+        className="text-button"
+        onClick={() => {
+          duplicatePlan(active);
+          onDone?.();
+        }}
+      >
+        {t('duplicate')}
+      </button>
+      <button
+        type="button"
+        className={`text-button ${confirming ? 'danger' : ''}`}
+        onClick={() => {
+          if (!confirming) return setConfirming(true);
+          removePlan(active);
+          onDone?.();
+        }}
+        onBlur={() => setConfirming(false)}
+      >
+        {confirming ? t('confirmDelete') : t('deletePlan')}
+      </button>
+    </span>
+  );
+}
+
 /** Factory tabs across the top bar: switch, double-click to rename, duplicate or delete the active one. */
 export function PlanTabs() {
   const { t } = useT();
   const plans = useStore((s) => s.plans);
   const active = useStore((s) => s.active);
+  const editing = useStore((s) => s.renaming);
   const set = useStore((s) => s.set);
   const addPlan = useStore((s) => s.addPlan);
-  const duplicatePlan = useStore((s) => s.duplicatePlan);
-  const removePlan = useStore((s) => s.removePlan);
   const renamePlan = useStore((s) => s.renamePlan);
-  const [editing, setEditing] = useState<string>();
-  const [confirming, setConfirming] = useState(false);
   const input = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     if (editing) input.current?.select();
   }, [editing]);
 
-  useEffect(() => setConfirming(false), [active]);
+  const stopEditing = () => set({ renaming: undefined });
 
   return (
     <nav className="plan-tabs" aria-label={t('planName')}>
@@ -31,13 +79,14 @@ export function PlanTabs() {
             ref={input}
             className="plan-tab editing"
             defaultValue={p.name}
+            aria-label={t('rename')}
             onBlur={(e) => {
               renamePlan(p.id, e.target.value.trim() || p.name);
-              setEditing(undefined);
+              stopEditing();
             }}
             onKeyDown={(e) => {
               if (e.key === 'Enter') e.currentTarget.blur();
-              if (e.key === 'Escape') setEditing(undefined);
+              if (e.key === 'Escape') stopEditing();
             }}
           />
         ) : (
@@ -48,7 +97,7 @@ export function PlanTabs() {
             aria-current={p.id === active ? 'page' : undefined}
             title={t('renameHint')}
             onClick={() => set({ active: p.id, inspect: undefined })}
-            onDoubleClick={() => setEditing(p.id)}
+            onDoubleClick={() => set({ renaming: p.id })}
           >
             {p.name}
           </button>
@@ -63,22 +112,7 @@ export function PlanTabs() {
       >
         +
       </button>
-      <span className="plan-actions">
-        <button type="button" className="text-button" onClick={() => duplicatePlan(active)}>
-          {t('duplicate')}
-        </button>
-        <button
-          type="button"
-          className={`text-button ${confirming ? 'danger' : ''}`}
-          onClick={() => {
-            if (!confirming) return setConfirming(true);
-            removePlan(active);
-          }}
-          onBlur={() => setConfirming(false)}
-        >
-          {confirming ? t('confirmDelete') : t('deletePlan')}
-        </button>
-      </span>
+      <PlanActions />
     </nav>
   );
 }

@@ -1,7 +1,8 @@
 /*
   FICSIT planner. Built from the game's own UI vocabulary: charcoal panels, FICSIT orange
   for what matters, inventory slots (square, icon, amount in the corner) for every item,
-  and a foundation-grid factory floor. Sized for a desktop window viewed from a chair.
+  and a foundation-grid factory floor. Sized for a desktop window viewed from a chair; the
+  "Tablet and phone" section at the end reflows it for small and touch screens.
 */
 :root {
   --bg: #141618;
@@ -2001,10 +2002,12 @@ button.slot:hover {
   color: var(--paper);
 }
 
+/* Top centre, clear of the floor controls along the bottom. */
 .toast {
   position: fixed;
   left: 50%;
-  bottom: calc(24px + env(safe-area-inset-bottom));
+  white-space: nowrap;
+  top: calc(76px + env(safe-area-inset-top));
   z-index: 40;
   display: flex;
   align-items: center;
@@ -2016,4 +2019,452 @@ button.slot:hover {
   border-left: 4px solid var(--ficsit);
   box-shadow: 0 12px 30px rgb(0 0 0 / 0.5);
   font-size: 15px;
+}
+
+/* ---------- Tablet and phone ---------- */
+
+.app {
+  height: 100dvh;
+  padding: 0 env(safe-area-inset-right) 0 env(safe-area-inset-left);
+}
+
+.topbar {
+  padding-top: env(safe-area-inset-top);
+}
+
+/* Readouts sit directly in the summary on wide screens and become one scrolling strip on phones. */
+.readouts {
+  display: contents;
+}
+
+/* Phone-only chrome. */
+.menu-button,
+.mobile-nav {
+  display: none;
+}
+
+.sheet {
+  width: 100%;
+  max-width: 520px;
+  margin: auto auto 0;
+  padding: 0;
+  background: var(--panel);
+  color: var(--paper);
+  border: 1px solid var(--line-2);
+  border-top: 4px solid var(--ficsit);
+}
+
+.sheet::backdrop {
+  background: rgb(8 9 10 / 0.7);
+}
+
+.sheet-body {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  padding: 20px 20px calc(20px + env(safe-area-inset-bottom));
+}
+
+.sheet-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.sheet-row.column {
+  flex-direction: column;
+  align-items: stretch;
+}
+
+.sheet .plan-actions {
+  margin: 0;
+  padding: 0;
+  border: 0;
+  gap: 20px;
+}
+
+.sheet .install {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.sheet .install-hint {
+  position: static;
+  width: auto;
+}
+
+.sheet-close {
+  align-self: center;
+}
+
+@media (max-width: 1100px) {
+  .app {
+    grid-template-columns: 360px 1fr;
+  }
+
+  .topbar {
+    gap: 12px;
+    padding-right: 12px;
+  }
+
+  .topbar-controls {
+    gap: 10px;
+  }
+
+  .topbar-controls .control-label,
+  .scale,
+  .floor-hint {
+    display: none;
+  }
+
+  .brand-name {
+    font-size: 24px;
+  }
+
+  .panel-body {
+    padding: 16px;
+  }
+
+  .tabs button {
+    font-size: 17px;
+    padding-inline: 4px;
+  }
+
+  .inspector {
+    width: 360px;
+  }
+}
+
+@media (max-width: 900px) {
+  .app {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: auto minmax(0, 1fr) auto;
+  }
+
+  .app[data-pane='floor'] .side,
+  .app[data-pane='side'] .floor {
+    display: none;
+  }
+
+  /* Top bar: small mark, scrolling factory tabs, everything else in the menu. */
+  .topbar {
+    gap: 4px;
+    padding-right: 4px;
+    min-height: 52px;
+  }
+
+  .brand {
+    gap: 0;
+  }
+
+  .brand-mark {
+    width: 30px;
+    clip-path: polygon(0 0, 100% 0, calc(100% - 10px) 100%, 0 100%);
+  }
+
+  .brand-name,
+  .topbar-controls,
+  .topbar .plan-actions {
+    display: none;
+  }
+
+  .plan-tab {
+    padding: 0 14px;
+    font-size: 17px;
+  }
+
+  .plan-tab.editing {
+    width: 160px;
+  }
+
+  .menu-button {
+    display: block;
+    flex: none;
+    width: 48px;
+    align-self: stretch;
+    border: 0;
+    background: transparent;
+    color: var(--paper);
+    font-size: 28px;
+    line-height: 1;
+  }
+
+  /* Bottom navigation replaces the side panel's own tabs. */
+  .side > .tabs {
+    display: none;
+  }
+
+  .side {
+    border-right: 0;
+  }
+
+  .mobile-nav {
+    display: flex;
+    background: var(--panel);
+    border-top: 1px solid var(--line);
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+
+  .mobile-nav button {
+    flex: 1;
+    position: relative;
+    min-height: 56px;
+    padding: 6px 2px;
+    border: 0;
+    background: transparent;
+    font: 700 15px/1.1 var(--font-display);
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: var(--faint);
+  }
+
+  .mobile-nav button.factory {
+    color: var(--dim);
+    border-left: 1px solid var(--line);
+  }
+
+  .mobile-nav button[aria-current='page'] {
+    color: var(--paper);
+    background: var(--panel-2);
+  }
+
+  .mobile-nav button[aria-current='page']::before {
+    content: '';
+    position: absolute;
+    inset: -1px 0 auto;
+    height: 3px;
+    background: var(--ficsit);
+  }
+
+  .mobile-nav .tab-badge {
+    margin-left: 4px;
+  }
+
+  .panel-body {
+    padding: 16px 14px 24px;
+    gap: 22px;
+  }
+
+  /* Summary: one strip of readouts that scrolls sideways; banners stay full width below it. */
+  .summary {
+    flex-direction: column;
+    flex-wrap: nowrap;
+  }
+
+  .readouts {
+    display: flex;
+    gap: 1px;
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+
+  .readout,
+  .readout.wide {
+    flex: none;
+    min-width: 0;
+    padding: 8px 14px;
+  }
+
+  .readout-label {
+    font-size: 13px;
+  }
+
+  .readout-value {
+    font-size: 28px;
+  }
+
+  .readout-value small {
+    font-size: 16px;
+  }
+
+  .readouts .slots {
+    flex-wrap: nowrap;
+  }
+
+  .readouts .slot {
+    width: 40px !important;
+    height: 40px !important;
+    --slot-size: 40px !important;
+  }
+
+  .readouts .slot .icon {
+    width: 30px;
+    height: 30px;
+  }
+
+  .missing,
+  .scaled {
+    padding: 10px 14px;
+    font-size: 15px;
+  }
+
+  /* Floor controls. */
+  .floor-bar {
+    left: 10px;
+    bottom: 10px;
+  }
+
+  .floor-hint {
+    display: none;
+  }
+
+  .floor-button.fit {
+    right: 10px;
+    bottom: 10px;
+  }
+
+  .busy {
+    left: 12px;
+    top: 10px;
+  }
+
+  .floor-message {
+    padding: 24px;
+    font-size: 20px;
+  }
+
+  /* Inspector becomes a sheet along the bottom of the floor. */
+  .inspector {
+    top: auto;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    width: auto;
+    max-height: 70%;
+    gap: 14px;
+    padding: 14px 16px 18px;
+    border-left: 0;
+    border-right: 0;
+    box-shadow: 0 -16px 40px rgb(0 0 0 / 0.55);
+  }
+
+  .quick-pick {
+    padding: 22px 14px 40px;
+  }
+
+  .quick-title {
+    font-size: 32px;
+  }
+
+  .quick-grid {
+    grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+    gap: 8px;
+  }
+
+  /* Table: every recipe becomes a labelled card. */
+  .table-wrap {
+    padding: 10px 10px 76px;
+  }
+
+  .plan-table,
+  .plan-table tbody {
+    display: block;
+  }
+
+  .plan-table thead {
+    display: none;
+  }
+
+  .plan-table tbody tr {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 10px 12px;
+    margin-bottom: 10px;
+    padding: 12px;
+    background: var(--panel);
+    border: 1px solid var(--line);
+  }
+
+  .plan-table tbody tr.selected {
+    border-color: var(--ficsit);
+  }
+
+  .plan-table td {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    padding: 0;
+    border: 0;
+    text-align: left;
+    background: transparent !important;
+  }
+
+  .plan-table td::before {
+    content: attr(data-label);
+    font: 700 12px var(--font-display);
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--faint);
+  }
+
+  .plan-table td.recipe-cell,
+  .plan-table td.dim {
+    grid-column: 1 / -1;
+  }
+
+  .plan-table td.recipe-cell {
+    font: 700 19px/1.2 var(--font-display);
+  }
+
+  .plan-table td.recipe-cell::before {
+    content: none;
+  }
+
+  .plan-table td.clocks {
+    white-space: normal;
+  }
+
+  .plan-table td:nth-last-child(-n + 2) {
+    grid-column: 1 / -1;
+  }
+
+  .bill {
+    margin-top: 16px;
+  }
+
+  /* Tier dialog fills the screen. */
+  .tier-dialog {
+    width: 100vw;
+    max-width: none;
+    height: 100dvh;
+    max-height: none;
+    margin: 0;
+    padding: calc(20px + env(safe-area-inset-top)) 16px calc(24px + env(safe-area-inset-bottom));
+    border: 0;
+    border-top: 4px solid var(--ficsit);
+  }
+
+  .phase-tiers {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .toast {
+    top: calc(60px + env(safe-area-inset-top));
+    max-width: calc(100vw - 24px);
+  }
+}
+
+/* Touch screens: finger-sized targets. */
+@media (pointer: coarse) {
+  .segmented button,
+  .scale button,
+  .tier-button,
+  .install-button,
+  .floor-button,
+  .rate-input {
+    min-height: 44px;
+  }
+
+  .icon-button,
+  .sloop-slots button {
+    width: 44px;
+    height: 44px;
+  }
+
+  .text-button {
+    min-height: 44px;
+    padding: 0 4px;
+  }
 }

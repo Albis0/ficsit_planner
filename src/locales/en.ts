@@ -111,4 +111,6 @@ export const en = {
   installIosHint: 'To install, tap Share, then Add to Home Screen.',
   offlineReady: 'Ready to work offline',
   dismiss: 'OK',
+  menu: 'Menu',
+  rename: 'Rename',
 };

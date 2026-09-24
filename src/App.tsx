@@ -1,6 +1,8 @@
 import { useEffect, useMemo, useState } from 'react';
 import { GraphView } from './components/GraphView';
 import { Inspector } from './components/Inspector';
+import { MobileMenu, MobileNav } from './components/MobileChrome';
+import { ObjectiveSwitch } from './components/ObjectiveSwitch';
 import { PlanTabs } from './components/PlanTabs';
 import { InstallButton, PwaStatus } from './components/PwaStatus';
 import { QuickPick } from './components/QuickPick';
@@ -86,6 +88,7 @@ export default function App() {
 
   const scaleIndex = Math.max(0, SCALES.indexOf(s.scale));
   const [tierOpen, setTierOpen] = useState(false);
+  const [menuOpen, setMenuOpen] = useState(false);
 
   const tabs = [
     ['targets', t('targets'), plan.targets.length],
@@ -94,7 +97,7 @@ export default function App() {
   ] as const;
 
   return (
-    <div className="app">
+    <div className="app" data-pane={s.pane}>
       <header className="topbar">
         <div className="brand">
           <span className="brand-mark" aria-hidden />
@@ -107,14 +110,7 @@ export default function App() {
             {t('tier')} <b>{s.tier}</b>
           </button>
           <span className="control-label">{t('objective')}</span>
-          <div className="segmented" role="radiogroup" aria-label={t('objective')}>
-            <button type="button" role="radio" aria-checked={plan.objective === 'resources'} onClick={() => s.updatePlan({ objective: 'resources' })}>
-              {t('objResources')}
-            </button>
-            <button type="button" role="radio" aria-checked={plan.objective === 'power'} onClick={() => s.updatePlan({ objective: 'power' })}>
-              {t('objPower')}
-            </button>
-          </div>
+          <ObjectiveSwitch />
           <div className="scale" aria-label={t('uiSize')}>
             <button type="button" aria-label="-" disabled={scaleIndex === 0} onClick={() => s.set({ scale: SCALES[scaleIndex - 1] })}>
               A−
@@ -130,6 +126,9 @@ export default function App() {
             </button>
           </div>
         </div>
+        <button type="button" className="menu-button" aria-label={t('menu')} onClick={() => setMenuOpen(true)}>
+          ⋯
+        </button>
       </header>
 
       <aside className="side">
@@ -169,6 +168,8 @@ export default function App() {
           )}
         </div>
       </main>
+      <MobileNav />
+      {menuOpen && <MobileMenu onClose={() => setMenuOpen(false)} onTier={() => setTierOpen(true)} />}
       {(!s.onboarded || tierOpen) && <TierDialog onClose={() => setTierOpen(false)} />}
       <PwaStatus />
     </div>
