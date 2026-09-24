@@ -4,3 +4,6 @@ dist
 tools/icon-extractor/bin
 tools/icon-extractor/obj
 .claude/settings.local.json
+.wrangler
+.dev.vars*
+.env*

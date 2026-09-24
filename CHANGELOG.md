@@ -19,6 +19,9 @@ The planner is now a web app instead of a Windows program.
   - Finger-sized buttons.
 - Rename a factory from the menu, since touch screens have no double-click.
 - A "Ready to work offline" notice after the first visit.
+- Hosted on Cloudflare Pages at https://ficsit-planner.pages.dev.
+- Search and link previews: page description, a preview image for Discord, Reddit and other sites, a sitemap
+  and a not-found page.
 - Automatic checks on every push: lint, formatting, tests and build.
 - GPL-3.0-or-later license.
 

@@ -1,0 +1,7 @@
+// Cloudflare Pages: `bun run deploy` builds and uploads dist/ to https://ficsit-planner.pages.dev
+{
+  "$schema": "./node_modules/wrangler/config-schema.json",
+  "name": "ficsit-planner",
+  "pages_build_output_dir": "./dist",
+  "compatibility_date": "2026-09-24"
+}

@@ -90,7 +90,9 @@ export default function App() {
       <header className="topbar">
         <div className="brand">
           <span className="brand-mark" aria-hidden />
-          <span className="brand-name">FICSIT</span>
+          <h1 className="brand-name">
+            FICSIT<span className="sr-only"> Planner</span>
+          </h1>
         </div>
         <PlanTabs />
         <div className="topbar-controls">

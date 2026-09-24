@@ -4,6 +4,7 @@
   "version": "0.2.0",
   "description": "Offline production planner for Satisfactory, as an installable web app",
   "license": "GPL-3.0-or-later",
+  "homepage": "https://ficsit-planner.pages.dev",
   "repository": {
     "type": "git",
     "url": "https://github.com/Albis0/ficsit_planner.git"
@@ -16,6 +17,7 @@
     "test": "bun test",
     "icons": "dotnet run --project tools/icon-extractor -c Release -- \"C:/Program Files/Epic Games/Satisfactory\" src/data/icon-manifest.json public/icons 96",
     "preview": "vite preview",
+    "deploy": "bun run build && wrangler pages deploy",
     "pwa-icons": "pwa-assets-generator",
     "check": "biome check .",
     "format": "biome check --write ."
@@ -40,6 +42,7 @@
     "typescript": "^7.0.2",
     "vite": "^8.3.0",
     "vite-plugin-pwa": "^1.3.0",
-    "workbox-window": "^7.4.1"
+    "workbox-window": "^7.4.1",
+    "wrangler": "4.138.0"
   }
 }

@@ -9,6 +9,8 @@
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-GPL--3.0--or--later-blue" alt="License: GPL-3.0-or-later"></a>
 </p>
 
+<p align="center"><b><a href="https://ficsit-planner.pages.dev">Open FICSIT Planner → ficsit-planner.pages.dev</a></b></p>
+
 <p align="center">
   <img src="public/icons/Desc_SpaceElevatorPart_1_C.webp" width="40" alt="Smart Plating">
   <img src="public/icons/Desc_SpaceElevatorPart_2_C.webp" width="40" alt="Versatile Framework">
@@ -95,6 +97,21 @@ On Windows, run that in PowerShell (`$env:BASE_PATH = '/ficsit_planner/'; bun ru
 arguments that look like Unix paths into Windows paths, so the base comes out as `/Program Files/Git/...`. Prefix
 the command with `MSYS_NO_PATHCONV=1` if you want to stay in Git Bash.
 
+### Deploying
+
+The live site is on Cloudflare Pages. `wrangler.jsonc` names the project, and `public/_headers` sets the security
+headers and long caching for the hashed files in `assets/`.
+
+```sh
+bunx wrangler login   # once, opens the browser
+bun run deploy        # build, then upload dist/ to https://ficsit-planner.pages.dev
+```
+
+`SITE_URL` (default `https://ficsit-planner.pages.dev`) goes into the canonical link, the social preview tags,
+`robots.txt` and `sitemap.xml`, which the build writes. Set it when you host the site somewhere else, including the
+sub-folder if there is one: `SITE_URL=https://you.github.io/ficsit_planner`. The social preview image is
+`public/og-image.jpg` (1200 × 630).
+
 App icons (favicon, PWA and iOS icons) are generated from `public/logo.png` with `bun run pwa-icons`. Commit the
 files it writes to `public/`.
 
@@ -136,6 +153,8 @@ the belt count low. dagre lays the graph out left to right, or top to bottom on 
 | `src/lib/data.ts` | typed access to the game data, belt/pipe choice per flow |
 | `src/locales/en.ts`, `src/lib/lang.ts`, `src/lib/i18n.ts` | UI strings, language registry, `useT()` |
 | `src/lib/install.ts`, `src/components/PwaStatus.tsx` | install button and offline status |
+| `index.html`, `vite.config.ts` | page title, search and social preview tags, PWA manifest, `robots.txt` and sitemap |
+| `public/_headers`, `public/404.html`, `wrangler.jsonc` | Cloudflare Pages headers, not-found page, project config |
 | `src/store.ts` | app state (zustand), saved to `localStorage` |
 | `src/components/` | panels, graph view, table view, inspector, phone navigation |
 | `scripts/extract.mjs` | game data extractor |

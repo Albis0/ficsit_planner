@@ -3,18 +3,104 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
-    <meta name="description" content="Offline production planner for Satisfactory: pick what to make, get the machines, belts and power." />
+    <title>FICSIT Planner: Satisfactory production calculator</title>
+    <meta
+      name="description"
+      content="Free Satisfactory production calculator and factory planner. Pick what to build and get the machines, alternate recipes, belts and power. Works offline and on phones."
+    />
+    <link rel="canonical" href="%SITE_URL%/" />
+    <meta name="robots" content="index, follow, max-image-preview:large" />
+    <meta name="application-name" content="FICSIT Planner" />
+    <meta name="color-scheme" content="dark" />
     <meta name="theme-color" content="#141618" />
+
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="FICSIT Planner" />
+    <meta property="og:locale" content="en_US" />
+    <meta property="og:url" content="%SITE_URL%/" />
+    <meta property="og:title" content="FICSIT Planner: Satisfactory production calculator" />
+    <meta
+      property="og:description"
+      content="Pick what to build. Get the machines, belts and power for the whole factory. Free, works offline, runs on phones."
+    />
+    <meta property="og:image" content="%SITE_URL%/og-image.jpg" />
+    <meta property="og:image:type" content="image/jpeg" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:image:alt" content="FICSIT Planner showing a factory graph for 10 motors per minute" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="FICSIT Planner: Satisfactory production calculator" />
+    <meta
+      name="twitter:description"
+      content="Pick what to build. Get the machines, belts and power for the whole factory. Free, works offline, runs on phones."
+    />
+    <meta name="twitter:image" content="%SITE_URL%/og-image.jpg" />
+    <meta name="twitter:image:alt" content="FICSIT Planner showing a factory graph for 10 motors per minute" />
+
     <meta name="mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-title" content="FICSIT" />
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
     <link rel="icon" href="/favicon.ico" sizes="48x48" />
     <link rel="apple-touch-icon" href="/apple-touch-icon-180x180.png" />
-    <title>FICSIT Planner</title>
+
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@type": "WebApplication",
+        "name": "FICSIT Planner",
+        "alternateName": "Satisfactory production calculator",
+        "url": "%SITE_URL%/",
+        "image": "%SITE_URL%/og-image.jpg",
+        "description": "Free production calculator and factory planner for the game Satisfactory. Pick what to build and get the machines, recipes, belts and power, with somersloops, power shards and resource limits.",
+        "applicationCategory": "UtilitiesApplication",
+        "operatingSystem": "Any",
+        "browserRequirements": "Requires JavaScript and WebAssembly",
+        "inLanguage": "en",
+        "isAccessibleForFree": true,
+        "offers": { "@type": "Offer", "price": "0", "priceCurrency": "USD" },
+        "license": "https://www.gnu.org/licenses/gpl-3.0.html",
+        "codeRepository": "https://github.com/Albis0/ficsit_planner",
+        "about": { "@type": "VideoGame", "name": "Satisfactory" }
+      }
+    </script>
+
+    <!-- Shown until the app starts, and to crawlers that don't run scripts. -->
+    <style>
+      .boot {
+        min-height: 100%;
+        display: grid;
+        place-content: center;
+        gap: 12px;
+        padding: 24px;
+        text-align: center;
+        background: #141618;
+        color: #a9aeb3;
+        font: 16px / 1.5 'Segoe UI', system-ui, sans-serif;
+      }
+      .boot h1 {
+        margin: 0;
+        color: #fa9549;
+        font: 700 34px / 1.1 'Arial Narrow', sans-serif;
+        letter-spacing: 0.06em;
+      }
+      .boot p {
+        margin: 0;
+        max-width: 34em;
+      }
+    </style>
   </head>
   <body>
-    <div id="root"></div>
+    <div id="root">
+      <main class="boot">
+        <h1>FICSIT Planner</h1>
+        <p>
+          A free production calculator for Satisfactory. Pick the items you want per minute and it works out the
+          machines, alternate recipes, belts, pipes and power, with somersloops, power shards and resource limits.
+        </p>
+        <noscript><p>FICSIT Planner needs JavaScript. Turn it on and reload the page.</p></noscript>
+      </main>
+    </div>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>
