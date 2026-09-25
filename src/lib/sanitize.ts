@@ -120,7 +120,6 @@ export function cleanPowerPlan(saved: unknown, fallback: PowerPlan): PowerPlan {
     chain: cleanPlan(g.chain, fallback.chain),
   };
   if (g.autoName === true) pp.autoName = true;
-  if (finite(g.locked)) pp.locked = within(g.locked, 0, 1e8, 0);
   return pp;
 }
 

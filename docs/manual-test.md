@@ -126,16 +126,17 @@ Remove that target with the **×** on its card before going on. *Expect:* you're
 - [ ] **P.3a** Click **+** next to the tab. *Expect:* "Plant 2", with both factories listed as "on Coal plant" and
   unticked. Pick **Fuel-Powered Generator → Fuel**; the tab becomes "Fuel plant". Tick one factory. *Expect:* it
   moves here: on the Coal plant tab it's now unticked and says "on Fuel plant".
-- [ ] **P.3b** Click the green **Live** tag. *Expect:* it turns into **Held**. Change a factory's target; the
-  plant keeps its figure and says what the factories draw now, with **Follow them again**.
 - [ ] **P.3c** Pick **Power I want** and type 5000. *Expect:* "The plant has to make" is 5,000 MW plus its own
   chain, and the graph ends in "Your target".
 - [ ] **P.3d** Pick **What I have**. *Expect:* the floor asks "What do you have to burn?", and the panel offers
   what the fuel is made from (Crude Oil). Tap it and set 300. *Expect:* about 2,500 MW made, the refineries' and
   pumps' draw taken off "For the grid", and the auto note says "Burns all you have".
-- [ ] **P.3e** Still there, uncheck **Also run its own chain**. *Expect:* For the grid equals Makes.
+- [ ] **P.3e** Still there, uncheck **Also power its own refineries, miners and pumps**. *Expect:* For the grid
+  equals Makes.
+- [ ] **P.3f** The power panel sits beside the floor in one column even when the factory panel is on top.
+  Backup and fuel on hand are folded under **Backup and fuel on hand**.
 - [ ] **P.4** Set **Spare capacity** to 0. *Expect:* Spare drops to a few MW at most.
-- [ ] **P.5** On the coal plant, click **Count** and set it to 5. *Expect:* the readout turns red: Short, and the
+- [ ] **P.5** On the coal plant, click **Fix the count** and lower it to 5 with −. *Expect:* the readout turns red: Short, and the
   grid node's stripes turn red.
 - [ ] **P.6** Add a generator: **Nuclear Power Plant → Uranium Fuel Rod**. *Expect:* a second card set to a
   count of 1, the power mix bar has two colours, and Makes as well shows 10 Uranium Waste a minute.

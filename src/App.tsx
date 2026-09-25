@@ -94,10 +94,7 @@ export default function App() {
   const consumers = useMemo<Consumer[] | undefined>(() => {
     if (!powerMode) return undefined;
     const list: Consumer[] = [];
-    if (pp.sizeBy === 'factories' && pp.locked !== undefined) {
-      // Held at a set figure: the factories as they are now aren't what it's sized to.
-      if (load.demand > 0.01) list.push({ id: 'out', label: t('heldLoad'), mw: load.demand, tone: 'out' });
-    } else if (pp.sizeBy === 'factories') {
+    if (pp.sizeBy === 'factories') {
       for (const f of load.fed) if ((f.mw ?? 0) > 0) list.push({ id: f.id, label: f.name, mw: f.mw!, tone: 'factory' });
       if (pp.extra > 0.01) list.push({ id: 'other', label: t('otherLoadShort'), mw: pp.extra, tone: 'other' });
     } else if (pp.sizeBy === 'want' && pp.want > 0) {
@@ -107,7 +104,7 @@ export default function App() {
     }
     if (chainLoad > 0.01) list.push({ id: 'chain', label: t('fuelChainShort'), mw: chainLoad, tone: 'chain' });
     return list;
-  }, [powerMode, pp.sizeBy, pp.want, pp.locked, pp.extra, load, chainLoad, generation, t]);
+  }, [powerMode, pp.sizeBy, pp.want, pp.extra, load, chainLoad, generation, t]);
 
   const tabs = [
     ['targets', powerMode ? t('powerTab') : t('targets'), powerMode ? pp.plants.length : plan.targets.length],
@@ -133,7 +130,8 @@ export default function App() {
   const listFirst = powerMode && !empty && pp.sizeBy === 'have' && pp.have.length === 0;
   const shown = result && !error && !blocked && !idle && !listFirst;
   const inspectPlant = s.inspect ? plantIdOf(s.inspect) : undefined;
-  const panel = phone ? 'top' : s.settings.panel;
+  // The power planner reads top to bottom, so it keeps its panel beside the floor even when factories have it on top.
+  const panel = phone ? 'top' : powerMode && s.settings.panel === 'top' ? 'left' : s.settings.panel;
 
   const style: Record<string, string> = settingsStyle(s.settings);
   if (s.deckHeight) style['--deck-h'] = `${s.deckHeight}px`;
@@ -212,7 +210,7 @@ export default function App() {
       <main className="floor">
         {shown &&
           (powerMode ? (
-            <PowerSummary result={result} extraction={extraction} load={load} chainDraw={chainDraw} />
+            <PowerSummary result={result} load={load} chainDraw={chainDraw} />
           ) : (
             <Summary result={result} extraction={extraction} />
           ))}

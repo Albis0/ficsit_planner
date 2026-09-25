@@ -2986,10 +2986,10 @@ button.slot:hover {
 /* ---------- Power planner: panel ---------- */
 
 .panel-body.power {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(380px, 1fr));
-  align-items: start;
-  gap: 24px 36px;
+  display: flex;
+  flex-direction: column;
+  gap: 26px;
+  max-width: 620px;
 }
 
 .draw-list {
@@ -3043,7 +3043,10 @@ button.slot:hover {
 }
 
 .power-row {
+  display: flex;
+  align-items: center;
   justify-content: space-between;
+  gap: 12px;
 }
 
 .power-row-label {
@@ -3076,53 +3079,20 @@ button.slot:hover {
   clip-path: polygon(0 0, calc(100% - 8px) 0, 100% 8px, 100% 100%, 0 100%);
 }
 
-/* Three ways to size the plant, as big switches with a line under each name. */
-.size-modes {
+/* Three ways to size the plant, as one switch across the column. */
+.segmented.size-modes {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 4px;
-  padding: 4px;
-  background: var(--bg);
-  border: 1px solid var(--line);
 }
 
-.size-modes button {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  gap: 2px;
-  min-width: 0;
-  padding: 9px 12px 10px;
-  border: 0;
-  border-bottom: 3px solid transparent;
-  background: transparent;
-  color: var(--dim);
-  text-align: left;
+.segmented.size-modes button {
+  padding: 8px 6px;
+  white-space: nowrap;
 }
 
-.size-modes button b {
-  font: 700 18px / 1.15 var(--font-display);
-  letter-spacing: 0.02em;
-}
-
-.size-modes button small {
-  font-size: 13px;
-  color: var(--faint);
-}
-
-.size-modes button:hover {
-  background: var(--raised);
-  color: var(--paper);
-}
-
-.size-modes button[aria-checked='true'] {
-  background: var(--raised);
-  border-bottom-color: var(--power);
-  color: var(--power);
-}
-
-.size-modes button[aria-checked='true'] small {
-  color: var(--dim);
+.segmented.size-modes button[aria-checked='true'] {
+  background: var(--power);
+  color: var(--power-ink, var(--ficsit-ink));
 }
 
 /* What the chosen way needs, in one framed box. */
@@ -3141,45 +3111,6 @@ button.slot:hover {
   align-items: center;
   justify-content: space-between;
   gap: 12px;
-}
-
-/* "Live" follows the factories; "Held" keeps the figure it was set at. */
-.live-tag {
-  display: inline-flex;
-  align-items: center;
-  gap: 7px;
-  height: 28px;
-  padding: 0 11px;
-  border: 1px solid color-mix(in srgb, var(--supply) 55%, transparent);
-  background: color-mix(in srgb, var(--supply) 12%, transparent);
-  color: var(--supply);
-  font: 700 14px var(--font-display);
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-}
-
-.live-tag.locked {
-  border-color: var(--line-2);
-  background: var(--bg);
-  color: var(--dim);
-}
-
-.live-tag:hover {
-  filter: brightness(1.2);
-}
-
-.live-dot {
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-  background: currentColor;
-  animation: live-pulse 1.6s ease-in-out infinite;
-}
-
-@keyframes live-pulse {
-  50% {
-    opacity: 0.35;
-  }
 }
 
 .draw-other {
@@ -3233,31 +3164,17 @@ button.slot:hover {
 }
 
 .check-row.own-load {
-  margin-top: 4px;
-  padding-top: 12px;
-  border-top: 1px solid var(--line);
+  margin-top: 2px;
 }
 
-/* What the plant's fuel is made from, as chips that add themselves to the list. */
-.have-needs {
+/* One kind of generator in the plant: a slim strip, its fuels as pills, and the count underneath. */
+.gen-row {
   display: flex;
   flex-direction: column;
-  gap: 6px;
-}
-
-.have-chips {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
-}
-
-/* A power plant, in the machine card's frame with the power colour on its strip. */
-.plant-card {
-  display: flex;
-  flex-direction: column;
+  gap: 10px;
+  padding: 0 0 12px;
   background: var(--raised);
   border: 1px solid var(--line-2);
-  clip-path: polygon(0 0, calc(100% - 18px) 0, 100% 18px, 100% 100%, 0 100%);
   animation: card-in 260ms ease-out;
 }
 
@@ -3268,19 +3185,24 @@ button.slot:hover {
   }
 }
 
-.plant-strip {
+.gen-row.locked {
+  opacity: 0.6;
+}
+
+.gen-row-head {
   display: flex;
   align-items: center;
   gap: 10px;
-  padding: 3px 22px 3px 6px;
+  padding: 3px 6px 3px 6px;
   background: var(--power);
   color: var(--power-ink, var(--ficsit-ink));
-  font: 700 18px / 1.2 var(--font-display);
+  font: 700 17px / 1.2 var(--font-display);
   letter-spacing: 0.04em;
   text-transform: uppercase;
+  clip-path: polygon(0 0, calc(100% - 14px) 0, 100% 14px, 100% 100%, 0 100%);
 }
 
-.plant-name {
+.gen-row-name {
   flex: 1;
   min-width: 0;
   overflow: hidden;
@@ -3288,28 +3210,26 @@ button.slot:hover {
   white-space: nowrap;
 }
 
-.plant-mw {
-  display: flex;
-  align-items: baseline;
-  gap: 3px;
+.gen-row-mw {
   padding: 1px 8px 2px;
   background: rgb(18 20 22 / 0.9);
   color: var(--power);
-  font: 700 18px / 1.25 var(--font-body);
+  font: 700 17px / 1.25 var(--font-body);
   letter-spacing: 0;
   text-transform: none;
   white-space: nowrap;
 }
 
-.plant-mw small {
+.gen-row-mw small {
   font-size: 12px;
   color: var(--dim);
 }
 
-.plant-remove {
+.gen-row-remove {
   flex: none;
-  width: 28px;
-  height: 28px;
+  width: 26px;
+  height: 26px;
+  margin-right: 10px;
   display: grid;
   place-items: center;
   padding: 0;
@@ -3318,151 +3238,140 @@ button.slot:hover {
   color: inherit;
 }
 
-.plant-remove:hover {
+.gen-row-remove:hover {
   background: var(--alert);
   color: #1a0806;
 }
 
-.plant-strip .tier-tag {
+.gen-row-head .tier-tag {
   background: rgb(0 0 0 / 0.75);
   color: var(--power);
 }
 
-.plant-body {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-  padding: 12px 14px 14px;
+.gen-row > :not(.gen-row-head) {
+  margin: 0 12px;
 }
 
-.plant-field {
+/* A fuel to pick, or something to add to what you have: icon and name in a small frame. */
+.fuel-pills,
+.have-chips {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: 8px 12px;
-}
-
-.plant-field > .control-label {
-  width: 96px;
-  flex: none;
-}
-
-.plant-field > .hint {
-  flex-basis: 100%;
-  margin: 0;
-}
-
-.fuel-picker {
-  display: flex;
-  flex-wrap: wrap;
   gap: 6px;
 }
 
-.fuel-option {
+.fuel-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 4px 11px 4px 5px;
+  background: var(--bg);
+  border: 1px solid var(--line-2);
+  color: var(--dim);
+  font: 600 16px var(--font-display);
+  letter-spacing: 0.01em;
+}
+
+.fuel-pill small {
+  font: 500 13px var(--font-body);
+  color: var(--faint);
+}
+
+.fuel-pill:hover {
+  border-color: var(--power);
+  color: var(--paper);
+}
+
+.fuel-pill[aria-checked='true'] {
+  border-color: var(--power);
+  background: color-mix(in srgb, var(--power) 14%, var(--bg));
+  color: var(--paper);
+  box-shadow: inset 0 0 0 1px var(--power);
+}
+
+.have-chips .control-label {
+  flex-basis: 100%;
+}
+
+.gen-row-foot {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 12px;
+  padding-top: 10px;
+  border-top: 1px solid var(--line);
+}
+
+.gen-count {
   padding: 0;
   border: 0;
   background: transparent;
-}
-
-.fuel-option .slot {
-  transition:
-    border-color 120ms,
-    box-shadow 120ms,
-    transform 120ms;
-}
-
-.fuel-option:hover .slot {
-  border-color: var(--power);
-}
-
-.fuel-option[aria-checked='true'] .slot {
-  border-color: var(--power);
-  box-shadow:
-    0 0 0 2px var(--power),
-    0 0 14px color-mix(in srgb, var(--power) 40%, transparent);
-  transform: translateY(-1px);
-}
-
-.fuel-name {
-  flex-basis: 100%;
-  padding-left: 108px;
-  font: 600 17px var(--font-display);
-  color: var(--dim);
-}
-
-.hand-tag {
-  margin-left: 8px;
-  padding: 1px 6px;
-  border: 1px solid var(--supply);
-  color: var(--supply);
-  font-size: 13px;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-}
-
-.plant-size {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 10px;
-}
-
-.rate-with-unit {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-}
-
-.auto-note {
-  font-size: 15px;
-  color: var(--power);
-}
-
-.plant-locked {
-  margin: 0;
-  padding: 7px 10px;
-  border-left: 3px solid var(--line-2);
-  background: var(--panel);
-  color: var(--dim);
-  font-size: 15px;
-}
-
-.plant-field .mod-badge {
-  font-size: 15px;
-}
-
-.plant-foot {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 6px 16px;
-  padding: 8px 14px;
-  border: 0;
-  border-top: 1px solid var(--line);
-  background: var(--panel);
-  color: var(--dim);
-  text-align: left;
-}
-
-.plant-foot:hover {
-  background: var(--panel-2);
   color: var(--paper);
-}
-
-.plant-count {
   font: 600 17px var(--font-body);
-  color: var(--paper);
 }
 
-.plant-count b {
+.gen-count b {
   font-size: 21px;
 }
 
-.plant-flow {
-  display: flex;
-  align-items: center;
-  gap: 5px;
+button.gen-count:hover {
+  color: var(--power);
+}
+
+.gen-count.idle {
+  color: var(--faint);
   font-size: 15px;
+}
+
+.gen-mode {
+  flex: 1;
+  color: var(--faint);
+  font-size: 14px;
+}
+
+.gen-row-foot .text-button {
+  padding: 0;
+  font-size: 15px;
+}
+
+.mini-stepper {
+  display: inline-flex;
+  align-items: stretch;
+  border: 1px solid var(--line-2);
+  background: var(--bg);
+}
+
+.mini-stepper button {
+  width: 34px;
+  border: 0;
+  background: transparent;
+  color: var(--dim);
+  font: 600 20px / 1 var(--font-body);
+}
+
+.mini-stepper button:hover:not(:disabled) {
+  background: var(--raised);
+  color: var(--paper);
+}
+
+.mini-stepper b {
+  min-width: 40px;
+  padding: 4px 6px;
+  text-align: center;
+  color: var(--ficsit);
+  font: 700 19px var(--font-body);
+}
+
+.segmented.small button {
+  padding: 4px 12px;
+  font-size: 15px;
+}
+
+.check-row.small {
+  align-items: center;
+  font-size: 15px;
+  color: var(--dim);
 }
 
 /* "Add a power plant": opens in place, each generator with its fuels to pick from. */
@@ -5793,15 +5702,6 @@ button.slot:hover {
     gap: 10px;
   }
 
-  .panel-body.power {
-    display: flex;
-    align-items: stretch;
-  }
-
-  .fuel-name {
-    padding-left: 0;
-  }
-
   .readout.mix {
     min-width: 260px;
   }
@@ -5882,10 +5782,6 @@ button.slot:hover {
   .gen-grid {
     grid-template-columns: minmax(0, 1fr);
   }
-}
-
-.auto-note.idle {
-  color: var(--faint);
 }
 
 .kind.power {
@@ -6060,4 +5956,26 @@ button.slot:hover {
   .settings-actions > * {
     flex: 1;
   }
+}
+
+/* Backup and fuel on hand, folded away under the two steps. */
+.power-more {
+  border-top: 1px solid var(--line);
+  padding-top: 12px;
+}
+
+.power-more > summary {
+  cursor: pointer;
+  font: 700 16px var(--font-display);
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--faint);
+}
+
+.power-more > summary:hover {
+  color: var(--paper);
+}
+
+.power-more[open] > summary {
+  margin-bottom: 12px;
 }

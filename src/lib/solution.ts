@@ -187,24 +187,18 @@ export function useFactoryDraws(enabled: boolean): FactoryDraw[] {
 
 /** What a power plant has to carry besides its own fuel chain. */
 export interface PowerLoad {
-  /** MW the solver sizes auto generators to: the target, the factories, or what they were locked at. */
+  /** MW the solver sizes auto generators to: the target, or the factories and other consumers. */
   demand: number;
   /** Factories ticked on this plant, with what each one draws. */
   fed: FactoryDraw[];
   /** Their total. */
   factories: number;
-  /** The factories and other consumers as they are now, even while the plant is locked at an older figure. */
-  live: number;
 }
 
-export function powerLoad(pp: Pick<PowerPlan, 'sizeBy' | 'want' | 'factories' | 'locked' | 'extra'>, draws: FactoryDraw[]): PowerLoad {
-  if (pp.sizeBy !== 'factories') {
-    const demand = pp.sizeBy === 'want' ? Math.max(0, pp.want) : 0;
-    return { demand, fed: [], factories: 0, live: demand };
-  }
+export function powerLoad(pp: Pick<PowerPlan, 'sizeBy' | 'want' | 'factories' | 'extra'>, draws: FactoryDraw[]): PowerLoad {
+  if (pp.sizeBy !== 'factories') return { demand: pp.sizeBy === 'want' ? Math.max(0, pp.want) : 0, fed: [], factories: 0 };
   const on = poweredBy(pp, draws);
   const fed = draws.filter((f) => on.has(f.id));
   const factories = fed.reduce((s, f) => s + (f.mw ?? 0), 0);
-  const live = factories + Math.max(0, pp.extra);
-  return { demand: pp.locked ?? live, fed, factories, live };
+  return { demand: factories + Math.max(0, pp.extra), fed, factories };
 }

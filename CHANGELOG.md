@@ -13,9 +13,12 @@ All notable changes to FICSIT Planner. Dates are when the version was finished.
     all it can and tells you what's left for the grid), **Power I want** (a set output), or **My factories**
     (the factory tabs you tick, plus other consumers and spare capacity).
   - A factory is counted on one plant only: ticking it on one takes it off the others.
-  - Sized to factories, the plant follows them as they change, or holds a figure you set.
-  - **Also run its own chain** can be turned off when the refineries and miners run on another grid.
-  - Readouts: Covers (or what's left for the grid), Makes, Needs and Makes as well.
+  - Sized to factories, the plant follows them as they change.
+  - **Also power its own refineries, miners and pumps** can be turned off when they run on another grid.
+  - One column beside the floor: generators with their fuels as pills and the count under each ("sized to
+    fit", or **Fix the count** for − / +), then how it's sized and the one figure it comes to. Clocks are set
+    by selecting a generator on the floor. Backup and fuel on hand are folded away at the end.
+  - Four readouts: Covers (or what's left for the grid), Makes, Needs and Makes as well.
   - Saves and files from 0.5 load their grid as the first plant, feeding the same factories.
 
 ## 0.5.0 — 2026-09-24

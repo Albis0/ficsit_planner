@@ -237,16 +237,13 @@ describe('sizing a plant', () => {
     expect(r.grid!.generation).toBeCloseTo(1000, 3);
   });
 
-  test('my factories: only the ticked ones count, and a held figure stays put', () => {
+  test('my factories: only the ticked ones count', () => {
     const draws = [
       { id: 'a', name: 'A', mw: 400 },
       { id: 'b', name: 'B', mw: 250 },
     ];
     const pp = make({ sizeBy: 'factories', factories: ['a'], extra: 50 });
-    expect(powerLoad(pp, draws)).toMatchObject({ demand: 450, factories: 400, live: 450 });
+    expect(powerLoad(pp, draws)).toMatchObject({ demand: 450, factories: 400 });
     expect(powerLoad({ ...pp, factories: 'all' }, draws).demand).toBe(700);
-    const held = powerLoad({ ...pp, locked: 300 }, draws);
-    expect(held.demand).toBe(300);
-    expect(held.live).toBe(450);
   });
 });

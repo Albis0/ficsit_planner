@@ -48,8 +48,6 @@ export interface PowerPlan {
   want: number;
   /** 'factories': the factory tabs it powers, or every one of them. */
   factories: string[] | 'all';
-  /** 'factories': held at this MW instead of following the factories as they change. */
-  locked?: number;
   /** MW for what the planner doesn't see: trains, drones, lights, the HUB. */
   extra: number;
   /** Spare capacity kept on top of the factories, 0.1 = 10%. */

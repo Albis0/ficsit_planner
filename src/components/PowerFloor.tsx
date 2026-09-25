@@ -1,6 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
 import { data, type Generator } from '../lib/data';
-import type { ExtractionUse } from '../lib/extraction';
 import { useT } from '../lib/i18n';
 import { clockable, fuelRate, generatorOf, MAX_CLOCK, PLANT_OPTIONS, plantIdOf, sizable, unitPower } from '../lib/power';
 import type { PowerLoad } from '../lib/solution';
@@ -49,18 +48,16 @@ export function useCountUp(value: number, ms = 650): number {
   return shown;
 }
 
-/** The power planner's readouts: what the plant makes, what's left, what it burns and leaves behind. */
+/** The power planner's readouts, four across: what's left, what it makes, what it needs, what else comes out. */
 export function PowerSummary({
   result,
   load,
   chainDraw,
-  extraction,
 }: {
   result: SolveResult;
   load: PowerLoad;
   /** MW the plant's own fuel chain draws: its machines, miners and pumps. */
   chainDraw: number;
-  extraction: ExtractionUse[];
 }) {
   const { t, num, name } = useT();
   const pp = useStore(activePowerPlan);
@@ -68,141 +65,67 @@ export function PowerSummary({
   const generation = result.grid?.generation ?? 0;
   const chain = pp.ownLoad ? chainDraw : 0;
   const used = load.demand + chain;
-  const balance = generation - used;
+  const balance = have ? generation - chain : generation - used;
   const shown = useCountUp(balance);
   const made = useCountUp(generation);
-  const short = balance < -0.5;
-  // Fixed-size plants aren't sized by the solver, so it can't hold them to the spare capacity; say so.
+  const short = !have && balance < -0.5;
+  // Fixed counts aren't sized by the solver, so it can't hold them to the spare capacity; say so.
   const headroom = pp.sizeBy === 'factories' ? pp.headroom : 0;
   const reserve = used * headroom;
   const thin = !short && headroom > 0 && balance < reserve - 0.5;
-  const plantUses = result.recipes.filter((u) => plantIdOf(u.recipe.id));
-  const generators = plantUses.reduce((s, u) => s + u.built, 0);
-  const chainMachines = result.recipes.reduce((s, u) => s + (plantIdOf(u.recipe.id) ? 0 : u.built), 0);
-  const water = extraction.find((e) => e.item === 'Desc_Water_C');
-  const raw = result.raw.filter((r) => r.item !== 'Desc_Water_C');
-  const left = result.surplus.filter((x) => x.item !== 'Desc_Water_C');
-
+  const generators = result.recipes.reduce((s, u) => s + (plantIdOf(u.recipe.id) ? u.built : 0), 0);
+  const needs = result.raw;
+  const left = result.surplus;
   const mix = pp.plants
     .map((p) => ({ p, mw: result.grid?.plants[p.id] ?? 0 }))
     .filter((x) => x.mw > 0.01)
     .sort((a, b) => b.mw - a.mw);
-  const scale = Math.max(generation, used, 1);
 
   return (
     <div className="summary power-summary">
       <div className="readouts">
-        {have ? (
-          <div className="readout balance ok">
-            <span className="readout-label">{t('forTheGrid')}</span>
-            <span className="readout-value">
-              {num(shown)} <small>MW</small>
-            </span>
-            <span className="readout-sub">{chain > 0.01 ? t('afterChain', { mw: num(chain) }) : t('allForGrid')}</span>
-          </div>
-        ) : (
-          <div className={`readout balance ${short ? 'short' : thin ? 'thin' : 'ok'}`}>
-            <span className="readout-label">{short ? t('gridShort') : pp.sizeBy === 'factories' ? t('covers') : t('gridSpare')}</span>
-            <span className="readout-value">
-              {shown >= 0 ? '+' : '−'}
-              {num(Math.abs(shown))} <small>MW</small>
-            </span>
-            <span className="readout-sub">
-              {thin
+        <div className={`readout balance ${short ? 'short' : thin ? 'thin' : 'ok'}`}>
+          <span className="readout-label">{have ? t('forTheGrid') : short ? t('gridShort') : t('covers')}</span>
+          <span className="readout-value">
+            {have ? '' : shown >= 0 ? '+' : '−'}
+            {num(Math.abs(shown))} <small>MW</small>
+          </span>
+          <span className="readout-sub">
+            {have
+              ? chain > 0.01
+                ? t('afterChain', { mw: num(chain) })
+                : t('allForGrid')
+              : thin
                 ? t('belowReserve', { pct: num(headroom * 100), mw: num(reserve) })
-                : pp.sizeBy === 'factories'
-                  ? t('coversSub', { used: num(used) })
-                  : t('madeUsed', { made: num(made), used: num(used) })}
-            </span>
-          </div>
-        )}
+                : t('coversSub', { used: num(used) })}
+          </span>
+        </div>
         <div className="readout power">
           <span className="readout-label">{t('plantMakes')}</span>
           <span className="readout-value">
             {num(made)} <small>MW</small>
           </span>
           <span className="readout-sub">
-            {result.grid && result.grid.boost > 0
-              ? t('boostNote', { boost: num(result.grid.boost * 100), mw: num(generation - result.grid.base) })
-              : t('generatorCount', { n: generators })}
+            {mix.length > 1 ? mix.map((m) => `${num(m.mw)} ${name(generatorOf(m.p))}`).join(' · ') : t('generatorCount', { n: generators })}
+            {result.grid && result.grid.boost > 0 && ` · ${t('boostTag', { boost: num(result.grid.boost * 100) })}`}
           </span>
         </div>
-        {pp.sizeBy === 'factories' && (
+        {needs.length > 0 && (
           <div className="readout">
-            <span className="readout-label">{t('consumption')}</span>
-            <span className="readout-value">
-              {num(used)} <small>MW</small>
-            </span>
-            <span className="readout-sub">
-              {t('consumptionSplit', { factories: num(load.factories), chain: num(chain), other: num(load.demand - load.factories) })}
-            </span>
-          </div>
-        )}
-        {result.shards > 0 && (
-          <div className="readout">
-            <span className="readout-label">{t('shards')}</span>
-            <span className="readout-value shard">{result.shards}</span>
-          </div>
-        )}
-        {chainMachines > 0 && (
-          <div className="readout">
-            <span className="readout-label">{t('fuelChain')}</span>
-            <span className="readout-value">{chainMachines}</span>
-            <span className="readout-sub">{t('machines').toLocaleLowerCase()}</span>
-          </div>
-        )}
-        {water && (
-          <div className="readout fluid">
-            <span className="readout-label">{name(data.items.Desc_Water_C)}</span>
-            <span className="readout-value">
-              {num(water.rate)} <small>m³{t('perMin')}</small>
-            </span>
-            <span className="readout-sub">
-              {water.built} × {name(water.extractor)}
-            </span>
-          </div>
-        )}
-        {mix.length > 1 && (
-          <div className="readout wide mix">
-            <span className="readout-label">{t('powerMix')}</span>
-            <div className="mix-bar" role="img" aria-label={mix.map((m) => `${name(generatorOf(m.p))}: ${num(m.mw)} MW`).join(', ')}>
-              {mix.map(({ p, mw }) => (
-                <span
-                  key={p.id}
-                  className="mix-part"
-                  style={{ width: `${(mw / scale) * 100}%`, ['--part' as string]: GENERATOR_COLORS[p.generator] ?? 'var(--power)' }}
-                />
-              ))}
-              {!have && (
-                <span className="mix-demand" style={{ left: `${Math.min(100, (used / scale) * 100)}%` }} title={t('consumption')} />
-              )}
-            </div>
-            <span className="mix-legend">
-              {mix.map(({ p, mw }) => (
-                <span key={p.id} className="mix-key" style={{ ['--part' as string]: GENERATOR_COLORS[p.generator] ?? 'var(--power)' }}>
-                  <Icon id={p.fuel ?? p.generator} size={22} />
-                  {num(mw)} MW
-                </span>
-              ))}
-            </span>
-          </div>
-        )}
-        {raw.length > 0 && (
-          <div className="readout wide">
             <span className="readout-label">{t('needs')}</span>
             <span className="slots">
-              {raw.map((r) => (
-                <Slot key={r.item} id={r.item} rate={r.rate} size={48} />
+              {needs.map((r) => (
+                <Slot key={r.item} id={r.item} rate={r.rate} size={44} />
               ))}
             </span>
           </div>
         )}
         {left.length > 0 && (
-          <div className="readout wide waste">
+          <div className="readout">
             <span className="readout-label">{t('makesAsWell')}</span>
             <span className="slots">
               {left.map((r) => (
-                <Slot key={r.item} id={r.item} rate={r.rate} size={48} />
+                <Slot key={r.item} id={r.item} rate={r.rate} size={44} />
               ))}
             </span>
           </div>
@@ -275,6 +198,11 @@ export function PlantInspector({ result }: { result: SolveResult }) {
             +
           </button>
           {sizable(g) && plant.by === 'auto' && <span className="slot-label">{t('stepperFixes')}</span>}
+          {sizable(g) && plant.by !== 'auto' && (
+            <button type="button" className="text-button" onClick={() => updatePlant(plant.id, { by: 'auto' })}>
+              {t('backToAuto')}
+            </button>
+          )}
         </div>
       </div>
 
