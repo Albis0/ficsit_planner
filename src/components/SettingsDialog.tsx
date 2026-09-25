@@ -428,7 +428,16 @@ function ColorsSection() {
         />
       </Row>
       <div className="setting-foot">
-        <button type="button" className="text-button" onClick={() => set({ colors: DEFAULT_COLORS, beltColors: 'tier' })}>
+        <button
+          type="button"
+          className="text-button"
+          // Nothing to reset while every colour is the default.
+          disabled={
+            s.beltColors === 'tier' &&
+            (Object.keys(DEFAULT_COLORS) as (keyof Settings['colors'])[]).every((k) => s.colors[k] === DEFAULT_COLORS[k])
+          }
+          onClick={() => set({ colors: DEFAULT_COLORS, beltColors: 'tier' })}
+        >
           {t('resetColors')}
         </button>
       </div>
@@ -468,7 +477,7 @@ function InterfaceSection() {
 
 function DataSection() {
   const { t } = useT();
-  const { set, setDir } = useContext(Draft)!;
+  const { settings, set, dir, setDir } = useContext(Draft)!;
   const file = useRef<HTMLInputElement>(null);
   const [note, setNote] = useState<{ ok: boolean; text: string }>();
   const [wipe, setWipe] = useState(false);
@@ -513,6 +522,7 @@ function DataSection() {
         <button
           type="button"
           className="ghost-button"
+          disabled={sameSettings(settings, DEFAULT_SETTINGS) && dir === undefined}
           onClick={() => {
             set(DEFAULT_SETTINGS);
             setDir(undefined);

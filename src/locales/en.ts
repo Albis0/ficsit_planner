@@ -226,7 +226,7 @@ export const en = {
   setDemand: 'Show the sizing',
   noPlantRuns: 'None of the generators can run yet',
   noPlantRunsHint: 'Each one needs a fuel, and the building has to be unlocked at your tier.',
-  openPlants: 'Show the plants',
+  openPlants: 'Show the generators',
   errPowerInfeasible: 'Your resource limits can’t fuel this much power. Raise a limit, add another generator, or lower the load.',
   errHaveInfeasible: 'What you listed can’t fuel the generators you set. Add more, or lower their count.',
   listWhatYouHave: 'What do you have to burn?',

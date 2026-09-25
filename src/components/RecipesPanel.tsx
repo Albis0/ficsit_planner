@@ -40,6 +40,11 @@ export function RecipesPanel() {
 
   const visibleIds = groups.flatMap(([, rs]) => rs.map((r) => r.id));
   const visibleOn = visibleIds.filter((id) => on.has(id)).length;
+  // Already the recipes a new factory starts with: resetting would change nothing.
+  const atDefault = useMemo(() => {
+    const d = defaultEnabled();
+    return d.length === on.size && d.every((id) => on.has(id));
+  }, [on]);
 
   const stacks = (list: Stack[]) => list.map((s) => <Slot key={s.item} id={s.item} rate={s.rate} size={46} />);
 
@@ -75,13 +80,18 @@ export function RecipesPanel() {
           <span className="bulk-count">
             {visibleOn}/{visibleIds.length} {t('enabledCount')}
           </span>
-          <button type="button" className="text-button" onClick={() => setRecipes(visibleIds, true)}>
+          <button
+            type="button"
+            className="text-button"
+            disabled={visibleOn === visibleIds.length}
+            onClick={() => setRecipes(visibleIds, true)}
+          >
             {t('enableAll')}
           </button>
-          <button type="button" className="text-button" onClick={() => setRecipes(visibleIds, false)}>
+          <button type="button" className="text-button" disabled={visibleOn === 0} onClick={() => setRecipes(visibleIds, false)}>
             {t('disableAll')}
           </button>
-          <button type="button" className="text-button" onClick={() => updatePlan({ enabled: defaultEnabled() })}>
+          <button type="button" className="text-button" disabled={atDefault} onClick={() => updatePlan({ enabled: defaultEnabled() })}>
             {t('resetRecipes')}
           </button>
         </div>

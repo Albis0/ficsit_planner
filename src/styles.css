@@ -366,9 +366,15 @@ button:disabled {
   letter-spacing: 0.02em;
 }
 
-.text-button:hover {
+.text-button:hover:not(:disabled) {
   text-decoration: underline;
   text-underline-offset: 4px;
+}
+
+/* Nothing to do right now: greyed out, so it doesn't look broken when pressed. */
+.text-button:disabled,
+.ghost-button:disabled {
+  color: var(--faint);
 }
 
 .text-button.danger {
@@ -5978,4 +5984,21 @@ button.gen-count:hover {
 
 .power-more[open] > summary {
   margin-bottom: 12px;
+}
+
+/* A part of the panel a floor message pointed at: a brief glow so the eye finds it. */
+.panel-body .flash {
+  animation: panel-flash 1.4s ease-out;
+}
+
+@keyframes panel-flash {
+  0%,
+  30% {
+    box-shadow:
+      0 0 0 3px var(--power),
+      0 0 28px color-mix(in srgb, var(--power) 45%, transparent);
+  }
+  100% {
+    box-shadow: 0 0 0 3px transparent;
+  }
 }

@@ -21,6 +21,14 @@ All notable changes to FICSIT Planner. Dates are when the version was finished.
   - Four readouts: Covers (or what's left for the grid), Makes, Needs and Makes as well.
   - Saves and files from 0.5 load their grid as the first plant, feeding the same factories.
 
+### Fixed
+
+- The buttons in the floor's power messages ("Show the sizing", "Show the generators") did nothing while
+  the panel was already open. They now scroll to that part of the panel and light it up; with nothing
+  listed yet, **Add what you have** opens the item list straight away.
+- Buttons with nothing to do are greyed out instead of silently doing nothing: **Enable all**, **Disable
+  all** and **Reset to default** in Recipes, **Reset all colours** and **Reset** in Settings.
+
 ## 0.5.0 — 2026-09-24
 
 ### Added
