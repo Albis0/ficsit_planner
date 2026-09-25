@@ -1,7 +1,7 @@
 import { type Grid, newGrid, newPlan, type Plan, useStore } from '../store';
 import { DRAFT_KEY } from './feedback';
 import { cleanGrid, cleanPlan, cleanSettings } from './sanitize';
-import { DEFAULT_COLORS, DEFAULT_SETTINGS, type Settings } from './settings';
+import { DEFAULT_SETTINGS, sameSettings } from './settings';
 
 const KIND = 'ficsit-planner';
 
@@ -60,14 +60,6 @@ function untouchedGrid(g: Grid): boolean {
     c.extraction.miner === d.chain.extraction.miner &&
     c.extraction.purity === d.chain.extraction.purity &&
     c.extraction.clock === d.chain.extraction.clock
-  );
-}
-
-function sameSettings(a: Settings, b: Settings): boolean {
-  return (Object.keys(DEFAULT_SETTINGS) as (keyof Settings)[]).every((k) =>
-    k === 'colors'
-      ? (Object.keys(DEFAULT_COLORS) as (keyof Settings['colors'])[]).every((c) => a.colors[c] === b.colors[c])
-      : a[k] === b[k],
   );
 }
 

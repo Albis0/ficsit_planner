@@ -97,6 +97,13 @@ export function accentOnDark(hex: string): string {
   return `color-mix(in srgb, ${hex} 40%, ${LIGHT_INK})`;
 }
 
+/** Whether two sets of settings are the same, colour by colour. */
+export function sameSettings(a: Settings, b: Settings): boolean {
+  return (Object.keys(DEFAULT_SETTINGS) as (keyof Settings)[]).every((k) =>
+    k === 'colors' ? (Object.keys(DEFAULT_COLORS) as (keyof Colors)[]).every((c) => a.colors[c] === b.colors[c]) : a[k] === b[k],
+  );
+}
+
 /** CSS variables the settings set on the app, so every stylesheet rule follows them. */
 export function settingsStyle(s: Settings): Record<string, string> {
   const c = s.colors;

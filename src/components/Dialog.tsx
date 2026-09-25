@@ -11,12 +11,15 @@ export function Dialog({
   icon,
   className = '',
   onClose,
+  canClose,
   children,
 }: {
   title: string;
   icon: GlyphName;
   className?: string;
   onClose: () => void;
+  /** Asked before closing; false keeps the dialog open (e.g. to ask about unsaved changes). */
+  canClose?: () => boolean;
   children: ReactNode;
 }) {
   const { t } = useT();
@@ -35,7 +38,7 @@ export function Dialog({
   }, []);
 
   const close = () => {
-    if (closing) return;
+    if (closing || (canClose && !canClose())) return;
     setClosing(true);
     // Leaves time for the closing animation; reduced motion makes it instant in CSS anyway.
     setTimeout(onClose, 160);

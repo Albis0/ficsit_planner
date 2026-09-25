@@ -1,7 +1,17 @@
-import { useRef, useState } from 'react';
+import { createContext, useContext, useEffect, useRef, useState } from 'react';
 import { data } from '../lib/data';
 import { useT } from '../lib/i18n';
-import { ACCENTS, clampSetting, DEFAULT_COLORS, DEFAULT_SETTINGS, type LIMITS, type PanelSide, type Settings } from '../lib/settings';
+import {
+  ACCENTS,
+  clampSetting,
+  DEFAULT_COLORS,
+  DEFAULT_SETTINGS,
+  type LIMITS,
+  type PanelSide,
+  type Settings,
+  sameSettings,
+  settingsStyle,
+} from '../lib/settings';
 import { BELT_COLORS } from '../lib/belts';
 import { exportAll, importFile, wipeLocal } from '../lib/backup';
 import meta from '../data/meta.json';
@@ -20,10 +30,52 @@ const SECTIONS: { id: Section; glyph: GlyphName }[] = [
   { id: 'data', glyph: 'database' },
 ];
 
+type Dir = 'LR' | 'TB' | undefined;
+
+/**
+ * What the dialog edits: a draft of the settings (and the graph direction), shown in the preview
+ * but only applied to the app on Save. Changing the interface size live would resize the dialog
+ * under the pointer mid-drag.
+ */
+const Draft = createContext<{ settings: Settings; set: (patch: Partial<Settings>) => void; dir: Dir; setDir: (d: Dir) => void } | null>(
+  null,
+);
+
 /** Settings: where the panel goes, how the factory floor looks, colours, text size and your data. */
 export function SettingsDialog({ onClose }: { onClose: () => void }) {
   const { t } = useT();
   const [section, setSection] = useState<Section>('layout');
+  const saved = useStore((s) => s.settings);
+  const savedDir = useStore((s) => s.graphDir);
+  const setSettings = useStore((s) => s.setSettings);
+  const setStore = useStore((s) => s.set);
+  const [draft, setDraft] = useState(saved);
+  const [dir, setDir] = useState<Dir>(savedDir);
+  const [asking, setAsking] = useState(false);
+  const dirty = !sameSettings(draft, saved) || dir !== savedDir;
+  const save = () => {
+    setSettings(draft);
+    setStore({ graphDir: dir });
+    setAsking(false);
+  };
+  const discard = () => {
+    setDraft(saved);
+    setDir(savedDir);
+    setAsking(false);
+  };
+  // Ctrl+S (Cmd+S) saves, like everywhere else.
+  const saveRef = useRef(save);
+  saveRef.current = save;
+  useEffect(() => {
+    const key = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 's') {
+        e.preventDefault();
+        saveRef.current();
+      }
+    };
+    window.addEventListener('keydown', key);
+    return () => window.removeEventListener('keydown', key);
+  }, []);
   const titles: Record<Section, string> = {
     layout: t('setLayout'),
     floor: t('setFloor'),
@@ -33,34 +85,83 @@ export function SettingsDialog({ onClose }: { onClose: () => void }) {
   };
 
   return (
-    <Dialog title={t('settings')} icon="gear" className="settings-dialog" onClose={onClose}>
-      <div className="settings-body">
-        <nav className="settings-nav" aria-label={t('settings')}>
-          {SECTIONS.map((s) => (
-            <button key={s.id} type="button" aria-current={section === s.id ? 'page' : undefined} onClick={() => setSection(s.id)}>
-              <Glyph name={s.glyph} size={20} />
-              <span>{titles[s.id]}</span>
-            </button>
-          ))}
-        </nav>
-        <div className="settings-main">
-          <div className="settings-controls" key={section}>
-            <h3 className="settings-heading">{titles[section]}</h3>
-            {(section === 'floor' || section === 'colors') && <Preview />}
-            {section === 'layout' && <LayoutSection />}
-            {section === 'floor' && <FloorSection />}
-            {section === 'colors' && <ColorsSection />}
-            {section === 'interface' && <InterfaceSection />}
-            {section === 'data' && <DataSection />}
+    <Dialog
+      title={t('settings')}
+      icon="gear"
+      className="settings-dialog"
+      onClose={onClose}
+      canClose={() => {
+        if (!dirty) return true;
+        setAsking(true);
+        return false;
+      }}
+    >
+      <Draft.Provider value={{ settings: draft, set: (patch) => setDraft((d) => ({ ...d, ...patch })), dir, setDir }}>
+        <div className="settings-body">
+          <nav className="settings-nav" aria-label={t('settings')}>
+            {SECTIONS.map((s) => (
+              <button key={s.id} type="button" aria-current={section === s.id ? 'page' : undefined} onClick={() => setSection(s.id)}>
+                <Glyph name={s.glyph} size={20} />
+                <span>{titles[s.id]}</span>
+              </button>
+            ))}
+          </nav>
+          <div className="settings-main">
+            <div className="settings-controls" key={section}>
+              <h3 className="settings-heading">{titles[section]}</h3>
+              {(section === 'floor' || section === 'colors') && <Preview />}
+              {section === 'layout' && <LayoutSection />}
+              {section === 'floor' && <FloorSection />}
+              {section === 'colors' && <ColorsSection />}
+              {section === 'interface' && <InterfaceSection />}
+              {section === 'data' && <DataSection />}
+            </div>
           </div>
         </div>
-      </div>
+      </Draft.Provider>
+      <footer className="settings-foot" data-state={asking ? 'asking' : dirty ? 'dirty' : 'clean'} aria-live="polite">
+        <span className="settings-status">
+          <span className="status-dot" aria-hidden />
+          {asking ? t('unsavedAsk') : dirty ? t('unsaved') : t('allSaved')}
+        </span>
+        <span className="settings-actions">
+          {asking && (
+            <button type="button" className="ghost-button" onClick={() => setAsking(false)}>
+              {t('keepEditing')}
+            </button>
+          )}
+          <button
+            type="button"
+            className="ghost-button"
+            disabled={!dirty}
+            onClick={() => {
+              discard();
+              if (asking) onClose();
+            }}
+          >
+            {asking ? t('discardClose') : t('discard')}
+          </button>
+          <button
+            type="button"
+            className="primary-button"
+            disabled={!dirty}
+            onClick={() => {
+              save();
+              if (asking) onClose();
+            }}
+          >
+            <Glyph name="check" size={18} />
+            {asking ? t('saveClose') : t('save')}
+          </button>
+        </span>
+      </footer>
     </Dialog>
   );
 }
 
 function useSettings(): [Settings, (patch: Partial<Settings>) => void] {
-  return [useStore((s) => s.settings), useStore((s) => s.setSettings)];
+  const d = useContext(Draft)!;
+  return [d.settings, d.set];
 }
 
 /**
@@ -183,8 +284,7 @@ function PanelDiagram({ side }: { side: PanelSide }) {
 function LayoutSection() {
   const { t } = useT();
   const [s, set] = useSettings();
-  const graphDir = useStore((x) => x.graphDir);
-  const setStore = useStore((x) => x.set);
+  const { dir: graphDir, setDir } = useContext(Draft)!;
   const sides: { id: PanelSide; label: string }[] = [
     { id: 'top', label: t('panelTop') },
     { id: 'left', label: t('panelLeft') },
@@ -222,7 +322,7 @@ function LayoutSection() {
             { id: 'LR', label: `→ ${t('leftToRight')}` },
             { id: 'TB', label: `↓ ${t('topToBottom')}` },
           ]}
-          onChange={(v) => setStore({ graphDir: v === 'auto' ? undefined : v })}
+          onChange={(v) => setDir(v === 'auto' ? undefined : v)}
         />
       </Row>
     </>
@@ -368,7 +468,7 @@ function InterfaceSection() {
 
 function DataSection() {
   const { t } = useT();
-  const set = useStore((s) => s.setSettings);
+  const { set, setDir } = useContext(Draft)!;
   const file = useRef<HTMLInputElement>(null);
   const [note, setNote] = useState<{ ok: boolean; text: string }>();
   const [wipe, setWipe] = useState(false);
@@ -410,7 +510,14 @@ function DataSection() {
         </p>
       )}
       <Row label={t('resetSettings')} hint={t('resetSettingsHint')}>
-        <button type="button" className="ghost-button" onClick={() => set(DEFAULT_SETTINGS)}>
+        <button
+          type="button"
+          className="ghost-button"
+          onClick={() => {
+            set(DEFAULT_SETTINGS);
+            setDir(undefined);
+          }}
+        >
           <Glyph name="reset" size={18} />
           {t('reset')}
         </button>
@@ -442,7 +549,7 @@ const recipe = (id: string) => data.recipes.find((r) => r.id === id)!;
 /** A patch of factory floor drawn with the live settings: two machines and the belt between them. */
 function Preview() {
   const { t, name, num } = useT();
-  const s = useStore((x) => x.settings);
+  const [s] = useSettings();
   const screws = recipe('Recipe_Alternate_Screw_C');
   const plates = recipe('Recipe_IronPlateReinforced_C');
   const belt = s.beltColors === 'one' ? BELT_COLORS[0] : BELT_COLORS[1];
@@ -472,7 +579,12 @@ function Preview() {
     </div>
   );
   return (
-    <figure className="settings-preview" aria-label={t('preview')}>
+    <figure
+      className="settings-preview"
+      aria-label={t('preview')}
+      data-belt-motion={s.beltMotion ? undefined : 'off'}
+      style={settingsStyle(s)}
+    >
       <figcaption>{t('preview')}</figcaption>
       <div className={`preview-floor ${s.gridLines ? 'lines' : ''}`}>
         <div className="preview-stage">
