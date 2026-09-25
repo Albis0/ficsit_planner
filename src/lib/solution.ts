@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { type Grid, type Plan, useStore } from '../store';
-import { recipeById, recipeUnlocked } from './data';
+import { type Plan, type PowerPlan, poweredBy, useStore } from '../store';
+import { data, recipeById, recipeUnlocked } from './data';
 import { effectiveExtraction, extractionPowerPerUnit, planExtraction } from './extraction';
 import { plantUnlocked } from './power';
 import type { SolveInput, SolveResult } from './solver';
@@ -28,25 +28,46 @@ export function factoryInput(plan: SolvedPart, tier: number): SolveInput | undef
   };
 }
 
+const WATER = 'Desc_Water_C';
+const RAW = Object.values(data.items).filter((i) => i.raw && i.id !== WATER);
+
+type PowerPart = Pick<PowerPlan, 'plants' | 'sizeBy' | 'have' | 'headroom' | 'ownLoad' | 'chain'>;
+
 /**
- * What the solver gets for the power grid: its plants, the load, and the plan that makes their fuel.
- * Plants above the unlocked tier sit out, like recipes do.
+ * What the solver gets for a power plant: its generators, the MW it has to carry, and the plan that
+ * makes their fuel. Plants above the unlocked tier sit out, like recipes do.
+ *
+ * Sized to what you have, the listed items are all there is: every other resource but water is
+ * off, and the plant makes as much as those allow.
  */
-export function gridInput(grid: Pick<Grid, 'plants' | 'headroom' | 'chain'>, demand: number, tier: number): SolveInput | undefined {
-  if (grid.plants.length === 0) return undefined;
-  const chain = grid.chain;
+export function powerInput(pp: PowerPart, demand: number, tier: number): SolveInput | undefined {
+  if (pp.plants.length === 0) return undefined;
+  const chain = pp.chain;
+  const have = pp.sizeBy === 'have';
+  let caps = chain.caps;
+  let supplies = chain.supplies;
+  if (have) {
+    caps = Object.fromEntries(RAW.map((i) => [i.id, 0]));
+    supplies = [];
+    for (const h of pp.have) {
+      if (data.items[h.item]?.raw) caps[h.item] = h.rate;
+      else supplies.push(h);
+    }
+  }
   return {
     targets: [],
-    supplies: chain.supplies,
+    supplies,
     enabledRecipes: usableRecipes(chain, tier),
-    resourceCaps: chain.caps,
+    resourceCaps: caps,
     objective: 'resources',
     mods: chain.mods,
     power: {
-      plants: grid.plants.filter((p) => plantUnlocked(p, tier)),
-      demand,
-      headroom: grid.headroom,
+      plants: pp.plants.filter((p) => plantUnlocked(p, tier)),
+      demand: have ? 0 : demand,
+      headroom: pp.sizeBy === 'factories' ? pp.headroom : 0,
       extraction: extractionPowerPerUnit(effectiveExtraction(chain.extraction, tier)),
+      ownLoad: pp.ownLoad,
+      maximize: have,
     },
   };
 }
@@ -164,8 +185,26 @@ export function useFactoryDraws(enabled: boolean): FactoryDraw[] {
   );
 }
 
-/** The factories' total draw the grid has to cover, plus what the player typed in for everything else. */
-export function gridDemand(grid: Pick<Grid, 'exclude' | 'extra'>, factories: FactoryDraw[]): number {
-  const skip = new Set(grid.exclude);
-  return factories.reduce((s, f) => s + (skip.has(f.id) ? 0 : (f.mw ?? 0)), 0) + Math.max(0, grid.extra);
+/** What a power plant has to carry besides its own fuel chain. */
+export interface PowerLoad {
+  /** MW the solver sizes auto generators to: the target, the factories, or what they were locked at. */
+  demand: number;
+  /** Factories ticked on this plant, with what each one draws. */
+  fed: FactoryDraw[];
+  /** Their total. */
+  factories: number;
+  /** The factories and other consumers as they are now, even while the plant is locked at an older figure. */
+  live: number;
+}
+
+export function powerLoad(pp: Pick<PowerPlan, 'sizeBy' | 'want' | 'factories' | 'locked' | 'extra'>, draws: FactoryDraw[]): PowerLoad {
+  if (pp.sizeBy !== 'factories') {
+    const demand = pp.sizeBy === 'want' ? Math.max(0, pp.want) : 0;
+    return { demand, fed: [], factories: 0, live: demand };
+  }
+  const on = poweredBy(pp, draws);
+  const fed = draws.filter((f) => on.has(f.id));
+  const factories = fed.reduce((s, f) => s + (f.mw ?? 0), 0);
+  const live = factories + Math.max(0, pp.extra);
+  return { demand: pp.locked ?? live, fed, factories, live };
 }

@@ -242,6 +242,22 @@ button:disabled {
   background: var(--ficsit);
 }
 
+/* Power plant tabs: the plant's first generator beside its name, the power colour under the one on screen. */
+.plan-tab {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.plan-tab-icon {
+  flex: none;
+  margin-left: -4px;
+}
+
+.plan-tabs.power .plan-tab[aria-current='page']::after {
+  background: var(--power);
+}
+
 .plan-tab.editing {
   width: 220px;
   margin: 10px 0;
@@ -2850,20 +2866,7 @@ button.slot:hover {
   }
 }
 
-/* ---------- Top bar: grid title, settings and feedback ---------- */
-
-.grid-title {
-  flex: 1;
-  min-width: 0;
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding-left: 6px;
-  font: 700 20px var(--font-display);
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
-  color: var(--power);
-}
+/* ---------- Top bar: settings and feedback ---------- */
 
 .chrome-button {
   display: flex;
@@ -3054,31 +3057,198 @@ button.slot:hover {
   color: var(--faint);
 }
 
-.demand-total {
+/* Numbered steps down the panel: generators, then what the plant is sized to. */
+.section-title.step {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.step-num {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  background: var(--power);
+  color: var(--power-ink, var(--ficsit-ink));
+  font: 700 17px var(--font-display);
+  clip-path: polygon(0 0, calc(100% - 8px) 0, 100% 8px, 100% 100%, 0 100%);
+}
+
+/* Three ways to size the plant, as big switches with a line under each name. */
+.size-modes {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 4px;
+  padding: 4px;
+  background: var(--bg);
+  border: 1px solid var(--line);
+}
+
+.size-modes button {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+  min-width: 0;
+  padding: 9px 12px 10px;
+  border: 0;
+  border-bottom: 3px solid transparent;
+  background: transparent;
+  color: var(--dim);
+  text-align: left;
+}
+
+.size-modes button b {
+  font: 700 18px / 1.15 var(--font-display);
+  letter-spacing: 0.02em;
+}
+
+.size-modes button small {
+  font-size: 13px;
+  color: var(--faint);
+}
+
+.size-modes button:hover {
+  background: var(--raised);
+  color: var(--paper);
+}
+
+.size-modes button[aria-checked='true'] {
+  background: var(--raised);
+  border-bottom-color: var(--power);
+  color: var(--power);
+}
+
+.size-modes button[aria-checked='true'] small {
+  color: var(--dim);
+}
+
+/* What the chosen way needs, in one framed box. */
+.size-box {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 14px;
+  background: var(--panel-2);
+  border: 1px solid var(--line);
+  border-left: 4px solid var(--power);
+}
+
+.size-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+/* "Live" follows the factories; "Held" keeps the figure it was set at. */
+.live-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  height: 28px;
+  padding: 0 11px;
+  border: 1px solid color-mix(in srgb, var(--supply) 55%, transparent);
+  background: color-mix(in srgb, var(--supply) 12%, transparent);
+  color: var(--supply);
+  font: 700 14px var(--font-display);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.live-tag.locked {
+  border-color: var(--line-2);
+  background: var(--bg);
+  color: var(--dim);
+}
+
+.live-tag:hover {
+  filter: brightness(1.2);
+}
+
+.live-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: currentColor;
+  animation: live-pulse 1.6s ease-in-out infinite;
+}
+
+@keyframes live-pulse {
+  50% {
+    opacity: 0.35;
+  }
+}
+
+.draw-other {
+  display: block;
+  font: 400 13px var(--font-body);
+  color: var(--faint);
+}
+
+/* The figure the plant is sized to, under everything that adds up to it. */
+.size-total {
   display: flex;
   flex-wrap: wrap;
   align-items: baseline;
-  gap: 4px 12px;
-  margin: 6px 0 0;
+  gap: 2px 12px;
+  margin-top: 4px;
   padding-top: 12px;
   border-top: 1px solid var(--line);
   color: var(--dim);
 }
 
-.demand-total b {
-  font: 700 30px var(--font-display);
+.size-total-label {
+  font: 600 16px var(--font-display);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.size-total b {
+  margin-left: auto;
+  font: 700 32px / 1 var(--font-display);
   color: var(--power);
 }
 
-.demand-total b small {
+.size-total b small {
   font-size: 16px;
   color: var(--dim);
 }
 
-.demand-chain {
+.size-total-note {
   flex-basis: 100%;
   font-size: 14px;
   color: var(--faint);
+}
+
+.size-total-note.warn {
+  color: var(--power);
+}
+
+.size-total-note .text-button {
+  padding: 0;
+  font-size: 14px;
+}
+
+.check-row.own-load {
+  margin-top: 4px;
+  padding-top: 12px;
+  border-top: 1px solid var(--line);
+}
+
+/* What the plant's fuel is made from, as chips that add themselves to the list. */
+.have-needs {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.have-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
 }
 
 /* A power plant, in the machine card's frame with the power colour on its strip. */
@@ -3624,6 +3794,15 @@ button.slot:hover {
 
 .power-node.consumer.other > .glyph {
   color: var(--dim);
+}
+
+/* What the plant sends on: a set target, or all that's left after its own chain. */
+.power-node.consumer.out {
+  border-left-color: var(--supply);
+}
+
+.power-node.consumer.out > .glyph {
+  color: var(--supply);
 }
 
 .consumer-text {
@@ -5607,11 +5786,6 @@ button.slot:hover {
 
   .mode-switch button {
     min-width: 44px;
-  }
-
-  .grid-title {
-    font-size: 17px;
-    gap: 6px;
   }
 
   .sheet-links {

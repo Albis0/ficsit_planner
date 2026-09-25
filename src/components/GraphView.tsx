@@ -310,9 +310,11 @@ function PowerNode({ id, data: d }: NodeProps) {
   return (
     <div className={`power-node consumer ${tone ?? ''} ${faded ? 'faded' : ''}`}>
       <Handle type="target" position={inSide(dir)} />
-      <Glyph name={tone === 'chain' ? 'bolt' : tone === 'other' ? 'sliders' : 'factory'} size={26} />
+      <Glyph name={tone === 'chain' || tone === 'out' ? 'bolt' : tone === 'other' ? 'sliders' : 'factory'} size={26} />
       <span className="consumer-text">
-        <span className="consumer-kind">{tone === 'chain' ? t('fuelChain') : tone === 'other' ? t('otherLoad') : t('planName')}</span>
+        <span className="consumer-kind">
+          {tone === 'chain' ? t('fuelChain') : tone === 'other' ? t('otherLoad') : tone === 'out' ? t('gridOut') : t('planName')}
+        </span>
         <span className="consumer-name">{label}</span>
       </span>
       <span className="consumer-mw">

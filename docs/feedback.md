@@ -12,7 +12,7 @@ and **Suggest an idea**. This page covers where those reports go and how to read
 | Steps | Steps to make it happen (optional) | — |
 | Area | — | Which part of the planner (optional) |
 | Contact | How to reach them (optional) | same |
-| Plan | The factory or power grid on screen, if they tick **Attach what I'm looking at** (on by default for bugs) | same, off by default |
+| Plan | The factory or power plant on screen, if they tick **Attach what I'm looking at** (on by default for bugs) | same, off by default |
 | Meta | App version, game data version, which planner, tier, window size, browser, whether it's installed | same |
 
 Players can open **What gets sent** to see the exact payload before sending. The text they type is kept in their
@@ -62,8 +62,9 @@ Add `--local` to use the local database that `bunx wrangler pages dev dist` writ
 To load an attached plan: `show` prints it as JSON.
 
 - A factory arrives as `{"plan": {…}}`. Save it as `{"kind":"ficsit-planner","version":1,"plans":[{…}]}`.
-- A power grid arrives as `{"grid": {…}}`. Save it as `{"kind":"ficsit-planner","version":1,"plans":[],"grid":{…}}`.
-  It only loads into a grid with no plants, so remove yours first (or use a private window).
+- A power plant arrives as `{"power": {…}}`. Save it as `{"kind":"ficsit-planner","version":2,"plans":[],"power":[{…}]}`.
+  It's added as a new plant tab. Older reports carry `{"grid": {…}}`; save that as `"grid":{…}` instead of
+  `"power"` and it becomes a plant.
 
 Then load the file from **Settings → Your data → Load a copy**. Loaded files are checked field by field, so a
 damaged or hostile plan can't break the app.

@@ -17,6 +17,7 @@ const PATHS = {
   database: 'M4 6c0-1.7 3.6-3 8-3s8 1.3 8 3-3.6 3-8 3-8-1.3-8-3z M4 6v12c0 1.7 3.6 3 8 3s8-1.3 8-3V6 M4 12c0 1.7 3.6 3 8 3s8-1.3 8-3',
   battery: 'M3 7h16v10H3z M21 10v4 M6 10v4 M9 10v4',
   plus: 'M12 5v14 M5 12h14',
+  lock: 'M5 11h14v10H5z M8 11V7a4 4 0 0 1 8 0v4',
   send: 'M3 11 21 3l-8 18-2-8z M11 13l10-10',
   download: 'M12 4v11 M7 10l5 5 5-5 M4 20h16',
   upload: 'M12 20V9 M7 14l5-5 5 5 M4 4h16',

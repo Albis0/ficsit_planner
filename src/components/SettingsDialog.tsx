@@ -494,9 +494,9 @@ function DataSection() {
             const r = await importFile(f);
             if (!r.ok) return setNote({ ok: false, text: t('importFailed') });
             const added = r.count === 0 ? t('importedNone') : r.count === 1 ? t('importedOne') : t('imported', { count: r.count });
-            const grid = r.grid === 'loaded' ? t('importedGrid') : r.grid === 'kept' ? t('importGridKept') : '';
+            const plants = r.power === 0 ? '' : r.power === 1 ? t('importedPlant') : t('importedPlants', { count: r.power });
             const settings = r.settings === 'loaded' ? t('importedSettings') : r.settings === 'kept' ? t('importSettingsKept') : '';
-            setNote({ ok: true, text: [added, grid, settings].filter(Boolean).join(' ') });
+            setNote({ ok: true, text: [added, plants, settings].filter(Boolean).join(' ') });
           }}
         />
         <button type="button" className="ghost-button" onClick={() => file.current?.click()}>

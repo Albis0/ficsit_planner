@@ -13,6 +13,7 @@ export const toFailure = (e: unknown): SolveFailure =>
 const KEYS: Record<SolverErrorCode, StringKey> = {
   infeasible: 'errInfeasible',
   pinnedInfeasible: 'errPinnedInfeasible',
+  noPower: 'errNoPower',
   stopped: 'errStopped',
 };
 

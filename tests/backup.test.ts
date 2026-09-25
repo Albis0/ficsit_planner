@@ -2,7 +2,7 @@ import { describe, expect, test } from 'bun:test';
 import { importFile } from '../src/lib/backup';
 import { checkFeedback } from '../src/lib/feedback-schema';
 import { DEFAULT_SETTINGS } from '../src/lib/settings';
-import { newGrid, newPlan, useStore } from '../src/store';
+import { newPlan, newPowerPlan, useStore } from '../src/store';
 
 const coal = { id: 'p', generator: 'Build_GeneratorCoal_C', fuel: 'Desc_Coal_C', by: 'auto', amount: 0, clock: 1 };
 const copy = (patch: object = {}) =>
@@ -15,7 +15,7 @@ const copy = (patch: object = {}) =>
           { ...newPlan('A'), id: 'a' },
           { ...newPlan('B'), id: 'b' },
         ],
-        grid: { ...newGrid(), plants: [coal], exclude: ['b', 'gone'] },
+        grid: { plants: [coal], exclude: ['b', 'gone'] },
         settings: { ...DEFAULT_SETTINGS, cardScale: 1.3 },
         ...patch,
       }),
@@ -24,20 +24,36 @@ const copy = (patch: object = {}) =>
   );
 
 describe('loading a copy', () => {
-  test('left-out factories stay left out, and the grid and settings only fill what is untouched', async () => {
-    useStore.setState({ plans: [newPlan('Mine')], grid: newGrid(), settings: DEFAULT_SETTINGS });
-    expect(await importFile(copy())).toEqual({ ok: true, count: 2, grid: 'loaded', settings: 'loaded' });
+  test('an old copy’s grid becomes a plant feeding the same factories; settings only fill what is untouched', async () => {
+    const empty = newPowerPlan('Plant 1');
+    useStore.setState({ plans: [newPlan('Mine')], power: [empty], activePower: empty.id, settings: DEFAULT_SETTINGS });
+    expect(await importFile(copy())).toEqual({ ok: true, count: 2, power: 1, settings: 'loaded' });
     const s = useStore.getState();
-    const b = s.plans.find((p) => p.name === 'B')!;
-    expect(b.id).not.toBe('b');
-    expect(s.grid.exclude).toEqual([b.id]);
+    const a = s.plans.find((p) => p.name === 'A')!;
+    expect(a.id).not.toBe('a');
+    // The empty plant nobody touched gives way; the file's plant feeds A, not B.
+    expect(s.power).toHaveLength(1);
+    expect(s.power[0].factories).toEqual([a.id]);
+    expect(s.activePower).toBe(s.power[0].id);
     expect(s.settings.cardScale).toBe(1.3);
 
-    // Now the grid and settings are the player's own: a second copy leaves them alone.
+    // Now the plants and settings are the player's own: a second copy adds a plant and leaves the settings alone.
     const again = await importFile(copy({ settings: { ...DEFAULT_SETTINGS, cardScale: 0.8 } }));
-    expect(again).toMatchObject({ ok: true, count: 2, grid: 'kept', settings: 'kept' });
+    expect(again).toMatchObject({ ok: true, count: 2, power: 1, settings: 'kept' });
     expect(useStore.getState().settings.cardScale).toBe(1.3);
     expect(useStore.getState().plans).toHaveLength(5);
+    expect(useStore.getState().power).toHaveLength(2);
+  });
+
+  test('a new copy’s plants feeding every factory feed only the file’s factories', async () => {
+    const mine = newPlan('Mine');
+    useStore.setState({ plans: [mine], power: [newPowerPlan('Plant 1')] });
+    const pp = { ...newPowerPlan('Coal plant'), plants: [coal], factories: 'all' };
+    expect(await importFile(copy({ grid: undefined, power: [pp, newPowerPlan('Empty')] }))).toMatchObject({ ok: true, power: 1 });
+    const s = useStore.getState();
+    const added = s.power[s.power.length - 1];
+    expect(added.factories).toEqual(s.plans.filter((p) => p.name !== 'Mine').map((p) => p.id));
+    expect(added.chain.id).toBe(`chain-${added.id}`);
   });
 
   test('a file that is not a copy changes nothing', async () => {

@@ -4,8 +4,8 @@ import { data } from './lib/data';
 import { isLang, type Lang } from './lib/lang';
 import { DEFAULT_EXTRACTION, type ExtractionSettings } from './lib/extraction';
 import { generatorById } from './lib/data';
-import { type Plant, sizable } from './lib/power';
-import { cleanChoice, cleanGrid, cleanNumber, cleanPlan, cleanSettings } from './lib/sanitize';
+import { PLANT_NAMES, type Plant, type SizeBy, sizable } from './lib/power';
+import { cleanChoice, cleanNumber, cleanPlan, cleanPowerPlan, cleanSettings, gridToPower } from './lib/sanitize';
 import { DEFAULT_SETTINGS, type Settings } from './lib/settings';
 import type { RecipeMod, Target } from './lib/solver';
 
@@ -30,29 +30,60 @@ export interface Plan {
 
 const uid = () => Math.random().toString(36).slice(2, 10);
 
-/** The power planner's one grid: its plants, the load they carry, and the plan that makes their fuel. */
-export interface Grid {
+/**
+ * A power plant tab: its generators (any mix of buildings and fuels), what it's sized to, and the
+ * plan that makes its fuel. Each one is worked out on its own, like a factory tab.
+ */
+export interface PowerPlan {
+  id: string;
+  name: string;
+  /** Still the name it was created with; the first generator added renames it ("Coal plant"). */
+  autoName?: boolean;
+  /** Rows of generators, each one building burning one fuel. */
   plants: Plant[];
-  /** Factories left out of the demand (they're powered some other way). */
-  exclude: string[];
+  sizeBy: SizeBy;
+  /** 'have': what there is to burn, raw or made, per minute. */
+  have: Target[];
+  /** 'want': MW to put on the grid. */
+  want: number;
+  /** 'factories': the factory tabs it powers, or every one of them. */
+  factories: string[] | 'all';
+  /** 'factories': held at this MW instead of following the factories as they change. */
+  locked?: number;
   /** MW for what the planner doesn't see: trains, drones, lights, the HUB. */
   extra: number;
-  /** Spare capacity kept on top of all consumption, 0.1 = 10%. */
+  /** Spare capacity kept on top of the factories, 0.1 = 10%. */
   headroom: number;
+  /** Whether the plant also runs its own fuel chain: refineries, miners, pumps. */
+  ownLoad: boolean;
   /** Minutes the batteries should carry the whole load for when generation stops. */
   backup: number;
   /** Recipes, limits, fuel on hand and extraction for the factory that makes the fuel. */
   chain: Plan;
 }
 
-export const newGrid = (): Grid => ({
-  plants: [],
-  exclude: [],
-  extra: 0,
-  headroom: 0.1,
-  backup: 0,
-  chain: { ...newPlan('Power'), id: 'power-grid' },
-});
+export const newPowerPlan = (name: string, factories: PowerPlan['factories'] = 'all'): PowerPlan => {
+  const id = uid();
+  return {
+    id,
+    name,
+    autoName: true,
+    plants: [],
+    sizeBy: 'factories',
+    have: [],
+    want: 1000,
+    factories,
+    extra: 0,
+    headroom: 0.1,
+    ownLoad: true,
+    backup: 0,
+    chain: { ...newPlan(name), id: `chain-${id}` },
+  };
+};
+
+/** The factory tabs a power plant feeds. */
+export const poweredBy = (pp: Pick<PowerPlan, 'factories'>, plans: Pick<Plan, 'id'>[]): Set<string> =>
+  new Set(pp.factories === 'all' ? plans.map((p) => p.id) : pp.factories);
 
 export const newPlan = (name: string): Plan => ({
   id: uid(),
@@ -70,7 +101,9 @@ interface State {
   lang: Lang;
   /** Which planner is on screen: factories, or the power grid that runs them. */
   mode: 'factory' | 'power';
-  grid: Grid;
+  /** Power plant tabs, and the one on screen. */
+  power: PowerPlan[];
+  activePower: string;
   settings: Settings;
   /** Open modal. Not persisted. */
   dialog?: 'settings' | 'report';
@@ -112,6 +145,7 @@ interface State {
         | 'view'
         | 'tab'
         | 'active'
+        | 'activePower'
         | 'inspect'
         | 'pane'
         | 'renaming'
@@ -123,7 +157,14 @@ interface State {
     >,
   ) => void;
   setSettings: (patch: Partial<Settings>) => void;
-  updateGrid: (patch: Partial<Omit<Grid, 'chain'>>) => void;
+  /** Changes the power plant on screen. */
+  updatePower: (patch: Partial<Omit<PowerPlan, 'id' | 'chain'>>) => void;
+  /** Ticks a factory on the power plant on screen, taking it off any other plant so it isn't counted twice. */
+  setPowered: (factory: string, on: boolean) => void;
+  addPowerPlan: (name: string) => void;
+  duplicatePowerPlan: (id: string) => void;
+  removePowerPlan: (id: string) => void;
+  renamePowerPlan: (id: string, name: string) => void;
   addPlant: (generator: string, fuel?: string) => void;
   updatePlant: (id: string, patch: Partial<Plant>) => void;
   removePlant: (id: string) => void;
@@ -147,22 +188,39 @@ interface State {
 }
 
 const first = newPlan('Factory 1');
+const firstPower = newPowerPlan('Plant 1');
+
+/** The power plant tab on screen. */
+export const activePowerPlan = (s: Pick<State, 'power' | 'activePower'>) => s.power.find((p) => p.id === s.activePower) ?? s.power[0];
+
+/** "Coal plant", or "Coal plant 2" when that name is taken. */
+function freeName(base: string, taken: string[]): string {
+  if (!taken.includes(base)) return base;
+  let n = 2;
+  while (taken.includes(`${base} ${n}`)) n++;
+  return `${base} ${n}`;
+}
 
 export const useStore = create<State>()(
   persist(
     (set, get) => {
-      // Plan edits go to whatever is on screen: the active factory, or the power grid's fuel plan.
+      // Edits to the power plant on screen.
+      const power = (fn: (p: PowerPlan) => Partial<PowerPlan>) => {
+        const id = activePowerPlan(get()).id;
+        set({ power: get().power.map((p) => (p.id === id ? { ...p, ...fn(p) } : p)) });
+      };
+      // Plan edits go to whatever is on screen: the active factory, or the power plant's fuel plan.
       const update = (fn: (p: Plan) => Partial<Plan>) => {
-        const { mode, grid } = get();
-        if (mode === 'power') return set({ grid: { ...grid, chain: { ...grid.chain, ...fn(grid.chain) } } });
+        if (get().mode === 'power') return power((pp) => ({ chain: { ...pp.chain, ...fn(pp.chain) } }));
         set({ plans: get().plans.map((p) => (p.id === get().active ? { ...p, ...fn(p) } : p)) });
       };
-      const plants = (fn: (list: Plant[]) => Plant[]) => set({ grid: { ...get().grid, plants: fn(get().grid.plants) } });
+      const plants = (fn: (list: Plant[]) => Plant[]) => power((pp) => ({ plants: fn(pp.plants) }));
 
       return {
         lang: 'en',
         mode: 'factory',
-        grid: newGrid(),
+        power: [firstPower],
+        activePower: firstPower.id,
         settings: DEFAULT_SETTINGS,
         tier: MAX_TIER,
         onboarded: false,
@@ -175,16 +233,79 @@ export const useStore = create<State>()(
 
         set: (patch) => set(patch),
         setSettings: (patch) => set({ settings: { ...get().settings, ...patch } }),
-        updateGrid: (patch) => set({ grid: { ...get().grid, ...patch } }),
-        addPlant: (generator, fuel) =>
+        updatePower: (patch) => power(() => patch),
+        setPowered: (factory, on) => {
+          const plans = get().plans;
+          const current = activePowerPlan(get()).id;
+          const without = (pp: PowerPlan) => [...poweredBy(pp, plans)].filter((id) => id !== factory && plans.some((p) => p.id === id));
+          set({
+            power: get().power.map((pp) => {
+              if (pp.id === current) return { ...pp, factories: on ? [...without(pp), factory] : without(pp) };
+              return on && poweredBy(pp, plans).has(factory) ? { ...pp, factories: without(pp) } : pp;
+            }),
+          });
+        },
+        addPowerPlan: (name) => {
+          // A new plant takes the factories no other plant feeds yet.
+          const plans = get().plans;
+          const taken = new Set(get().power.flatMap((pp) => [...poweredBy(pp, plans)]));
+          const pp = newPowerPlan(
+            name,
+            plans.map((p) => p.id).filter((id) => !taken.has(id)),
+          );
+          set({ power: [...get().power, pp], activePower: pp.id, inspect: undefined });
+        },
+        duplicatePowerPlan: (id) => {
+          const src = get().power.find((p) => p.id === id);
+          if (!src) return;
+          const copy = structuredClone(src);
+          copy.id = uid();
+          copy.name = freeName(
+            src.name,
+            get().power.map((p) => p.name),
+          );
+          copy.chain.id = `chain-${copy.id}`;
+          delete copy.autoName;
+          // The copy starts out feeding nothing, so no factory is counted on both.
+          copy.factories = [];
+          const power = [...get().power];
+          power.splice(power.indexOf(src) + 1, 0, copy);
+          set({ power, activePower: copy.id, inspect: undefined });
+        },
+        removePowerPlan: (id) => {
+          const power = get().power.filter((p) => p.id !== id);
+          if (power.length === 0) power.push(newPowerPlan('Plant 1'));
+          const activePower =
+            get().activePower === id ? power[Math.max(0, get().power.findIndex((p) => p.id === id) - 1)].id : get().activePower;
+          set({ power, activePower, inspect: undefined });
+        },
+        renamePowerPlan: (id, name) =>
+          set({ power: get().power.map((p) => (p.id === id && p.name !== name ? { ...p, name, autoName: undefined } : p)) }),
+        addPlant: (generator, fuel) => {
+          const pp = activePowerPlan(get());
+          // An untouched plant is named after its first generator.
+          const base = pp.autoName && pp.plants.length === 0 ? PLANT_NAMES[generator] : undefined;
+          if (base) {
+            const others = get().power.filter((p) => p.id !== pp.id);
+            power(() => ({
+              name: freeName(
+                base,
+                others.map((p) => p.name),
+              ),
+              autoName: undefined,
+            }));
+          }
           plants((list) => {
             const g = generatorById.get(generator);
             // The first burner covers the whole demand; later ones start as a few generators to split it.
-            const auto = !!g && sizable(g) && !list.some((p) => p.by === 'auto' && sizable(generatorById.get(p.generator)!));
+            // Sized to what you have, every burner takes what it can.
+            const auto =
+              !!g && sizable(g) && (pp.sizeBy === 'have' || !list.some((p) => p.by === 'auto' && sizable(generatorById.get(p.generator)!)));
             const plant: Plant = { id: uid(), generator, fuel, by: auto ? 'auto' : 'count', amount: 1, clock: 1 };
             if (g?.kind === 'geothermal') plant.purity = 'normal';
             return [...list, plant];
-          }),
+          });
+        },
         updatePlant: (id, patch) => plants((list) => list.map((p) => (p.id === id ? { ...p, ...patch } : p))),
         removePlant: (id) => plants((list) => list.filter((p) => p.id !== id)),
         updatePlan: (patch) => update(typeof patch === 'function' ? patch : () => patch),
@@ -205,7 +326,9 @@ export const useStore = create<State>()(
           const plans = get().plans.filter((p) => p.id !== id);
           if (plans.length === 0) plans.push(newPlan('Factory 1'));
           const active = get().active === id ? plans[Math.max(0, get().plans.findIndex((p) => p.id === id) - 1)].id : get().active;
-          set({ plans, active, inspect: undefined });
+          // Power plants stop counting a factory that's gone.
+          const power = get().power.map((pp) => (pp.factories === 'all' ? pp : { ...pp, factories: pp.factories.filter((f) => f !== id) }));
+          set({ plans, active, power, inspect: undefined });
         },
         renamePlan: (id, name) => set({ plans: get().plans.map((p) => (p.id === id ? { ...p, name } : p)) }),
 
@@ -257,11 +380,12 @@ export const useStore = create<State>()(
     },
     {
       name: 'ficsit-planner',
-      version: 2,
+      version: 3,
       partialize: (s) => ({
         lang: s.lang,
         mode: s.mode,
-        grid: s.grid,
+        power: s.power,
+        activePower: s.activePower,
         settings: s.settings,
         sideWidth: s.sideWidth,
         tier: s.tier,
@@ -286,7 +410,8 @@ type Persisted = Partial<
     State,
     | 'lang'
     | 'mode'
-    | 'grid'
+    | 'power'
+    | 'activePower'
     | 'settings'
     | 'tier'
     | 'onboarded'
@@ -300,7 +425,10 @@ type Persisted = Partial<
     | 'deckClosed'
     | 'graphDir'
   >
->;
+> & {
+  /** Before version 3: the one power grid, now the first power plant tab. */
+  grid?: unknown;
+};
 
 export function migrateState(persisted: unknown, version: number): Persisted {
   const old = persisted as Record<string, unknown>;
@@ -330,11 +458,30 @@ export function mergeState<S extends State>(persisted: unknown, current: S): S {
     ids.add(plan.id);
   }
   const active = plans.some((x) => x.id === p.active) ? p.active! : plans[0].id;
+  const power =
+    Array.isArray(p.power) && p.power.length
+      ? p.power.map((x) => cleanPowerPlan(x, newPowerPlan('Plant')))
+      : p.grid
+        ? [
+            gridToPower(
+              p.grid,
+              newPowerPlan('Plant 1'),
+              plans.map((x) => x.id),
+            ),
+          ]
+        : current.power;
+  const powerIds = new Set<string>();
+  for (const pp of power) {
+    if (powerIds.has(pp.id)) pp.id = uid();
+    powerIds.add(pp.id);
+  }
+  const activePower = power.some((x) => x.id === p.activePower) ? p.activePower! : power[0].id;
   return {
     ...current,
     lang: isLang(p.lang) ? p.lang : current.lang,
     mode: p.mode === 'power' ? 'power' : 'factory',
-    grid: cleanGrid(p.grid, newGrid()),
+    power,
+    activePower,
     settings: cleanSettings(p.settings),
     tier: Math.round(cleanNumber(p.tier, 0, MAX_TIER, current.tier)),
     onboarded: p.onboarded === true,
@@ -353,8 +500,8 @@ export function mergeState<S extends State>(persisted: unknown, current: S): S {
   };
 }
 
-/** The plan on screen: the active factory, or in the power planner the grid's fuel plan. */
-export const currentPlan = (s: Pick<State, 'mode' | 'grid' | 'plans' | 'active'>) =>
-  s.mode === 'power' ? s.grid.chain : (s.plans.find((p) => p.id === s.active) ?? s.plans[0]);
+/** The plan on screen: the active factory, or in the power planner the plant's fuel plan. */
+export const currentPlan = (s: Pick<State, 'mode' | 'power' | 'activePower' | 'plans' | 'active'>) =>
+  s.mode === 'power' ? activePowerPlan(s).chain : (s.plans.find((p) => p.id === s.active) ?? s.plans[0]);
 
 export const usePlan = () => useStore(currentPlan);

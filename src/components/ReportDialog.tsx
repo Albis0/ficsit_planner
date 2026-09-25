@@ -10,7 +10,7 @@ import {
   LIMITS,
   sendFeedback,
 } from '../lib/feedback';
-import { currentPlan, useStore } from '../store';
+import { activePowerPlan, currentPlan, useStore } from '../store';
 import { Dialog } from './Dialog';
 import { Glyph } from './Glyph';
 
@@ -90,7 +90,7 @@ export function ReportDialog({ onClose }: { onClose: () => void }) {
       steps: bug ? draft.steps.trim() : '',
       area: bug ? '' : draft.area,
       contact: draft.contact.trim(),
-      plan: draft.attach ? JSON.stringify(s.mode === 'power' ? { grid: s.grid } : { plan: currentPlan(s) }) : undefined,
+      plan: draft.attach ? JSON.stringify(s.mode === 'power' ? { power: activePowerPlan(s) } : { plan: currentPlan(s) }) : undefined,
       meta: feedbackMeta(),
       website: honey,
     };

@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'bun:test';
 import { data } from '../src/lib/data';
-import { mergeState, migrateState, newPlan, useStore } from '../src/store';
+import { mergeState, migrateState, newPlan, newPowerPlan, poweredBy, useStore } from '../src/store';
 
 const current = () => useStore.getState();
 const realRecipe = data.recipes[0].id;
@@ -88,21 +88,33 @@ describe('damaged or hostile saves', () => {
   test('power plants and settings keep only what makes sense', () => {
     const merged = mergeState(
       {
-        grid: {
-          plants: [
-            { id: 'ok', generator: 'Build_GeneratorCoal_C', fuel: 'Desc_Coal_C', by: 'auto', amount: 1, clock: 9 },
-            { id: 'bad', generator: 'Build_Nothing_C', by: 'count', amount: 2, clock: 1 },
-            'junk',
-          ],
-          headroom: -1,
-        },
+        power: [
+          {
+            id: 'x',
+            name: 'Coal',
+            sizeBy: 'sideways',
+            want: -5,
+            factories: ['a', 3, 'a'],
+            plants: [
+              { id: 'ok', generator: 'Build_GeneratorCoal_C', fuel: 'Desc_Coal_C', by: 'auto', amount: 1, clock: 9 },
+              { id: 'bad', generator: 'Build_Nothing_C', by: 'count', amount: 2, clock: 1 },
+              'junk',
+            ],
+            headroom: -1,
+          },
+        ],
         settings: { cardScale: 40, colors: { accent: 'red; background: url(x)' }, motion: 'wild', panel: 'left' },
       },
       current(),
     );
-    expect(merged.grid.plants.map((p) => p.id)).toEqual(['ok']);
-    expect(merged.grid.plants[0].clock).toBe(2.5);
-    expect(merged.grid.headroom).toBe(0);
+    const pp = merged.power[0];
+    expect(pp.plants.map((p) => p.id)).toEqual(['ok']);
+    expect(pp.plants[0].clock).toBe(2.5);
+    expect(pp.headroom).toBe(0);
+    expect(pp.sizeBy).toBe('factories');
+    expect(pp.want).toBe(0);
+    expect(pp.factories).toEqual(['a']);
+    expect(merged.activePower).toBe('x');
     expect(merged.settings.cardScale).toBe(1.6);
     expect(merged.settings.colors.accent).toBe('#fa9549');
     expect(merged.settings.motion).toBe('system');
@@ -113,19 +125,78 @@ describe('damaged or hostile saves', () => {
     const coal = { generator: 'Build_GeneratorCoal_C', fuel: 'Desc_Coal_C', by: 'count', amount: 4, clock: 1 };
     const merged = mergeState(
       {
-        grid: {
-          plants: [
-            { ...coal, id: 'p' },
-            { ...coal, id: 'p' },
-            { ...coal, id: 'q' },
-          ],
-        },
+        power: [
+          {
+            plants: [
+              { ...coal, id: 'p' },
+              { ...coal, id: 'p' },
+              { ...coal, id: 'q' },
+            ],
+          },
+        ],
       },
       current(),
     );
-    const ids = merged.grid.plants.map((p) => p.id);
+    const ids = merged.power[0].plants.map((p) => p.id);
     expect(ids).toHaveLength(3);
     expect(new Set(ids).size).toBe(3);
     expect(ids[0]).toBe('p');
+  });
+});
+
+describe('power plant tabs', () => {
+  const coal = { id: 'c', generator: 'Build_GeneratorCoal_C', fuel: 'Desc_Coal_C', by: 'auto', amount: 1, clock: 1 };
+
+  test('the one power grid saved before plant tabs becomes the first plant', () => {
+    const a = { ...newPlan('A'), id: 'a' };
+    const b = { ...newPlan('B'), id: 'b' };
+    const merged = mergeState(
+      { plans: [a, b], active: 'a', grid: { plants: [coal], exclude: ['b'], extra: 40, headroom: 0.2, backup: 5 } },
+      current(),
+    );
+    expect(merged.power).toHaveLength(1);
+    const pp = merged.power[0];
+    expect(pp.name).toBe('Coal plant');
+    expect(pp.sizeBy).toBe('factories');
+    expect(pp.factories).toEqual(['a']);
+    expect(pp.plants.map((p) => p.id)).toEqual(['c']);
+    expect([pp.extra, pp.headroom, pp.backup]).toEqual([40, 0.2, 5]);
+    expect(merged.activePower).toBe(pp.id);
+
+    // Nothing left out meant every factory, including ones added later.
+    const all = mergeState({ plans: [a, b], grid: { plants: [coal], exclude: [] } }, current());
+    expect(all.power[0].factories).toBe('all');
+  });
+
+  test('a factory ticked on one plant comes off the others, so it is never counted twice', () => {
+    const a = { ...newPlan('A'), id: 'a' };
+    const b = { ...newPlan('B'), id: 'b' };
+    const first = { ...newPowerPlan('Coal'), id: 'p1' };
+    useStore.setState({ plans: [a, b], power: [first], activePower: 'p1' });
+    useStore.getState().addPowerPlan('Fuel');
+    const s1 = useStore.getState();
+    // Every factory is on the first plant, so the new one starts with none.
+    expect(s1.power[1].factories).toEqual([]);
+    s1.setPowered('b', true);
+    const s2 = useStore.getState();
+    expect([...poweredBy(s2.power[0], s2.plans)]).toEqual(['a']);
+    expect([...poweredBy(s2.power[1], s2.plans)]).toEqual(['b']);
+    // Deleting a factory takes it off the plant too.
+    s2.removePlan('b');
+    expect(useStore.getState().power[1].factories).toEqual([]);
+  });
+
+  test('a new plant takes its name from its first generator', () => {
+    const pp = newPowerPlan('Plant 1');
+    useStore.setState({ power: [pp], activePower: pp.id, mode: 'power' });
+    useStore.getState().addPlant('Build_GeneratorFuel_C', 'Desc_LiquidFuel_C');
+    useStore.getState().addPlant('Build_GeneratorCoal_C', 'Desc_Coal_C');
+    const s = useStore.getState();
+    expect(s.power[0].name).toBe('Fuel plant');
+    expect(s.power[0].plants).toHaveLength(2);
+    // Renamed by hand, it keeps its name.
+    s.duplicatePowerPlan(pp.id);
+    expect(useStore.getState().power.map((p) => p.name)).toEqual(['Fuel plant', 'Fuel plant 2']);
+    useStore.setState({ mode: 'factory' });
   });
 });

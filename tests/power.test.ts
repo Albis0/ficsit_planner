@@ -2,9 +2,9 @@ import { beforeAll, describe, expect, test } from 'bun:test';
 import loadHighs, { type Highs } from 'highs';
 import { data, generatorById } from '../src/lib/data';
 import { fuelRate, geyserPower, gridBoost, type Plant, plantRecipe, unitPower } from '../src/lib/power';
-import { gridInput } from '../src/lib/solution';
+import { powerInput, powerLoad } from '../src/lib/solution';
 import { type PowerInput, type SolveInput, solve } from '../src/lib/solver';
-import { newGrid } from '../src/store';
+import { newPowerPlan, type PowerPlan } from '../src/store';
 
 let highs: Highs;
 beforeAll(async () => {
@@ -146,8 +146,107 @@ describe('augmenters and nuclear', () => {
   test('plants above the unlocked tier sit out, like recipes do', () => {
     const nuke = plant({ id: 'n', generator: NUCLEAR, fuel: 'Desc_NuclearFuelRod_C', by: 'count', amount: 1 });
     const coal = plant({ id: 'c', generator: COAL, fuel: 'Desc_Coal_C', by: 'count', amount: 1 });
-    const chain = newGrid().chain;
-    expect(gridInput({ plants: [nuke, coal], headroom: 0, chain }, 0, 3)!.power!.plants.map((p) => p.id)).toEqual(['c']);
-    expect(gridInput({ plants: [nuke, coal], headroom: 0, chain }, 0, 9)!.power!.plants).toHaveLength(2);
+    const pp = { ...newPowerPlan('P'), plants: [nuke, coal] };
+    expect(powerInput(pp, 0, 3)!.power!.plants.map((p) => p.id)).toEqual(['c']);
+    expect(powerInput(pp, 0, 9)!.power!.plants).toHaveLength(2);
+  });
+});
+
+describe('sizing a plant', () => {
+  const FUEL = 'Build_GeneratorFuel_C';
+  const make = (patch: Partial<PowerPlan>): PowerPlan => ({ ...newPowerPlan('P'), ...patch });
+  const run = (pp: PowerPlan, demand = 0) => solve(highs, powerInput(pp, demand, 9)!);
+
+  test('what I have: 240 coal a minute runs 16 generators, 1,200 MW, and needs nothing else but water', () => {
+    const pp = make({
+      sizeBy: 'have',
+      have: [{ item: 'Desc_Coal_C', rate: 240 }],
+      ownLoad: false,
+      plants: [plant({ generator: COAL, fuel: 'Desc_Coal_C' })],
+    });
+    const r = run(pp);
+    expect(r.grid!.generation).toBeCloseTo(1200, 3);
+    expect(rate(r.raw, 'Desc_Coal_C')).toBeCloseTo(240, 3);
+    expect(r.raw.map((x) => x.item).sort()).toEqual(['Desc_Coal_C', 'Desc_Water_C']);
+    expect(r.scale).toBeCloseTo(1200, 3);
+  });
+
+  test('what I have: crude oil is refined into fuel, and the refineries come off what is left for the grid', () => {
+    const pp = make({
+      sizeBy: 'have',
+      have: [{ item: 'Desc_LiquidOil_C', rate: 300 }],
+      plants: [plant({ generator: FUEL, fuel: 'Desc_LiquidFuel_C' })],
+    });
+    const r = run(pp);
+    expect(rate(r.raw, 'Desc_LiquidOil_C')).toBeLessThanOrEqual(300 + 1e-6);
+    expect(r.grid!.generation).toBeGreaterThan(2000);
+    // What's left is the generation less the chain's own machines (extractors are counted too).
+    expect(r.scale).toBeLessThan(r.grid!.generation - r.power + 1e-3);
+    expect(r.missing).toHaveLength(0);
+  });
+
+  test('what I have: ready fuel on hand is burnt without mining anything', () => {
+    const pp = make({
+      sizeBy: 'have',
+      have: [{ item: 'Desc_LiquidFuel_C', rate: 60 }],
+      plants: [plant({ generator: FUEL, fuel: 'Desc_LiquidFuel_C' })],
+    });
+    const r = run(pp);
+    // A Fuel Generator burns 20 m³ a minute at 250 MW.
+    expect(r.grid!.generation).toBeCloseTo(750, 3);
+    expect(r.raw.filter((x) => x.item !== 'Desc_Water_C')).toHaveLength(0);
+  });
+
+  test('what I have: nothing burnable listed says so instead of making free power', () => {
+    const pp = make({
+      sizeBy: 'have',
+      have: [{ item: 'Desc_OreIron_C', rate: 100 }],
+      plants: [plant({ generator: COAL, fuel: 'Desc_Coal_C' })],
+    });
+    expect(() => run(pp)).toThrow('noPower');
+  });
+
+  test('what I have: two kinds of generator share the inputs', () => {
+    const pp = make({
+      sizeBy: 'have',
+      have: [
+        { item: 'Desc_Coal_C', rate: 150 },
+        { item: 'Desc_LiquidFuel_C', rate: 40 },
+      ],
+      ownLoad: false,
+      plants: [plant({ id: 'c', generator: COAL, fuel: 'Desc_Coal_C' }), plant({ id: 'f', generator: FUEL, fuel: 'Desc_LiquidFuel_C' })],
+    });
+    const r = run(pp);
+    expect(r.grid!.plants.c).toBeCloseTo(750, 3);
+    expect(r.grid!.plants.f).toBeCloseTo(500, 3);
+  });
+
+  test('power I want: the set output plus the chain, with no spare added', () => {
+    const pp = make({ sizeBy: 'want', want: 5000, headroom: 0.5, plants: [plant({ generator: FUEL, fuel: 'Desc_LiquidFuel_C' })] });
+    const load = powerLoad(pp, []);
+    expect(load.demand).toBe(5000);
+    const r = run(pp, load.demand);
+    expect(r.grid!.generation).toBeGreaterThan(5000 + r.power - 0.5);
+    expect(r.grid!.generation).toBeLessThan((5000 + r.power) * 1.05);
+  });
+
+  test('without its own chain, the plant only covers the load', () => {
+    const pp = make({ sizeBy: 'want', want: 1000, ownLoad: false, plants: [plant({ generator: FUEL, fuel: 'Desc_LiquidFuel_C' })] });
+    const r = run(pp, 1000);
+    expect(r.power).toBeGreaterThan(0);
+    expect(r.grid!.generation).toBeCloseTo(1000, 3);
+  });
+
+  test('my factories: only the ticked ones count, and a held figure stays put', () => {
+    const draws = [
+      { id: 'a', name: 'A', mw: 400 },
+      { id: 'b', name: 'B', mw: 250 },
+    ];
+    const pp = make({ sizeBy: 'factories', factories: ['a'], extra: 50 });
+    expect(powerLoad(pp, draws)).toMatchObject({ demand: 450, factories: 400, live: 450 });
+    expect(powerLoad({ ...pp, factories: 'all' }, draws).demand).toBe(700);
+    const held = powerLoad({ ...pp, locked: 300 }, draws);
+    expect(held.demand).toBe(300);
+    expect(held.live).toBe(450);
   });
 });

@@ -2,6 +2,22 @@
 
 All notable changes to FICSIT Planner. Dates are when the version was finished.
 
+## 0.6.0 — 2026-09-25
+
+### Changed
+
+- **Power plants are tabs.** The power planner's one grid is now a row of plant tabs, like factories: add,
+  rename, duplicate and delete them. A new plant is named after its first generator ("Coal plant").
+  - One plant can mix generators and fuels.
+  - Size a plant three ways: **What I have** (the fuel, or the ore and oil it's made from, per minute; it makes
+    all it can and tells you what's left for the grid), **Power I want** (a set output), or **My factories**
+    (the factory tabs you tick, plus other consumers and spare capacity).
+  - A factory is counted on one plant only: ticking it on one takes it off the others.
+  - Sized to factories, the plant follows them as they change, or holds a figure you set.
+  - **Also run its own chain** can be turned off when the refineries and miners run on another grid.
+  - Readouts: Covers (or what's left for the grid), Makes, Needs and Makes as well.
+  - Saves and files from 0.5 load their grid as the first plant, feeding the same factories.
+
 ## 0.5.0 — 2026-09-24
 
 ### Added

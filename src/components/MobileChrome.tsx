@@ -1,6 +1,6 @@
 import { useEffect, useRef } from 'react';
 import { useT } from '../lib/i18n';
-import { usePlan, useStore } from '../store';
+import { activePowerPlan, usePlan, useStore } from '../store';
 import { Glyph } from './Glyph';
 import { PlanActions } from './PlanTabs';
 import { InstallButton } from './PwaStatus';
@@ -13,7 +13,7 @@ export function MobileNav() {
   const pane = useStore((s) => s.pane);
   const set = useStore((s) => s.set);
   const power = useStore((s) => s.mode === 'power');
-  const plants = useStore((s) => s.grid.plants.length);
+  const plants = useStore((s) => activePowerPlan(s).plants.length);
 
   const items = [
     ['targets', power ? t('powerTab') : t('targets'), power ? plants : plan.targets.length],
@@ -84,12 +84,10 @@ export function MobileMenu({ onClose, onTier }: { onClose: () => void; onTier: (
             {t('tier')} <b>{tier}</b>
           </button>
         </div>
-        {!power && (
-          <div className="sheet-row">
-            <span className="control-label">{t('planName')}</span>
-            <PlanActions rename onDone={onClose} />
-          </div>
-        )}
+        <div className="sheet-row">
+          <span className="control-label">{power ? t('plantName') : t('planName')}</span>
+          <PlanActions rename onDone={onClose} />
+        </div>
         <div className="sheet-row sheet-links">
           <button type="button" className="ghost-button" onClick={() => open('settings')}>
             <Glyph name="gear" size={18} />

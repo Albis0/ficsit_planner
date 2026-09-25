@@ -45,6 +45,13 @@ export interface PowerInput {
   headroom: number;
   /** MW the extractors of each raw resource draw per unit/min, so mining for fuel counts too. */
   extraction: Record<string, number>;
+  /** Whether the plan's own machines and extractors run on these plants too. Default yes. */
+  ownLoad?: boolean;
+  /**
+   * Make as much power as the inputs allow instead of meeting `demand`: auto plants grow until the
+   * resource limits and supplies run out. The result's `scale` is the MW left for the grid.
+   */
+  maximize?: boolean;
 }
 
 /** What the power plants make, and what the plan's own machines and extractors take back. */
@@ -97,7 +104,7 @@ export interface SolveResult {
   grid?: GridResult;
 }
 
-export type SolverErrorCode = 'infeasible' | 'pinnedInfeasible' | 'stopped';
+export type SolverErrorCode = 'infeasible' | 'pinnedInfeasible' | 'noPower' | 'stopped';
 
 /** A failed solve. The code is translated for display; status is HiGHS’ own model status. */
 export class SolverError extends Error {
@@ -113,6 +120,8 @@ export class SolverError extends Error {
 const EPS = 1e-6;
 const MISSING_PENALTY = 1e5;
 const MAX_SCALE = 1e4;
+/** Ceiling on the MW a maximised power plan reports, far past any real map. */
+const MAX_POWER = 1e8;
 
 /** Power shards a machine needs for a given clock: each one adds 50% above 100%. */
 export const shardsFor = (clock: number) => (clock > 1 + 1e-9 ? Math.ceil((clock - 1) / 0.5 - 1e-9) : 0);
@@ -192,6 +201,8 @@ interface Model {
   sv: Map<string, string>;
   rowItem: string[];
   lp: (phase: 'max-scale' | { scale: number }) => string;
+  /** Whether the first phase maximises a scale: pinned inputs, or a power plan making all it can. */
+  scaling: boolean;
   demand: Map<string, number>;
   given: Map<string, number>;
   modOf: (r: Recipe) => RecipeMod;
@@ -221,7 +232,9 @@ function buildModel(input: SolveInput, draw?: Map<string, number>): Model {
     for (const i of r.inputs) if (i.item === id) net -= i.rate * mod.clock;
     return net;
   };
-  const scaling = Object.keys(input.fixed ?? {}).length > 0;
+  const power = input.power;
+  const maximize = !!power?.maximize && plants.length > 0;
+  const scaling = Object.keys(input.fixed ?? {}).length > 0 || maximize;
 
   const demand = new Map<string, number>();
   for (const t of input.targets) demand.set(t.item, (demand.get(t.item) ?? 0) + t.rate);
@@ -276,22 +289,30 @@ function buildModel(input: SolveInput, draw?: Map<string, number>): Model {
 
   // Power balance, when some plant is sized to fit: generation (boosted by augmenters) covers the
   // outside demand plus this plan's own machines and extractors, with the spare capacity on top.
-  const extraRows: string[] = [];
-  const power = input.power;
-  if (power && [...plantOf.values()].some((p) => plantSize(p) === 'auto')) {
+  // Maximising, the demand is the scale itself: whatever is left once the chain is running.
+  let powerRow: ((phase: 'max-scale' | { scale: number }) => string) | undefined;
+  if (power && (maximize || [...plantOf.values()].some((p) => plantSize(p) === 'auto'))) {
     const boost = 1 + gridBoost(plants);
-    const keep = 1 + Math.max(0, power.headroom);
+    const keep = maximize ? 1 : 1 + Math.max(0, power.headroom);
+    const own = power.ownLoad !== false;
     const terms: string[] = [];
     for (const r of recipes) {
       const plant = plantOf.get(r.id);
-      const mw = plant ? boost * unitPower(plant) : -keep * machinePower(r, modOf(r)) * (draw?.get(r.id) ?? 1);
+      const mw = plant ? boost * unitPower(plant) : own ? -keep * machinePower(r, modOf(r)) * (draw?.get(r.id) ?? 1) : 0;
       if (Math.abs(mw) > EPS) terms.push(`${mw >= 0 ? '+' : '-'} ${fmt(Math.abs(mw))} ${rv.get(r.id)}`);
     }
     for (const [id, name] of sv) {
-      const mw = keep * (power.extraction[id] ?? 0);
+      const mw = own ? keep * (power.extraction[id] ?? 0) : 0;
       if (name.startsWith('s') && mw > EPS) terms.push(`- ${fmt(mw)} ${name}`);
     }
-    if (terms.length) extraRows.push(` power: ${terms.join(' ')} >= ${fmt(keep * Math.max(0, power.demand))}`);
+    const row = terms.join(' ');
+    if (row)
+      powerRow = (phase) =>
+        !maximize
+          ? ` power: ${row} >= ${fmt(keep * Math.max(0, power.demand))}`
+          : phase === 'max-scale'
+            ? ` power: ${row} - k >= 0`
+            : ` power: ${row} >= ${fmt(phase.scale)}`;
   }
 
   const rowItem: string[] = [];
@@ -319,16 +340,19 @@ function buildModel(input: SolveInput, draw?: Map<string, number>): Model {
       return ` b${i}: ${terms.join(' ')} >= ${fmt(d * k - g)}`;
     });
     const objective = phase === 'max-scale' ? ['Maximize', ' obj: k'] : ['Minimize', ` obj: ${costs.join(' + ') || '0'}`];
-    const extra = phase === 'max-scale' ? [` 0 <= k <= ${MAX_SCALE}`] : [];
-    return [...objective, 'Subject To', ...rows, ...extraRows, 'Bounds', ...bounds.map((b) => ` ${b}`), ...extra, 'End'].join('\n');
+    const extra = phase === 'max-scale' ? [` 0 <= k <= ${maximize ? MAX_POWER : MAX_SCALE}`] : [];
+    const rest = powerRow ? [powerRow(phase)] : [];
+    return [...objective, 'Subject To', ...rows, ...rest, 'Bounds', ...bounds.map((b) => ` ${b}`), ...extra, 'End'].join('\n');
   };
 
-  return { recipes, plantOf, rv, sv, rowItem, lp, demand, given, modOf };
+  // Maximising with no generator that can run leaves nothing to scale.
+  return { recipes, plantOf, rv, sv, rowItem, lp, scaling: scaling && (!maximize || !!powerRow), demand, given, modOf };
 }
 
 export function solve(solver: Highs, input: SolveInput): SolveResult {
   let result = solveWith(solver, input);
-  if (!input.power?.plants.some((p) => plantValid(p) && plantSize(p) === 'auto')) return result;
+  const power = input.power;
+  if (!power || power.ownLoad === false || !power.plants.some((p) => plantValid(p) && plantSize(p) === 'auto')) return result;
   // Overclocked lines place a few machines far past 100% (fewest shards), and power grows faster
   // than clock, so the placed machines pull more than the balance row charged. Charge each recipe
   // what its placement really draws and solve again; the counts barely move, so this settles fast.
@@ -352,12 +376,13 @@ function solveWith(solver: Highs, input: SolveInput, draw?: Map<string, number>)
   const { recipes, plantOf, rv, sv, rowItem, demand, given, modOf } = model;
 
   let scale = 1;
-  if (Object.keys(input.fixed ?? {}).length > 0) {
+  if (model.scaling) {
     const first = solver.solve(model.lp('max-scale'), { output_flag: false });
+    if (first.Status === 'Infeasible') throw new SolverError('infeasible', first.Status);
     if (first.Status !== 'Optimal') throw new SolverError('stopped', first.Status);
     scale = Math.max(0, first.Columns.k?.Primal ?? 0);
     if (scale < 1e-9) {
-      throw new SolverError('pinnedInfeasible');
+      throw new SolverError(input.power?.maximize ? 'noPower' : 'pinnedInfeasible');
     }
     // Shave a hair off so the second phase stays feasible under float noise.
     scale *= 1 - 1e-9;

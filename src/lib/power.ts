@@ -125,3 +125,16 @@ export const handFed = (item: string) => !data.recipes.some((r) => r.outputs.som
 export const PLANT_OPTIONS: { generator: Generator; fuel?: string }[] = data.generators.flatMap((g) =>
   g.kind === 'fuel' ? g.fuels.map((f) => ({ generator: g, fuel: f.item })) : [{ generator: g }],
 );
+
+/** What a power plant is sized to: the fuel you have, a set output, or the factories it powers. */
+export type SizeBy = 'have' | 'want' | 'factories';
+
+/** Name a new plant takes from its first generator, so tabs read "Coal plant", "Fuel plant". */
+export const PLANT_NAMES: Record<string, string> = {
+  Build_GeneratorBiomass_Automated_C: 'Biomass plant',
+  Build_GeneratorCoal_C: 'Coal plant',
+  Build_GeneratorFuel_C: 'Fuel plant',
+  Build_GeneratorNuclear_C: 'Nuclear plant',
+  Build_GeneratorGeoThermal_C: 'Geothermal plant',
+  Build_AlienPowerBuilding_C: 'Augmenters',
+};

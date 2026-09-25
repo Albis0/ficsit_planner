@@ -15,12 +15,12 @@ export interface MachineNodeData extends Record<string, unknown> {
   generation?: number;
 }
 
-/** Who draws from the grid: a factory, the fuel chain itself, or what the player typed in. */
+/** Who draws from the grid: a factory, the fuel chain itself, what the player typed in, or the output sent on. */
 export interface Consumer {
   id: string;
   label: string;
   mw: number;
-  tone: 'factory' | 'chain' | 'other';
+  tone: 'factory' | 'chain' | 'other' | 'out';
 }
 
 export interface PowerNodeData extends Record<string, unknown> {

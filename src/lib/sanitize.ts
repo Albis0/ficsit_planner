@@ -1,7 +1,7 @@
-import type { Grid, Plan } from '../store';
+import type { Plan, PowerPlan } from '../store';
 import { data, generatorById, recipeById } from './data';
 import { DEFAULT_EXTRACTION, type ExtractionSettings, MINERS, PURITIES, type Purity } from './extraction';
-import type { Plant, PlantSize } from './power';
+import { PLANT_NAMES, type Plant, type PlantSize, type SizeBy } from './power';
 import { clampSetting, DEFAULT_COLORS, DEFAULT_SETTINGS, type Settings } from './settings';
 import type { RecipeMod, Target } from './solver';
 
@@ -97,17 +97,56 @@ function plants(x: unknown): Plant[] {
   });
 }
 
-/** The power grid, its fuel plan cleaned like any factory. */
-export function cleanGrid(saved: unknown, fallback: Grid): Grid {
+/** A power plant tab, its fuel plan cleaned like any factory. */
+export function cleanPowerPlan(saved: unknown, fallback: PowerPlan): PowerPlan {
   const g = obj(saved);
-  return {
+  const pp: PowerPlan = {
+    id: text(g.id, fallback.id, 40),
+    name: text(g.name, fallback.name),
     plants: plants(g.plants),
-    exclude: list(g.exclude).filter((id): id is string => typeof id === 'string'),
+    sizeBy: oneOf<SizeBy>(g.sizeBy, ['have', 'want', 'factories'], fallback.sizeBy),
+    have: targets(g.have),
+    want: within(g.want, 0, 1e7, fallback.want),
+    factories:
+      g.factories === 'all'
+        ? 'all'
+        : Array.isArray(g.factories)
+          ? [...new Set(g.factories.filter((id): id is string => typeof id === 'string'))].slice(0, 1000)
+          : fallback.factories,
     extra: within(g.extra, 0, 1e7, fallback.extra),
     headroom: within(g.headroom, 0, 2, fallback.headroom),
+    ownLoad: typeof g.ownLoad === 'boolean' ? g.ownLoad : fallback.ownLoad,
     backup: within(g.backup, 0, 1e5, fallback.backup),
     chain: cleanPlan(g.chain, fallback.chain),
   };
+  if (g.autoName === true) pp.autoName = true;
+  if (finite(g.locked)) pp.locked = within(g.locked, 0, 1e8, 0);
+  return pp;
+}
+
+/**
+ * The single power grid saved before plant tabs: it becomes a plant sized to the factories it fed,
+ * keeping its generators, loads and fuel plan.
+ */
+export function gridToPower(saved: unknown, fallback: PowerPlan, factories: string[]): PowerPlan {
+  const g = obj(saved);
+  const exclude = new Set(list(g.exclude).filter((id): id is string => typeof id === 'string'));
+  const pp = cleanPowerPlan(
+    {
+      ...g,
+      id: fallback.id,
+      name: fallback.name,
+      sizeBy: 'factories',
+      factories: exclude.size ? factories.filter((id) => !exclude.has(id)) : 'all',
+    },
+    fallback,
+  );
+  pp.chain.id = fallback.chain.id;
+  // Named after its first generator, like a new plant; an empty one keeps waiting for one.
+  const first = pp.plants[0];
+  if (first) pp.name = PLANT_NAMES[first.generator] ?? pp.name;
+  else pp.autoName = true;
+  return pp;
 }
 
 const COLOR = /^#[\da-f]{6}$/i;

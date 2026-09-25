@@ -29,7 +29,8 @@
 Production planner for Satisfactory that runs in the browser and works offline. Pick what you want to make
 and how many per minute. A linear programming solver ([HiGHS](https://highs.dev), compiled to WebAssembly)
 picks the recipes, counts the machines, sets their clock speeds and draws the factory as belts and pipes.
-Switch to the power planner and it sizes the generators that run those factories, fuel chain included.
+Switch to the power planner and plan power plants the same way: from the fuel you have, for the MW you want,
+or for the factories they run, fuel chain included.
 
 It's a static site you can install as an app (a PWA). Chrome, Edge and Android add a desktop or home-screen
 shortcut, and iPhone and iPad do the same through the Share menu. Once installed it opens in its own window
@@ -37,7 +38,7 @@ and works without a network. There's nothing to download and run. It works on ph
 
 ![The factory graph for 10 motors per minute](docs/desktop-graph.webp)
 
-![The power planner: crude oil refined into fuel runs three generators, which feed the motor factory through the power grid](docs/desktop-power.webp)
+![The power planner: a fuel plant sized to two factories, with crude oil refined into fuel for eight generators that feed both factories and its own refineries](docs/desktop-power.webp)
 
 <p align="center">
   <img src="docs/phone-graph.webp" width="30%" alt="Phone: the factory runs top to bottom">
@@ -60,7 +61,7 @@ and works without a network. There's nothing to download and run. It works on ph
 | <img src="public/icons/Desc_WAT1_C.webp" width="36" alt="Somersloop"> | **Somersloops and auto place.** Set somersloops per machine, or enter how many somersloops and power shards you own and let the planner put them where they save the most. |
 | <img src="public/icons/Build_MinerMk2_C.webp" width="36" alt="Miner Mk.2"> | **Extraction.** Choose the miner, node purity and extractor clock to see how many miners and pumps each resource needs, and their power. |
 | <img src="public/icons/Build_ConveyorBeltMk5_C.webp" width="36" alt="Conveyor Belt Mk.5"> | **Two views.** The factory graph lays itself out left to right or top to bottom, whichever fits your screen better (or pick one), routes belts around machines, colours them by tier and doubles up lanes when one belt can't carry the flow. The panel sits across the top and the graph gets the full width under it, or beside it if you prefer (Settings). Each machine card has the game's build-menu look: a coloured strip with the product and its power draw, the building underneath with its name, count and clock. Machines holding power shards get a blue edge, somersloops a pink one. Hover or tap a machine to follow its line. The table lists the total build cost of every machine and extractor. |
-| <img src="public/icons/Build_GeneratorNuclear_C.webp" width="36" alt="Nuclear Power Plant"> | **Power planner.** Flip the switch in the top bar from Factory to Power. The grid carries every factory tab you tick (machines, miners and pumps), plus whatever you type in for trains and lights, with the spare capacity you want on top. Add power plants: biomass, coal, fuel, nuclear, geothermal and the Alien Power Augmenter, each with its fuel. A plant set to **Auto** is sized to cover the demand, including the power its own fuel chain uses, which the planner builds and draws like any factory: ore to fuel to generators to the grid to your factories. Plants can also be a set count or a set output, at any clock. Water, nuclear waste (and the plutonium chain that uses it), augmenter boost and backup Power Storage are all counted. |
+| <img src="public/icons/Build_GeneratorNuclear_C.webp" width="36" alt="Nuclear Power Plant"> | **Power planner.** Flip the switch in the top bar from Factory to Power. Each power plant is a tab of its own, like a factory, and can mix generators: biomass, coal, fuel, nuclear, geothermal and the Alien Power Augmenter, each with its fuel. Size a plant three ways: **What I have** (list the fuel, or the ore and oil it's made from, and it makes all it can), **Power I want** (a set MW), or **My factories** (tick the factory tabs it runs, add trains and lights and some spare; it follows them as they change, or holds a figure). Each factory is counted on one plant only. **Auto** generators are sized to fit, including the power the plant's own fuel chain uses, which the planner builds and draws like any factory: ore to fuel to generators to the grid to your factories. Generators can also be a set count or a set output, at any clock. Water, nuclear waste (and the plutonium chain that uses it), augmenter boost and backup Power Storage are all counted. |
 | <img src="public/icons/Desc_CircuitBoard_C.webp" width="36" alt="Circuit Board"> | **Settings.** Put the panel on top, left or right. Set the card size, text size and spacing on the factory floor, belt labels, moving belts and the foundation grid, the accent and recipe colours, the interface size, decimals and animations, all with a live preview. Save all your factories and settings to a file, and load them back. |
 | <img src="public/icons/Desc_CrystalOscillator_C.webp" width="36" alt="Crystal Oscillator"> | **Feedback.** Report a bug or suggest an idea from inside the app. It goes to the site's own database, optionally with the factory you're looking at, and nothing else is collected. |
 | <img src="public/icons/BP_ItemDescriptorPortableMiner_C.webp" width="36" alt="Portable Miner"> | **Anywhere.** Works offline, installs as an app, and fits phones: one pane at a time with a bottom bar, and the factory runs top to bottom. |
@@ -181,7 +182,7 @@ the belt count low. dagre lays the graph out left to right, or top to bottom on 
 | `src/lib/solver.worker.ts`, `solverClient.ts` | the solver in a Web Worker, and its promise API |
 | `src/lib/graph.ts` | solution → nodes and belts; layout tries both directions and three rankings, keeps the one that fits the screen with the fewest crossings, and routes belts through space kept for their labels |
 | `src/lib/extraction.ts` | miner and pump counts per node purity, and their MW per unit for the power planner |
-| `src/lib/power.ts`, `src/lib/solution.ts` | power plants as solver recipes, and the hooks that solve factories and the grid |
+| `src/lib/power.ts`, `src/lib/solution.ts` | generators as solver recipes, and the hooks that solve factories and power plants |
 | `src/lib/settings.ts`, `src/lib/backup.ts` | settings and the CSS variables they set; save and load a copy |
 | `src/lib/feedback.ts`, `src/lib/feedback-schema.ts`, `functions/api/report.ts` | the feedback window's request, its checks, and the endpoint that stores it |
 | `src/lib/data.ts` | typed access to the game data, belt/pipe choice per flow, unlock tiers and why an item can't be made |
