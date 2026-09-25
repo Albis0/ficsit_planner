@@ -46,13 +46,13 @@ export function SettingsDialog({ onClose }: { onClose: () => void }) {
         <div className="settings-main">
           <div className="settings-controls" key={section}>
             <h3 className="settings-heading">{titles[section]}</h3>
+            {(section === 'floor' || section === 'colors') && <Preview />}
             {section === 'layout' && <LayoutSection />}
             {section === 'floor' && <FloorSection />}
             {section === 'colors' && <ColorsSection />}
             {section === 'interface' && <InterfaceSection />}
             {section === 'data' && <DataSection />}
           </div>
-          {(section === 'floor' || section === 'colors') && <Preview />}
         </div>
       </div>
     </Dialog>
@@ -63,8 +63,21 @@ function useSettings(): [Settings, (patch: Partial<Settings>) => void] {
   return [useStore((s) => s.settings), useStore((s) => s.setSettings)];
 }
 
-/** One setting: a label, what it does, and the control. */
-function Row({ label, hint, children, onReset }: { label: string; hint?: string; children: React.ReactNode; onReset?: () => void }) {
+/**
+ * One setting: a label, what it does, and the control. `onReset` null keeps the reset button's place
+ * while there's nothing to reset, so the slider beside it doesn't move when it appears.
+ */
+function Row({
+  label,
+  hint,
+  children,
+  onReset,
+}: {
+  label: string;
+  hint?: string;
+  children: React.ReactNode;
+  onReset?: (() => void) | null;
+}) {
   const { t } = useT();
   return (
     <div className="setting">
@@ -73,18 +86,21 @@ function Row({ label, hint, children, onReset }: { label: string; hint?: string;
         {hint && <span className="setting-hint">{hint}</span>}
       </div>
       <div className="setting-control">
-        {children}
-        {onReset && (
+        {onReset !== undefined && (
           <button
             type="button"
             className="setting-reset"
+            data-idle={onReset ? undefined : ''}
+            tabIndex={onReset ? undefined : -1}
+            aria-hidden={onReset ? undefined : true}
             title={t('resetDefault')}
             aria-label={`${t('resetDefault')}: ${label}`}
-            onClick={onReset}
+            onClick={onReset ?? undefined}
           >
             <Glyph name="reset" size={16} />
           </button>
         )}
+        {children}
       </div>
     </div>
   );
@@ -123,7 +139,7 @@ function Percent({ k, label, hint }: { k: keyof typeof LIMITS & keyof Settings; 
     <Row
       label={label}
       hint={hint}
-      onReset={value !== DEFAULT_SETTINGS[k] ? () => set({ [k]: DEFAULT_SETTINGS[k] } as Partial<Settings>) : undefined}
+      onReset={value !== DEFAULT_SETTINGS[k] ? () => set({ [k]: DEFAULT_SETTINGS[k] } as Partial<Settings>) : null}
     >
       <input
         type="range"
@@ -247,7 +263,7 @@ function ColorPick({ k, label }: { k: keyof Settings['colors']; label: string })
   const [s, set] = useSettings();
   const value = s.colors[k];
   return (
-    <Row label={label} onReset={value !== DEFAULT_COLORS[k] ? () => set({ colors: { ...s.colors, [k]: DEFAULT_COLORS[k] } }) : undefined}>
+    <Row label={label} onReset={value !== DEFAULT_COLORS[k] ? () => set({ colors: { ...s.colors, [k]: DEFAULT_COLORS[k] } }) : null}>
       <label className="color-pick" style={{ ['--swatch' as string]: value }}>
         <input type="color" value={value} aria-label={label} onChange={(e) => set({ colors: { ...s.colors, [k]: e.target.value } })} />
         <code>{value.toUpperCase()}</code>
@@ -261,11 +277,7 @@ function ColorsSection() {
   const [s, set] = useSettings();
   return (
     <>
-      <div className="setting column">
-        <div className="setting-text">
-          <span className="setting-label">{t('accent')}</span>
-          <span className="setting-hint">{t('accentHint')}</span>
-        </div>
+      <Row label={t('accent')} hint={t('accentHint')}>
         <div className="swatches" role="radiogroup" aria-label={t('accent')}>
           {ACCENTS.map((a) => (
             <button
@@ -299,7 +311,7 @@ function ColorsSection() {
             <Glyph name="plus" size={16} />
           </label>
         </div>
-      </div>
+      </Row>
       <ColorPick k="standard" label={t('standardStrip')} />
       <ColorPick k="alternate" label={t('alternateStrip')} />
       <ColorPick k="converter" label={t('converterStrip')} />
@@ -465,11 +477,11 @@ function Preview() {
       <div className={`preview-floor ${s.gridLines ? 'lines' : ''}`}>
         <div className="preview-stage">
           <div className="preview-card a">{card(screws, 2, 1)}</div>
-          <svg className="preview-belt" viewBox="0 0 20 150" aria-hidden>
+          <svg className="preview-belt" viewBox="0 0 240 20" aria-hidden>
             <g className="belt-edge" style={{ ['--belt' as string]: belt, ['--belt-speed' as string]: '1s' }}>
-              <path d="M10,0 L10,150" className="belt-rails" style={{ strokeWidth: 12 }} />
-              <path d="M10,0 L10,150" className="belt-bed" style={{ strokeWidth: 7 }} />
-              <path d="M10,0 L10,150" className="belt-slats" style={{ strokeWidth: 7 }} />
+              <path d="M0,10 L240,10" className="belt-rails" style={{ strokeWidth: 12 }} />
+              <path d="M0,10 L240,10" className="belt-bed" style={{ strokeWidth: 7 }} />
+              <path d="M0,10 L240,10" className="belt-slats" style={{ strokeWidth: 7 }} />
             </g>
           </svg>
           {s.beltLabels !== 'never' && (

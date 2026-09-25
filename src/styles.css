@@ -3986,32 +3986,33 @@ button.slot:hover {
   color: var(--faint);
 }
 
+.settings-dialog {
+  /* One size for every section, so switching sections never resizes the window. */
+  height: min(calc(88vh / var(--ui-scale, 1)), 780px);
+}
+
+/*
+  Every setting is the same two columns: what it does on the left, the control on the right, with
+  all controls ending on one line. The text wraps inside its column; the control never drops under it.
+*/
 .setting {
-  display: flex;
-  flex-wrap: wrap;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
   align-items: center;
-  justify-content: space-between;
-  gap: 10px 20px;
-  padding: 15px 0;
+  gap: 12px 32px;
+  min-height: 82px;
+  padding: 14px 0;
   border-bottom: 1px solid var(--line);
 }
 
 .setting.column {
-  flex-direction: column;
-  align-items: stretch;
-  gap: 12px;
-}
-
-/* In a column the text's 220px basis would become its height. */
-.setting.column .setting-text {
-  flex: none;
+  grid-template-columns: minmax(0, 1fr);
 }
 
 .setting-text {
-  flex: 1 1 220px;
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  gap: 3px;
   min-width: 0;
 }
 
@@ -4026,14 +4027,14 @@ button.slot:hover {
 }
 
 .setting-control {
-  flex: none;
+  justify-self: end;
   display: flex;
   align-items: center;
   gap: 10px;
 }
 
 .setting-range {
-  width: 190px;
+  width: 200px;
   height: 8px;
   appearance: none;
   background: linear-gradient(90deg, var(--ficsit) var(--fill), var(--raised) var(--fill));
@@ -4057,7 +4058,7 @@ button.slot:hover {
 }
 
 .setting-value {
-  min-width: 56px;
+  min-width: 64px;
   text-align: right;
   font: 700 20px var(--font-display);
   color: var(--ficsit);
@@ -4072,6 +4073,16 @@ button.slot:hover {
   border: 0;
   background: transparent;
   color: var(--faint);
+}
+
+.setting-reset[data-idle] {
+  visibility: hidden;
+}
+
+/* Buttons in a column of settings share one width, so they line up like the other controls. */
+.setting-control > .ghost-button {
+  min-width: 170px;
+  justify-content: center;
 }
 
 .setting-reset:hover {
@@ -4301,18 +4312,25 @@ button.slot:hover {
   color: var(--dim);
 }
 
-/* Live preview beside the floor and colour settings. */
+/*
+  Live preview on top of the floor and colour settings, the full width of the rows, staying in view
+  while the rows scroll under it.
+*/
 .settings-preview {
-  flex: none;
   position: sticky;
   top: 0;
-  width: 360px;
-  margin: 20px 24px 20px 0;
+  z-index: 2;
+  margin: 6px 0 0;
+  padding: 6px 0 10px;
+  background: var(--panel);
 }
 
 .settings-preview figcaption {
-  margin-bottom: 8px;
-  font: 700 15px var(--font-display);
+  position: absolute;
+  top: 14px;
+  left: 10px;
+  z-index: 1;
+  font: 700 13px var(--font-display);
   letter-spacing: 0.12em;
   text-transform: uppercase;
   color: var(--faint);
@@ -4320,7 +4338,7 @@ button.slot:hover {
 
 .preview-floor {
   position: relative;
-  height: 380px;
+  height: 170px;
   overflow: hidden;
   display: grid;
   place-items: center;
@@ -4343,13 +4361,12 @@ button.slot:hover {
   zoom: 0.6;
   position: relative;
   display: flex;
-  flex-direction: column;
   align-items: center;
 }
 
 .preview-belt {
-  width: 20px;
-  height: 150px;
+  width: 240px;
+  height: 20px;
   overflow: visible;
 }
 
@@ -5642,21 +5659,8 @@ button.slot:hover {
     padding: 12px 16px calc(24px + env(safe-area-inset-bottom));
   }
 
-  .setting {
-    flex-wrap: wrap;
-  }
-
-  .setting-control {
-    flex-wrap: wrap;
-  }
-
   .setting-range {
-    width: min(190px, 50vw);
-  }
-
-  .setting.column {
-    flex-wrap: nowrap;
-    justify-content: flex-start;
+    width: min(200px, 44vw);
   }
 
   .panel-sides {
@@ -5754,4 +5758,26 @@ button.slot:hover {
   display: flex;
   flex-wrap: wrap;
   gap: 10px;
+}
+
+/* Narrow phones: the control goes under its text, every row the same way. */
+@media (max-width: 600px) {
+  .setting {
+    grid-template-columns: minmax(0, 1fr);
+    min-height: 0;
+  }
+
+  .setting-control {
+    justify-self: start;
+    flex-wrap: wrap;
+  }
+
+  /* Controls start at the left edge here, so the reset button goes after them and takes no room until needed. */
+  .setting-reset {
+    order: 1;
+  }
+
+  .setting-reset[data-idle] {
+    display: none;
+  }
 }
