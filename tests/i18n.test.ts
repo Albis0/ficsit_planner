@@ -39,15 +39,35 @@ const sources = (dir: string): string[] =>
   });
 
 const code = sources(path.join(import.meta.dir, '..', 'src')).join('\n');
-const used = new Set([...code.matchAll(/\bt\('(\w+)'/g)].map((m) => m[1]));
+const called = new Set([...code.matchAll(/\bt\('(\w+)'/g)].map((m) => m[1]));
+// Keys handed around as values (a table of terms, a component prop) count as used too.
+const quoted = new Set([...code.matchAll(/['"](\w+)['"]/g)].map((m) => m[1]).filter((k) => k in en));
+const used = new Set([...called, ...quoted]);
+
+// Families of keys built from an id, like t(`cat_${category}`).
+const DYNAMIC_PREFIXES = [
+  'cat_',
+  'catSub_',
+  'catLead_',
+  'extra_',
+  'form_',
+  'group_',
+  'guide_',
+  'guideSub_',
+  'guideText_',
+  'kind_',
+  'pageKind_',
+  'stat_',
+  'statUnit_',
+];
 
 test('every string the UI asks for exists', () => {
-  const missing = [...used].filter((k) => !(k in en));
+  const missing = [...called].filter((k) => !(k in en));
   expect(missing).toEqual([]);
 });
 
 test('every string is used somewhere', () => {
-  const unused = Object.keys(en).filter((k) => !used.has(k) && !DYNAMIC.includes(k));
+  const unused = Object.keys(en).filter((k) => !used.has(k) && !DYNAMIC.includes(k) && !DYNAMIC_PREFIXES.some((p) => k.startsWith(p)));
   expect(unused).toEqual([]);
 });
 

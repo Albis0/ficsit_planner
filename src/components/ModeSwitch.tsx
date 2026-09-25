@@ -3,7 +3,7 @@ import { useT } from '../lib/i18n';
 import { useStore } from '../store';
 import { Glyph } from './Glyph';
 
-type Mode = 'factory' | 'power';
+type Mode = 'factory' | 'power' | 'codex';
 
 /** Whether to skip the big transitions: the player's setting first, then the system's. */
 export function motionReduced(): boolean {
@@ -35,11 +35,11 @@ function switchMode(next: Mode, from: HTMLElement) {
   document.startViewTransition(apply).finished.then(done, done);
 }
 
-/** Factory planner or power planner: a lever in the top bar, the thumb sliding between them. */
+/** Factory planner, power planner or the Codex: a lever in the top bar, the thumb sliding between them. */
 export function ModeSwitch() {
   const { t } = useT();
   const mode = useStore((s) => s.mode);
-  const option = (id: Mode, label: string, glyph: 'factory' | 'bolt') => (
+  const option = (id: Mode, label: string, glyph: 'factory' | 'bolt' | 'book') => (
     <button
       type="button"
       role="radio"
@@ -56,6 +56,7 @@ export function ModeSwitch() {
       <span className="mode-thumb" aria-hidden />
       {option('factory', t('factoryMode'), 'factory')}
       {option('power', t('powerMode'), 'bolt')}
+      {option('codex', t('codex'), 'book')}
     </div>
   );
 }

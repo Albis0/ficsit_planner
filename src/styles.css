@@ -6002,3 +6002,961 @@ button.gen-count:hover {
     box-shadow: 0 0 0 3px transparent;
   }
 }
+
+/* ---------- Codex ---------- */
+
+/*
+  The third mode: a manual of the game. Its index sits beside the page like the power panel does,
+  and it takes the cyan of the game's own scanner and codex screens.
+*/
+:root {
+  --codex: #5ccfe6;
+  --codex-ink: #05222a;
+}
+
+.app[data-mode='codex'] {
+  --mode: var(--codex);
+  --focus: var(--codex);
+}
+
+/* Three stops on the lever now. */
+.mode-switch {
+  grid-template-columns: repeat(3, 1fr);
+}
+
+.mode-thumb {
+  width: calc((100% - 6px) / 3);
+}
+
+.mode-switch[data-mode='codex'] {
+  --thumb: var(--codex);
+  --thumb-ink: var(--codex-ink);
+}
+
+.mode-switch[data-mode='codex'] .mode-thumb {
+  transform: translateX(200%);
+}
+
+.mode-switch[data-mode='codex']::after {
+  animation: spark 560ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.mode-switch[data-mode='codex'] button[aria-checked='true'] .glyph {
+  animation: page-flip 600ms cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+@keyframes page-flip {
+  0% {
+    transform: perspective(60px) rotateY(-80deg);
+  }
+  100% {
+    transform: none;
+  }
+}
+
+:root[data-vt='codex'] .app[data-mode='codex'] .mode-flash {
+  display: block;
+}
+
+.app[data-mode='codex'] .mode-flash {
+  border-color: var(--codex);
+  box-shadow:
+    0 0 24px 6px color-mix(in srgb, var(--codex) 70%, transparent),
+    inset 0 0 24px 6px color-mix(in srgb, var(--codex) 55%, transparent);
+}
+
+.topbar-fill {
+  flex: 1;
+}
+
+.app[data-mode='codex'] .brand {
+  border-left-color: var(--codex);
+}
+
+/* The index: a search over everything, then the categories. */
+.codex-nav {
+  gap: 16px;
+  padding: 18px 16px;
+}
+
+.codex-nav-head {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.codex-home-link {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: var(--codex);
+  font: 700 22px / 1 var(--font-display);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  text-decoration: none;
+}
+
+.codex-nav .search:focus,
+.codex-filter:focus {
+  border-color: var(--codex);
+}
+
+.codex-cats {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.codex-cat,
+.codex-hit {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 7px 10px;
+  border-left: 3px solid transparent;
+  color: var(--dim);
+  text-decoration: none;
+  font: 600 18px / 1.15 var(--font-display);
+}
+
+.codex-cat:hover,
+.codex-hit:hover {
+  background: var(--raised);
+  color: var(--paper);
+}
+
+.codex-cat.current {
+  background: var(--raised);
+  border-left-color: var(--codex);
+  color: var(--paper);
+}
+
+.codex-cat-name,
+.codex-hit-name {
+  flex: 1;
+  min-width: 0;
+}
+
+.codex-cat-count {
+  color: var(--faint);
+  font-weight: 500;
+}
+
+.codex-hits {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.codex-hit {
+  font-size: 17px;
+}
+
+.codex-hit-blank {
+  width: 32px;
+}
+
+.codex-hit-kind {
+  color: var(--faint);
+  font: 500 13px var(--font-body);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.codex-none {
+  padding: 8px 10px;
+}
+
+/* The page: one scrolling column on the floor. */
+.codex-scroll {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  -webkit-user-select: text;
+  user-select: text;
+  background:
+    linear-gradient(90deg, rgb(255 255 255 / 0.018) 1px, transparent 1px) 0 0 / 48px 48px,
+    linear-gradient(rgb(255 255 255 / 0.018) 1px, transparent 1px) 0 0 / 48px 48px,
+    var(--floor);
+}
+
+.codex-page {
+  max-width: 1080px;
+  margin: 0 auto;
+  padding: 26px 32px 64px;
+  display: flex;
+  flex-direction: column;
+  gap: 28px;
+  zoom: var(--ui-scale, 1);
+}
+
+.codex-page a {
+  color: inherit;
+}
+
+.codex-crumbs {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: -12px;
+  font: 600 15px var(--font-display);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--faint);
+}
+
+.codex-crumbs a {
+  color: var(--codex) !important;
+  text-decoration: none;
+}
+
+.codex-crumbs a:hover {
+  text-decoration: underline;
+}
+
+.codex-title {
+  margin: 0;
+  font: 700 38px / 1.05 var(--font-display);
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+}
+
+.codex-lead {
+  margin: 6px 0 0;
+  max-width: 70ch;
+  color: var(--dim);
+}
+
+.codex-tag {
+  display: inline-block;
+  padding: 2px 8px;
+  background: var(--codex);
+  color: var(--codex-ink);
+  font: 700 13px / 1.3 var(--font-display);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+/* Home: the categories as big cards, then a couple of facts. */
+.codex-hero {
+  padding: 26px 28px;
+  background:
+    repeating-linear-gradient(-45deg, rgb(0 0 0 / 0.22) 0 10px, transparent 10px 20px) left / 14px 100% no-repeat,
+    linear-gradient(120deg, color-mix(in srgb, var(--codex) 16%, var(--panel)), var(--panel) 60%);
+  border: 1px solid var(--line-2);
+  border-left: 0;
+  padding-left: 42px;
+}
+
+.codex-cat-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(230px, 1fr));
+  gap: 12px;
+}
+
+.codex-cat-card {
+  position: relative;
+  display: grid;
+  grid-template-columns: 64px 1fr;
+  grid-template-rows: auto auto;
+  column-gap: 14px;
+  align-items: center;
+  padding: 14px 16px;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  text-decoration: none;
+  transition:
+    border-color 150ms,
+    transform 150ms;
+}
+
+.codex-cat-card .icon {
+  grid-row: 1 / 3;
+  filter: drop-shadow(0 3px 3px rgb(0 0 0 / 0.5));
+}
+
+.codex-cat-card:hover {
+  border-color: var(--codex);
+  transform: translateY(-2px);
+}
+
+.codex-cat-card-name {
+  align-self: end;
+  font: 700 21px / 1.1 var(--font-display);
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.codex-cat-card-sub {
+  align-self: start;
+  font-size: 14px;
+  color: var(--faint);
+}
+
+.codex-cat-card-count {
+  position: absolute;
+  top: 8px;
+  right: 10px;
+  font: 700 15px var(--font-display);
+  color: var(--codex);
+}
+
+.codex-facts {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 12px;
+}
+
+.codex-fact {
+  padding: 14px 18px;
+  background: var(--panel);
+  border-left: 4px solid var(--codex);
+  text-decoration: none;
+  font-size: 17px;
+}
+
+.codex-fact:hover {
+  background: var(--raised);
+}
+
+/* Category pages: a header, then the entries as tiles under group headings. */
+.codex-cat-head {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 18px 22px;
+}
+
+.codex-cat-head > .icon {
+  filter: drop-shadow(0 4px 4px rgb(0 0 0 / 0.5));
+}
+
+.codex-cat-head > div {
+  flex: 1;
+  min-width: 260px;
+}
+
+.codex-filter {
+  width: 240px;
+}
+
+.codex-section {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.codex-h {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  margin: 0;
+  padding-bottom: 6px;
+  border-bottom: 1px solid var(--line);
+  font: 700 18px / 1.2 var(--font-display);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--dim);
+}
+
+.codex-h-count {
+  color: var(--faint);
+  font-weight: 500;
+}
+
+.codex-tiles {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(210px, 1fr));
+  gap: 8px;
+}
+
+.codex-tiles.wide {
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+}
+
+.codex-tile {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 6px 10px 6px 6px;
+  background: var(--panel);
+  border: 1px solid transparent;
+  text-decoration: none;
+}
+
+.codex-tile:hover {
+  border-color: var(--codex);
+  background: var(--panel-2);
+}
+
+.codex-tile .slot {
+  width: 52px;
+  height: 52px;
+}
+
+.codex-tile-text {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.codex-tile-name {
+  font: 600 17px / 1.15 var(--font-display);
+}
+
+.codex-tile-note {
+  font-size: 13px;
+  color: var(--faint);
+}
+
+/* Entry pages: a title block with the icon, the key figures and the game's own text. */
+.codex-head {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 18px 24px;
+  padding: 22px 24px;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-top: 4px solid var(--codex);
+}
+
+.codex-head-icon {
+  width: 128px;
+  height: 128px;
+}
+
+.codex-head-main {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 10px;
+  min-width: 0;
+}
+
+.codex-stats {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 26px;
+  margin: 2px 0 0;
+}
+
+.codex-stat {
+  display: flex;
+  flex-direction: column;
+}
+
+.codex-stat dt {
+  font: 600 13px var(--font-display);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--faint);
+}
+
+.codex-stat dd {
+  margin: 0;
+  font: 700 22px / 1.15 var(--font-display);
+  color: var(--paper);
+}
+
+.codex-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 4px;
+}
+
+.codex-desc {
+  grid-column: 1 / -1;
+  margin: 0;
+  padding: 12px 16px;
+  background: var(--bg);
+  border-left: 3px solid var(--line-2);
+  color: var(--dim);
+  font-style: italic;
+}
+
+.codex-desc p {
+  margin: 0;
+  white-space: pre-line;
+}
+
+.codex-desc p + p {
+  margin-top: 8px;
+}
+
+.codex-text {
+  max-width: 78ch;
+}
+
+.codex-text p {
+  margin: 0 0 12px;
+}
+
+.codex-unlock-line {
+  margin: 0;
+  color: var(--dim);
+}
+
+.codex-unlock-line a,
+.codex-unlock {
+  color: var(--codex) !important;
+}
+
+.codex-unlock-where {
+  margin-left: 8px;
+  color: var(--faint);
+  font-size: 14px;
+}
+
+/* An item with its amount: slot, then number and name. */
+.codex-amounts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.codex-amount {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 3px 12px 3px 3px;
+  background: var(--panel-2);
+  border: 1px solid var(--line);
+  text-decoration: none;
+}
+
+a.codex-amount:hover {
+  border-color: var(--codex);
+}
+
+.codex-amount .slot {
+  width: 44px;
+  height: 44px;
+}
+
+.codex-amount-text {
+  display: flex;
+  flex-direction: column;
+  line-height: 1.15;
+}
+
+.codex-amount-text b {
+  font: 700 18px var(--font-display);
+  color: var(--paper);
+}
+
+.codex-amount-text small {
+  margin-left: 2px;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--faint);
+}
+
+.codex-amount-text span {
+  font-size: 14px;
+  color: var(--dim);
+}
+
+/* Recipes as cards: ingredients → results, then where and how. */
+.codex-recipes {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(440px, 1fr));
+  gap: 12px;
+}
+
+.codex-recipe {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 14px 16px;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-left: 4px solid var(--ficsit);
+}
+
+.codex-recipe.alternate {
+  border-left-color: var(--alt);
+}
+
+.codex-recipe.converter {
+  border-left-color: var(--converter);
+}
+
+.codex-recipe-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.codex-recipe-name {
+  font: 700 19px / 1.1 var(--font-display);
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.codex-pill {
+  padding: 1px 7px;
+  border: 1px solid var(--line-2);
+  font: 700 12px / 1.4 var(--font-display);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--dim);
+}
+
+.codex-pill.alt {
+  border-color: var(--alt);
+  color: var(--alt);
+}
+
+.codex-pill.conv {
+  border-color: var(--converter);
+  color: var(--converter);
+}
+
+.codex-recipe-flow {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.codex-recipe-flow > .codex-amounts {
+  flex: 0 1 auto;
+  min-width: 0;
+}
+
+.codex-craft {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.codex-craft .codex-unlock-line {
+  flex-basis: 100%;
+}
+
+.codex-arrow {
+  font-size: 24px;
+  color: var(--faint);
+}
+
+.codex-recipe-foot {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px 18px;
+  padding-top: 10px;
+  border-top: 1px solid var(--line);
+  font-size: 14px;
+  color: var(--dim);
+}
+
+.codex-machine {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  text-decoration: none;
+  font-weight: 600;
+  color: var(--paper);
+}
+
+a.codex-machine:hover {
+  color: var(--codex) !important;
+}
+
+/* Lists of where something goes: icon, name, where, amount. */
+.codex-uses {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  gap: 4px 12px;
+}
+
+.codex-use {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 5px 10px 5px 6px;
+  background: var(--panel);
+  text-decoration: none;
+  border: 1px solid transparent;
+}
+
+.codex-use:hover {
+  border-color: var(--codex);
+}
+
+.codex-use-name {
+  flex: 1;
+  min-width: 0;
+  font-weight: 600;
+}
+
+.codex-use-where {
+  font-size: 13px;
+  color: var(--faint);
+}
+
+.codex-use-rate {
+  font: 700 16px var(--font-display);
+  color: var(--dim);
+  white-space: nowrap;
+}
+
+.codex-extras {
+  margin: 4px 0 0;
+  padding-left: 20px;
+  color: var(--dim);
+}
+
+/* Tables: rates by purity, fuels, belts. */
+.codex-table {
+  width: 100%;
+  border-collapse: collapse;
+  background: var(--panel);
+  font-size: 15px;
+}
+
+.codex-table th {
+  padding: 9px 12px;
+  text-align: left;
+  font: 700 14px var(--font-display);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--faint);
+  border-bottom: 1px solid var(--line-2);
+}
+
+.codex-table td {
+  padding: 7px 12px;
+  border-bottom: 1px solid var(--line);
+  font-variant-numeric: tabular-nums;
+}
+
+.codex-table tbody tr:hover td {
+  background: var(--panel-2);
+}
+
+.codex-belt {
+  display: block;
+  font-size: 12px;
+  color: var(--faint);
+}
+
+/* Guides: calculators. */
+.codex-calc {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: 18px 20px;
+  background: var(--panel);
+  border: 1px solid var(--line);
+}
+
+.codex-picker {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.codex-picker .slot {
+  width: 56px;
+  height: 56px;
+}
+
+.codex-picker .slot[aria-checked='true'] {
+  border-color: var(--codex);
+  box-shadow:
+    inset 0 0 0 1px var(--codex),
+    0 0 12px color-mix(in srgb, var(--codex) 35%, transparent);
+}
+
+.codex-calc .clock-control {
+  max-width: 560px;
+}
+
+.codex-calc-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.codex-readouts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.codex-readout {
+  display: flex;
+  flex-direction: column;
+  min-width: 150px;
+  padding: 10px 16px;
+  background: var(--bg);
+  border: 1px solid var(--line);
+}
+
+.codex-readout span {
+  font: 600 13px var(--font-display);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--faint);
+}
+
+.codex-readout b {
+  font: 700 28px / 1.1 var(--font-display);
+}
+
+.codex-readout.power b {
+  color: var(--power);
+}
+
+.codex-readout.good b {
+  color: var(--codex);
+}
+
+/* Bars: world limits, sink points. */
+.codex-bars {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.codex-bar {
+  display: grid;
+  grid-template-columns: 30px 170px 1fr 130px;
+  align-items: center;
+  gap: 12px;
+  padding: 4px 10px 4px 6px;
+  background: var(--panel);
+  text-decoration: none;
+}
+
+.codex-bar:hover {
+  background: var(--panel-2);
+}
+
+.codex-bar-name {
+  font-weight: 600;
+}
+
+.codex-bar-track {
+  height: 10px;
+  background: var(--bg);
+}
+
+.codex-bar-track span {
+  display: block;
+  height: 100%;
+  background: linear-gradient(90deg, color-mix(in srgb, var(--codex) 55%, transparent), var(--codex));
+}
+
+.codex-bar-track span.endless {
+  background: repeating-linear-gradient(-45deg, var(--codex) 0 6px, transparent 6px 12px);
+}
+
+.codex-bar b {
+  text-align: right;
+  font: 700 17px var(--font-display);
+}
+
+/* ---------- Settings: help ---------- */
+
+.help {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.help-group {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.help-title {
+  margin: 0;
+  font: 700 17px var(--font-display);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--ficsit);
+}
+
+.help-list {
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.help-term {
+  display: grid;
+  grid-template-columns: 200px 1fr;
+  gap: 16px;
+  padding: 9px 0;
+  border-bottom: 1px solid var(--line);
+}
+
+.help-term dt {
+  font: 700 17px / 1.3 var(--font-display);
+}
+
+.help-term dd {
+  margin: 0;
+  color: var(--dim);
+  font-size: 15px;
+}
+
+@media (max-width: 900px) {
+  .codex-page {
+    padding: 18px 14px 40px;
+    gap: 22px;
+  }
+
+  .codex-title {
+    font-size: 30px;
+  }
+
+  .codex-head {
+    grid-template-columns: 1fr;
+    padding: 16px;
+  }
+
+  .codex-head-icon {
+    width: 96px;
+    height: 96px;
+  }
+
+  .codex-recipes,
+  .codex-uses {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .codex-tiles {
+    grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  }
+
+  .codex-filter {
+    width: 100%;
+  }
+
+  .codex-bar {
+    grid-template-columns: 30px 1fr 90px;
+  }
+
+  .codex-bar-track {
+    display: none;
+  }
+
+  .codex-table {
+    display: block;
+    overflow-x: auto;
+  }
+
+  .help-term {
+    grid-template-columns: 1fr;
+    gap: 2px;
+  }
+}

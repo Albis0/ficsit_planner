@@ -167,6 +167,23 @@ Remove that target with the **×** on its card before going on. *Expect:* you're
 - [ ] **S.7** Click **Suggest an idea**. *Expect:* the fields change (no steps, a row of parts to pick) and the
   send button turns yellow.
 
+## 8d. Codex
+
+- [ ] **C.1** Click **Codex** on the switch in the top bar. *Expect:* the Codex home with ten categories and two
+  "Did you know" facts; the address ends in `#codex`.
+- [ ] **C.2** Open **Parts**, type `frame` in **Filter this page**, open **Modular Frame**. *Expect:* its stats,
+  the game's description, every recipe (the alternates marked), what it's used to make and build, and the
+  milestones it's delivered for.
+- [ ] **C.3** Click the building under a recipe, then the browser's **Back**. *Expect:* the building page, then
+  Modular Frame again.
+- [ ] **C.4** Type `jetpack` in **Search the Codex** and open it. *Expect:* its workshop recipe and the milestone
+  that unlocks it.
+- [ ] **C.5** Open **Game mechanics**, then **Clock speed and power shards**, and drag the slider to 150%.
+  *Expect:* output × 1.5, one power shard.
+- [ ] **C.6** On a part's page, click **Plan this**. *Expect:* the factory planner with that part as a target.
+- [ ] **C.7** Copy a Codex page's address into a new tab. *Expect:* it opens on that page.
+- [ ] **C.8** **Settings → Help**, type `spare`. *Expect:* Spare capacity and what it means.
+
 ## 9. Offline and install
 
 - [ ] **9.1** After the first load, a "Ready to work offline" note appears at the bottom and goes away on its own.

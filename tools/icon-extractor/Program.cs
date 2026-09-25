@@ -14,7 +14,7 @@ var manifestPath = args.ElementAtOrDefault(1) ?? Path.Combine("src", "data", "ic
 var outDir = args.ElementAtOrDefault(2) ?? Path.Combine("public", "icons");
 var size = int.Parse(args.ElementAtOrDefault(3) ?? "96");
 
-Directory.CreateDirectory(outDir);
+if (manifestPath != "--find") Directory.CreateDirectory(outDir);
 
 // Oodle is what the game's archives are compressed with; CUE4Parse fetches the official DLL once.
 var oodlePath = Path.Combine(AppContext.BaseDirectory, OodleHelper.OODLE_NAME_CURRENT);
@@ -32,6 +32,14 @@ provider.MappingsContainer = new FileUsmapTypeMappingsProvider(fixedUsmap, Strin
 provider.Initialize();
 provider.Mount();
 Console.WriteLine($"mounted {provider.Files.Count} files");
+
+// "--find <text>" as the manifest argument lists texture paths containing the text, to fill in a manifest by hand.
+if (manifestPath == "--find")
+{
+    foreach (var f in provider.Files.Keys.Where(k => k.Contains(outDir, StringComparison.OrdinalIgnoreCase) && k.EndsWith(".uasset")))
+        Console.WriteLine(f);
+    return;
+}
 
 var manifest = JsonSerializer.Deserialize<Dictionary<string, string>>(File.ReadAllText(manifestPath))!;
 int ok = 0, failed = 0;

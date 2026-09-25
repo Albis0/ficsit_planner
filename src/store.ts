@@ -97,8 +97,10 @@ export const newPlan = (name: string): Plan => ({
 
 interface State {
   lang: Lang;
-  /** Which planner is on screen: factories, or the power grid that runs them. */
-  mode: 'factory' | 'power';
+  /** What's on screen: the factory planner, the power planner, or the Codex. */
+  mode: 'factory' | 'power' | 'codex';
+  /** Codex page on screen, as in the address: '' for its home, 'item/Desc_Motor_C' for a part. */
+  codexPage: string;
   /** Power plant tabs, and the one on screen. */
   power: PowerPlan[];
   activePower: string;
@@ -136,6 +138,7 @@ interface State {
         State,
         | 'lang'
         | 'mode'
+        | 'codexPage'
         | 'dialog'
         | 'tier'
         | 'onboarded'
@@ -217,6 +220,7 @@ export const useStore = create<State>()(
       return {
         lang: 'en',
         mode: 'factory',
+        codexPage: '',
         power: [firstPower],
         activePower: firstPower.id,
         settings: DEFAULT_SETTINGS,
@@ -382,6 +386,7 @@ export const useStore = create<State>()(
       partialize: (s) => ({
         lang: s.lang,
         mode: s.mode,
+        codexPage: s.codexPage,
         power: s.power,
         activePower: s.activePower,
         settings: s.settings,
@@ -408,6 +413,7 @@ type Persisted = Partial<
     State,
     | 'lang'
     | 'mode'
+    | 'codexPage'
     | 'power'
     | 'activePower'
     | 'settings'
@@ -477,7 +483,8 @@ export function mergeState<S extends State>(persisted: unknown, current: S): S {
   return {
     ...current,
     lang: isLang(p.lang) ? p.lang : current.lang,
-    mode: p.mode === 'power' ? 'power' : 'factory',
+    mode: cleanChoice(p.mode, ['factory', 'power', 'codex'] as const, 'factory'),
+    codexPage: typeof p.codexPage === 'string' ? p.codexPage.slice(0, 200) : '',
     power,
     activePower,
     settings: cleanSettings(p.settings),

@@ -20,7 +20,7 @@ import { Dialog } from './Dialog';
 import { Glyph, type GlyphName } from './Glyph';
 import { Icon } from './Icon';
 
-type Section = 'layout' | 'floor' | 'colors' | 'interface' | 'data';
+type Section = 'layout' | 'floor' | 'colors' | 'interface' | 'data' | 'help';
 
 const SECTIONS: { id: Section; glyph: GlyphName }[] = [
   { id: 'layout', glyph: 'layout' },
@@ -28,6 +28,7 @@ const SECTIONS: { id: Section; glyph: GlyphName }[] = [
   { id: 'colors', glyph: 'palette' },
   { id: 'interface', glyph: 'sliders' },
   { id: 'data', glyph: 'database' },
+  { id: 'help', glyph: 'help' },
 ];
 
 type Dir = 'LR' | 'TB' | undefined;
@@ -82,6 +83,7 @@ export function SettingsDialog({ onClose }: { onClose: () => void }) {
     colors: t('setColors'),
     interface: t('setInterface'),
     data: t('setData'),
+    help: t('setHelp'),
   };
 
   return (
@@ -115,6 +117,7 @@ export function SettingsDialog({ onClose }: { onClose: () => void }) {
               {section === 'colors' && <ColorsSection />}
               {section === 'interface' && <InterfaceSection />}
               {section === 'data' && <DataSection />}
+              {section === 'help' && <HelpSection />}
             </div>
           </div>
         </div>
@@ -442,6 +445,89 @@ function ColorsSection() {
         </button>
       </div>
     </>
+  );
+}
+
+type HelpKey = Parameters<ReturnType<typeof useT>['t']>[0];
+
+/** What each word on screen means: term (as the app labels it) and a plain explanation. */
+const HELP: { title: HelpKey; terms: [HelpKey, HelpKey][] }[] = [
+  {
+    title: 'helpBasics',
+    terms: [
+      ['helpModes', 'helpText_modes'],
+      ['tier', 'helpText_tier'],
+      ['helpSaved', 'helpText_saved'],
+      ['codex', 'helpText_codex'],
+    ],
+  },
+  {
+    title: 'helpFactory',
+    terms: [
+      ['targets', 'helpText_targets'],
+      ['suppliesTitle', 'helpText_supplies'],
+      ['rawInput', 'helpText_rawInput'],
+      ['inventory', 'helpText_inventory'],
+      ['recipes', 'helpText_recipes'],
+      ['resources', 'helpText_resources'],
+      ['surplus', 'helpText_surplus'],
+      ['helpBelts', 'helpText_belts'],
+      ['clockSpeed', 'helpText_clock'],
+    ],
+  },
+  {
+    title: 'helpPower',
+    terms: [
+      ['byHave', 'helpText_byHave'],
+      ['byWant', 'helpText_byWant'],
+      ['byFactories', 'helpText_byFactories'],
+      ['fixCount', 'helpText_fixCount'],
+      ['headroom', 'helpText_headroom'],
+      ['otherLoad', 'helpText_otherLoad'],
+      ['helpOwnLoad', 'helpText_ownLoad'],
+      ['covers', 'helpText_covers'],
+      ['forTheGrid', 'helpText_forTheGrid'],
+      ['helpMakesNeeds', 'helpText_makesNeeds'],
+      ['moreOptions', 'helpText_backup'],
+    ],
+  },
+];
+
+/** A glossary of the app, searchable, for words like "spare capacity" that don't explain themselves. */
+function HelpSection() {
+  const { t } = useT();
+  const [query, setQuery] = useState('');
+  const q = query.trim().toLowerCase();
+  const groups = HELP.map((g) => ({
+    ...g,
+    terms: g.terms.filter(([term, text]) => !q || `${t(term)} ${t(text)}`.toLowerCase().includes(q)),
+  })).filter((g) => g.terms.length);
+  return (
+    <div className="help">
+      <p className="hint">{t('helpLead')}</p>
+      <input
+        className="search"
+        type="search"
+        placeholder={t('helpFilter')}
+        aria-label={t('helpFilter')}
+        value={query}
+        onChange={(e) => setQuery(e.target.value)}
+      />
+      {groups.map((g) => (
+        <section key={g.title} className="help-group">
+          <h4 className="help-title">{t(g.title)}</h4>
+          <dl className="help-list">
+            {g.terms.map(([term, text]) => (
+              <div key={term} className="help-term">
+                <dt>{t(term)}</dt>
+                <dd>{t(text)}</dd>
+              </div>
+            ))}
+          </dl>
+        </section>
+      ))}
+      {groups.length === 0 && <p className="hint">{t('codexNoHits')}</p>}
+    </div>
   );
 }
 

@@ -2,6 +2,26 @@
 
 All notable changes to FICSIT Planner. Dates are when the version was finished.
 
+## 0.7.0 — 2026-09-25
+
+### Added
+
+- **Codex.** A third stop on the top-bar switch: a manual of the whole game, with the game's own descriptions.
+  - Parts (by the tier or MAM tree that unlocks them), resources, 102 buildings, vehicles, equipment, ammo and
+    food, HUB milestones, every MAM research tree, all alternate recipes and the AWESOME Shop.
+  - Each part shows every way to make it, what it goes into, what it builds, which milestones and research it's
+    delivered for, what burns it and at what rate, and its stack size, sink value and energy.
+  - Buildings show their cost, where they're unlocked, their power, somersloop slots and every recipe they run;
+    extractors their rates by purity and clock; generators every fuel with its burn rate, water and waste.
+  - Alternate recipes are compared with the standard one.
+  - **Game mechanics:** clock speed and power shards, somersloops, resource nodes, fuel, belts and pipes, world
+    resources and AWESOME Sink points, with calculators to try them on.
+  - Search across everything, filter a category, and follow any link. Every page has its own address, so Back
+    works and a page can be shared. **Plan this** starts a factory for the part; **Make power with it** adds a
+    generator burning it.
+- **Help** in Settings: what every term on screen means (spare capacity, covers, pinned inputs, sized to fit…),
+  searchable.
+
 ## 0.6.0 — 2026-09-25
 
 ### Changed

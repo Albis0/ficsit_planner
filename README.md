@@ -30,7 +30,8 @@ Production planner for Satisfactory that runs in the browser and works offline. 
 and how many per minute. A linear programming solver ([HiGHS](https://highs.dev), compiled to WebAssembly)
 picks the recipes, counts the machines, sets their clock speeds and draws the factory as belts and pipes.
 Switch to the power planner and plan power plants the same way: from the fuel you have, for the MW you want,
-or for the factories they run, fuel chain included.
+or for the factories they run, fuel chain included. Or open the Codex and look up anything in the game: every
+part, building, vehicle, milestone, research and alternate recipe, with calculators for the mechanics.
 
 It's a static site you can install as an app (a PWA). Chrome, Edge and Android add a desktop or home-screen
 shortcut, and iPhone and iPad do the same through the Share menu. Once installed it opens in its own window
@@ -39,6 +40,8 @@ and works without a network. There's nothing to download and run. It works on ph
 ![The factory graph for 10 motors per minute](docs/desktop-graph.webp)
 
 ![The power planner: a fuel plant sized to two factories, with crude oil refined into fuel for eight generators that feed both factories and its own refineries](docs/desktop-power.webp)
+
+![The Codex: the Motor's page, with every way to make it and what it goes into](docs/desktop-codex.webp)
 
 <p align="center">
   <img src="docs/phone-graph.webp" width="30%" alt="Phone: the factory runs top to bottom">
@@ -62,7 +65,8 @@ and works without a network. There's nothing to download and run. It works on ph
 | <img src="public/icons/Build_MinerMk2_C.webp" width="36" alt="Miner Mk.2"> | **Extraction.** Choose the miner, node purity and extractor clock to see how many miners and pumps each resource needs, and their power. |
 | <img src="public/icons/Build_ConveyorBeltMk5_C.webp" width="36" alt="Conveyor Belt Mk.5"> | **Two views.** The factory graph lays itself out left to right or top to bottom, whichever fits your screen better (or pick one), routes belts around machines, colours them by tier and doubles up lanes when one belt can't carry the flow. The panel sits across the top and the graph gets the full width under it, or beside it if you prefer (Settings). Each machine card has the game's build-menu look: a coloured strip with the product and its power draw, the building underneath with its name, count and clock. Machines holding power shards get a blue edge, somersloops a pink one. Hover or tap a machine to follow its line. The table lists the total build cost of every machine and extractor. |
 | <img src="public/icons/Build_GeneratorNuclear_C.webp" width="36" alt="Nuclear Power Plant"> | **Power planner.** Flip the switch in the top bar from Factory to Power. Each power plant is a tab of its own, like a factory, and can mix generators: biomass, coal, fuel, nuclear, geothermal and the Alien Power Augmenter, each with its fuel. Size a plant three ways: **What I have** (list the fuel, or the ore and oil it's made from, and it makes all it can), **Power I want** (a set MW), or **My factories** (tick the factory tabs it runs, add trains and lights and some spare; it follows them as they change). Each factory is counted on one plant only. **Auto** generators are sized to fit, including the power the plant's own fuel chain uses, which the planner builds and draws like any factory: ore to fuel to generators to the grid to your factories. Generators can also be a set count or a set output, at any clock. Water, nuclear waste (and the plutonium chain that uses it), augmenter boost and backup Power Storage are all counted. |
-| <img src="public/icons/Desc_CircuitBoard_C.webp" width="36" alt="Circuit Board"> | **Settings.** Put the panel on top, left or right. Set the card size, text size and spacing on the factory floor, belt labels, moving belts and the foundation grid, the accent and recipe colours, the interface size, decimals and animations, all with a live preview. Save all your factories and settings to a file, and load them back. |
+| <img src="public/icons/Desc_HardDrive_C.webp" width="36" alt="Hard Drive"> | **Codex.** The third stop on the switch. Every part, resource, building, vehicle, piece of equipment, HUB milestone, MAM research, alternate recipe and AWESOME Shop offer, with the game's own descriptions. A part's page shows every way to make it, what it goes into and builds, what it's delivered for and what burns it; a building's page its cost, unlock, power and recipes; an alternate is compared with the standard recipe. Game mechanics (clock speed, somersloops, nodes, fuel, belts, world resources, sink points) come with calculators. Search everything, follow any link, share a page by its address, and press **Plan this** to start a factory. |
+| <img src="public/icons/Desc_CircuitBoard_C.webp" width="36" alt="Circuit Board"> | **Settings.** Put the panel on top, left or right. Set the card size, text size and spacing on the factory floor, belt labels, moving belts and the foundation grid, the accent and recipe colours, the interface size, decimals and animations, all with a live preview. Save all your factories and settings to a file, and load them back. **Help** explains every term on screen. |
 | <img src="public/icons/Desc_CrystalOscillator_C.webp" width="36" alt="Crystal Oscillator"> | **Feedback.** Report a bug or suggest an idea from inside the app. It goes to the site's own database, optionally with the factory you're looking at, and nothing else is collected. |
 | <img src="public/icons/BP_ItemDescriptorPortableMiner_C.webp" width="36" alt="Portable Miner"> | **Anywhere.** Works offline, installs as an app, and fits phones: one pane at a time with a bottom bar, and the factory runs top to bottom. |
 
@@ -185,6 +189,7 @@ the belt count low. dagre lays the graph out left to right, or top to bottom on 
 | `src/lib/power.ts`, `src/lib/solution.ts` | generators as solver recipes, and the hooks that solve factories and power plants |
 | `src/lib/settings.ts`, `src/lib/backup.ts` | settings and the CSS variables they set; save and load a copy |
 | `src/lib/feedback.ts`, `src/lib/feedback-schema.ts`, `functions/api/report.ts` | the feedback window's request, its checks, and the endpoint that stores it |
+| `src/lib/codex.ts`, `src/components/Codex.tsx`, `CodexGuides.tsx` | the Codex: its data, index and search, pages and addresses, and the game-mechanics guides |
 | `src/lib/data.ts` | typed access to the game data, belt/pipe choice per flow, unlock tiers and why an item can't be made |
 | `src/locales/en.ts`, `src/lib/lang.ts`, `src/lib/i18n.ts` | UI strings, language registry, `useT()` |
 | `src/lib/install.ts`, `src/components/PwaStatus.tsx` | install button and offline status |
@@ -193,7 +198,7 @@ the belt count low. dagre lays the graph out left to right, or top to bottom on 
 | `src/store.ts` | app state (zustand), saved to `localStorage` |
 | `src/components/` | panels, graph view, table view, inspector, power panel and floor, mode switch, settings and feedback windows, phone navigation, panel splitter |
 | `migrations/`, `scripts/reports.mjs` | feedback database schema, and reading the reports |
-| `scripts/extract.mjs` | game data extractor |
+| `scripts/extract.mjs`, `scripts/extract-codex.mjs` | game data extractors: the planner's data, and the Codex's |
 | `tools/icon-extractor/` | .NET icon extractor |
 | `tests/` | solver, extraction, auto placement, graph layout, unlock tiers, saved state and string tests |
 | `docs/manual-test.md` | a click-through checklist for testing the app by hand before a release |
@@ -215,7 +220,9 @@ saved factories when they load.
 | `src/data/gamedata.json` | items, recipes, buildings, belts, extractors, generators and fuel energy | `bun run extract` |
 | `src/data/meta.json` | which game build the data came from | `bun run extract` |
 | `src/data/icon-manifest.json` | icon texture path per item/building | `bun run extract` |
-| `public/icons/*.webp` | item and building icons | `bun run icons` |
+| `src/data/codex.json` | descriptions, stack sizes, every building, vehicles, equipment, milestones, MAM research, the AWESOME Shop (loaded when the Codex opens) | `bun run extract:codex` |
+| `src/data/codex-icons.json` | icon texture paths the Codex needs on top of the planner's | `bun run extract:codex` |
+| `public/icons/*.webp` | item and building icons | `bun run icons`, `bun run icons:codex` |
 
 Last extract: **Satisfactory 1.2.4.0**, build 502094, Unreal Engine 5.6.1, on 2026-09-24 (see `src/data/meta.json`).
 
@@ -224,7 +231,9 @@ Last extract: **Satisfactory 1.2.4.0**, build 502094, Unreal Engine 5.6.1, on 20
 ```sh
 bun run extract                                            # Epic install on C: by default
 bun run extract "D:/SteamLibrary/steamapps/common/Satisfactory"
+bun run extract:codex                                      # after extract: it reads gamedata.json
 bun run icons                                              # needs the .NET 10 SDK
+bun run icons:codex
 dotnet run --project tools/icon-extractor -- "D:/SteamLibrary/steamapps/common/Satisfactory"
 ```
 
@@ -234,11 +243,13 @@ at the default Epic install. For any other location, run the `dotnet` line from 
 Commit the changed files under `src/data` and `public/icons` afterwards.
 
 - `scripts/extract.mjs` reads `CommunityResources/Docs/en-US.json` (UTF-16) plus the build `.version` file.
-  Seasonal (FICSMAS) recipes are skipped.
+  Seasonal (FICSMAS) recipes are skipped. `scripts/extract-codex.mjs` reads the same file for the Codex.
+  Coupons and hard drives have no descriptor there, so their names and icon paths are set in the script.
 - `tools/icon-extractor` reads the IoStore archives (`.utoc/.ucas`) with CUE4Parse and writes WebP.
   The game's `FactoryGame.usmap` writes `OptionalProperty` without an inner type, which CUE4Parse expects,
   so `UsmapPatch.cs` inserts a placeholder before loading it. The engine version is set in `Program.cs`
-  (`EGame.GAME_UE5_6`). Bump it if a game update moves to a newer Unreal version.
+  (`EGame.GAME_UE5_6`). Bump it if a game update moves to a newer Unreal version. Pass `--find <text>` in place
+  of the manifest to list archive paths containing that text, to look up an icon by hand.
 
 ## Notes
 

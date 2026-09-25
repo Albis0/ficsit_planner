@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
+import { CodexNav, CodexPage, useCodexRoute } from './components/Codex';
 import { GraphView } from './components/GraphView';
 import { Glyph } from './components/Glyph';
 import { Inspector } from './components/Inspector';
@@ -94,6 +95,8 @@ export default function App() {
   const phone = useMediaQuery('(max-width: 900px)');
   const { factory, power, probe, draws, load } = useSolutions();
   const powerMode = s.mode === 'power';
+  const codexMode = s.mode === 'codex';
+  useCodexRoute();
   const pp = activePowerPlan(s);
   const { result, error, busy } = powerMode ? power : factory;
   const extraction = useMemo(
@@ -134,7 +137,7 @@ export default function App() {
   ] as const;
 
   // Nothing planned yet: the whole floor asks what to make (or how to make power), and the panel waits.
-  const empty = powerMode ? pp.plants.length === 0 : plan.targets.length === 0;
+  const empty = codexMode ? false : powerMode ? pp.plants.length === 0 : plan.targets.length === 0;
   // Every target is out of reach (e.g. above the unlocked tier): explain instead of drawing a lone "bring in".
   const blocked = !powerMode && result && result.recipes.length === 0 && result.missing.length > 0;
   // Power planner with nothing that can run, or only auto plants and nothing to power: nothing gets
@@ -152,7 +155,8 @@ export default function App() {
   const shown = result && !error && !blocked && !idle && !listFirst;
   const inspectPlant = s.inspect ? plantIdOf(s.inspect) : undefined;
   // The power planner reads top to bottom, so it keeps its panel beside the floor even when factories have it on top.
-  const panel = phone ? 'top' : powerMode && s.settings.panel === 'top' ? 'left' : s.settings.panel;
+  // The Codex reads like a book: its index beside the page, on the left.
+  const panel = phone ? 'top' : codexMode ? 'left' : powerMode && s.settings.panel === 'top' ? 'left' : s.settings.panel;
 
   const style: Record<string, string> = settingsStyle(s.settings);
   if (s.deckHeight) style['--deck-h'] = `${s.deckHeight}px`;
@@ -165,7 +169,7 @@ export default function App() {
       data-pane={s.pane}
       data-panel={panel}
       data-empty={empty || undefined}
-      data-deck={s.deckClosed ? 'closed' : undefined}
+      data-deck={s.deckClosed && !codexMode ? 'closed' : undefined}
       data-belt-motion={s.settings.beltMotion ? undefined : 'off'}
       data-motion={s.settings.motion === 'system' ? undefined : s.settings.motion}
       style={style}
@@ -178,7 +182,7 @@ export default function App() {
           </h1>
         </div>
         <ModeSwitch />
-        <PlanTabs />
+        {codexMode ? <span className="topbar-fill" /> : <PlanTabs />}
         <div className="topbar-controls">
           <InstallButton />
           <button type="button" className="tier-button" title={t('whereAreYou')} onClick={() => setTierOpen(true)}>
@@ -199,112 +203,120 @@ export default function App() {
       </header>
 
       <aside className="side">
-        <div className="tabs" role="tablist">
-          {tabs.map(([id, label, badge]) => (
-            <button key={id} type="button" role="tab" aria-selected={s.tab === id} onClick={() => s.set({ tab: id, deckClosed: false })}>
-              {label}
-              {badge != null && <span className="tab-badge">{badge}</span>}
+        {codexMode && <CodexNav />}
+        {!codexMode && (
+          <div className="tabs" role="tablist">
+            {tabs.map(([id, label, badge]) => (
+              <button key={id} type="button" role="tab" aria-selected={s.tab === id} onClick={() => s.set({ tab: id, deckClosed: false })}>
+                {label}
+                {badge != null && <span className="tab-badge">{badge}</span>}
+              </button>
+            ))}
+            <button
+              type="button"
+              className="deck-toggle"
+              aria-expanded={!s.deckClosed}
+              title={s.deckClosed ? t('showPanel') : t('hidePanel')}
+              onClick={() => s.set({ deckClosed: !s.deckClosed })}
+            >
+              <span aria-hidden className="deck-arrow" />
+              <span className="deck-toggle-label">{s.deckClosed ? t('showPanel') : t('hidePanel')}</span>
             </button>
-          ))}
-          <button
-            type="button"
-            className="deck-toggle"
-            aria-expanded={!s.deckClosed}
-            title={s.deckClosed ? t('showPanel') : t('hidePanel')}
-            onClick={() => s.set({ deckClosed: !s.deckClosed })}
-          >
-            <span aria-hidden className="deck-arrow" />
-            <span className="deck-toggle-label">{s.deckClosed ? t('showPanel') : t('hidePanel')}</span>
-          </button>
-        </div>
-        {s.tab === 'targets' &&
+          </div>
+        )}
+        {!codexMode &&
+          s.tab === 'targets' &&
           (powerMode ? (
             <PowerPanel result={result} draws={draws} load={load} chainDraw={chainDraw} probe={probe} />
           ) : (
             <TargetsPanel result={result} />
           ))}
-        {s.tab === 'recipes' && <RecipesPanel />}
-        {s.tab === 'resources' && <ResourcesPanel result={result} />}
+        {!codexMode && s.tab === 'recipes' && <RecipesPanel />}
+        {!codexMode && s.tab === 'resources' && <ResourcesPanel result={result} />}
         <Splitter side={panel} />
       </aside>
 
       <main className="floor">
-        {shown &&
+        {codexMode && <CodexPage />}
+        {!codexMode &&
+          shown &&
           (powerMode ? (
             <PowerSummary result={result} load={load} chainDraw={chainDraw} />
           ) : (
             <Summary result={result} extraction={extraction} />
           ))}
-        <div className="floor-view">
-          {error && (
-            <div className="floor-message error">
-              <div className="failure">
-                {powerMode && error.code === 'infeasible'
-                  ? pp.sizeBy === 'have'
-                    ? t('errHaveInfeasible')
-                    : t('errPowerInfeasible')
-                  : failureText(error, t)}
-                {!powerMode && Object.keys(plan.fixed).length > 0 && (
-                  <button type="button" className="primary-button" onClick={() => s.updatePlan({ fixed: {} })}>
-                    {t('unpinAll')}
+        {!codexMode && (
+          <div className="floor-view">
+            {error && (
+              <div className="floor-message error">
+                <div className="failure">
+                  {powerMode && error.code === 'infeasible'
+                    ? pp.sizeBy === 'have'
+                      ? t('errHaveInfeasible')
+                      : t('errPowerInfeasible')
+                    : failureText(error, t)}
+                  {!powerMode && Object.keys(plan.fixed).length > 0 && (
+                    <button type="button" className="primary-button" onClick={() => s.updatePlan({ fixed: {} })}>
+                      {t('unpinAll')}
+                    </button>
+                  )}
+                </div>
+              </div>
+            )}
+            {empty && (powerMode ? <PowerQuickStart load={load} /> : <QuickPick />)}
+            {!error && blocked && (
+              <div className="floor-message">
+                <div className="blocked">
+                  <h2 className="quick-title">{t('cantMakeYet')}</h2>
+                  <MissingList missing={result.missing} />
+                </div>
+              </div>
+            )}
+            {listFirst && (
+              <div className="floor-message">
+                <div className="blocked">
+                  <h2 className="quick-title">{t('listWhatYouHave')}</h2>
+                  <p className="hint">{t('listWhatYouHaveHint')}</p>
+                  <button type="button" className="primary-button" onClick={() => showInPanel('size-by', '.size-box .add-button')}>
+                    {t('addHave')}
                   </button>
-                )}
+                </div>
               </div>
-            </div>
-          )}
-          {empty && (powerMode ? <PowerQuickStart load={load} /> : <QuickPick />)}
-          {!error && blocked && (
-            <div className="floor-message">
-              <div className="blocked">
-                <h2 className="quick-title">{t('cantMakeYet')}</h2>
-                <MissingList missing={result.missing} />
+            )}
+            {!error && idle && (
+              <div className="floor-message">
+                <div className="blocked">
+                  <h2 className="quick-title">{idle === 'none' ? t('noPlantRuns') : t('nothingToPower')}</h2>
+                  <p className="hint">{idle === 'none' ? t('noPlantRunsHint') : t('nothingToPowerHint')}</p>
+                  <button type="button" className="primary-button" onClick={() => showInPanel(idle === 'none' ? 'gens' : 'size-by')}>
+                    {idle === 'none' ? t('openPlants') : t('setDemand')}
+                  </button>
+                </div>
               </div>
-            </div>
-          )}
-          {listFirst && (
-            <div className="floor-message">
-              <div className="blocked">
-                <h2 className="quick-title">{t('listWhatYouHave')}</h2>
-                <p className="hint">{t('listWhatYouHaveHint')}</p>
-                <button type="button" className="primary-button" onClick={() => showInPanel('size-by', '.size-box .add-button')}>
-                  {t('addHave')}
-                </button>
+            )}
+            {shown &&
+              (s.view === 'graph' ? (
+                <GraphView result={result} extraction={extraction} consumers={consumers} />
+              ) : (
+                <TableView result={result} extraction={extraction} />
+              ))}
+            {shown && (inspectPlant ? <PlantInspector key={inspectPlant} result={result} /> : <Inspector result={result} />)}
+            {busy && <div className="busy">{t('solving')}</div>}
+            {shown && (
+              <div className="floor-bar">
+                <div className="segmented" role="radiogroup">
+                  <button type="button" role="radio" aria-checked={s.view === 'graph'} onClick={() => s.set({ view: 'graph' })}>
+                    {t('graph')}
+                  </button>
+                  <button type="button" role="radio" aria-checked={s.view === 'table'} onClick={() => s.set({ view: 'table' })}>
+                    {t('table')}
+                  </button>
+                </div>
+                {!s.inspect && <span className="floor-hint">{powerMode ? t('inspectPowerHint') : t('inspectHint')}</span>}
               </div>
-            </div>
-          )}
-          {!error && idle && (
-            <div className="floor-message">
-              <div className="blocked">
-                <h2 className="quick-title">{idle === 'none' ? t('noPlantRuns') : t('nothingToPower')}</h2>
-                <p className="hint">{idle === 'none' ? t('noPlantRunsHint') : t('nothingToPowerHint')}</p>
-                <button type="button" className="primary-button" onClick={() => showInPanel(idle === 'none' ? 'gens' : 'size-by')}>
-                  {idle === 'none' ? t('openPlants') : t('setDemand')}
-                </button>
-              </div>
-            </div>
-          )}
-          {shown &&
-            (s.view === 'graph' ? (
-              <GraphView result={result} extraction={extraction} consumers={consumers} />
-            ) : (
-              <TableView result={result} extraction={extraction} />
-            ))}
-          {shown && (inspectPlant ? <PlantInspector key={inspectPlant} result={result} /> : <Inspector result={result} />)}
-          {busy && <div className="busy">{t('solving')}</div>}
-          {shown && (
-            <div className="floor-bar">
-              <div className="segmented" role="radiogroup">
-                <button type="button" role="radio" aria-checked={s.view === 'graph'} onClick={() => s.set({ view: 'graph' })}>
-                  {t('graph')}
-                </button>
-                <button type="button" role="radio" aria-checked={s.view === 'table'} onClick={() => s.set({ view: 'table' })}>
-                  {t('table')}
-                </button>
-              </div>
-              {!s.inspect && <span className="floor-hint">{powerMode ? t('inspectPowerHint') : t('inspectHint')}</span>}
-            </div>
-          )}
-        </div>
+            )}
+          </div>
+        )}
       </main>
       <MobileNav />
       {menuOpen && <MobileMenu onClose={() => setMenuOpen(false)} onTier={() => setTierOpen(true)} />}

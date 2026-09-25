@@ -14,6 +14,25 @@ export function MobileNav() {
   const set = useStore((s) => s.set);
   const power = useStore((s) => s.mode === 'power');
   const plants = useStore((s) => activePowerPlan(s).plants.length);
+  const codex = useStore((s) => s.mode === 'codex');
+
+  // The Codex has just two panes: its index and the page.
+  if (codex)
+    return (
+      <nav className="mobile-nav" aria-label={t('menu')}>
+        <button type="button" aria-current={pane === 'side' ? 'page' : undefined} onClick={() => set({ pane: 'side' })}>
+          {t('codexIndex')}
+        </button>
+        <button
+          type="button"
+          className="factory"
+          aria-current={pane === 'floor' ? 'page' : undefined}
+          onClick={() => set({ pane: 'floor' })}
+        >
+          {t('codexPageTab')}
+        </button>
+      </nav>
+    );
 
   const items = [
     ['targets', power ? t('powerTab') : t('targets'), power ? plants : plan.targets.length],
@@ -47,6 +66,7 @@ export function MobileMenu({ onClose, onTier }: { onClose: () => void; onTier: (
   const tier = useStore((s) => s.tier);
   const set = useStore((s) => s.set);
   const power = useStore((s) => s.mode === 'power');
+  const codex = useStore((s) => s.mode === 'codex');
   const dialog = useRef<HTMLDialogElement>(null);
   const open = (d: 'settings' | 'report') => {
     onClose();
@@ -84,10 +104,12 @@ export function MobileMenu({ onClose, onTier }: { onClose: () => void; onTier: (
             {t('tier')} <b>{tier}</b>
           </button>
         </div>
-        <div className="sheet-row">
-          <span className="control-label">{power ? t('plantName') : t('planName')}</span>
-          <PlanActions rename onDone={onClose} />
-        </div>
+        {!codex && (
+          <div className="sheet-row">
+            <span className="control-label">{power ? t('plantName') : t('planName')}</span>
+            <PlanActions rename onDone={onClose} />
+          </div>
+        )}
         <div className="sheet-row sheet-links">
           <button type="button" className="ghost-button" onClick={() => open('settings')}>
             <Glyph name="gear" size={18} />
