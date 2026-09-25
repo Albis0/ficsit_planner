@@ -1,5 +1,6 @@
 import type { Highs } from 'highs';
 import { data, producersOf, resourceWeights, type Recipe } from './data';
+import { gridBoost, type Plant, plantClock, plantRecipe, plantSize, plantValid, unitPower } from './power';
 
 export interface Target {
   item: string;
@@ -32,6 +33,30 @@ export interface SolveInput {
    * scale up or down to whatever those inputs can feed.
    */
   fixed?: Record<string, number>;
+  /** Power planning: generators to run and the load they have to carry. */
+  power?: PowerInput;
+}
+
+export interface PowerInput {
+  plants: Plant[];
+  /** MW the grid supplies to everything outside this plan (factories, trains, lights). */
+  demand: number;
+  /** Spare capacity kept on top of all consumption, e.g. 0.1 for 10%. */
+  headroom: number;
+  /** MW the extractors of each raw resource draw per unit/min, so mining for fuel counts too. */
+  extraction: Record<string, number>;
+}
+
+/** What the power plants make, and what the plan's own machines and extractors take back. */
+export interface GridResult {
+  /** Total generation, augmenter boost included. */
+  generation: number;
+  /** Before the boost. */
+  base: number;
+  /** Augmenter boost as a share, e.g. 0.3. */
+  boost: number;
+  /** MW made by each plant, boost included, by plant id. */
+  plants: Record<string, number>;
 }
 
 export interface RecipeUse {
@@ -68,6 +93,8 @@ export interface SolveResult {
   scale: number;
   /** Marginal cost of one more unit/min of each item, in weighted raw resources. */
   prices: Map<string, number>;
+  /** Present when the input planned power plants. */
+  grid?: GridResult;
 }
 
 export type SolverErrorCode = 'infeasible' | 'pinnedInfeasible' | 'stopped';
@@ -90,21 +117,25 @@ const MAX_SCALE = 1e4;
 /** Power shards a machine needs for a given clock: each one adds 50% above 100%. */
 export const shardsFor = (clock: number) => (clock > 1 + 1e-9 ? Math.ceil((clock - 1) / 0.5 - 1e-9) : 0);
 
+/** Somersloop slots on the recipe's building; generators have none. */
+export const sloopSlots = (recipe: Recipe) => data.machines[recipe.machine]?.somersloopSlots ?? 0;
+
 /** Output multiplier from somersloops: filled slots / total slots on top of 100%. */
 export function amplification(recipe: Recipe, mod: RecipeMod): number {
-  const slots = data.machines[recipe.machine].somersloopSlots;
+  const slots = sloopSlots(recipe);
   return slots > 0 ? 1 + Math.min(mod.sloops, slots) / slots : 1;
 }
 
-/** Power of one machine: base × amplification² × clock^exponent. */
+/** Power of one machine: base × amplification² × clock^exponent. Generators draw none. */
 export function machinePower(recipe: Recipe, mod: RecipeMod, clock = mod.clock): number {
+  if (recipe.power === 0) return 0;
   const machine = data.machines[recipe.machine];
   return recipe.power * amplification(recipe, mod) ** 2 * clock ** machine.powerExp;
 }
 
 /** Power of the placed machines when the sloops go into as few machines as possible (full ones first). */
 function placedPower(recipe: Recipe, clocks: number[], sloopsTotal: number): number {
-  const slots = data.machines[recipe.machine].somersloopSlots;
+  const slots = sloopSlots(recipe);
   let left = sloopsTotal;
   let power = 0;
   for (const clock of clocks) {
@@ -134,7 +165,7 @@ export function describeUse(recipe: Recipe, mod: RecipeMod, count: number): Reci
   const built = Math.max(1, Math.ceil(count - EPS));
   const clock = (mod.clock * count) / built;
   const amp = amplification(recipe, mod);
-  const slots = data.machines[recipe.machine].somersloopSlots;
+  const slots = sloopSlots(recipe);
   const sloops = Math.round(built * Math.min(mod.sloops, slots));
   const clocks = machineClocks(built, mod.clock * count);
   const shards = clocks.reduce((s, c) => s + shardsFor(c), 0);
@@ -155,6 +186,8 @@ export function describeUse(recipe: Recipe, mod: RecipeMod, count: number): Reci
 
 interface Model {
   recipes: Recipe[];
+  /** Power plants by the id of the recipe standing in for them. */
+  plantOf: Map<string, Plant>;
   rv: Map<string, string>;
   sv: Map<string, string>;
   rowItem: string[];
@@ -164,10 +197,21 @@ interface Model {
   modOf: (r: Recipe) => RecipeMod;
 }
 
-function buildModel(input: SolveInput): Model {
-  const recipes = data.recipes.filter((r) => input.enabledRecipes.has(r.id));
+/**
+ * `draw` scales a recipe's power in the grid's balance row: the placed machines can pull more than
+ * the configured clock suggests (see machineClocks), and `solve` feeds that back in.
+ */
+function buildModel(input: SolveInput, draw?: Map<string, number>): Model {
+  // Each power plant joins the recipes as a stand-in that burns fuel (see lib/power.ts).
+  const plants = (input.power?.plants ?? []).filter(plantValid);
+  const plantRecipes = plants.map(plantRecipe);
+  const plantOf = new Map(plantRecipes.map((r, i) => [r.id, plants[i]]));
+  const recipes = [...data.recipes.filter((r) => input.enabledRecipes.has(r.id)), ...plantRecipes];
   const rv = new Map(recipes.map((r, i) => [r.id, `r${i}`]));
-  const modOf = (r: Recipe) => input.mods?.[r.id] ?? NO_MOD;
+  const modOf = (r: Recipe): RecipeMod => {
+    const plant = plantOf.get(r.id);
+    return plant ? { clock: plantClock(plant), sloops: 0 } : (input.mods?.[r.id] ?? NO_MOD);
+  };
   // LP variable = machines at the configured clock, so rates scale by clock and somersloop output boost.
   const netRate = (r: Recipe, id: string) => {
     const mod = modOf(r);
@@ -189,7 +233,8 @@ function buildModel(input: SolveInput): Model {
   for (const r of recipes) for (const s of [...r.inputs, ...r.outputs]) itemIds.add(s.item);
   for (const id of Object.keys(input.fixed ?? {})) itemIds.add(id);
 
-  const enabledProducers = (id: string) => producersOf.get(id)?.some((r) => input.enabledRecipes.has(r.id));
+  const enabledProducers = (id: string) =>
+    producersOf.get(id)?.some((r) => input.enabledRecipes.has(r.id)) || plantRecipes.some((r) => r.outputs.some((o) => o.item === id));
   const sv = new Map<string, string>();
   const costs: string[] = [];
   const bounds: string[] = [];
@@ -219,6 +264,36 @@ function buildModel(input: SolveInput): Model {
     costs.push(`${fmt(cost)} ${rv.get(r.id)}`);
   }
 
+  // Plants with a set size run exactly that many generators; 'auto' ones are the solver's to size.
+  for (const [id, plant] of plantOf) {
+    const size = plantSize(plant);
+    if (size === 'auto') continue;
+    // A MW figure is what the plant puts on the grid, augmenter boost included, like every readout.
+    const n =
+      size === 'count' ? Math.max(0, Math.round(plant.amount)) : Math.max(0, plant.amount) / (unitPower(plant) * (1 + gridBoost(plants)));
+    bounds.push(`${fmt(n)} <= ${rv.get(id)} <= ${fmt(n)}`);
+  }
+
+  // Power balance, when some plant is sized to fit: generation (boosted by augmenters) covers the
+  // outside demand plus this plan's own machines and extractors, with the spare capacity on top.
+  const extraRows: string[] = [];
+  const power = input.power;
+  if (power && [...plantOf.values()].some((p) => plantSize(p) === 'auto')) {
+    const boost = 1 + gridBoost(plants);
+    const keep = 1 + Math.max(0, power.headroom);
+    const terms: string[] = [];
+    for (const r of recipes) {
+      const plant = plantOf.get(r.id);
+      const mw = plant ? boost * unitPower(plant) : -keep * machinePower(r, modOf(r)) * (draw?.get(r.id) ?? 1);
+      if (Math.abs(mw) > EPS) terms.push(`${mw >= 0 ? '+' : '-'} ${fmt(Math.abs(mw))} ${rv.get(r.id)}`);
+    }
+    for (const [id, name] of sv) {
+      const mw = keep * (power.extraction[id] ?? 0);
+      if (name.startsWith('s') && mw > EPS) terms.push(`- ${fmt(mw)} ${name}`);
+    }
+    if (terms.length) extraRows.push(` power: ${terms.join(' ')} >= ${fmt(keep * Math.max(0, power.demand))}`);
+  }
+
   const rowItem: string[] = [];
   const rowTerms: { terms: string[]; id: string }[] = [];
   for (const id of itemIds) {
@@ -245,15 +320,36 @@ function buildModel(input: SolveInput): Model {
     });
     const objective = phase === 'max-scale' ? ['Maximize', ' obj: k'] : ['Minimize', ` obj: ${costs.join(' + ') || '0'}`];
     const extra = phase === 'max-scale' ? [` 0 <= k <= ${MAX_SCALE}`] : [];
-    return [...objective, 'Subject To', ...rows, 'Bounds', ...bounds.map((b) => ` ${b}`), ...extra, 'End'].join('\n');
+    return [...objective, 'Subject To', ...rows, ...extraRows, 'Bounds', ...bounds.map((b) => ` ${b}`), ...extra, 'End'].join('\n');
   };
 
-  return { recipes, rv, sv, rowItem, lp, demand, given, modOf };
+  return { recipes, plantOf, rv, sv, rowItem, lp, demand, given, modOf };
 }
 
 export function solve(solver: Highs, input: SolveInput): SolveResult {
-  const model = buildModel(input);
-  const { recipes, rv, sv, rowItem, demand, given, modOf } = model;
+  let result = solveWith(solver, input);
+  if (!input.power?.plants.some((p) => plantValid(p) && plantSize(p) === 'auto')) return result;
+  // Overclocked lines place a few machines far past 100% (fewest shards), and power grows faster
+  // than clock, so the placed machines pull more than the balance row charged. Charge each recipe
+  // what its placement really draws and solve again; the counts barely move, so this settles fast.
+  const draw = new Map<string, number>();
+  for (let pass = 0; pass < 4; pass++) {
+    let short = false;
+    for (const u of result.recipes) {
+      const linear = u.count * machinePower(u.recipe, u.mod);
+      if (linear <= EPS || u.power <= linear * (draw.get(u.recipe.id) ?? 1) + 1e-6) continue;
+      draw.set(u.recipe.id, u.power / linear);
+      short = true;
+    }
+    if (!short) break;
+    result = solveWith(solver, input, draw);
+  }
+  return result;
+}
+
+function solveWith(solver: Highs, input: SolveInput, draw?: Map<string, number>): SolveResult {
+  const model = buildModel(input, draw);
+  const { recipes, plantOf, rv, sv, rowItem, demand, given, modOf } = model;
 
   let scale = 1;
   if (Object.keys(input.fixed ?? {}).length > 0) {
@@ -316,6 +412,21 @@ export function solve(solver: Highs, input: SolveInput): SolveResult {
   used.sort((a, b) => depthOf(a.recipe) - depthOf(b.recipe));
   raw.sort((a, b) => b.rate - a.rate);
 
+  let grid: GridResult | undefined;
+  if (input.power) {
+    const boost = gridBoost([...plantOf.values()]);
+    const plants: Record<string, number> = {};
+    let base = 0;
+    for (const u of used) {
+      const plant = plantOf.get(u.recipe.id);
+      if (!plant) continue;
+      const mw = unitPower(plant) * u.count;
+      base += mw;
+      plants[plant.id] = mw * (1 + boost);
+    }
+    grid = { generation: base * (1 + boost), base, boost, plants };
+  }
+
   return {
     recipes: used,
     raw,
@@ -328,6 +439,7 @@ export function solve(solver: Highs, input: SolveInput): SolveResult {
     sloops: used.reduce((s, u) => s + u.sloops, 0),
     scale,
     prices,
+    grid,
   };
 }
 
@@ -347,12 +459,12 @@ export function autoAssign(solver: Highs, input: SolveInput, stock: { sloops: nu
   const inputValue = (u: RecipeUse, r: SolveResult) => u.recipe.inputs.reduce((s, i) => s + i.rate * (r.prices.get(i.item) ?? 0), 0);
 
   const loopable = result.recipes
-    .filter((u) => data.machines[u.recipe.machine].somersloopSlots > 0)
-    .map((u) => ({ u, score: inputValue(u, result) / data.machines[u.recipe.machine].somersloopSlots }))
+    .filter((u) => sloopSlots(u.recipe) > 0)
+    .map((u) => ({ u, score: inputValue(u, result) / sloopSlots(u.recipe) }))
     .sort((a, b) => b.score - a.score);
 
   for (const { u } of loopable) {
-    const slots = data.machines[u.recipe.machine].somersloopSlots;
+    const slots = sloopSlots(u.recipe);
     for (let n = slots; n >= 1; n--) {
       mods[u.recipe.id] = { clock: 1, sloops: n };
       const trial = run();
@@ -370,7 +482,7 @@ export function autoAssign(solver: Highs, input: SolveInput, stock: { sloops: nu
     const left = stock.sloops - result.sloops;
     if (left <= 0) break;
     if (mods[u.recipe.id]) continue;
-    const slots = data.machines[u.recipe.machine].somersloopSlots;
+    const slots = sloopSlots(u.recipe);
     let built = result.recipes.find((x) => x.recipe.id === u.recipe.id)?.built ?? u.built;
     let best: SolveResult | undefined;
     for (let step = 0; step < 4; step++) {

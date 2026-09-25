@@ -9,7 +9,8 @@ import { Slot } from './Slot';
 
 const supplyItems = Object.values(data.items).filter((i) => !i.raw);
 
-function Cards({
+/** Item cards with an amount each: targets, or items already on hand. */
+export function Cards({
   list,
   size,
   onRate,

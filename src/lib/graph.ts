@@ -1,6 +1,7 @@
 import dagre from '@dagrejs/dagre';
 import { Position, type Edge, type Node, type NodeHandle } from '@xyflow/react';
 import { data, transportFor, type Transport } from './data';
+import { plantIdOf } from './power';
 import type { RecipeUse, SolveResult } from './solver';
 
 /** Left to right or top to bottom. The layout picks whichever fits the screen, unless the player chose. */
@@ -10,6 +11,33 @@ export type EndpointKind = 'raw' | 'supply' | 'missing' | 'target' | 'surplus';
 
 export interface MachineNodeData extends Record<string, unknown> {
   use: RecipeUse;
+  /** Generators: MW this plant puts on the grid, augmenter boost included. */
+  generation?: number;
+}
+
+/** Who draws from the grid: a factory, the fuel chain itself, or what the player typed in. */
+export interface Consumer {
+  id: string;
+  label: string;
+  mw: number;
+  tone: 'factory' | 'chain' | 'other';
+}
+
+export interface PowerNodeData extends Record<string, unknown> {
+  kind: 'grid' | 'consumer';
+  label: string;
+  mw: number;
+  tone?: Consumer['tone'];
+  /** Grid: augmenter boost, e.g. 0.3. */
+  boost?: number;
+  /** Grid: generation minus everything drawn; negative when the grid is short. */
+  balance?: number;
+}
+
+/** A power line: generator to grid, grid to what it feeds. */
+export interface PowerEdgeData extends Record<string, unknown> {
+  mw: number;
+  route?: Route;
 }
 
 export interface EndpointNodeData extends Record<string, unknown> {
@@ -67,7 +95,25 @@ function handlesFor(size: { width: number; height: number }, sides: { target: bo
 export const SIZE = {
   machine: { width: 310, height: 130 },
   endpoint: { width: 280, height: 84 },
+  grid: { width: 300, height: 124 },
+  consumer: { width: 260, height: 84 },
 };
+
+type Box = { width: number; height: number };
+
+const scaled = (size: Box, k: number) => ({
+  width: Math.round(size.width * k),
+  height: Math.round(size.height * k),
+});
+
+/**
+ * A card's box on the floor: card size scales all of it, and text size makes room for the bigger
+ * lettering (mostly height, since lines wrap). The CSS sizes the cards with the same formula.
+ */
+export const cardBox = (size: Box, k: number, text: number): Box => ({
+  width: Math.round(size.width * k * (0.6 + 0.4 * text)),
+  height: Math.round(size.height * k * (0.3 + 0.7 * text)),
+});
 
 /**
  * Space kept for each belt label, so labels never sit on a machine. Dagre gives labels a rank of
@@ -84,6 +130,14 @@ export interface GraphOptions {
   dir?: Direction;
   /** The floor the graph is shown on, for picking the direction. */
   box?: { width: number; height: number };
+  /** Card size from the settings; the stylesheet draws the cards at the same scale. */
+  scale?: number;
+  /** Belt label text size from the settings, for the room kept free for labels. */
+  text?: number;
+  /** Room between machines, 1 = default. */
+  spacing?: number;
+  /** Power grid: what it feeds, drawn after the grid node. */
+  consumers?: Consumer[];
 }
 
 /**
@@ -92,6 +146,8 @@ export interface GraphOptions {
  * to splitting every producer proportionally across every consumer.
  */
 export function buildGraph(result: SolveResult, tier: number, opts: GraphOptions = {}): { nodes: Node[]; edges: Edge[]; dir: Direction } {
+  const k = opts.scale ?? 1;
+  const box = (size: Box) => cardBox(size, k, opts.text ?? 1);
   const nodes: Node[] = [];
   const sides = new Map<string, { source: boolean; target: boolean }>();
   const producers = new Map<string, { node: string; rate: number }[]>();
@@ -111,7 +167,7 @@ export function buildGraph(result: SolveResult, tier: number, opts: GraphOptions
       type: 'endpoint',
       position: { x: 0, y: 0 },
       data: { kind, item, rate } satisfies EndpointNodeData,
-      ...SIZE.endpoint,
+      ...box(SIZE.endpoint),
       handles: [],
     });
     sides.set(id, { source, target: !source });
@@ -124,12 +180,13 @@ export function buildGraph(result: SolveResult, tier: number, opts: GraphOptions
 
   for (const u of result.recipes) {
     const id = `recipe:${u.recipe.id}`;
+    const plant = plantIdOf(u.recipe.id);
     nodes.push({
       id,
       type: 'machine',
       position: { x: 0, y: 0 },
-      data: { use: u } satisfies MachineNodeData,
-      ...SIZE.machine,
+      data: { use: u, generation: plant ? (result.grid?.plants[plant] ?? 0) : undefined } satisfies MachineNodeData,
+      ...box(SIZE.machine),
       handles: [],
     });
     sides.set(id, { source: true, target: true });
@@ -168,9 +225,61 @@ export function buildGraph(result: SolveResult, tier: number, opts: GraphOptions
     }
   }
 
+  if (result.grid) addGrid(result, nodes, edges, sides, opts.consumers ?? [], box);
+
   const dir = layout(nodes, edges, opts);
   for (const n of nodes) n.handles = handlesFor({ width: n.width!, height: n.height! }, sides.get(n.id)!, dir);
   return { nodes, edges, dir };
+}
+
+/**
+ * The power grid as a node of its own: every generator feeds it a power line, and it feeds each
+ * consumer, so the whole grid reads left to right from fuel to factories.
+ */
+function addGrid(
+  result: SolveResult,
+  nodes: Node[],
+  edges: Edge[],
+  sides: Map<string, { source: boolean; target: boolean }>,
+  consumers: Consumer[],
+  box: (size: Box) => Box,
+) {
+  const grid = result.grid!;
+  const drawn = consumers.reduce((s, c) => s + c.mw, 0);
+  nodes.push({
+    id: 'grid',
+    type: 'power',
+    position: { x: 0, y: 0 },
+    data: { kind: 'grid', label: '', mw: grid.generation, boost: grid.boost, balance: grid.generation - drawn } satisfies PowerNodeData,
+    ...box(SIZE.grid),
+    handles: [],
+  });
+  sides.set('grid', { source: consumers.length > 0, target: true });
+  for (const u of result.recipes) {
+    const plant = plantIdOf(u.recipe.id);
+    if (!plant) continue;
+    const id = `recipe:${u.recipe.id}`;
+    edges.push({
+      id: `${id}>grid`,
+      source: id,
+      target: 'grid',
+      type: 'power',
+      data: { mw: grid.plants[plant] ?? 0 } satisfies PowerEdgeData,
+    });
+  }
+  for (const c of consumers) {
+    const id = `use:${c.id}`;
+    nodes.push({
+      id,
+      type: 'power',
+      position: { x: 0, y: 0 },
+      data: { kind: 'consumer', label: c.label, mw: c.mw, tone: c.tone } satisfies PowerNodeData,
+      ...box(SIZE.consumer),
+      handles: [],
+    });
+    sides.set(id, { source: false, target: true });
+    edges.push({ id: `grid>${id}`, source: 'grid', target: id, type: 'power', data: { mw: c.mw } satisfies PowerEdgeData });
+  }
 }
 
 type Ranker = 'network-simplex' | 'tight-tree' | 'longest-path';
@@ -185,11 +294,13 @@ interface Placement {
   crossings: number;
 }
 
-function place(nodes: Node[], edges: Edge[], dir: Direction, ranker: Ranker): Placement {
+function place(nodes: Node[], edges: Edge[], dir: Direction, ranker: Ranker, opts: GraphOptions): Placement {
   const g = new dagre.graphlib.Graph({ multigraph: true });
-  g.setGraph({ rankdir: dir, ranker, ...SPACING[dir], marginx: 30, marginy: 30 });
+  const gap = (opts.scale ?? 1) * (opts.spacing ?? 1);
+  const label = scaled(LABEL, opts.text ?? 1);
+  g.setGraph({ rankdir: dir, ranker, nodesep: SPACING[dir].nodesep * gap, ranksep: SPACING[dir].ranksep * gap, marginx: 30, marginy: 30 });
   for (const n of nodes) g.setNode(n.id, { width: n.width, height: n.height });
-  for (const e of edges) g.setEdge(e.source, e.target, { ...LABEL, labelpos: 'c' }, e.id);
+  for (const e of edges) g.setEdge(e.source, e.target, { ...label, labelpos: 'c' }, e.id);
   dagre.layout(g);
   const pos = new Map<string, Point>();
   for (const n of nodes) {
@@ -238,10 +349,11 @@ function crossings(nodes: Node[], edges: Edge[], pos: Map<string, Point>, dir: D
  * belts wins; between directions, the one that shows the whole factory bigger on this screen,
  * unless it's only slightly better than the way the screen is shaped.
  */
-function layout(nodes: Node[], edges: Edge[], { dir, box }: GraphOptions): Direction {
+function layout(nodes: Node[], edges: Edge[], opts: GraphOptions): Direction {
+  const { dir, box } = opts;
   const natural: Direction = box && box.height > box.width ? 'TB' : 'LR';
   const dirs: Direction[] = dir ? [dir] : box ? ['LR', 'TB'] : ['LR'];
-  const best = dirs.map((d) => RANKERS.map((r) => place(nodes, edges, d, r)).reduce((a, b) => (b.crossings < a.crossings ? b : a)));
+  const best = dirs.map((d) => RANKERS.map((r) => place(nodes, edges, d, r, opts)).reduce((a, b) => (b.crossings < a.crossings ? b : a)));
   const fit = (p: Placement) => (box ? Math.min(box.width / p.width, box.height / p.height) : 1);
   const pick = best.reduce((a, b) => {
     const [x, y] = a.dir === natural ? [a, b] : [b, a];
@@ -250,7 +362,7 @@ function layout(nodes: Node[], edges: Edge[], { dir, box }: GraphOptions): Direc
   for (const n of nodes) n.position = pick.pos.get(n.id)!;
   for (const e of edges) {
     const r = pick.routes.get(e.id)!;
-    (e.data as FlowEdgeData).route = { ...r, from: pick.pos.get(e.source)!, to: pick.pos.get(e.target)! };
+    (e.data as FlowEdgeData | PowerEdgeData).route = { ...r, from: pick.pos.get(e.source)!, to: pick.pos.get(e.target)! };
   }
   return pick.dir;
 }

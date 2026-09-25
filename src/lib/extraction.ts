@@ -57,3 +57,19 @@ export function planExtraction(raw: Target[], settings: ExtractionSettings): Ext
   }
   return uses;
 }
+
+/**
+ * MW each raw resource's extractors draw per unit/min, at these settings. The power planner adds it
+ * to the load, so the miners and pumps feeding the generators are paid for too.
+ */
+export function extractionPowerPerUnit(settings: ExtractionSettings): Record<string, number> {
+  const out: Record<string, number> = {};
+  for (const item of Object.values(data.items)) {
+    if (!item.raw) continue;
+    const e = extractorFor(item.id, settings);
+    if (!e) continue;
+    const rate = e.rate * (e.purity ? PURITY[settings.purity] : 1) * settings.clock;
+    out[item.id] = (e.power * settings.clock ** e.powerExp) / rate;
+  }
+  return out;
+}

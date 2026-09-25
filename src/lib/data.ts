@@ -9,6 +9,8 @@ export interface Item {
   sink: number;
   color?: string;
   raw: boolean;
+  /** What it gives a generator: MJ per item, or per m³ for fluids. Only on fuels. */
+  energy?: number;
 }
 
 export interface Stack {
@@ -16,7 +18,8 @@ export interface Stack {
   rate: number;
 }
 
-export type RecipeKind = 'standard' | 'alternate' | 'converter';
+/** 'power' marks the stand-in recipe a power plant becomes for the solver (see lib/power.ts). */
+export type RecipeKind = 'standard' | 'alternate' | 'converter' | 'power';
 
 export interface Recipe {
   id: string;
@@ -71,6 +74,44 @@ export interface Extractor {
   cost: Cost[];
 }
 
+export interface GeneratorFuel {
+  item: string;
+  /** Spent fuel left behind, per fuel item burnt (nuclear waste). */
+  byproduct?: string;
+  byproductAmount?: number;
+}
+
+export interface Generator {
+  id: string;
+  name: string;
+  /** Fuel burners; geothermal, which runs on a geyser; the augmenter, which boosts the whole grid. */
+  kind: 'fuel' | 'geothermal' | 'augmenter';
+  /** MW at 100%: a burner's rating, the augmenter's own output. */
+  power: number;
+  fuels: GeneratorFuel[];
+  /** Also needed while running (water), at supplementRatio litres per MJ made. */
+  supplement?: string;
+  supplementRatio: number;
+  /** Geothermal: average output on a normal geyser is constant + factor, times purity for others. */
+  swing?: { constant: number; factor: number };
+  /** Augmenter: grid-wide boost, and the extra while fed one booster item every duration seconds. */
+  boost?: number;
+  booster?: { item: string; boost: number; duration: number };
+  tier: number;
+  cost: Cost[];
+}
+
+export interface PowerStorage {
+  id: string;
+  name: string;
+  /** MWh held when full. */
+  capacity: number;
+  /** Most it charges or discharges at, MW. */
+  rate: number;
+  tier: number;
+  cost: Cost[];
+}
+
 interface GameData {
   items: Record<string, Item>;
   recipes: Recipe[];
@@ -79,9 +120,20 @@ interface GameData {
   belts: Transport[];
   pipes: Transport[];
   extractors: Extractor[];
+  generators: Generator[];
+  powerStorage: PowerStorage;
 }
 
 export const data = raw as GameData;
+
+export const generatorById = new Map(data.generators.map((g) => [g.id, g]));
+
+/** Any building by id, for its name, icon and cost: production machines, generators and extractors. */
+export const buildingById = (id: string): { id: string; name: string; tier: number; cost: Cost[] } | undefined =>
+  data.machines[id] ??
+  generatorById.get(id) ??
+  data.extractors.find((e) => e.id === id) ??
+  (data.powerStorage.id === id ? data.powerStorage : undefined);
 
 export const recipeById = new Map(data.recipes.map((r) => [r.id, r]));
 
@@ -122,7 +174,7 @@ export function transportFor(item: Item, rate: number, tier = 99): { transport: 
 }
 
 /** Tier that makes a recipe usable: the later of its own unlock and its building's. */
-export const recipeTier = (r: Recipe) => Math.max(r.tier ?? 0, data.machines[r.machine].tier);
+export const recipeTier = (r: Recipe) => Math.max(r.tier ?? 0, buildingById(r.machine)?.tier ?? 0);
 
 /** Is the recipe usable at this tier: its own unlock and its building's. */
 export const recipeUnlocked = (r: Recipe, tier: number) => recipeTier(r) <= tier;

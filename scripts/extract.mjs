@@ -167,6 +167,80 @@ for (const nc of ['FGBuildableResourceExtractor', 'FGBuildableWaterPump', 'FGBui
 extractors.sort((a, b) => a.rate - b.rate || a.name.localeCompare(b.name));
 console.log('extractors', extractors.map((e) => `${e.name}=${e.rate}/min ${e.power}MW`).join(', '));
 
+// ---- Power -------------------------------------------------------------------
+// Burners take fuel (and water, at supplementRatio litres per MJ); nuclear leaves waste behind.
+const generators = [];
+for (const nc of ['FGBuildableGeneratorFuel', 'FGBuildableGeneratorNuclear']) {
+  for (const c of byNative(en, nc)) {
+    const fuels = (c.mFuel ?? []).map((f) => ({
+      item: f.mFuelClass,
+      byproduct: f.mByproduct || undefined,
+      byproductAmount: f.mByproductAmount ? num(f.mByproductAmount) : undefined,
+    }));
+    const supplement = c.mFuel?.find((f) => f.mSupplementalResourceClass)?.mSupplementalResourceClass;
+    for (const f of fuels) {
+      used.add(f.item);
+      if (f.byproduct) used.add(f.byproduct);
+    }
+    if (supplement) used.add(supplement);
+    generators.push({
+      id: c.ClassName,
+      name: c.mDisplayName,
+      kind: 'fuel',
+      power: num(c.mPowerProduction),
+      fuels,
+      supplement,
+      supplementRatio: supplement ? num(c.mSupplementalToPowerRatio) : 0,
+    });
+  }
+}
+for (const c of byNative(en, 'FGBuildableGeneratorGeoThermal')) {
+  generators.push({
+    id: c.ClassName,
+    name: c.mDisplayName,
+    kind: 'geothermal',
+    // Average on a normal geyser; purity scales it, and it swings half of it either way each minute.
+    power: num(c.mVariablePowerProductionConstant) + num(c.mVariablePowerProductionFactor),
+    swing: { constant: num(c.mVariablePowerProductionConstant), factor: num(c.mVariablePowerProductionFactor) },
+    fuels: [],
+    supplementRatio: 0,
+  });
+}
+const boosterFuel = byNative(en, 'FGItemDescriptorPowerBoosterFuel')[0];
+for (const c of byNative(en, 'FGBuildablePowerBooster')) {
+  used.add(boosterFuel.ClassName);
+  generators.push({
+    id: c.ClassName,
+    name: c.mDisplayName,
+    kind: 'augmenter',
+    power: num(c.mBasePowerProduction),
+    // Grid-wide boost, and the extra it gives while fed a matrix every boostDuration seconds.
+    boost: num(c.mBaseBoostPercentage),
+    booster: { item: boosterFuel.ClassName, boost: num(boosterFuel.mBoostPercentage), duration: num(boosterFuel.mBoostDuration) },
+    fuels: [],
+    supplementRatio: 0,
+  });
+}
+const storageClass = byNative(en, 'FGBuildablePowerStorage')[0];
+const powerStorage = {
+  id: storageClass.ClassName,
+  name: storageClass.mDisplayName,
+  capacity: num(storageClass.mPowerStoreCapacity),
+  rate: num(storageClass.mPowerInputCapacity),
+};
+// Fuel energy: MJ per item, or per m³ for fluids (the game stores it per litre).
+const classById = new Map(en.flatMap((g) => g.Classes.map((c) => [c.ClassName, c])));
+for (const g of generators) {
+  for (const f of g.fuels) {
+    const it = allItems[f.item];
+    it.energy = num(classById.get(f.item).mEnergyValue) * (it.form === 'solid' ? 1 : 1000);
+  }
+}
+console.log(
+  'generators',
+  generators.map((g) => `${g.name}=${g.power}MW [${g.fuels.map((f) => allItems[f.item].name).join(', ')}]`).join('; '),
+);
+
 // Buildings: which milestone tier unlocks them and what they cost to place (build gun recipes).
 const buildRecipes = byNative(en, 'FGRecipe').filter((r) => r.mProducedIn.includes('BuildGun'));
 const buildingInfo = (buildId) => {
@@ -175,10 +249,22 @@ const buildingInfo = (buildId) => {
   if (!r) return { tier: 0, cost: [] };
   const cost = parseStacks(r.mIngredients);
   for (const c of cost) used.add(c.item);
-  return { tier: unlockedBy.get(r.ClassName)?.tier ?? 0, cost };
+  const unlock = unlockedBy.get(r.ClassName);
+  // MAM research carries no milestone tier; such a building is usable once its parts can be made.
+  const tier = unlock?.type === 'EST_MAM' ? Math.max(unlock.tier, ...cost.map((c) => partTier(c.item))) : (unlock?.tier ?? 0);
+  return { tier, cost };
 };
+/** Earliest tier a part can be made at with a standard recipe (0 for raw resources and anything with no recipe). */
+function partTier(item) {
+  const tiers = recipes
+    .filter((r) => r.kind === 'standard' && r.outputs.some((o) => o.item === item))
+    .map((r) => Math.max(r.tier ?? 0, machines[r.machine].tier ?? 0));
+  return tiers.length ? Math.min(...tiers) : 0;
+}
 for (const m of Object.values(machines)) Object.assign(m, buildingInfo(m.id));
 for (const e of extractors) Object.assign(e, buildingInfo(e.id));
+for (const g of generators) Object.assign(g, buildingInfo(g.id));
+Object.assign(powerStorage, buildingInfo(powerStorage.id));
 const withTier = (list, nc) =>
   list.map((t) => {
     const c = byNative(en, nc).find((x) => x.mDisplayName.endsWith(t.name));
@@ -199,6 +285,8 @@ console.log(
   Object.values(machines)
     .map((m) => `${m.name}@T${m.tier}`)
     .join(', '),
+  '| generators',
+  [...generators, powerStorage].map((g) => `${g.name}@T${g.tier}`).join(', '),
 );
 
 // Icon texture paths for the .NET icon extractor (tools/icon-extractor). Machines use their building descriptor.
@@ -206,12 +294,19 @@ const iconPath = (s) => s?.match(/Texture2D \/Game\/(.+)\.\w+$/)?.[1];
 const iconManifest = {};
 // Somersloops are never a recipe input or output, but the inventory panel shows them.
 const extraIcons = ['Desc_WAT1_C'];
-const allClasses = new Map(en.flatMap((g) => g.Classes.map((c) => [c.ClassName, c])));
+const allClasses = classById;
 for (const id of [...Object.keys(items), ...extraIcons]) {
   const p = iconPath(allClasses.get(id)?.mSmallIcon);
   if (p) iconManifest[id] = `FactoryGame/Content/${p}`;
 }
-for (const id of [...Object.keys(machines), ...extractors.map((e) => e.id), ...beltsOut.map((b) => b.id), ...pipesOut.map((p) => p.id)]) {
+for (const id of [
+  ...Object.keys(machines),
+  ...extractors.map((e) => e.id),
+  ...beltsOut.map((b) => b.id),
+  ...pipesOut.map((p) => p.id),
+  ...generators.map((g) => g.id),
+  powerStorage.id,
+]) {
   const p = iconPath(allClasses.get(id.replace(/^Build_/, 'Desc_'))?.mSmallIcon);
   if (p) iconManifest[id] = `FactoryGame/Content/${p}`;
 }
@@ -232,7 +327,10 @@ console.log('game', meta);
 
 recipes.sort((a, b) => a.name.localeCompare(b.name));
 fs.mkdirSync(path.dirname(outFile), { recursive: true });
-fs.writeFileSync(outFile, JSON.stringify({ items, recipes, machines, worldLimits, belts: beltsOut, pipes: pipesOut, extractors }));
+fs.writeFileSync(
+  outFile,
+  JSON.stringify({ items, recipes, machines, worldLimits, belts: beltsOut, pipes: pipesOut, extractors, generators, powerStorage }),
+);
 console.log('belts', belts.map((b) => `${b.name}=${b.rate}`).join(' '), '| pipes', pipes.map((p) => `${p.name}=${p.rate}`).join(' '));
 
 const count = (k) => recipes.filter((r) => r.kind === k).length;

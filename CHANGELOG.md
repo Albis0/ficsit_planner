@@ -2,6 +2,40 @@
 
 All notable changes to FICSIT Planner. Dates are when the version was finished.
 
+## 0.5.0 — 2026-09-24
+
+### Added
+
+- **Power planner.** A switch in the top bar flips between the factory planner and the power planner, with a
+  reveal that opens from the switch.
+  - The grid carries the factory tabs you tick, what you type in for everything else, and the spare capacity you
+    want on top.
+  - Power plants: Biomass Burner, Coal-Powered Generator, Fuel-Powered Generator, Nuclear Power Plant with each
+    of their fuels, Geothermal Generator by geyser purity, and the Alien Power Augmenter, fed or not.
+  - A plant can be sized to cover the demand (Auto), a set number of generators, or a set output, at any clock.
+  - The fuel is planned like a factory with its own recipes, limits and extraction, and the power its machines
+    and miners draw is added to the load. Water, nuclear waste and the augmenter boost are counted, and uranium
+    waste feeds a plutonium plant when there is one.
+  - The floor draws the whole grid: ore, fuel chain, generators, a power grid node, and the factories it feeds.
+    Readouts show spare or short, generation, consumption, generators, water, waste and the power mix.
+  - Backup: how many Power Storage units carry the load for a given time, and how long they take to refill.
+- **Settings** (top right):
+  - Put the panel on top, on the left or on the right.
+  - Set the card size, text size and spacing on the floor, belt labels, moving belts and the foundation grid.
+  - Pick the accent and recipe colours and the belt colouring, with a live preview.
+  - Set the interface size, decimals and animations.
+  - Save all factories, the grid and settings to a file, load them back, reset or delete everything.
+- **Feedback** (top right): report a bug or suggest an idea from inside the app, optionally with the factory on
+  screen attached. Reports go to the site's own database; `bun run reports` reads them.
+- Generator and Power Storage icons, energy values for every fuel, and generator data from the game files.
+
+### Fixed
+
+- On phones, a panel folded on a desktop no longer hides the panel page.
+- The "Ready to work offline" note no longer covers the tabs.
+- A layout setting's hint no longer leaves a tall gap above its choices.
+- Saved panel sizes from a bigger window no longer squeeze the floor out of view.
+
 ## 0.4.2 — 2026-09-24
 
 ### Added

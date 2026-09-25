@@ -1,6 +1,7 @@
 import { defineConfig, type Plugin } from 'vite';
 import react from '@vitejs/plugin-react';
 import { VitePWA } from 'vite-plugin-pwa';
+import pkg from './package.json' with { type: 'json' };
 
 // Public address of the site, for the canonical link, social previews, robots.txt and the sitemap.
 // Include the sub-folder when BASE_PATH is set, e.g. https://you.github.io/ficsit_planner.
@@ -71,6 +72,7 @@ export default defineConfig({
       },
     }),
   ],
+  define: { __APP_VERSION__: JSON.stringify(pkg.version) },
   clearScreen: false,
   server: { port: 1420, strictPort: true },
   build: { target: 'es2022', chunkSizeWarningLimit: 4000 },

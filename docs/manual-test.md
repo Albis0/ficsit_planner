@@ -112,9 +112,52 @@ Remove that target with the **×** on its card before going on. *Expect:* you're
   to confirm). *Expect:* each does what it says.
 - [ ] **8.4** The top bar has no "Optimize for" switch.
 
+## 8b. Power planner
+
+- [ ] **P.1** With Motor at 10/min in one factory and Computer at 10/min in another, click **Power** in the switch
+  at the top. *Expect:* the switch thumb slides over and turns yellow, and the new screen opens as a circle from
+  the switch with a ring sweeping out. The page asks "How will you make power?" and says how much your factories
+  draw.
+- [ ] **P.2** Under Coal-Powered Generator, click **Coal**. *Expect:* a graph from coal and water through the
+  generators to a **Power grid** node, and from there to both factories and "Making the fuel". The readouts say
+  Spare in green, about 10% of the load.
+- [ ] **P.3** In the **Power** tab, untick one factory. *Expect:* the generators shrink and that factory leaves the
+  graph. Tick it again.
+- [ ] **P.4** Set **Spare capacity** to 0. *Expect:* Spare drops to a few MW at most.
+- [ ] **P.5** On the coal plant, click **Count** and set it to 5. *Expect:* the readout turns red: Short, and the
+  grid node's stripes turn red.
+- [ ] **P.6** Add a power plant: **Nuclear Power Plant → Uranium Fuel Rod**. *Expect:* a second card set to a
+  count of 1, the power mix bar has two colours, and a Waste readout shows 10 Uranium Waste a minute.
+- [ ] **P.7** Add **Alien Power Augmenter** and tick **Feed Alien Power Matrix**. *Expect:* generation goes up by
+  the boost (+30%), and the graph grows a Quantum Encoder chain for the matrices.
+- [ ] **P.8** Click a generator on the floor. *Expect:* a panel with − / +, the clock and power shards. Set the
+  clock to 250%. *Expect:* fewer generators, each making 2.5 times as much.
+- [ ] **P.9** Set **Carry the whole load for** to 10 minutes. *Expect:* a number of Power Storage units and how long
+  they take to refill.
+- [ ] **P.10** Switch back to **Factory**. *Expect:* your factory, exactly as it was, straight away.
+
+## 8c. Settings and feedback
+
+- [ ] **S.1** Click **Settings** (top right), then **Left** under Panel position. *Expect:* the panel moves to the
+  left of the floor right away. Drag its right edge, then click **Hide panel**: it folds to a strip of tabs
+  standing on end. Put it back on **Top**.
+- [ ] **S.2** **Factory floor:** drag Card size to 130%. *Expect:* the preview's cards grow, and the graph behind
+  the window is laid out again with bigger cards. Try Belt labels **Never** and switch Moving belts off.
+- [ ] **S.3** **Colours:** pick the blue accent. *Expect:* buttons, tabs and standard machine strips turn blue.
+  **Reset all colours** brings the orange back.
+- [ ] **S.4** **Interface:** set the size to 120% and Decimals to 0. *Expect:* the top bar, panel and readouts grow,
+  and numbers lose their decimals.
+- [ ] **S.5** **Your data:** click **Download**, then **Choose file** and pick that file. *Expect:* "Added N
+  factories", and the copies show up as new tabs.
+- [ ] **S.6** Click **Feedback**, keep **Report a bug**, fill in a title and what happened, open **What gets sent**,
+  then **Send report**. *Expect:* a green tick and "Report received … number N". Run `bun run reports` on the
+  developer machine to see it.
+- [ ] **S.7** Click **Suggest an idea**. *Expect:* the fields change (no steps, a row of parts to pick) and the
+  send button turns yellow.
+
 ## 9. Offline and install
 
-- [ ] **9.1** After the first load, a "Ready to work offline" note appears at the top and goes away on its own.
+- [ ] **9.1** After the first load, a "Ready to work offline" note appears at the bottom and goes away on its own.
 - [ ] **9.2** Chrome or Edge: click **Install app** in the top bar (or the install icon in the address bar).
   *Expect:* it opens in its own window, with a FICSIT icon on the desktop or in the Start menu.
 - [ ] **9.3** Turn off Wi-Fi (or DevTools → Network → Offline) and reload. *Expect:* the app still opens and still
@@ -131,7 +174,10 @@ Use a real phone if you can. A desktop browser's device mode is close but isn't 
   overlapping.
 - [ ] **10.3** Pinch to zoom and drag to pan. *Expect:* smooth, and machines don't move when you drag across them.
 - [ ] **10.4** Tap a machine. *Expect:* the machine panel slides up from the bottom, with − / + and the clock.
-- [ ] **10.5** Tap **⋯** (top right). *Expect:* a sheet with Tier, factory actions and Install.
+- [ ] **10.5** Tap **⋯** (top right). *Expect:* a sheet with Tier, factory actions, Settings, Feedback and
+  Install. Settings and Feedback open full screen.
+- [ ] **10.5b** Tap the bolt in the top bar. *Expect:* the power planner, with Power, Recipes and Resources in the
+  bottom bar.
 - [ ] **10.6** iPhone: Share → **Add to Home Screen**, then open it from the home screen. *Expect:* full screen,
   nothing hidden under the notch or the home bar.
 

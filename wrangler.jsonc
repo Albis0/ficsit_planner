@@ -1,7 +1,16 @@
-// Cloudflare Pages: `bun run deploy` builds and uploads dist/ to https://ficsit-planner.pages.dev
+// Cloudflare Pages: `bun run deploy` builds and uploads dist/ (and functions/) to https://ficsit-planner.pages.dev
 {
   "$schema": "./node_modules/wrangler/config-schema.json",
   "name": "ficsit-planner",
   "pages_build_output_dir": "./dist",
-  "compatibility_date": "2026-09-24"
+  "compatibility_date": "2026-09-24",
+  // Feedback from the in-app report dialog (functions/api/report.ts). Read it with `bun run reports`.
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "ficsit-reports",
+      "database_id": "aa0ca4ba-2ca1-4eed-994e-7b618545eb9e",
+      "migrations_dir": "migrations"
+    }
+  ]
 }

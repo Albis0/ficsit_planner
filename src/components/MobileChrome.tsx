@@ -1,6 +1,7 @@
 import { useEffect, useRef } from 'react';
 import { useT } from '../lib/i18n';
 import { usePlan, useStore } from '../store';
+import { Glyph } from './Glyph';
 import { PlanActions } from './PlanTabs';
 import { InstallButton } from './PwaStatus';
 
@@ -11,9 +12,11 @@ export function MobileNav() {
   const tab = useStore((s) => s.tab);
   const pane = useStore((s) => s.pane);
   const set = useStore((s) => s.set);
+  const power = useStore((s) => s.mode === 'power');
+  const plants = useStore((s) => s.grid.plants.length);
 
   const items = [
-    ['targets', t('targets'), plan.targets.length],
+    ['targets', power ? t('powerTab') : t('targets'), power ? plants : plan.targets.length],
     ['recipes', t('recipes'), null],
     ['resources', t('resources'), null],
   ] as const;
@@ -38,11 +41,17 @@ export function MobileNav() {
   );
 }
 
-/** Phone sheet holding what the desktop top bar shows inline: tier, install, factory actions. */
+/** Phone sheet holding what the desktop top bar shows inline: tier, install, factory actions, settings, feedback. */
 export function MobileMenu({ onClose, onTier }: { onClose: () => void; onTier: () => void }) {
   const { t } = useT();
   const tier = useStore((s) => s.tier);
+  const set = useStore((s) => s.set);
+  const power = useStore((s) => s.mode === 'power');
   const dialog = useRef<HTMLDialogElement>(null);
+  const open = (d: 'settings' | 'report') => {
+    onClose();
+    set({ dialog: d });
+  };
 
   useEffect(() => {
     dialog.current?.showModal();
@@ -75,9 +84,21 @@ export function MobileMenu({ onClose, onTier }: { onClose: () => void; onTier: (
             {t('tier')} <b>{tier}</b>
           </button>
         </div>
-        <div className="sheet-row">
-          <span className="control-label">{t('planName')}</span>
-          <PlanActions rename onDone={onClose} />
+        {!power && (
+          <div className="sheet-row">
+            <span className="control-label">{t('planName')}</span>
+            <PlanActions rename onDone={onClose} />
+          </div>
+        )}
+        <div className="sheet-row sheet-links">
+          <button type="button" className="ghost-button" onClick={() => open('settings')}>
+            <Glyph name="gear" size={18} />
+            {t('settings')}
+          </button>
+          <button type="button" className="ghost-button" onClick={() => open('report')}>
+            <Glyph name="flag" size={18} />
+            {t('feedback')}
+          </button>
         </div>
         <InstallButton className="primary-button" />
         <button type="button" className="text-button sheet-close" onClick={onClose}>

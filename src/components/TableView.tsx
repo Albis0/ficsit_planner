@@ -1,7 +1,8 @@
 import { useMemo } from 'react';
-import { data, type Cost } from '../lib/data';
+import { buildingById, data } from '../lib/data';
 import type { ExtractionUse } from '../lib/extraction';
 import { useT } from '../lib/i18n';
+import { plantIdOf } from '../lib/power';
 import { recipeLabel } from '../lib/text';
 import type { SolveResult, Target } from '../lib/solver';
 import { useStore } from '../store';
@@ -18,7 +19,7 @@ function buildBill(result: SolveResult, extraction: ExtractionUse[]) {
 
   const parts = new Map<string, number>();
   for (const [id, n] of buildings) {
-    const cost: Cost[] = data.machines[id]?.cost ?? data.extractors.find((e) => e.id === id)?.cost ?? [];
+    const cost = buildingById(id)?.cost ?? [];
     for (const c of cost) parts.set(c.item, (parts.get(c.item) ?? 0) + c.amount * n);
   }
   return {
@@ -31,6 +32,7 @@ export function TableView({ result, extraction }: { result: SolveResult; extract
   const { t, name, num } = useT();
   const inspect = useStore((s) => s.inspect);
   const set = useStore((s) => s.set);
+  const generated = result.grid?.plants ?? {};
   const bill = useMemo(() => buildBill(result, extraction), [result, extraction]);
 
   const flows = (list: Target[]) =>
@@ -69,7 +71,7 @@ export function TableView({ result, extraction }: { result: SolveResult; extract
               <td className="dim" data-label={t('building')}>
                 <span className="flow">
                   <Icon id={u.recipe.machine} size={34} />
-                  {name(data.machines[u.recipe.machine])}
+                  {name(buildingById(u.recipe.machine))}
                 </span>
               </td>
               <td className="n strong" data-label={t('count')}>
@@ -82,8 +84,8 @@ export function TableView({ result, extraction }: { result: SolveResult; extract
                 {u.shards > 0 && <span className="mod-badge shard">{u.shards} ◆</span>}
                 {u.sloops > 0 && <span className="mod-badge sloop">{u.sloops} ●</span>}
               </td>
-              <td className="n" data-label={t('power')}>
-                {num(u.power)} MW
+              <td className={`n ${u.recipe.kind === 'power' ? 'made' : ''}`} data-label={t('power')}>
+                {u.recipe.kind === 'power' ? `+${num(generated[plantIdOf(u.recipe.id) ?? ''] ?? 0)}` : num(u.power)} MW
               </td>
               <td data-label={t('inputs')}>{flows(u.inputs)}</td>
               <td data-label={t('outputs')}>{flows(u.outputs)}</td>

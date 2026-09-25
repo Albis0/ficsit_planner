@@ -29,12 +29,15 @@
 Production planner for Satisfactory that runs in the browser and works offline. Pick what you want to make
 and how many per minute. A linear programming solver ([HiGHS](https://highs.dev), compiled to WebAssembly)
 picks the recipes, counts the machines, sets their clock speeds and draws the factory as belts and pipes.
+Switch to the power planner and it sizes the generators that run those factories, fuel chain included.
 
 It's a static site you can install as an app (a PWA). Chrome, Edge and Android add a desktop or home-screen
 shortcut, and iPhone and iPad do the same through the Share menu. Once installed it opens in its own window
 and works without a network. There's nothing to download and run. It works on phones and tablets too.
 
 ![The factory graph for 10 motors per minute](docs/desktop-graph.webp)
+
+![The power planner: crude oil refined into fuel runs three generators, which feed the motor factory through the power grid](docs/desktop-power.webp)
 
 <p align="center">
   <img src="docs/phone-graph.webp" width="30%" alt="Phone: the factory runs top to bottom">
@@ -56,7 +59,10 @@ and works without a network. There's nothing to download and run. It works on ph
 | <img src="public/icons/Desc_CrystalShard_C.webp" width="36" alt="Power Shard"> | **Machines and clock speed.** Select a machine and set how many to build, or the clock speed: the other follows, so the work is spread evenly and the clock you see is the clock they run at. Power follows the game's formula. Overclocked lines keep machines at 100% and push only as many past it as needed, so they use the fewest power shards. |
 | <img src="public/icons/Desc_WAT1_C.webp" width="36" alt="Somersloop"> | **Somersloops and auto place.** Set somersloops per machine, or enter how many somersloops and power shards you own and let the planner put them where they save the most. |
 | <img src="public/icons/Build_MinerMk2_C.webp" width="36" alt="Miner Mk.2"> | **Extraction.** Choose the miner, node purity and extractor clock to see how many miners and pumps each resource needs, and their power. |
-| <img src="public/icons/Build_ConveyorBeltMk5_C.webp" width="36" alt="Conveyor Belt Mk.5"> | **Two views.** The factory graph lays itself out left to right or top to bottom, whichever fits your screen better (or pick one), routes belts around machines, colours them by tier and doubles up lanes when one belt can't carry the flow. The panel sits across the top and the graph gets the full width under it. Each machine card has the game's build-menu look: a coloured strip with the product and its power draw, the building underneath with its name, count and clock. Machines holding power shards get a blue edge, somersloops a pink one. Hover or tap a machine to follow its line. The table lists the total build cost of every machine and extractor. |
+| <img src="public/icons/Build_ConveyorBeltMk5_C.webp" width="36" alt="Conveyor Belt Mk.5"> | **Two views.** The factory graph lays itself out left to right or top to bottom, whichever fits your screen better (or pick one), routes belts around machines, colours them by tier and doubles up lanes when one belt can't carry the flow. The panel sits across the top and the graph gets the full width under it, or beside it if you prefer (Settings). Each machine card has the game's build-menu look: a coloured strip with the product and its power draw, the building underneath with its name, count and clock. Machines holding power shards get a blue edge, somersloops a pink one. Hover or tap a machine to follow its line. The table lists the total build cost of every machine and extractor. |
+| <img src="public/icons/Build_GeneratorNuclear_C.webp" width="36" alt="Nuclear Power Plant"> | **Power planner.** Flip the switch in the top bar from Factory to Power. The grid carries every factory tab you tick (machines, miners and pumps), plus whatever you type in for trains and lights, with the spare capacity you want on top. Add power plants: biomass, coal, fuel, nuclear, geothermal and the Alien Power Augmenter, each with its fuel. A plant set to **Auto** is sized to cover the demand, including the power its own fuel chain uses, which the planner builds and draws like any factory: ore to fuel to generators to the grid to your factories. Plants can also be a set count or a set output, at any clock. Water, nuclear waste (and the plutonium chain that uses it), augmenter boost and backup Power Storage are all counted. |
+| <img src="public/icons/Desc_CircuitBoard_C.webp" width="36" alt="Circuit Board"> | **Settings.** Put the panel on top, left or right. Set the card size, text size and spacing on the factory floor, belt labels, moving belts and the foundation grid, the accent and recipe colours, the interface size, decimals and animations, all with a live preview. Save all your factories and settings to a file, and load them back. |
+| <img src="public/icons/Desc_CrystalOscillator_C.webp" width="36" alt="Crystal Oscillator"> | **Feedback.** Report a bug or suggest an idea from inside the app. It goes to the site's own database, optionally with the factory you're looking at, and nothing else is collected. |
 | <img src="public/icons/BP_ItemDescriptorPortableMiner_C.webp" width="36" alt="Portable Miner"> | **Anywhere.** Works offline, installs as an app, and fits phones: one pane at a time with a bottom bar, and the factory runs top to bottom. |
 
 ## Install as an app
@@ -69,10 +75,10 @@ and works without a network. There's nothing to download and run. It works on ph
 After the first visit everything is cached, including the solver and all icons. The planner then works without a
 network. Updates install on their own the next time you open it, and your factories stay saved in the browser.
 
-To make everything bigger or smaller, use the browser's zoom (Ctrl + / Ctrl −, or pinch on a touch screen). On a
-desktop, drag the panel's bottom edge to make it taller or shorter (double-click the edge to reset it), or click
-**Hide panel** to give the factory the whole screen. Amounts have up and down buttons (and the arrow keys) that
-move them one whole number at a time.
+To make the cards or the interface bigger or smaller, open **Settings** (top right). The browser's zoom (Ctrl + /
+Ctrl −, or pinch on a touch screen) works too. On a desktop, drag the panel's edge to resize it (double-click the
+edge to reset it), or click **Hide panel** to give the factory the whole screen. Amounts have up and down buttons
+(and the arrow keys) that move them one whole number at a time.
 
 ## Development
 
@@ -102,13 +108,31 @@ the command with `MSYS_NO_PATHCONV=1` if you want to stay in Git Bash.
 
 ### Deploying
 
-The live site is on Cloudflare Pages. `wrangler.jsonc` names the project, and `public/_headers` sets the security
-headers and long caching for the hashed files in `assets/`.
+The live site is on Cloudflare Pages. `wrangler.jsonc` names the project and its feedback database, and
+`public/_headers` sets the security headers and long caching for the hashed files in `assets/`.
 
 ```sh
 bunx wrangler login   # once, opens the browser
-bun run deploy        # build, then upload dist/ to https://ficsit-planner.pages.dev
+bun run deploy        # build, then upload dist/ and functions/ to https://ficsit-planner.pages.dev
 ```
+
+### Feedback from players
+
+The in-app **Feedback** window posts to `functions/api/report.ts`, a Pages Function that stores each report in a
+D1 database (`ficsit-reports`, schema in `migrations/`). It checks the fields, turns away other sites, drops bots
+that fill a hidden field, strips control characters, and allows six reports an hour per sender. Senders are kept for
+an hour as a salted hash for that limit and never with a report. Read the reports from your machine:
+
+```sh
+bun run reports            # open reports, newest first
+bun run reports show 12    # one in full, with the factory it came with
+bun run reports done 12    # mark it handled
+bun run reports md         # write the open ones to reports/feedback.md
+bun run db:migrate         # apply a new schema file in migrations/ to the live database
+```
+
+Add `--local` to any of them to read the database `bunx wrangler pages dev dist` uses instead. The salt is the
+`REPORT_SALT` secret on the Pages project. See [docs/feedback.md](docs/feedback.md) for the details.
 
 `SITE_URL` (default `https://ficsit-planner.pages.dev`) goes into the canonical link, the social preview tags,
 `robots.txt` and `sitemap.xml`, which the build writes. Set it when you host the site somewhere else, including the
@@ -134,6 +158,10 @@ See [CONTRIBUTING.md](CONTRIBUTING.md) for code style and what to check before a
   machine-power term so it never builds machines it doesn't need. Missing items cost 10⁵ each, so they only appear
   when nothing else works. The solver can also minimise power instead; the app doesn't offer it, because with
   standard recipes both goals nearly always pick the same factory.
+- **Power plants** join the model as stand-in recipes: one "machine" is one generator at its clock, taking its
+  fuel and water and leaving its waste, so the fuel chain is solved like any factory. When a plant is set to Auto,
+  one more row says generation (times the augmenter boost) must cover the outside demand plus every machine and
+  extractor in the plan, with the spare capacity on top. Fixed plants are pinned to their count or output.
 - **Pinned inputs** are solved in two passes. The first maximises a scale factor *k* on all targets, with the
   pinned resources as hard limits. The second solves the normal objective at that *k*.
 - **Shadow prices** of the item rows give the marginal raw cost of each item. Auto place uses them to send
@@ -152,14 +180,18 @@ the belt count low. dagre lays the graph out left to right, or top to bottom on 
 | `src/lib/solver.ts` | LP model, solve, somersloop/shard auto placement |
 | `src/lib/solver.worker.ts`, `solverClient.ts` | the solver in a Web Worker, and its promise API |
 | `src/lib/graph.ts` | solution → nodes and belts; layout tries both directions and three rankings, keeps the one that fits the screen with the fewest crossings, and routes belts through space kept for their labels |
-| `src/lib/extraction.ts` | miner and pump counts per node purity |
+| `src/lib/extraction.ts` | miner and pump counts per node purity, and their MW per unit for the power planner |
+| `src/lib/power.ts`, `src/lib/solution.ts` | power plants as solver recipes, and the hooks that solve factories and the grid |
+| `src/lib/settings.ts`, `src/lib/backup.ts` | settings and the CSS variables they set; save and load a copy |
+| `src/lib/feedback.ts`, `src/lib/feedback-schema.ts`, `functions/api/report.ts` | the feedback window's request, its checks, and the endpoint that stores it |
 | `src/lib/data.ts` | typed access to the game data, belt/pipe choice per flow, unlock tiers and why an item can't be made |
 | `src/locales/en.ts`, `src/lib/lang.ts`, `src/lib/i18n.ts` | UI strings, language registry, `useT()` |
 | `src/lib/install.ts`, `src/components/PwaStatus.tsx` | install button and offline status |
 | `index.html`, `vite.config.ts` | page title, search and social preview tags, PWA manifest, `robots.txt` and sitemap |
 | `public/_headers`, `public/404.html`, `wrangler.jsonc` | Cloudflare Pages headers, not-found page, project config |
 | `src/store.ts` | app state (zustand), saved to `localStorage` |
-| `src/components/` | panels, graph view, table view, inspector, phone navigation, panel splitter |
+| `src/components/` | panels, graph view, table view, inspector, power panel and floor, mode switch, settings and feedback windows, phone navigation, panel splitter |
+| `migrations/`, `scripts/reports.mjs` | feedback database schema, and reading the reports |
 | `scripts/extract.mjs` | game data extractor |
 | `tools/icon-extractor/` | .NET icon extractor |
 | `tests/` | solver, extraction, auto placement, graph layout, unlock tiers, saved state and string tests |
@@ -179,7 +211,7 @@ saved factories when they load.
 
 | File | What | Made by |
 | --- | --- | --- |
-| `src/data/gamedata.json` | items, recipes, buildings, belts, extractors | `bun run extract` |
+| `src/data/gamedata.json` | items, recipes, buildings, belts, extractors, generators and fuel energy | `bun run extract` |
 | `src/data/meta.json` | which game build the data came from | `bun run extract` |
 | `src/data/icon-manifest.json` | icon texture path per item/building | `bun run extract` |
 | `public/icons/*.webp` | item and building icons | `bun run icons` |

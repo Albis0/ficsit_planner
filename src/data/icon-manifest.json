@@ -183,5 +183,12 @@
  "Build_ConveyorBeltMk5_C": "FactoryGame/Content/FactoryGame/Buildable/Factory/ConveyorBeltMk5/UI/ConveyorMk5_512",
  "Build_ConveyorBeltMk6_C": "FactoryGame/Content/FactoryGame/Buildable/Factory/ConveyorBeltMk6/UI/ConveyorMk6_512",
  "Build_Pipeline_C": "FactoryGame/Content/FactoryGame/Buildable/Factory/Pipeline/UI/IconDesc_PipeMK1Indicator_512",
- "Build_PipelineMK2_C": "FactoryGame/Content/FactoryGame/Buildable/Factory/Pipeline/UI/IconDesc_PipeMK2Indicator_512"
+ "Build_PipelineMK2_C": "FactoryGame/Content/FactoryGame/Buildable/Factory/Pipeline/UI/IconDesc_PipeMK2Indicator_512",
+ "Build_GeneratorBiomass_Automated_C": "FactoryGame/Content/FactoryGame/Buildable/Factory/GeneratorBiomass/UI/BiomassGenerator_512",
+ "Build_GeneratorCoal_C": "FactoryGame/Content/FactoryGame/Buildable/Factory/GeneratorCoal/UI/IconDesc_CoalGenerator_512",
+ "Build_GeneratorFuel_C": "FactoryGame/Content/FactoryGame/Buildable/Factory/GeneratorFuel/UI/FuelGenerator_512",
+ "Build_GeneratorNuclear_C": "FactoryGame/Content/FactoryGame/Buildable/Factory/GeneratorNuclear/UI/NuclearPowerplant_512",
+ "Build_GeneratorGeoThermal_C": "FactoryGame/Content/FactoryGame/Buildable/Factory/GeneratorGeoThermal/UI/GeoThermalPowerGenerator_512",
+ "Build_AlienPowerBuilding_C": "FactoryGame/Content/FactoryGame/Buildable/Factory/AlienPower/UI/IconDesc_AlienPowerAugmenter_512",
+ "Build_PowerStorageMk1_C": "FactoryGame/Content/FactoryGame/Buildable/Factory/PowerStorage/UI/IconDesc_PowerStorage_512"
 }

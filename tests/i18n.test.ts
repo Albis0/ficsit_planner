@@ -16,6 +16,18 @@ const DYNAMIC = [
   'errInfeasible',
   'errPinnedInfeasible',
   'errStopped',
+  'sizeAuto',
+  'sizeCount',
+  'sizePower',
+  'genNote_fuel',
+  'genNote_geothermal',
+  'genNote_augmenter',
+  'areaGraph',
+  'areaPower',
+  'areaRecipes',
+  'areaResources',
+  'areaLook',
+  'areaOther',
 ];
 
 const sources = (dir: string): string[] =>

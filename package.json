@@ -1,7 +1,7 @@
 {
   "name": "ficsit-planner",
   "private": true,
-  "version": "0.4.2",
+  "version": "0.5.0",
   "description": "Offline production planner for Satisfactory, as an installable web app",
   "license": "GPL-3.0-or-later",
   "homepage": "https://ficsit-planner.pages.dev",
@@ -17,9 +17,11 @@
     "test": "bun test",
     "icons": "dotnet run --project tools/icon-extractor -c Release -- \"C:/Program Files/Epic Games/Satisfactory\" src/data/icon-manifest.json public/icons 96",
     "preview": "vite preview",
-    "deploy": "bun run build && wrangler pages deploy",
+    "deploy": "bun run build && wrangler d1 migrations apply ficsit-reports --remote && wrangler pages deploy",
+    "reports": "bun scripts/reports.mjs",
+    "db:migrate": "wrangler d1 migrations apply ficsit-reports --remote",
     "pwa-icons": "pwa-assets-generator",
-    "check": "biome check .",
+    "check": "biome check . && tsc -p functions",
     "format": "biome check --write ."
   },
   "dependencies": {
@@ -34,6 +36,7 @@
   },
   "devDependencies": {
     "@biomejs/biome": "2.5.14",
+    "@cloudflare/workers-types": "4",
     "@types/node": "^26.6.2",
     "@types/react": "^19.3.0",
     "@types/react-dom": "^19.3.0",

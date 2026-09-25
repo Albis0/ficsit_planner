@@ -18,15 +18,28 @@ import {
 } from '@xyflow/react';
 import '@xyflow/react/dist/base.css';
 import { createContext, type ReactNode, useContext, useEffect, useMemo, useState } from 'react';
+import { BELT_COLORS } from '../lib/belts';
 import { groupClocks } from '../lib/clocks';
 import { data } from '../lib/data';
 import type { ExtractionUse } from '../lib/extraction';
-import { buildGraph, type Direction, type EndpointNodeData, type FlowEdgeData, type MachineNodeData, type Point } from '../lib/graph';
+import {
+  buildGraph,
+  type Consumer,
+  type Direction,
+  type EndpointNodeData,
+  type FlowEdgeData,
+  type MachineNodeData,
+  type Point,
+  type PowerEdgeData,
+  type PowerNodeData,
+} from '../lib/graph';
 import { useT } from '../lib/i18n';
+import { generatorById } from '../lib/data';
 import { recipeLabel } from '../lib/text';
 import { COARSE, useMediaQuery } from '../lib/useMediaQuery';
 import type { SolveResult } from '../lib/solver';
 import { usePlan, useStore } from '../store';
+import { Glyph } from './Glyph';
 import { Icon } from './Icon';
 import { Slot } from './Slot';
 
@@ -40,9 +53,6 @@ const outSide = (dir: Direction) => (dir === 'TB' ? Position.Bottom : Position.R
 
 /** Extractor counts per raw resource, shown on the ore/fluid source nodes. */
 const Extraction = createContext<Map<string, ExtractionUse>>(new Map());
-
-/** Belt colours by tier, Mk.1 to Mk.6: a ramp so faster belts read as "hotter". */
-export const BELT_COLORS = ['#8b939b', '#5f95d0', '#46b5a5', '#85c35a', '#e2b53e', '#ee7a3a'];
 
 const beltIndex = (id: string) =>
   Math.max(
@@ -74,14 +84,73 @@ function modBar(shards: number, sloops: number): string | undefined {
   return undefined;
 }
 
-function MachineNode({ id, data: d, selected }: NodeProps) {
+/** The count-and-clock line: "3 × 83.33%", or "2 × 150% + 1 × 100%" when a line is partly overclocked. */
+function RunLine({ clocks }: { clocks: number[] }) {
+  const { num } = useT();
+  return (
+    <span className="machine-run">
+      {groupClocks(clocks).map((g, i) => (
+        // biome-ignore lint/suspicious/noArrayIndexKey: clock groups are derived in a fixed order and never reordered.
+        <span key={i} className={g.clock > 1 + 1e-6 ? 'over' : undefined}>
+          {i > 0 && <span className="plus">+</span>}
+          <b>{g.n}</b>
+          <span className="times">×</span>
+          {num(g.clock * 100)}%
+        </span>
+      ))}
+    </span>
+  );
+}
+
+/** A row of generators: the strip names the fuel and what they put on the grid, the building below. */
+function GeneratorNode({ id, data: d, selected }: NodeProps) {
+  const { name, num } = useT();
+  const { use, generation = 0 } = d as MachineNodeData;
+  const dir = useContext(Flow);
+  const faded = useFaded(id);
+  const gen = generatorById.get(use.recipe.machine);
+  const fuel = use.recipe.inputs.find((i) => data.items[i.item]?.energy)?.item;
+  return (
+    <div
+      className={`machine-node power gen-${gen?.kind ?? 'fuel'} ${faded ? 'faded' : ''} ${selected ? 'selected' : ''}`}
+      style={use.shards > 0 ? { ['--mod-bar' as string]: 'var(--shard)' } : undefined}
+    >
+      <Handle type="target" position={inSide(dir)} />
+      <div className="machine-strip">
+        <Icon id={fuel ?? use.recipe.machine} size={30} className="strip-icon" />
+        <span className="machine-product">{fuel ? name(data.items[fuel]) : name(gen)}</span>
+        <span className="machine-power made">
+          <Glyph name="bolt" size={15} />
+          {num(generation)}
+          <small>MW</small>
+        </span>
+      </div>
+      <div className="machine-body">
+        <Icon id={use.recipe.machine} size={60} className="machine-icon" />
+        <span className="machine-info">
+          <span className="machine-type">{name(gen)}</span>
+          <RunLine clocks={use.clocks} />
+          {use.shards > 0 && (
+            <span className="machine-mods">
+              <span className="mod-badge shard">{use.shards} ◆</span>
+            </span>
+          )}
+        </span>
+      </div>
+      <Handle type="source" position={outSide(dir)} />
+    </div>
+  );
+}
+
+function MachineNode(props: NodeProps) {
+  const { id, data: d, selected } = props;
   const { name, num } = useT();
   const { use } = d as MachineNodeData;
   const dir = useContext(Flow);
   const { recipe } = use;
   const faded = useFaded(id);
+  if (recipe.kind === 'power') return <GeneratorNode {...props} />;
   const bar = modBar(use.shards, use.sloops);
-  const groups = groupClocks(use.clocks);
   return (
     <div
       className={`machine-node ${recipe.kind} ${faded ? 'faded' : ''} ${selected ? 'selected' : ''}`}
@@ -102,17 +171,7 @@ function MachineNode({ id, data: d, selected }: NodeProps) {
         <span className="machine-info">
           <span className="machine-type">{name(data.machines[recipe.machine])}</span>
           {/* Count and clock read as one: "3 × 83.33%" is three machines at 83.33% each. */}
-          <span className="machine-run">
-            {groups.map((g, i) => (
-              // biome-ignore lint/suspicious/noArrayIndexKey: clock groups are derived in a fixed order and never reordered.
-              <span key={i} className={g.clock > 1 + 1e-6 ? 'over' : undefined}>
-                {i > 0 && <span className="plus">+</span>}
-                <b>{g.n}</b>
-                <span className="times">×</span>
-                {num(g.clock * 100)}%
-              </span>
-            ))}
-          </span>
+          <RunLine clocks={use.clocks} />
           {(use.shards > 0 || use.sloops > 0) && (
             <span className="machine-mods">
               {use.shards > 0 && <span className="mod-badge shard">{use.shards} ◆</span>}
@@ -131,7 +190,17 @@ function PinnableRate({ item, rate }: { item: string; rate: number }) {
   const { t, num } = useT();
   const fixed = usePlan().fixed[item];
   const setFixed = useStore((s) => s.setFixed);
+  const power = useStore((s) => s.mode === 'power');
   const [editing, setEditing] = useState(false);
+
+  if (power) {
+    return (
+      <span className="endpoint-rate">
+        {num(rate)}
+        <small>{t('perMin')}</small>
+      </span>
+    );
+  }
 
   if (editing) {
     const commit = (text: string) => {
@@ -210,6 +279,96 @@ function EndpointNode({ id, data: d }: NodeProps) {
   );
 }
 
+/** The grid itself, and each thing it feeds. */
+function PowerNode({ id, data: d }: NodeProps) {
+  const { t, num } = useT();
+  const { kind, label, mw, tone, boost, balance = 0 } = d as PowerNodeData;
+  const dir = useContext(Flow);
+  const faded = useFaded(id);
+  const hasOut = useFlowStore((s) => s.edges.some((e) => e.source === id));
+  if (kind === 'grid') {
+    const short = balance < -0.5;
+    return (
+      <div className={`power-node grid ${short ? 'short' : ''} ${faded ? 'faded' : ''}`}>
+        <Handle type="target" position={inSide(dir)} />
+        <span className="grid-head">
+          <Glyph name="bolt" size={18} />
+          {t('powerGrid')}
+        </span>
+        <span className="grid-mw">
+          {num(mw)}
+          <small>MW</small>
+        </span>
+        <span className="grid-foot">
+          <span className={short ? 'bad' : 'good'}>{short ? t('shortBy', { mw: num(-balance) }) : t('spareBy', { mw: num(balance) })}</span>
+          {!!boost && <span className="grid-boost">{t('boostTag', { boost: num(boost * 100) })}</span>}
+        </span>
+        {hasOut && <Handle type="source" position={outSide(dir)} />}
+      </div>
+    );
+  }
+  return (
+    <div className={`power-node consumer ${tone ?? ''} ${faded ? 'faded' : ''}`}>
+      <Handle type="target" position={inSide(dir)} />
+      <Glyph name={tone === 'chain' ? 'bolt' : tone === 'other' ? 'sliders' : 'factory'} size={26} />
+      <span className="consumer-text">
+        <span className="consumer-kind">{tone === 'chain' ? t('fuelChain') : tone === 'other' ? t('otherLoad') : t('planName')}</span>
+        <span className="consumer-name">{label}</span>
+      </span>
+      <span className="consumer-mw">
+        {num(mw)}
+        <small>MW</small>
+      </span>
+    </div>
+  );
+}
+
+/** A power line: a dark cable with current pulsing along its core. */
+function PowerEdge({ source, target, sourceX, sourceY, targetX, targetY, sourcePosition, targetPosition, data: d }: EdgeProps) {
+  const { num } = useT();
+  const focus = useContext(Focus);
+  const zoom = useFlowStore(zoomSelector);
+  const labels = useStore((s) => s.settings.beltLabels);
+  const { mw, route } = d as PowerEdgeData;
+  const dir = useContext(Flow);
+  const from = useInternalNode(source)?.internals.positionAbsolute;
+  const to = useInternalNode(target)?.internals.positionAbsolute;
+  let path: string;
+  let lx: number;
+  let ly: number;
+  if (route && !moved(from, route.from) && !moved(to, route.to)) {
+    path = routePath([{ x: sourceX, y: sourceY }, ...route.points, { x: targetX, y: targetY }], dir);
+    lx = route.label.x;
+    ly = route.label.y;
+  } else {
+    [path, lx, ly] = getBezierPath({ sourceX, sourceY, targetX, targetY, sourcePosition, targetPosition });
+  }
+  const lit = focus.node !== undefined && (source === focus.node || target === focus.node);
+  const faded = focus.node !== undefined && !lit;
+  const state = `${faded ? 'faded' : ''} ${lit ? 'lit' : ''}`;
+  const showLabel = labels === 'always' || lit || (labels === 'auto' && zoom !== 'far');
+  return (
+    <>
+      <g className={`power-edge ${state}`}>
+        <path d={path} className="cable" />
+        <path d={path} className="cable-core" />
+      </g>
+      {showLabel && (
+        <EdgeLabelRenderer>
+          <div className="edge-anchor" style={{ transform: `translate(-50%, -50%) translate(${lx}px, ${ly}px)` }}>
+            <div className={`edge-label power ${state}`}>
+              <Glyph name="bolt" size={16} />
+              <span className="edge-rate">
+                {num(mw)} <small>MW</small>
+              </span>
+            </div>
+          </div>
+        </EdgeLabelRenderer>
+      )}
+    </>
+  );
+}
+
 /**
  * A belt through the route's bends. Each stretch leaves and arrives straight along the line's
  * direction, so it never overshoots or loops where several belts meet at one input.
@@ -237,6 +396,8 @@ function FlowEdge({ source, target, sourceX, sourceY, targetX, targetY, sourcePo
   const { name, num, t } = useT();
   const focus = useContext(Focus);
   const zoom = useFlowStore(zoomSelector);
+  const labels = useStore((s) => s.settings.beltLabels);
+  const oneColor = useStore((s) => s.settings.beltColors === 'one');
   const { item, rate, transport, lanes, route } = d as FlowEdgeData;
   const it = data.items[item];
   const dir = useContext(Flow);
@@ -256,7 +417,7 @@ function FlowEdge({ source, target, sourceX, sourceY, targetX, targetY, sourcePo
   const fluid = it.form !== 'solid';
   const lit = focus.node !== undefined && (source === focus.node || target === focus.node);
   const faded = focus.node !== undefined && !lit;
-  const showLabel = zoom !== 'far' || lit;
+  const showLabel = labels === 'always' || lit || (labels === 'auto' && zoom !== 'far');
   const state = `${faded ? 'faded' : ''} ${lit ? 'lit' : ''}`;
 
   let body: ReactNode;
@@ -273,7 +434,7 @@ function FlowEdge({ source, target, sourceX, sourceY, targetX, targetY, sourcePo
     );
   } else {
     const mk = beltIndex(transport.id);
-    tierColor = BELT_COLORS[Math.min(mk, BELT_COLORS.length - 1)];
+    tierColor = oneColor ? BELT_COLORS[0] : BELT_COLORS[Math.min(mk, BELT_COLORS.length - 1)];
     const w = 12 + 5 * (lanes - 1);
     body = (
       <g
@@ -292,25 +453,23 @@ function FlowEdge({ source, target, sourceX, sourceY, targetX, targetY, sourcePo
       {body}
       {showLabel && (
         <EdgeLabelRenderer>
-          <div
-            className={`edge-label ${state}`}
-            style={{ transform: `translate(-50%, -50%) translate(${lx}px, ${ly}px)` }}
-            title={name(it)}
-          >
-            <Icon id={item} size={zoom === 'near' ? 30 : 24} />
-            <span className="edge-text">
-              {zoom === 'near' && <span className="edge-item">{name(it)}</span>}
-              <span className="edge-meta">
-                <span className="edge-rate">
-                  {num(rate)}
-                  {t('perMin')}
-                </span>
-                <span className="edge-tier" style={{ background: tierColor }}>
-                  {lanes > 1 && `${lanes}× `}
-                  {transport.name}
+          <div className="edge-anchor" style={{ transform: `translate(-50%, -50%) translate(${lx}px, ${ly}px)` }}>
+            <div className={`edge-label ${state}`} title={name(it)}>
+              <Icon id={item} size={zoom === 'near' ? 30 : 24} />
+              <span className="edge-text">
+                {zoom === 'near' && <span className="edge-item">{name(it)}</span>}
+                <span className="edge-meta">
+                  <span className="edge-rate">
+                    {num(rate)}
+                    {t('perMin')}
+                  </span>
+                  <span className="edge-tier" style={{ background: tierColor }}>
+                    {lanes > 1 && `${lanes}× `}
+                    {transport.name}
+                  </span>
                 </span>
               </span>
-            </span>
+            </div>
           </div>
         </EdgeLabelRenderer>
       )}
@@ -318,8 +477,8 @@ function FlowEdge({ source, target, sourceX, sourceY, targetX, targetY, sourcePo
   );
 }
 
-const nodeTypes = { machine: MachineNode, endpoint: EndpointNode };
-const edgeTypes = { flow: FlowEdge };
+const nodeTypes = { machine: MachineNode, endpoint: EndpointNode, power: PowerNode };
+const edgeTypes = { flow: FlowEdge, power: PowerEdge };
 
 /** The direction switch (left to right or top to bottom) and fit to screen. */
 function FloorControls() {
@@ -383,6 +542,7 @@ let camera: { sig: string; viewport?: Viewport } = { sig: '' };
 function Canvas({ nodes, edges, sig, dir }: { nodes: Node[]; edges: Edge[]; sig: string; dir: Direction }) {
   const inspect = useStore((s) => s.inspect);
   const set = useStore((s) => s.set);
+  const gridLines = useStore((s) => s.settings.gridLines);
   const [hover, setHover] = useState<string>();
   const [restore] = useState(() => (camera.sig === sig ? camera.viewport : undefined));
   // Dragging nodes with a finger fights panning; touch screens pan and pinch only.
@@ -440,21 +600,40 @@ function Canvas({ nodes, edges, sig, dir }: { nodes: Node[]; edges: Edge[]; sig:
         onPaneClick={() => set({ inspect: undefined })}
       >
         {/* Foundation grid: minor lines every 8 m tile, a heavier seam every 4 tiles. */}
-        <Background id="minor" variant={BackgroundVariant.Lines} gap={40} lineWidth={1} color="#2a2e33" />
-        <Background id="major" variant={BackgroundVariant.Lines} gap={160} lineWidth={1} color="#383e45" />
+        {gridLines && <Background id="minor" variant={BackgroundVariant.Lines} gap={40} lineWidth={1} color="#2a2e33" />}
+        {gridLines && <Background id="major" variant={BackgroundVariant.Lines} gap={160} lineWidth={1} color="#383e45" />}
         <FloorControls />
       </ReactFlow>
     </Focus.Provider>
   );
 }
 
-export function GraphView({ result, extraction }: { result: SolveResult; extraction: ExtractionUse[] }) {
+export function GraphView({
+  result,
+  extraction,
+  consumers,
+}: {
+  result: SolveResult;
+  extraction: ExtractionUse[];
+  /** Power planner: what the grid feeds. */
+  consumers?: Consumer[];
+}) {
   const tier = useStore((s) => s.tier);
   const chosen = useStore((s) => s.graphDir);
+  const scale = useStore((s) => s.settings.cardScale);
+  const text = useStore((s) => s.settings.textScale);
+  const spacing = useStore((s) => s.settings.spacing);
   // Uncontrolled flow remounted per solve: nodes stay draggable, and each new solve lays out fresh.
   const { nodes, edges, dir, key, sig } = useMemo(() => {
     const box = document.querySelector('.floor-view')?.getBoundingClientRect();
-    const g = buildGraph(result, tier, { dir: chosen, box: box && { width: box.width, height: box.height } });
+    const g = buildGraph(result, tier, {
+      dir: chosen,
+      box: box && { width: box.width, height: box.height },
+      scale,
+      text,
+      spacing,
+      consumers,
+    });
     return {
       ...g,
       key: ++solveCount,
@@ -464,7 +643,7 @@ export function GraphView({ result, extraction }: { result: SolveResult; extract
           .sort()
           .join('|') + g.dir,
     };
-  }, [result, tier, chosen]);
+  }, [result, tier, chosen, scale, text, spacing, consumers]);
   const exMap = useMemo(() => new Map(extraction.map((u) => [u.item, u])), [extraction]);
   return (
     <Extraction.Provider value={exMap}>
