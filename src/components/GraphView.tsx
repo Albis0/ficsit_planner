@@ -48,6 +48,14 @@ const Focus = createContext<{ node?: string; near: Set<string> }>({ near: new Se
 
 /** Which way the line runs, so node handles sit on the matching sides. */
 const Flow = createContext<Direction>('LR');
+
+/** Items this factory trades with other tabs: what it sends where, what it takes from where, and its own products. */
+export interface FactoryLinks {
+  to: Map<string, { name: string; rate: number }[]>;
+  from: Map<string, string>;
+  own: Set<string>;
+}
+const Links = createContext<FactoryLinks | undefined>(undefined);
 const inSide = (dir: Direction) => (dir === 'TB' ? Position.Top : Position.Left);
 const outSide = (dir: Direction) => (dir === 'TB' ? Position.Bottom : Position.Right);
 
@@ -246,35 +254,52 @@ function EndpointNode({ id, data: d }: NodeProps) {
   const faded = useFaded(id);
   const ex = useContext(Extraction).get(item);
   const dir = useContext(Flow);
-  const label = { raw: t('rawInput'), supply: t('onHand'), missing: t('bringIn'), target: t('output'), surplus: t('surplus') }[kind];
+  const links = useContext(Links);
+  const sent = kind === 'target' ? links?.to.get(item) : undefined;
+  const source = kind === 'supply' ? links?.from.get(item) : undefined;
+  const onlySent = sent && !links?.own.has(item);
+  const label = onlySent
+    ? t('toFactoryLabel', { name: sent.map((x) => x.name).join(', ') })
+    : source
+      ? t('fromFactoryLabel', { name: source })
+      : { raw: t('rawInput'), supply: t('onHand'), missing: t('bringIn'), target: t('output'), surplus: t('surplus') }[kind];
   const it = data.items[item];
-  const source = kind === 'raw' || kind === 'supply' || kind === 'missing';
+  const feeds = kind === 'raw' || kind === 'supply' || kind === 'missing';
   return (
     <div
       className={`endpoint-node ${kind} ${faded ? 'faded' : ''}`}
       style={it.form !== 'solid' ? { ['--fluid-color' as string]: it.color ?? 'var(--fluid)' } : undefined}
     >
-      {!source && <Handle type="target" position={inSide(dir)} />}
+      {!feeds && <Handle type="target" position={inSide(dir)} />}
       <Slot id={item} size={60} tone={kind === 'target' ? 'target' : 'default'} />
       <span className="endpoint-text">
         <span className="endpoint-kind">{label}</span>
         <span className="endpoint-name">{name(it)}</span>
-        {kind === 'raw' && ex && (
-          <span className="endpoint-extract">
-            <Icon id={ex.extractor.id} size={22} />
-            {ex.built}× {name(ex.extractor)}
-          </span>
-        )}
-      </span>
-      {kind === 'raw' ? (
-        <PinnableRate item={item} rate={rate} />
-      ) : (
-        <span className="endpoint-rate">
-          {num(rate)}
-          <small>{t('perMin')}</small>
+        {/* The amount under the name, so a long name or a wide typeface keeps the whole width; its miners or
+            where part of it goes beside it. */}
+        <span className="endpoint-line">
+          {kind === 'raw' ? (
+            <PinnableRate item={item} rate={rate} />
+          ) : (
+            <span className="endpoint-rate">
+              {num(rate)}
+              <small>{t('perMin')}</small>
+            </span>
+          )}
+          {sent && !onlySent && (
+            <span className="endpoint-extract">
+              {sent.map((x) => t('alsoSent', { rate: `${num(x.rate)}${t('perMin')}`, name: x.name })).join(', ')}
+            </span>
+          )}
+          {kind === 'raw' && ex && (
+            <span className="endpoint-extract">
+              <Icon id={ex.extractor.id} size={20} />
+              {ex.built}× {name(ex.extractor)}
+            </span>
+          )}
         </span>
-      )}
-      {source && <Handle type="source" position={outSide(dir)} />}
+      </span>
+      {feeds && <Handle type="source" position={outSide(dir)} />}
     </div>
   );
 }
@@ -316,10 +341,10 @@ function PowerNode({ id, data: d }: NodeProps) {
           {tone === 'chain' ? t('fuelChain') : tone === 'other' ? t('otherLoad') : tone === 'out' ? t('gridOut') : t('planName')}
         </span>
         <span className="consumer-name">{label}</span>
-      </span>
-      <span className="consumer-mw">
-        {num(mw)}
-        <small>MW</small>
+        <span className="consumer-mw">
+          {num(mw)}
+          <small>MW</small>
+        </span>
       </span>
     </div>
   );
@@ -645,11 +670,13 @@ export function GraphView({
   result,
   extraction,
   consumers,
+  links,
 }: {
   result: SolveResult;
   extraction: ExtractionUse[];
   /** Power planner: what the grid feeds. */
   consumers?: Consumer[];
+  links?: FactoryLinks;
 }) {
   const tier = useStore((s) => s.tier);
   const chosen = useStore((s) => s.graphDir);
@@ -680,11 +707,13 @@ export function GraphView({
   const exMap = useMemo(() => new Map(extraction.map((u) => [u.item, u])), [extraction]);
   return (
     <Extraction.Provider value={exMap}>
-      <Flow.Provider value={dir}>
-        <ReactFlowProvider key={key}>
-          <Canvas nodes={nodes} edges={edges} sig={sig} dir={dir} />
-        </ReactFlowProvider>
-      </Flow.Provider>
+      <Links.Provider value={links}>
+        <Flow.Provider value={dir}>
+          <ReactFlowProvider key={key}>
+            <Canvas nodes={nodes} edges={edges} sig={sig} dir={dir} />
+          </ReactFlowProvider>
+        </Flow.Provider>
+      </Links.Provider>
     </Extraction.Provider>
   );
 }

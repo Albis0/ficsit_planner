@@ -2,6 +2,34 @@
 
 All notable changes to FICSIT Planner. Dates are when the version was finished.
 
+## 0.9.0 — 2026-09-26
+
+### Added
+
+- **Take from another factory.** An on-hand item can now come from another factory tab: **Take from another
+  factory**, or pick the source on any on-hand card. That factory makes it on top of its own products, and both
+  floors show the link (**From Factory 1** / **To Factory 2**); the source lists what it sends under its products.
+  Deleting the source leaves the item simply on hand.
+- **Use all** next to **Auto place**: places as many somersloops and power shards as it can, every free
+  somersloop slot included, and puts the shards left over into miners and pumps so fewer are needed.
+- Power shards in overclocked miners and pumps are now counted in the shards in use.
+- **Typeface** in Settings → Interface: Satisfactory (Heebo, the game's own interface font, now the default),
+  Poppins, Inter, Rajdhani or Barlow Condensed.
+- **Totals strip** in Settings → Layout: compact (the default, about half the height) or large.
+
+### Changed
+
+- **Share** is a button at the top right. Rename, Duplicate and Delete moved into a **⋯** menu beside the tabs,
+  Delete last and in red, so it can't be hit by accident.
+- Calmer look: switching planner is a short cross-fade (no circle reveal or shock ring), the switch thumb is flat
+  and slides without bouncing, and glows, pulses, wiggles and pop-ins are gone. Greys are neutral instead of
+  bluish, and a button with nothing to do is grey instead of dim orange.
+- The hazard stripes by the logo move smoothly (no stutter or tearing); the stripes in dialog headers are still.
+
+### Fixed
+
+- "Raw input" and long names on the floor's input cards no longer get cut off with wider typefaces.
+
 ## 0.8.0 — 2026-09-26
 
 ### Added

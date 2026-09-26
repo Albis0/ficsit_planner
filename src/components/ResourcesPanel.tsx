@@ -112,6 +112,11 @@ export function ResourcesPanel({ result }: { result?: SolveResult }) {
                           <b>{use.built}</b>
                         </span>
                       )}
+                      {use.shards > 0 && (
+                        <span className="mod-badge shard" title={`${Math.round(use.clock * 1000) / 10}%`}>
+                          {use.shards} ◆
+                        </span>
+                      )}
                     </div>
                   </>
                 )}

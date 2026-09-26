@@ -8,6 +8,10 @@
         "@dagrejs/dagre": "^3.1.1",
         "@fontsource/barlow": "^5.3.0",
         "@fontsource/barlow-condensed": "^5.3.0",
+        "@fontsource/heebo": "^5.3.0",
+        "@fontsource/inter": "^5.3.0",
+        "@fontsource/poppins": "^5.3.0",
+        "@fontsource/rajdhani": "^5.3.0",
         "@xyflow/react": "^12.11.6",
         "highs": "^1.15.3",
         "react": "^19.3.0",
@@ -314,6 +318,14 @@
     "@fontsource/barlow": ["@fontsource/barlow@5.3.0", "", {}, "sha512-tGR0y6QObRtKv71MOth44222+mdNFM/ZWFWDV1VLzNbG4oK9PNRlyJzmkck4vHAi9ibHBXgt4SlY51amFP55CA=="],
 
     "@fontsource/barlow-condensed": ["@fontsource/barlow-condensed@5.3.0", "", {}, "sha512-RA7MmIx0v3eQ6Gcf74qLVLOwLB0GpPOzx+eU9iG/AmCnSJGcIWYeU8y6CEMGZ210MGwGg5CZhzLkkvyZdTTk1g=="],
+
+    "@fontsource/heebo": ["@fontsource/heebo@5.3.0", "", {}, "sha512-Z01U2fWWrfJnSE6SmDYtZJ1uCnKs8V3WSdip/lVDfKnsC1ASumb7IZmOrXjaYK+PVm7qGD3+4cwTAFOxG5uMaw=="],
+
+    "@fontsource/inter": ["@fontsource/inter@5.3.0", "", {}, "sha512-RofMylZmjlJEfELXeNHFWBRcSs75rGU/6bV2S2jfnvv/3rPXPGe0LgUJTklcHZ9lM4OZmAVFhcJPnACfb91A3g=="],
+
+    "@fontsource/poppins": ["@fontsource/poppins@5.3.0", "", {}, "sha512-cms1nM7U6SN8epIV1WMVOV8VsA645aSm3wHfzIQnkk188U341ThbJGSl2Sv54V29gnDbT2arMPfLzvVIIVCceQ=="],
+
+    "@fontsource/rajdhani": ["@fontsource/rajdhani@5.3.0", "", {}, "sha512-oBJgSIibWJvVBKseme1JczqPLoDHN97LHti4uh0LjfcJqQoVmnQQlRKIpEjTJV559rmVQ6qbVZZwKwk2wkBTtw=="],
 
     "@img/colour": ["@img/colour@1.1.0", "", {}, "sha512-Td76q7j57o/tLVdgS746cYARfSyxk8iEfRxewL9h4OMzYhbW4TAcppl0mT4eyqXddh6L/jwoM75mo7ixa/pCeQ=="],
 

@@ -1,9 +1,9 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { type Plan, type PowerPlan, poweredBy, useStore } from '../store';
+import { exportsOf, type Plan, type PowerPlan, poweredBy, useStore } from '../store';
 import { data, recipeById, recipeUnlocked } from './data';
 import { effectiveExtraction, extractionPowerPerUnit, planExtraction } from './extraction';
 import { plantUnlocked } from './power';
-import type { SolveInput, SolveResult } from './solver';
+import type { SolveInput, SolveResult, Target } from './solver';
 import { solveAsync } from './solverClient';
 import type { SolveFailure } from './solveFailure';
 
@@ -13,9 +13,18 @@ export const usableRecipes = (plan: Pick<Plan, 'enabled'>, tier: number) =>
 
 type SolvedPart = Pick<Plan, 'targets' | 'supplies' | 'enabled' | 'caps' | 'mods' | 'fixed'>;
 
-/** What the solver gets for a factory tab; nothing when it has no targets yet. */
-export function factoryInput(plan: SolvedPart, tier: number): SolveInput | undefined {
-  const targets = plan.targets.filter((t) => t.rate > 0);
+export type Export = { item: string; rate: number; to: string };
+
+/** A factory's own targets plus what other tabs take from it, one entry per item. */
+export function withExports(targets: Target[], exports: Export[] = []): Target[] {
+  const total = new Map<string, number>();
+  for (const t of [...targets, ...exports]) if (t.rate > 0) total.set(t.item, (total.get(t.item) ?? 0) + t.rate);
+  return [...total].map(([item, rate]) => ({ item, rate }));
+}
+
+/** What the solver gets for a factory tab; nothing when it has nothing to make yet. */
+export function factoryInput(plan: SolvedPart, tier: number, exports: Export[] = []): SolveInput | undefined {
+  const targets = withExports(plan.targets, exports);
   if (targets.length === 0) return undefined;
   return {
     targets,
@@ -70,6 +79,15 @@ export function powerInput(pp: PowerPart, demand: number, tier: number): SolveIn
       maximize: have,
     },
   };
+}
+
+/**
+ * What other tabs take from this factory. Kept as the same array while nothing about it changes, so
+ * editing an unrelated tab doesn't solve this one again.
+ */
+export function useExports(id: string): Export[] {
+  const key = useStore((s) => JSON.stringify(exportsOf(s.plans, id)));
+  return useMemo(() => JSON.parse(key) as Export[], [key]);
 }
 
 /**
@@ -129,14 +147,15 @@ interface Entry {
 
 // Solved draws, kept per plan object and tier: an unchanged factory isn't solved again, and a late
 // answer for one tier can't overwrite another's.
-const cache = new WeakMap<Plan, Map<number, Entry>>();
+const cache = new WeakMap<Plan, Map<string, Entry>>();
 
-function entryFor(plan: Plan, tier: number): Entry {
-  const byTier = cache.get(plan) ?? new Map<number, Entry>();
+function entryFor(plan: Plan, tier: number, exports: Export[]): Entry {
+  const byTier = cache.get(plan) ?? new Map<string, Entry>();
   cache.set(plan, byTier);
-  const hit = byTier.get(tier);
+  const key = `${tier}|${JSON.stringify(exports)}`;
+  const hit = byTier.get(key);
   if (hit) return hit;
-  const input = factoryInput(plan, tier);
+  const input = factoryInput(plan, tier, exports);
   const entry: Entry = input ? {} : { draw: { mw: 0 } };
   if (input) {
     entry.wait = solveAsync(input).then(
@@ -149,7 +168,7 @@ function entryFor(plan: Plan, tier: number): Entry {
       },
     );
   }
-  byTier.set(tier, entry);
+  byTier.set(key, entry);
   return entry;
 }
 
@@ -166,7 +185,7 @@ export function useFactoryDraws(enabled: boolean): FactoryDraw[] {
     if (!enabled) return;
     let live = true;
     for (const plan of plans) {
-      const entry = entryFor(plan, tier);
+      const entry = entryFor(plan, tier, exportsOf(plans, plan.id));
       if (!entry.draw) entry.wait?.then(() => live && bump((n) => n + 1));
     }
     return () => {
@@ -178,7 +197,7 @@ export function useFactoryDraws(enabled: boolean): FactoryDraw[] {
   return useMemo(
     () =>
       plans.map((plan) => {
-        const draw = cache.get(plan)?.get(tier)?.draw;
+        const draw = cache.get(plan)?.get(`${tier}|${JSON.stringify(exportsOf(plans, plan.id))}`)?.draw;
         return { id: plan.id, name: plan.name, mw: draw?.mw, failed: draw?.failed };
       }),
     [plans, tier, landed],

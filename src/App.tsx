@@ -1,12 +1,12 @@
 import { useEffect, useMemo, useState } from 'react';
 import { CodexNav, CodexPage, useCodexRoute } from './components/Codex';
-import { GraphView } from './components/GraphView';
+import { type FactoryLinks, GraphView } from './components/GraphView';
 import { Glyph } from './components/Glyph';
 import { Inspector } from './components/Inspector';
 import { MissingList } from './components/MissingList';
 import { MobileMenu, MobileNav } from './components/MobileChrome';
-import { ModeFlash, ModeSwitch } from './components/ModeSwitch';
-import { PlanTabs } from './components/PlanTabs';
+import { ModeSwitch } from './components/ModeSwitch';
+import { PlanTabs, ShareButton } from './components/PlanTabs';
 import { PlantInspector, PowerQuickStart, PowerSummary } from './components/PowerFloor';
 import { PowerPanel } from './components/PowerPanel';
 import { InstallButton, Notice, PwaStatus } from './components/PwaStatus';
@@ -27,7 +27,7 @@ import { plantIdOf, plantSize, plantUnlocked, plantValid } from './lib/power';
 import { settingsStyle } from './lib/settings';
 import { showInPanel } from './lib/panel';
 import { useSharedLinks } from './lib/share';
-import { factoryInput, powerInput, powerLoad, useFactoryDraws, useSolve } from './lib/solution';
+import { factoryInput, powerInput, powerLoad, useExports, useFactoryDraws, useSolve } from './lib/solution';
 import { failureText } from './lib/solveFailure';
 import { useMediaQuery } from './lib/useMediaQuery';
 import { activePowerPlan, usePlan, useStore } from './store';
@@ -46,9 +46,10 @@ function useSolutions() {
   const { plants, sizeBy, have, headroom, ownLoad, chain } = pp;
 
   const { targets, supplies, enabled, caps, mods, fixed } = plan;
+  const exports = useExports(plan.id);
   const factoryIn = useMemo(
-    () => factoryInput({ targets, supplies, enabled, caps, mods, fixed }, tier),
-    [targets, supplies, enabled, caps, mods, fixed, tier],
+    () => factoryInput({ targets, supplies, enabled, caps, mods, fixed }, tier, exports),
+    [targets, supplies, enabled, caps, mods, fixed, tier, exports],
   );
   // Sized to what you have with nothing listed yet: nothing to solve, the floor asks for the list.
   const powerIn = useMemo(
@@ -119,7 +120,17 @@ export default function App() {
   ] as const;
 
   // Nothing planned yet: the whole floor asks what to make (or how to make power), and the panel waits.
-  const empty = codexMode ? false : powerMode ? pp.plants.length === 0 : plan.targets.length === 0;
+  const exports = useExports(plan.id);
+  // The graph names the tabs this factory sends to and takes from.
+  const links = useMemo<FactoryLinks | undefined>(() => {
+    if (powerMode) return undefined;
+    const nameOf = (id: string) => s.plans.find((p) => p.id === id)?.name ?? '';
+    const to = new Map<string, { name: string; rate: number }[]>();
+    for (const x of exports) to.set(x.item, [...(to.get(x.item) ?? []), { name: nameOf(x.to), rate: x.rate }]);
+    const from = new Map(plan.supplies.flatMap((x) => (x.from ? [[x.item, nameOf(x.from)] as const] : [])));
+    return { to, from, own: new Set(plan.targets.map((x) => x.item)) };
+  }, [powerMode, exports, plan.supplies, plan.targets, s.plans]);
+  const empty = codexMode ? false : powerMode ? pp.plants.length === 0 : plan.targets.length === 0 && exports.length === 0;
   // Every target is out of reach (e.g. above the unlocked tier): explain instead of drawing a lone "bring in".
   const blocked = !powerMode && result && result.recipes.length === 0 && result.missing.length > 0;
   // Power planner with nothing that can run, or only auto plants and nothing to power: nothing gets
@@ -152,6 +163,7 @@ export default function App() {
       data-panel={panel}
       data-empty={empty || undefined}
       data-deck={s.deckClosed && !codexMode ? 'closed' : undefined}
+      data-summary={s.settings.summary}
       data-belt-motion={s.settings.beltMotion ? undefined : 'off'}
       data-motion={s.settings.motion === 'system' ? undefined : s.settings.motion}
       style={style}
@@ -167,6 +179,7 @@ export default function App() {
         {codexMode ? <span className="topbar-fill" /> : <PlanTabs />}
         <div className="topbar-controls">
           <InstallButton />
+          {!codexMode && <ShareButton />}
           <button type="button" className="tier-button" title={t('whereAreYou')} onClick={() => setTierOpen(true)}>
             {t('tier')} <b>{s.tier}</b>
           </button>
@@ -286,7 +299,7 @@ export default function App() {
             )}
             {shown &&
               (s.view === 'graph' ? (
-                <GraphView result={result} extraction={extraction} consumers={consumers} />
+                <GraphView result={result} extraction={extraction} consumers={consumers} links={links} />
               ) : (
                 <TableView result={result} extraction={extraction} />
               ))}
@@ -313,7 +326,6 @@ export default function App() {
       {(!s.onboarded || tierOpen) && <TierDialog onClose={() => setTierOpen(false)} />}
       {s.dialog === 'settings' && <SettingsDialog onClose={() => s.set({ dialog: undefined })} />}
       {s.dialog === 'report' && <ReportDialog onClose={() => s.set({ dialog: undefined })} />}
-      <ModeFlash />
       <Notice />
       <PwaStatus />
     </div>

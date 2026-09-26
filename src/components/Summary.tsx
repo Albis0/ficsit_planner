@@ -18,6 +18,8 @@ export function Summary({ result, extraction }: { result: SolveResult; extractio
   const machines = result.recipes.reduce((s, u) => s + u.built, 0);
   const extractors = extraction.reduce((s, u) => s + u.built, 0);
   const extractionPower = extraction.reduce((s, u) => s + u.power, 0);
+  // Shards in machines and in overclocked miners and pumps.
+  const shards = result.shards + extraction.reduce((s, u) => s + u.shards, 0);
 
   return (
     <div className="summary">
@@ -39,11 +41,11 @@ export function Summary({ result, extraction }: { result: SolveResult; extractio
           <span className="readout-label">{t('extractors')}</span>
           <span className="readout-value">{extractors}</span>
         </button>
-        {result.shards > 0 && (
+        {shards > 0 && (
           <div className="readout">
             <span className="readout-label">{t('shards')}</span>
-            <span className={`readout-value shard ${result.shards > inventory.shards ? 'over' : ''}`}>
-              {result.shards}
+            <span className={`readout-value shard ${shards > inventory.shards ? 'over' : ''}`}>
+              {shards}
               <small> / {inventory.shards}</small>
             </span>
           </div>

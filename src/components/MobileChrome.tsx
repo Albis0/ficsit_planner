@@ -2,7 +2,7 @@ import { useEffect, useRef } from 'react';
 import { useT } from '../lib/i18n';
 import { activePowerPlan, usePlan, useStore } from '../store';
 import { Glyph } from './Glyph';
-import { PlanActions } from './PlanTabs';
+import { PlanActions, ShareButton } from './PlanTabs';
 import { InstallButton } from './PwaStatus';
 
 /** Phone navigation along the bottom edge: the three side panels, then the factory floor. */
@@ -105,9 +105,12 @@ export function MobileMenu({ onClose, onTier }: { onClose: () => void; onTier: (
           </button>
         </div>
         {!codex && (
-          <div className="sheet-row">
+          <div className="sheet-group">
             <span className="control-label">{power ? t('plantName') : t('planName')}</span>
-            <PlanActions rename onDone={onClose} />
+            <ShareButton className="ghost-button" onDone={onClose} />
+            <div className="sheet-actions">
+              <PlanActions onDone={onClose} />
+            </div>
           </div>
         )}
         <div className="sheet-row sheet-links">

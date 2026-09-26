@@ -265,3 +265,40 @@ describe('shards on a big line', () => {
     expect(rate(after.targets, 'Desc_ModularFrame_C')).toBeCloseTo(30);
   });
 });
+
+describe('use all', () => {
+  const { autoAssign } = require('../src/lib/solver');
+  const { overclockExtractors, planExtraction, DEFAULT_EXTRACTION } = require('../src/lib/extraction');
+  const input = (item: string, rate: number): SolveInput => ({
+    targets: [{ item, rate }],
+    supplies: [],
+    enabledRecipes: standard(),
+    resourceCaps: {},
+    objective: 'resources',
+  });
+
+  test('fills free somersloop slots that best-places-only leaves empty, never above the stock', () => {
+    const best = solve(highs, {
+      ...input('Desc_ModularFrame_C', 10),
+      mods: autoAssign(highs, input('Desc_ModularFrame_C', 10), { sloops: 10, shards: 0 }),
+    });
+    const all = solve(highs, {
+      ...input('Desc_ModularFrame_C', 10),
+      mods: autoAssign(highs, input('Desc_ModularFrame_C', 10), { sloops: 10, shards: 0 }, true),
+    });
+    expect(all.sloops).toBeGreaterThanOrEqual(best.sloops);
+    expect(all.sloops).toBeLessThanOrEqual(10);
+  });
+
+  test('spare shards go into the extractors with the most buildings, cutting their count', () => {
+    const r = solve(highs, input('Desc_IronPlate_C', 120));
+    const before = planExtraction(r.raw, DEFAULT_EXTRACTION);
+    const clocks = overclockExtractors(r.raw, DEFAULT_EXTRACTION, 6);
+    const after = planExtraction(r.raw, { ...DEFAULT_EXTRACTION, overclock: clocks });
+    const ore = (list: { item: string; built: number; shards: number }[]) => list.find((u) => u.item === 'Desc_OreIron_C')!;
+    // 180 ore on Mk.2 normal (120 each): 2 miners, one of them half idle; 1 at 150% takes 1 shard.
+    expect(ore(before)).toMatchObject({ built: 2, shards: 0 });
+    expect(ore(after)).toMatchObject({ built: 1, shards: 1 });
+    expect(after.reduce((n: number, u: { shards: number }) => n + u.shards, 0)).toBeLessThanOrEqual(6);
+  });
+});

@@ -54,8 +54,8 @@ export default defineConfig({
         start_url: '.',
         scope: '.',
         display: 'standalone',
-        theme_color: '#141618',
-        background_color: '#141618',
+        theme_color: '#151516',
+        background_color: '#151516',
         categories: ['games', 'utilities'],
         icons: [
           { src: 'pwa-64x64.png', sizes: '64x64', type: 'image/png' },

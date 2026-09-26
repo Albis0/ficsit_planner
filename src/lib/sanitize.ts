@@ -1,8 +1,8 @@
-import type { Plan, PowerPlan } from '../store';
+import type { Plan, PowerPlan, Supply } from '../store';
 import { data, generatorById, recipeById } from './data';
 import { DEFAULT_EXTRACTION, type ExtractionSettings, MINERS, PURITIES, type Purity } from './extraction';
 import { PLANT_NAMES, type Plant, type PlantSize, type SizeBy } from './power';
-import { clampSetting, DEFAULT_COLORS, DEFAULT_SETTINGS, type Settings } from './settings';
+import { clampSetting, DEFAULT_COLORS, DEFAULT_SETTINGS, FONTS, type Settings } from './settings';
 import type { RecipeMod, Target } from './solver';
 
 /*
@@ -30,6 +30,15 @@ function targets(x: unknown): Target[] {
   });
 }
 
+/** On-hand items: like targets, each may name the factory tab it comes from. */
+function supplies(x: unknown): Supply[] {
+  const from = new Map(list(x).map((s) => [obj(s).item, obj(s).from]));
+  return targets(x).map((t) => {
+    const f = from.get(t.item);
+    return typeof f === 'string' && f ? { ...t, from: f.slice(0, 40) } : t;
+  });
+}
+
 /** Per-item amounts (resource caps, pinned inputs): known items, finite and not negative. */
 function amounts(x: unknown): Record<string, number> {
   return Object.fromEntries(Object.entries(obj(x)).filter(([id, v]) => data.items[id] && finite(v) && v >= 0)) as Record<string, number>;
@@ -51,6 +60,13 @@ function extraction(x: unknown): ExtractionSettings {
     miner: MINERS.some((m) => m.id === e.miner) ? (e.miner as string) : DEFAULT_EXTRACTION.miner,
     purity: oneOf<Purity>(e.purity, PURITIES, DEFAULT_EXTRACTION.purity),
     clock: within(e.clock, 0.01, 2.5, DEFAULT_EXTRACTION.clock),
+    ...(Object.keys(obj(e.overclock)).length
+      ? {
+          overclock: Object.fromEntries(
+            Object.entries(obj(e.overclock)).filter(([id, v]) => data.items[id]?.raw && finite(v) && v > 0 && v <= 2.5),
+          ) as Record<string, number>,
+        }
+      : {}),
   };
 }
 
@@ -61,7 +77,7 @@ export function cleanPlan(saved: unknown, fallback: Plan): Plan {
     id: text(p.id, fallback.id, 40),
     name: text(p.name, fallback.name),
     targets: targets(p.targets ?? fallback.targets),
-    supplies: targets(p.supplies ?? fallback.supplies),
+    supplies: supplies(p.supplies ?? fallback.supplies),
     enabled: Array.isArray(p.enabled)
       ? p.enabled.filter((id): id is string => typeof id === 'string' && recipeById.has(id))
       : fallback.enabled,
@@ -171,6 +187,12 @@ export function cleanSettings(saved: unknown): Settings {
     colors,
     decimals: finite(s.decimals) ? Math.round(clampSetting('decimals', s.decimals as number)) : d.decimals,
     motion: oneOf(s.motion, ['system', 'reduce', 'full'] as const, d.motion),
+    font: oneOf(
+      s.font,
+      FONTS.map((f) => f.id),
+      d.font,
+    ),
+    summary: oneOf(s.summary, ['compact', 'full'] as const, d.summary),
   };
 }
 

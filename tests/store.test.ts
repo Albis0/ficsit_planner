@@ -234,3 +234,50 @@ describe('building from the Codex', () => {
     expect(s.power[1].plants[0]).toMatchObject({ generator: 'Build_GeneratorFuel_C', fuel: 'Desc_LiquidFuel_C' });
   });
 });
+
+describe('taking from another factory', () => {
+  test('the source makes what others take on top of its own targets; deleting it leaves the item on hand', async () => {
+    const { exportsOf } = await import('../src/store');
+    const { factoryInput } = await import('../src/lib/solution');
+    const a = { ...newPlan('Plates'), targets: [{ item: 'Desc_IronPlate_C', rate: 20 }] };
+    const b = { ...newPlan('Frames'), targets: [{ item: 'Desc_ModularFrame_C', rate: 5 }] };
+    useStore.setState({ mode: 'factory', plans: [a, b], active: b.id });
+    current().addSupply('Desc_IronPlateReinforced_C', 15, a.id);
+    current().addSupply('Desc_IronPlate_C', 30);
+    current().setSupplyFrom(1, a.id);
+    expect(exportsOf(current().plans, a.id)).toEqual([
+      { item: 'Desc_IronPlateReinforced_C', rate: 15, to: b.id },
+      { item: 'Desc_IronPlate_C', rate: 30, to: b.id },
+    ]);
+    const input = factoryInput(current().plans[0], 9, exportsOf(current().plans, a.id))!;
+    expect(input.targets).toEqual([
+      { item: 'Desc_IronPlate_C', rate: 50 },
+      { item: 'Desc_IronPlateReinforced_C', rate: 15 },
+    ]);
+    current().setSupplyFrom(1, undefined);
+    expect(current().plans[1].supplies[1]).toEqual({ item: 'Desc_IronPlate_C', rate: 30 });
+    current().removePlan(a.id);
+    expect(current().plans[0].supplies).toEqual([
+      { item: 'Desc_IronPlateReinforced_C', rate: 15 },
+      { item: 'Desc_IronPlate_C', rate: 30 },
+    ]);
+  });
+
+  test('a saved source that is gone, or the factory itself, is dropped on load', () => {
+    const a = {
+      ...newPlan('A'),
+      id: 'a',
+      supplies: [
+        { item: 'Desc_IronPlate_C', rate: 5, from: 'b' },
+        { item: 'Desc_IronRod_C', rate: 5, from: 'a' },
+      ],
+    };
+    const b = { ...newPlan('B'), id: 'b', supplies: [{ item: 'Desc_IronPlate_C', rate: 5, from: 'gone' }] };
+    const merged = mergeState({ plans: [a, b], active: 'a' }, current());
+    expect(merged.plans[0].supplies).toEqual([
+      { item: 'Desc_IronPlate_C', rate: 5, from: 'b' },
+      { item: 'Desc_IronRod_C', rate: 5 },
+    ]);
+    expect(merged.plans[1].supplies).toEqual([{ item: 'Desc_IronPlate_C', rate: 5 }]);
+  });
+});

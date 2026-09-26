@@ -476,7 +476,13 @@ function solveWith(solver: Highs, input: SolveInput, draw?: Map<string, number>)
  * Shards then overclock the recipes with the most machines, to cut building count. Each step
  * re-solves and only sticks if the total stays within stock.
  */
-export function autoAssign(solver: Highs, input: SolveInput, stock: { sloops: number; shards: number }): Record<string, RecipeMod> {
+export function autoAssign(
+  solver: Highs,
+  input: SolveInput,
+  stock: { sloops: number; shards: number },
+  /** Use all: after the best places, fill every free somersloop slot too, as far as the stock goes. */
+  all = false,
+): Record<string, RecipeMod> {
   const mods: Record<string, RecipeMod> = {};
   const run = () => solve(solver, { ...input, mods });
   let result = run();
@@ -522,6 +528,26 @@ export function autoAssign(solver: Highs, input: SolveInput, stock: { sloops: nu
     }
     if (best) result = best;
     else delete mods[u.recipe.id];
+  }
+
+  // Use all: every slot still free on a line gets somersloops, as long as the stock lasts.
+  if (all) {
+    for (const { u } of loopable) {
+      const left = stock.sloops - result.sloops;
+      if (left <= 0) break;
+      const now = result.recipes.find((x) => x.recipe.id === u.recipe.id);
+      if (!now) continue;
+      const slots = sloopSlots(u.recipe);
+      const prev = mods[u.recipe.id];
+      const have = (prev?.sloops ?? 0) * now.built;
+      const room = now.built * slots - have;
+      if (room < 1) continue;
+      mods[u.recipe.id] = { clock: prev?.clock ?? 1, sloops: (have + Math.min(left, Math.floor(room))) / now.built };
+      const trial = run();
+      if (trial.sloops <= stock.sloops) result = trial;
+      else if (prev) mods[u.recipe.id] = prev;
+      else delete mods[u.recipe.id];
+    }
   }
 
   // Shards: take machines off the lines with the most of them. Removing machines means the rest

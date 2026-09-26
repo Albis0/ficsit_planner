@@ -111,7 +111,13 @@ Remove that target with the **×** on its card before going on. *Expect:* you're
 - [ ] **8.3** Double-click a tab name, rename it, press **Enter**. Then **Duplicate** and **Delete** (click twice
   to confirm). *Expect:* each does what it says.
 - [ ] **8.4** The top bar has no "Optimize for" switch.
-- [ ] **8.5** Make a factory, add a coal plant in Power that runs it, go back to the factory and click **Share**.
+- [ ] **8.4b** Click **⋯** beside the tabs. *Expect:* Rename, Duplicate and Delete (red, last); Delete asks once more.
+- [ ] **8.4c** In a second factory, click **Take from another factory** and pick Steel Beam. *Expect:* the card says
+  "from Factory 1"; this floor shows **From Factory 1**, Factory 1's floor shows **To Factory 2** and lists it
+  under **Sent to other factories**. Set the card to "on hand": Factory 1 stops making it.
+- [ ] **8.4d** Enter 10 somersloops and 30 shards, click **Auto place**, then **Use all**. *Expect:* Use all puts at
+  least as many in use, some shards possibly in miners (listed under **Where they are**).
+- [ ] **8.5** Make a factory, add a coal plant in Power that runs it, go back to the factory and click **Share** (top right).
   *Expect:* the button says **Link copied**. Paste the link into a private window. *Expect:* the factory opens as
   a tab (the empty first tab gives way), with a note at the bottom; in Power, the coal plant is there, running
   only that factory. Reload: nothing is added twice.

@@ -6,6 +6,7 @@ import {
   clampSetting,
   DEFAULT_COLORS,
   DEFAULT_SETTINGS,
+  FONTS,
   type LIMITS,
   type PanelSide,
   type Settings,
@@ -328,6 +329,17 @@ function LayoutSection() {
           onChange={(v) => setDir(v === 'auto' ? undefined : v)}
         />
       </Row>
+      <Row label={t('summarySize')} hint={t('summarySizeHint')}>
+        <Choice
+          label={t('summarySize')}
+          value={s.summary}
+          options={[
+            { id: 'compact', label: t('summaryCompact') },
+            { id: 'full', label: t('summaryFull') },
+          ]}
+          onChange={(v) => set({ summary: v })}
+        />
+      </Row>
     </>
   );
 }
@@ -466,8 +478,11 @@ const HELP: { title: HelpKey; terms: [HelpKey, HelpKey][] }[] = [
     terms: [
       ['targets', 'helpText_targets'],
       ['suppliesTitle', 'helpText_supplies'],
+      ['takeFromFactory', 'helpText_take'],
       ['rawInput', 'helpText_rawInput'],
       ['inventory', 'helpText_inventory'],
+      ['useAll', 'helpText_useAll'],
+      ['share', 'helpText_share'],
       ['recipes', 'helpText_recipes'],
       ['resources', 'helpText_resources'],
       ['surplus', 'helpText_surplus'],
@@ -536,6 +551,28 @@ function InterfaceSection() {
   const [s, set] = useSettings();
   return (
     <>
+      <div className="setting column">
+        <div className="setting-text">
+          <span className="setting-label">{t('font')}</span>
+          <span className="setting-hint">{t('fontHint')}</span>
+        </div>
+        <div className="font-choices" role="radiogroup" aria-label={t('font')}>
+          {FONTS.map((f) => (
+            <button
+              key={f.id}
+              type="button"
+              role="radio"
+              aria-checked={s.font === f.id}
+              className="font-choice"
+              style={{ ['--font-display' as string]: f.display, ['--font-body' as string]: f.body }}
+              onClick={() => set({ font: f.id })}
+            >
+              <span className="font-sample">FICSIT 1,234.5</span>
+              <span className="font-name">{f.name}</span>
+            </button>
+          ))}
+        </div>
+      </div>
       <Percent k="uiScale" label={t('uiSize')} hint={t('uiSizeHint')} />
       <Row label={t('decimals')} hint={t('decimalsHint', { example: (100 / 3).toFixed(s.decimals) })}>
         <Choice

@@ -7,7 +7,7 @@ import { toFailure, type SolveFailure } from './solveFailure';
 
 export type SolverRequest =
   | { id: number; kind: 'solve'; input: SolveInput }
-  | { id: number; kind: 'autoAssign'; input: SolveInput; stock: { sloops: number; shards: number } };
+  | { id: number; kind: 'autoAssign'; input: SolveInput; stock: { sloops: number; shards: number }; all?: boolean };
 
 export type SolverResponse =
   | { id: number; ok: true; value: SolveResult | Record<string, RecipeMod> }
@@ -19,7 +19,7 @@ self.onmessage = async ({ data: req }: MessageEvent<SolverRequest>) => {
   let reply: SolverResponse;
   try {
     const highs = await getHighs();
-    const value = req.kind === 'solve' ? solve(highs, req.input) : autoAssign(highs, req.input, req.stock);
+    const value = req.kind === 'solve' ? solve(highs, req.input) : autoAssign(highs, req.input, req.stock, req.all);
     reply = { id: req.id, ok: true, value };
   } catch (e) {
     if (!(e instanceof SolverError)) resetHighs();

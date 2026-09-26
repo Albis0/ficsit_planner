@@ -1,4 +1,4 @@
-import { newPlan, newPowerPlan, type Plan, type PowerPlan, useStore } from '../store';
+import { dropSource, newPlan, newPowerPlan, type Plan, type PowerPlan, useStore } from '../store';
 import { DRAFT_KEY } from './feedback';
 import { cleanPlan, cleanPowerPlan, cleanSettings, gridToPower } from './sanitize';
 import { DEFAULT_SETTINGS, sameSettings } from './settings';
@@ -66,12 +66,17 @@ export function importData(parsed: unknown): ImportResult {
     const s = useStore.getState();
     // Tabs get fresh ids so they can't clash with yours; the plants' lists of factories follow them.
     const ids = new Map<string, string>();
-    const added: Plan[] = file.plans.map((p: unknown) => {
+    const cleaned: Plan[] = file.plans.map((p: unknown) => {
       const plan = cleanPlan(p, newPlan('Factory'));
       const id = uid();
       ids.set(plan.id, id);
       return { ...plan, id };
     });
+    // Taken from a factory in the same file: follows its new id. From one that didn't come along: just on hand.
+    const added = dropSource(cleaned, (from) => !ids.has(from)).map((p) => ({
+      ...p,
+      supplies: p.supplies.map((x) => (x.from ? { ...x, from: ids.get(x.from)! } : x)),
+    }));
     const fileIds = added.map((p) => p.id);
     // Files from before plant tabs carry one power grid instead.
     const saved: PowerPlan[] = Array.isArray(file.power)

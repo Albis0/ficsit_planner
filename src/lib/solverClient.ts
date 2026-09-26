@@ -50,6 +50,10 @@ export async function solveAsync(input: SolveInput): Promise<SolveResult> {
 }
 
 /** Places somersloops and power shards in the worker. Rejects with a SolveFailure. */
-export async function autoAssignAsync(input: SolveInput, stock: { sloops: number; shards: number }): Promise<Record<string, RecipeMod>> {
-  return (await call({ kind: 'autoAssign', input, stock })).value as Record<string, RecipeMod>;
+export async function autoAssignAsync(
+  input: SolveInput,
+  stock: { sloops: number; shards: number },
+  all = false,
+): Promise<Record<string, RecipeMod>> {
+  return (await call({ kind: 'autoAssign', input, stock, all })).value as Record<string, RecipeMod>;
 }

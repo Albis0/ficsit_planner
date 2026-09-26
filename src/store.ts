@@ -13,11 +13,17 @@ export const MAX_TIER = Math.max(...data.recipes.map((r) => r.tier ?? 0));
 
 export const defaultEnabled = () => data.recipes.filter((r) => r.kind === 'standard').map((r) => r.id);
 
+/** An item a factory gets instead of making it: on hand (a train, storage), or taken from another factory tab. */
+export interface Supply extends Target {
+  /** The factory tab it comes from; that factory makes it on top of its own targets. */
+  from?: string;
+}
+
 export interface Plan {
   id: string;
   name: string;
   targets: Target[];
-  supplies: Target[];
+  supplies: Supply[];
   enabled: string[];
   caps: Record<string, number>;
   /** Raw resources pinned to an exact amount from the graph; targets scale to fit them. */
@@ -189,7 +195,9 @@ interface State {
   addTarget: (item: string) => void;
   setTarget: (i: number, rate: number) => void;
   removeTarget: (i: number) => void;
-  addSupply: (item: string, rate?: number) => void;
+  addSupply: (item: string, rate?: number, from?: string) => void;
+  /** Where an on-hand item comes from: another factory tab, or nowhere in particular. */
+  setSupplyFrom: (i: number, from: string | undefined) => void;
   setSupply: (i: number, rate: number) => void;
   removeSupply: (i: number) => void;
   toggleRecipe: (id: string, on?: boolean) => void;
@@ -203,6 +211,23 @@ const firstPower = newPowerPlan('Plant 1');
 
 /** The power plant tab on screen. */
 export const activePowerPlan = (s: Pick<State, 'power' | 'activePower'>) => s.power.find((p) => p.id === s.activePower) ?? s.power[0];
+
+/** Supplies taken from a factory that isn't there (any more) become plain on-hand items. */
+export function dropSource(plans: Plan[], gone: string | ((id: string) => boolean)): Plan[] {
+  const missing = typeof gone === 'string' ? (id: string) => id === gone : gone;
+  return plans.map((p) =>
+    p.supplies.some((x) => x.from && missing(x.from))
+      ? { ...p, supplies: p.supplies.map(({ from, ...x }) => (from && !missing(from) ? { ...x, from } : x)) }
+      : p,
+  );
+}
+
+/** What other factory tabs take from this one: it makes these on top of its own targets. */
+export function exportsOf(plans: Plan[], id: string): { item: string; rate: number; to: string }[] {
+  return plans.flatMap((q) =>
+    q.id === id ? [] : q.supplies.filter((x) => x.from === id && x.rate > 0).map((x) => ({ item: x.item, rate: x.rate, to: q.id })),
+  );
+}
 
 /** "Coal plant", or "Coal plant 2" when that name is taken. */
 function freeName(base: string, taken: string[]): string {
@@ -372,17 +397,27 @@ export const useStore = create<State>()(
           const plans = get().plans.filter((p) => p.id !== id);
           if (plans.length === 0) plans.push(newPlan('Factory 1'));
           const active = get().active === id ? plans[Math.max(0, get().plans.findIndex((p) => p.id === id) - 1)].id : get().active;
-          // Power plants stop counting a factory that's gone.
+          // Power plants stop counting a factory that's gone, and what came from it is simply on hand now.
           const power = get().power.map((pp) => (pp.factories === 'all' ? pp : { ...pp, factories: pp.factories.filter((f) => f !== id) }));
-          set({ plans, active, power, inspect: undefined });
+          set({ plans: dropSource(plans, id), active, power, inspect: undefined });
         },
         renamePlan: (id, name) => set({ plans: get().plans.map((p) => (p.id === id ? { ...p, name } : p)) }),
 
         addTarget: (item) => update((p) => (p.targets.some((t) => t.item === item) ? {} : { targets: [...p.targets, { item, rate: 10 }] })),
         setTarget: (i, rate) => update((p) => ({ targets: p.targets.map((t, j) => (j === i ? { ...t, rate } : t)) })),
         removeTarget: (i) => update((p) => ({ targets: p.targets.filter((_, j) => j !== i) })),
-        addSupply: (item, rate = 10) =>
-          update((p) => (p.supplies.some((t) => t.item === item) ? {} : { supplies: [...p.supplies, { item, rate }] })),
+        addSupply: (item, rate = 10, from) =>
+          update((p) =>
+            p.supplies.some((t) => t.item === item) ? {} : { supplies: [...p.supplies, from ? { item, rate, from } : { item, rate }] },
+          ),
+        setSupplyFrom: (i, from) =>
+          update((p) => ({
+            supplies: p.supplies.map((x, j) => {
+              if (j !== i) return x;
+              const { from: _, ...rest } = x;
+              return from ? { ...rest, from } : rest;
+            }),
+          })),
         setSupply: (i, rate) => update((p) => ({ supplies: p.supplies.map((t, j) => (j === i ? { ...t, rate } : t)) })),
         removeSupply: (i) => update((p) => ({ supplies: p.supplies.filter((_, j) => j !== i) })),
         toggleRecipe: (id, on) =>
@@ -505,6 +540,8 @@ export function mergeState<S extends State>(persisted: unknown, current: S): S {
     if (ids.has(plan.id)) plan.id = uid();
     ids.add(plan.id);
   }
+  const known = new Set(plans.map((x) => x.id));
+  for (const [i, plan] of plans.entries()) plans[i] = dropSource([plan], (from) => !known.has(from) || from === plan.id)[0];
   const active = plans.some((x) => x.id === p.active) ? p.active! : plans[0].id;
   const power =
     Array.isArray(p.power) && p.power.length

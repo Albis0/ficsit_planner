@@ -32,7 +32,30 @@ export interface Settings {
   /** Most decimals shown on rates and power. */
   decimals: number;
   motion: 'system' | 'reduce' | 'full';
+  /** Typeface for the whole interface. */
+  font: FontId;
+  /** The strip of totals over the floor: compact, or large figures. */
+  summary: 'compact' | 'full';
 }
+
+export type FontId = 'satisfactory' | 'poppins' | 'inter' | 'rajdhani' | 'barlow';
+
+/**
+ * The typefaces on offer: headings (condensed or not) and body text. Satisfactory's own interface is set
+ * in Heebo (found in the game's Interface/Font folder), so that's the default.
+ */
+export const FONTS: { id: FontId; name: string; display: string; body: string }[] = [
+  { id: 'satisfactory', name: 'Satisfactory (Heebo)', display: "'Heebo', sans-serif", body: "'Heebo', 'Segoe UI', sans-serif" },
+  { id: 'poppins', name: 'Poppins', display: "'Poppins', sans-serif", body: "'Poppins', 'Segoe UI', sans-serif" },
+  { id: 'inter', name: 'Inter', display: "'Inter', sans-serif", body: "'Inter', 'Segoe UI', sans-serif" },
+  { id: 'rajdhani', name: 'Rajdhani', display: "'Rajdhani', sans-serif", body: "'Rajdhani', 'Segoe UI', sans-serif" },
+  {
+    id: 'barlow',
+    name: 'Barlow Condensed',
+    display: "'Barlow Condensed', 'Arial Narrow', sans-serif",
+    body: "'Barlow', 'Segoe UI', sans-serif",
+  },
+];
 
 export const DEFAULT_COLORS: Colors = {
   accent: '#fa9549',
@@ -55,6 +78,8 @@ export const DEFAULT_SETTINGS: Settings = {
   colors: DEFAULT_COLORS,
   decimals: 2,
   motion: 'system',
+  font: 'satisfactory',
+  summary: 'compact',
 };
 
 export const LIMITS = {
@@ -70,7 +95,7 @@ export const clampSetting = (key: keyof typeof LIMITS, v: number) => Math.min(LI
 const DARK_INK = '#1d1206';
 const LIGHT_INK = '#fbf7f0';
 /** The panels' charcoal (--panel-2), what outlines and accent text sit on. */
-const PANEL = '#22262a';
+const PANEL = '#232425';
 
 /** Relative luminance (WCAG) of a #rrggbb colour, or undefined when it isn't one. */
 function luminance(hex: string): number | undefined {
@@ -123,6 +148,8 @@ export function settingsStyle(s: Settings): Record<string, string> {
     '--card-scale': String(s.cardScale),
     '--card-text': String(s.textScale),
     '--ui-scale': String(s.uiScale),
+    '--font-display': (FONTS.find((f) => f.id === s.font) ?? FONTS[0]).display,
+    '--font-body': (FONTS.find((f) => f.id === s.font) ?? FONTS[0]).body,
   };
 }
 
