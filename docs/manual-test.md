@@ -202,6 +202,19 @@ Remove that target with the **×** on its card before going on. *Expect:* you're
 - [ ] **C.7** Copy a Codex page's address into a new tab. *Expect:* it opens on that page.
 - [ ] **C.8** **Settings → Help**, type `spare`. *Expect:* Spare capacity and what it means.
 
+## 8e. World map
+
+- [ ] **M.1** Click **Map** on the switch in the top bar. *Expect:* the game's map with coloured dots on it and the
+  filter on the left: purities, then ores, oil, gas and water, geysers, each with its impure, normal and pure count.
+- [ ] **M.2** Scroll in on an area. *Expect:* the dots turn into pins with the resource's icon, ringed red, yellow
+  or green.
+- [ ] **M.3** Press a pin. *Expect:* its name, purity and what it gives (Mk.1, Mk.2 and Mk.3 for an ore).
+- [ ] **M.4** Turn **Impure** off and click **Iron Ore**. *Expect:* impure nodes and iron are gone; **Reset the
+  filter** brings them back.
+- [ ] **M.5** In the Codex, open **Bauxite** and click **Show on the map**. *Expect:* the map with only bauxite,
+  framed on its 17 nodes.
+- [ ] **M.6** Phone: **Map**, then **Filter** and back. *Expect:* the map fills the screen and pinches to zoom.
+
 ## 9. Offline and install
 
 - [ ] **9.1** After the first load, a "Ready to work offline" note appears at the bottom and goes away on its own.

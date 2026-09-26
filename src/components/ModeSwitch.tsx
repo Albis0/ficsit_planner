@@ -3,7 +3,7 @@ import { useT } from '../lib/i18n';
 import { useStore } from '../store';
 import { Glyph } from './Glyph';
 
-type Mode = 'factory' | 'power' | 'codex';
+type Mode = 'factory' | 'power' | 'codex' | 'map';
 
 /** Whether to skip the big transitions: the player's setting first, then the system's. */
 export function motionReduced(): boolean {
@@ -19,11 +19,11 @@ function switchMode(next: Mode) {
   document.startViewTransition(apply);
 }
 
-/** Factory planner, power planner or the Codex: a lever in the top bar, the thumb sliding between them. */
+/** Factory planner, power planner, the Codex or the map: a lever in the top bar, the thumb sliding between them. */
 export function ModeSwitch() {
   const { t } = useT();
   const mode = useStore((s) => s.mode);
-  const option = (id: Mode, label: string, glyph: 'factory' | 'bolt' | 'book') => (
+  const option = (id: Mode, label: string, glyph: 'factory' | 'bolt' | 'book' | 'map') => (
     <button type="button" role="radio" aria-checked={mode === id} title={label} onClick={() => mode !== id && switchMode(id)}>
       <Glyph name={glyph} size={18} />
       <span className="mode-label">{label}</span>
@@ -35,6 +35,7 @@ export function ModeSwitch() {
       {option('factory', t('factoryMode'), 'factory')}
       {option('power', t('powerMode'), 'bolt')}
       {option('codex', t('codex'), 'book')}
+      {option('map', t('mapMode'), 'map')}
     </div>
   );
 }

@@ -373,6 +373,22 @@ export const en = {
 
   // Codex
   codex: 'Codex',
+  mapMode: 'Map',
+  worldMap: 'World map',
+  geyser: 'Geyser',
+  wellNode: 'Resource well',
+  zoomIn: 'Zoom in',
+  zoomOut: 'Zoom out',
+  mapGroup_ores: 'Ores',
+  mapGroup_fluids: 'Oil, gas and water',
+  mapGroup_geysers: 'Geysers',
+  showAll: 'Show all',
+  hideAll: 'Hide all',
+  resetFilter: 'Reset the filter',
+  mapSource: 'The game’s own map, with every node read from the game files. Press a node for what it gives.',
+  mapFilterTab: 'Filter',
+  mapTab: 'Map',
+  showOnMap: 'Show on the map',
   codexTitle: 'FICSIT Codex',
   codexLead: 'Every part, building, vehicle and milestone in the game, with the game’s own descriptions and the numbers behind them.',
   codexSearch: 'Search the Codex',
@@ -641,7 +657,7 @@ export const en = {
   helpPower: 'Power planner',
   helpModes: 'Factory, Power and Codex',
   helpText_modes:
-    'The switch in the top bar. Factory plans what to build for the parts you want. Power plans the plants that run your factories. Codex looks up anything in the game.',
+    'The switch in the top bar. Factory plans what to build for the parts you want. Power plans the plants that run your factories. Codex looks up anything in the game. Map shows the world with every resource node.',
   helpText_tier:
     'The highest milestone tier you’ve reached in your save. Recipes and buildings above it are left out of every plan. Change it with the Tier button in the top bar.',
   helpSaved: 'Where your plans live',
@@ -687,4 +703,6 @@ export const en = {
   helpText_backup: 'Power Storage to carry the load through an outage, and fuel you already get from elsewhere.',
   helpText_codex:
     'Every part, building, vehicle, milestone and piece of research in the game, with the game’s own descriptions. Search it from its index, follow any item to what makes it and what uses it, and press Plan this to start a factory.',
+  helpText_map:
+    'The game’s own map with every resource node, resource well and geyser, read from the game files. Pick which resources and purities show on the left, and press a node for what a miner or extractor gets from it. A resource’s Codex page opens the map on it.',
 };

@@ -14,14 +14,14 @@ export function MobileNav() {
   const set = useStore((s) => s.set);
   const power = useStore((s) => s.mode === 'power');
   const plants = useStore((s) => activePowerPlan(s).plants.length);
-  const codex = useStore((s) => s.mode === 'codex');
+  const mode = useStore((s) => s.mode);
 
-  // The Codex has just two panes: its index and the page.
-  if (codex)
+  // The Codex and the map have just two panes: the index (or the filter) and the page (or the map).
+  if (mode === 'codex' || mode === 'map')
     return (
       <nav className="mobile-nav" aria-label={t('menu')}>
         <button type="button" aria-current={pane === 'side' ? 'page' : undefined} onClick={() => set({ pane: 'side' })}>
-          {t('codexIndex')}
+          {mode === 'map' ? t('mapFilterTab') : t('codexIndex')}
         </button>
         <button
           type="button"
@@ -29,7 +29,7 @@ export function MobileNav() {
           aria-current={pane === 'floor' ? 'page' : undefined}
           onClick={() => set({ pane: 'floor' })}
         >
-          {t('codexPageTab')}
+          {mode === 'map' ? t('mapTab') : t('codexPageTab')}
         </button>
       </nav>
     );
@@ -66,7 +66,8 @@ export function MobileMenu({ onClose, onTier }: { onClose: () => void; onTier: (
   const tier = useStore((s) => s.tier);
   const set = useStore((s) => s.set);
   const power = useStore((s) => s.mode === 'power');
-  const codex = useStore((s) => s.mode === 'codex');
+  // The Codex and the map have no tab of their own to share, rename or delete.
+  const codex = useStore((s) => s.mode === 'codex' || s.mode === 'map');
   const dialog = useRef<HTMLDialogElement>(null);
   const open = (d: 'settings' | 'report') => {
     onClose();

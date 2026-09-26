@@ -471,6 +471,7 @@ const HELP: { title: HelpKey; terms: [HelpKey, HelpKey][] }[] = [
       ['tier', 'helpText_tier'],
       ['helpSaved', 'helpText_saved'],
       ['codex', 'helpText_codex'],
+      ['worldMap', 'helpText_map'],
     ],
   },
   {

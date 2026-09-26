@@ -28,6 +28,7 @@ import { recipeLabel, searchKey } from '../lib/text';
 import { useStore } from '../store';
 import { GuidePage } from './CodexGuides';
 import { Glyph } from './Glyph';
+import { onMap, openMapOn } from './MapNav';
 import { Icon } from './Icon';
 
 const HASH = '#codex';
@@ -671,7 +672,7 @@ function ItemPage({ id, index }: { id: string; index: CodexIndex }) {
         stats={stats}
         desc={it.desc}
         actions={
-          canPlan || burners.length ? (
+          canPlan || burners.length || onMap(id) ? (
             <>
               {canPlan && (
                 <button type="button" className="primary-button" title={t('buildFactoryHint')} onClick={() => buildFactory(id, it.name)}>
@@ -683,6 +684,12 @@ function ItemPage({ id, index }: { id: string; index: CodexIndex }) {
                 <button type="button" className="ghost-button" title={t('burnThisHint')} onClick={() => buildPlant(burners[0].id, id)}>
                   <Glyph name="bolt" size={18} />
                   {t('burnThis')}
+                </button>
+              )}
+              {onMap(id) && (
+                <button type="button" className="ghost-button" onClick={() => openMapOn(id)}>
+                  <Glyph name="map" size={18} />
+                  {t('showOnMap')}
                 </button>
               )}
             </>

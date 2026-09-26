@@ -3,6 +3,8 @@ dist
 *.log
 tools/icon-extractor/bin
 tools/icon-extractor/obj
+tools/map-extractor/bin
+tools/map-extractor/obj
 .claude/settings.local.json
 .wrangler
 .dev.vars*

@@ -2,6 +2,21 @@
 
 All notable changes to FICSIT Planner. Dates are when the version was finished.
 
+## 0.10.0 — 2026-09-27
+
+### Added
+
+- **World map.** A fourth stop on the top-bar switch: the game's own map picture, taken from the game files, with
+  every resource node (459), resource well node (118) and geyser (31) read out of the game's level.
+  - Show or hide each resource and each purity from the panel beside it; each resource lists how many impure,
+    normal and pure nodes it has.
+  - From far away the nodes are dots in their purity's colour (red impure, yellow normal, green pure); closer in
+    they show the resource's icon.
+  - Press a node for what it gives: each miner mark for ores, the extractor for oil and wells, the megawatts of a
+    geothermal generator on a geyser.
+  - A resource's Codex page has **Show on the map**, which opens the map on its nodes.
+  - The overview works offline from the first visit; closer tiles are kept as you look at them.
+
 ## 0.9.1 — 2026-09-27
 
 ### Changed

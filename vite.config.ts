@@ -67,8 +67,16 @@ export default defineConfig({
       workbox: {
         // Everything, icons and the 3.5 MB solver wasm included, so the app works with no network at all.
         globPatterns: ['**/*.{js,css,html,wasm,webp,woff2,png,ico}'],
-        globIgnores: ['404.html'],
+        // The map's close-up tiles (5 MB) are kept as they're looked at instead; the overview works offline from the start.
+        globIgnores: ['404.html', 'map/4/**', 'map/5/**'],
         maximumFileSizeToCacheInBytes: 8 * 1024 * 1024,
+        runtimeCaching: [
+          {
+            urlPattern: ({ url }) => /\/map\/[45]\/\d+\/\d+\.webp$/.test(url.pathname),
+            handler: 'CacheFirst',
+            options: { cacheName: 'map-tiles', expiration: { maxEntries: 2000 } },
+          },
+        ],
       },
     }),
   ],

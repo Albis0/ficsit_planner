@@ -1,8 +1,9 @@
-import { useEffect, useMemo, useState } from 'react';
+import { lazy, Suspense, useEffect, useMemo, useState } from 'react';
 import { CodexNav, CodexPage, useCodexRoute } from './components/Codex';
 import { type FactoryLinks, GraphView } from './components/GraphView';
 import { Glyph } from './components/Glyph';
 import { Inspector } from './components/Inspector';
+import { MapNav } from './components/MapNav';
 import { MissingList } from './components/MissingList';
 import { MobileMenu, MobileNav } from './components/MobileChrome';
 import { ModeSwitch } from './components/ModeSwitch';
@@ -31,6 +32,9 @@ import { factoryInput, powerInput, powerLoad, useExports, useFactoryDraws, useSo
 import { failureText } from './lib/solveFailure';
 import { useMediaQuery } from './lib/useMediaQuery';
 import { activePowerPlan, usePlan, useStore } from './store';
+
+// The map pulls in Leaflet and its tiles, so it loads only when opened.
+const WorldMap = lazy(() => import('./components/WorldMap'));
 
 /**
  * Both planners solve side by side, each only while it's on screen. Switching keeps the other's
@@ -78,6 +82,9 @@ export default function App() {
   const { factory, power, probe, draws, load } = useSolutions();
   const powerMode = s.mode === 'power';
   const codexMode = s.mode === 'codex';
+  const mapMode = s.mode === 'map';
+  // The Codex and the map aren't planners: no plan tabs, no targets panel, their own index on the left.
+  const bookMode = codexMode || mapMode;
   useCodexRoute();
   useSharedLinks();
   const pp = activePowerPlan(s);
@@ -130,7 +137,7 @@ export default function App() {
     const from = new Map(plan.supplies.flatMap((x) => (x.from ? [[x.item, nameOf(x.from)] as const] : [])));
     return { to, from, own: new Set(plan.targets.map((x) => x.item)) };
   }, [powerMode, exports, plan.supplies, plan.targets, s.plans]);
-  const empty = codexMode ? false : powerMode ? pp.plants.length === 0 : plan.targets.length === 0 && exports.length === 0;
+  const empty = bookMode ? false : powerMode ? pp.plants.length === 0 : plan.targets.length === 0 && exports.length === 0;
   // Every target is out of reach (e.g. above the unlocked tier): explain instead of drawing a lone "bring in".
   const blocked = !powerMode && result && result.recipes.length === 0 && result.missing.length > 0;
   // Power planner with nothing that can run, or only auto plants and nothing to power: nothing gets
@@ -149,7 +156,7 @@ export default function App() {
   const inspectPlant = s.inspect ? plantIdOf(s.inspect) : undefined;
   // The power planner reads top to bottom, so it keeps its panel beside the floor even when factories have it on top.
   // The Codex reads like a book: its index beside the page, on the left.
-  const panel = phone ? 'top' : codexMode ? 'left' : powerMode && s.settings.panel === 'top' ? 'left' : s.settings.panel;
+  const panel = phone ? 'top' : bookMode ? 'left' : powerMode && s.settings.panel === 'top' ? 'left' : s.settings.panel;
 
   const style: Record<string, string> = settingsStyle(s.settings);
   if (s.deckHeight) {
@@ -165,7 +172,7 @@ export default function App() {
       data-pane={s.pane}
       data-panel={panel}
       data-empty={empty || undefined}
-      data-deck={s.deckClosed && !codexMode ? 'closed' : undefined}
+      data-deck={s.deckClosed && !bookMode ? 'closed' : undefined}
       data-summary={s.settings.summary}
       data-belt-motion={s.settings.beltMotion ? undefined : 'off'}
       data-motion={s.settings.motion === 'system' ? undefined : s.settings.motion}
@@ -179,10 +186,10 @@ export default function App() {
           </h1>
         </div>
         <ModeSwitch />
-        {codexMode ? <span className="topbar-fill" /> : <PlanTabs />}
+        {bookMode ? <span className="topbar-fill" /> : <PlanTabs />}
         <div className="topbar-controls">
           <InstallButton />
-          {!codexMode && <ShareButton />}
+          {!bookMode && <ShareButton />}
           <button type="button" className="tier-button" title={t('whereAreYou')} onClick={() => setTierOpen(true)}>
             {t('tier')} <b>{s.tier}</b>
           </button>
@@ -202,7 +209,8 @@ export default function App() {
 
       <aside className="side">
         {codexMode && <CodexNav />}
-        {!codexMode && (
+        {mapMode && <MapNav />}
+        {!bookMode && (
           <div className="tabs" role="tablist">
             {tabs.map(([id, label, badge]) => (
               <button key={id} type="button" role="tab" aria-selected={s.tab === id} onClick={() => s.set({ tab: id, deckClosed: false })}>
@@ -222,28 +230,33 @@ export default function App() {
             </button>
           </div>
         )}
-        {!codexMode &&
+        {!bookMode &&
           s.tab === 'targets' &&
           (powerMode ? (
             <PowerPanel result={result} draws={draws} load={load} chainDraw={chainDraw} probe={probe} />
           ) : (
             <TargetsPanel result={result} />
           ))}
-        {!codexMode && s.tab === 'recipes' && <RecipesPanel />}
-        {!codexMode && s.tab === 'resources' && <ResourcesPanel result={result} />}
+        {!bookMode && s.tab === 'recipes' && <RecipesPanel />}
+        {!bookMode && s.tab === 'resources' && <ResourcesPanel result={result} />}
         <Splitter side={panel} />
       </aside>
 
       <main className="floor">
         {codexMode && <CodexPage />}
-        {!codexMode &&
+        {mapMode && (
+          <Suspense fallback={null}>
+            <WorldMap />
+          </Suspense>
+        )}
+        {!bookMode &&
           shown &&
           (powerMode ? (
             <PowerSummary result={result} load={load} chainDraw={chainDraw} />
           ) : (
             <Summary result={result} extraction={extraction} />
           ))}
-        {!codexMode && (
+        {!bookMode && (
           <div className="floor-view">
             {error && (
               <div className="floor-message error">

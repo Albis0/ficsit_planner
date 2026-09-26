@@ -56,6 +56,7 @@ const DYNAMIC_PREFIXES = [
   'guideSub_',
   'guideText_',
   'kind_',
+  'mapGroup_',
   'pageKind_',
   'stat_',
   'statUnit_',

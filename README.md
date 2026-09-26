@@ -31,7 +31,8 @@ and how many per minute. A linear programming solver ([HiGHS](https://highs.dev)
 picks the recipes, counts the machines, sets their clock speeds and draws the factory as belts and pipes.
 Switch to the power planner and plan power plants the same way: from the fuel you have, for the MW you want,
 or for the factories they run, fuel chain included. Or open the Codex and look up anything in the game: every
-part, building, vehicle, milestone, research and alternate recipe, with calculators for the mechanics.
+part, building, vehicle, milestone, research and alternate recipe, with calculators for the mechanics. Or open
+the world map: the game's own map with every resource node, well and geyser on it.
 
 It's a static site you can install as an app (a PWA). Chrome, Edge and Android add a desktop or home-screen
 shortcut, and iPhone and iPad do the same through the Share menu. Once installed it opens in its own window
@@ -66,6 +67,7 @@ and works without a network. There's nothing to download and run. It works on ph
 | <img src="public/icons/Build_ConveyorBeltMk5_C.webp" width="36" alt="Conveyor Belt Mk.5"> | **Two views.** The factory graph lays itself out left to right or top to bottom, whichever fits your screen better (or pick one), routes belts around machines, colours them by tier and doubles up lanes when one belt can't carry the flow. The panel sits across the top and the graph gets the full width under it, or beside it if you prefer (Settings). Each machine card has the game's build-menu look: a coloured strip with the product and its power draw, the building underneath with its name, count and clock. Machines holding power shards get a blue edge, somersloops a pink one. Hover or tap a machine to follow its line. The table lists the total build cost of every machine and extractor. |
 | <img src="public/icons/Build_GeneratorNuclear_C.webp" width="36" alt="Nuclear Power Plant"> | **Power planner.** Flip the switch in the top bar from Factory to Power. Each power plant is a tab of its own, like a factory, and can mix generators: biomass, coal, fuel, nuclear, geothermal and the Alien Power Augmenter, each with its fuel. Size a plant three ways: **What I have** (list the fuel, or the ore and oil it's made from, and it makes all it can), **Power I want** (a set MW), or **My factories** (tick the factory tabs it runs, add trains and lights and some spare; it follows them as they change). Each factory is counted on one plant only. **Auto** generators are sized to fit, including the power the plant's own fuel chain uses, which the planner builds and draws like any factory: ore to fuel to generators to the grid to your factories. Generators can also be a set count or a set output, at any clock. Water, nuclear waste (and the plutonium chain that uses it), augmenter boost and backup Power Storage are all counted. |
 | <img src="public/icons/Desc_HardDrive_C.webp" width="36" alt="Hard Drive"> | **Codex.** The third stop on the switch. Every part, resource, building, vehicle, piece of equipment, HUB milestone, MAM research, alternate recipe and AWESOME Shop offer, with the game's own descriptions. A part's page shows every way to make it, what it goes into and builds, what it's delivered for and what burns it; a building's page its cost, unlock, power and recipes; an alternate is compared with the standard recipe. Game mechanics (clock speed, somersloops, nodes, fuel, belts, world resources, sink points) come with calculators. Search everything, follow any link, share a page by its address, and press **Build this factory** (or **Build with this recipe** on any recipe) to open a factory for it in a new tab. |
+| <img src="public/icons/Build_MinerMk3_C.webp" width="36" alt="Miner Mk.3"> | **World map.** The fourth stop on the switch: the game's own map picture with all 459 resource nodes, the 118 resource well nodes and the 31 geysers, read out of the game's level. Filter by resource and purity, and press a node for what each miner mark (or extractor, or geothermal generator) gets from it. A resource's Codex page opens the map on it. Works offline once you've looked around. |
 | <img src="public/icons/Desc_FreightWagon_C.webp" width="36" alt="Freight Wagon"> | **Factories that feed each other.** Take an item from another factory tab: that factory makes it on top of its own products, and both floors show where it goes and where it comes from. |
 | <img src="public/icons/Desc_ModularFrameLightweight_C.webp" width="36" alt="Radio Control Unit"> | **Share by link.** **Share** copies a link to the factory on screen with the power plants that run it (or to a plant with its factories). Whoever opens it gets a copy as a new tab. The factory rides inside the link, so nothing is uploaded and it opens offline too. |
 | <img src="public/icons/Desc_CircuitBoard_C.webp" width="36" alt="Circuit Board"> | **Settings.** Put the panel on top, left or right. Set the card size, text size and spacing on the factory floor, belt labels, moving belts and the foundation grid, the accent and recipe colours, the interface size, decimals and animations, all with a live preview. Save all your factories and settings to a file, and load them back. **Help** explains every term on screen. |
@@ -202,6 +204,8 @@ the belt count low. dagre lays the graph out left to right, or top to bottom on 
 | `migrations/`, `scripts/reports.mjs` | feedback database schema, and reading the reports |
 | `scripts/extract.mjs`, `scripts/extract-codex.mjs` | game data extractors: the planner's data, and the Codex's |
 | `tools/icon-extractor/` | .NET icon extractor |
+| `tools/map-extractor/`, `scripts/extract-map.mjs` | .NET world reader (resource nodes, the map picture) and the script that tiles the map |
+| `src/lib/world.ts`, `src/components/WorldMap.tsx`, `src/components/MapNav.tsx` | the world map: node data, the map (Leaflet), its filter |
 | `tests/` | solver, extraction, auto placement, graph layout, unlock tiers, saved state and string tests |
 | `docs/manual-test.md` | a click-through checklist for testing the app by hand before a release |
 
@@ -225,6 +229,8 @@ saved factories when they load.
 | `src/data/codex.json` | descriptions, stack sizes, every building, vehicles, equipment, milestones, MAM research, the AWESOME Shop (loaded when the Codex opens) | `bun run extract:codex` |
 | `src/data/codex-icons.json` | icon texture paths the Codex needs on top of the planner's | `bun run extract:codex` |
 | `public/icons/*.webp` | item and building icons | `bun run icons`, `bun run icons:codex` |
+| `src/data/world.json` | every resource node, well node and geyser: resource, purity, place on the map | `bun run extract:map` |
+| `public/map/{z}/{x}/{y}.webp` | the game's map picture (8192 px) as 256 px tiles, zoom 0 to 5 | `bun run extract:map` |
 
 Last extract: **Satisfactory 1.2.4.0**, build 502094, Unreal Engine 5.6.1, on 2026-09-24 (see `src/data/meta.json`).
 
@@ -236,6 +242,7 @@ bun run extract "D:/SteamLibrary/steamapps/common/Satisfactory"
 bun run extract:codex                                      # after extract: it reads gamedata.json
 bun run icons                                              # needs the .NET 10 SDK
 bun run icons:codex
+bun run extract:map                                        # the world map: nodes and tiles, needs .NET too
 dotnet run --project tools/icon-extractor -- "D:/SteamLibrary/steamapps/common/Satisfactory"
 ```
 
@@ -267,11 +274,11 @@ share the source under the same license.
 
 These parts are not the project's own work, so the GPL doesn't cover them:
 
-- **Game content.** Item and building icons (`public/icons/`) and the game data extracted into `src/data/`
+- **Game content.** Item and building icons (`public/icons/`), the map picture (`public/map/`) and the game data extracted into `src/data/`
   (names, recipes, numbers) belong to Coffee Stain Studios. They are included only so this free, non-commercial
   fan tool can work, and all rights to them stay with Coffee Stain. Satisfactory is a trademark of Coffee Stain
   Studios. This project is not affiliated with or endorsed by them.
-- **Dependencies** keep their own licenses. HiGHS, React, React Flow, dagre, zustand and Workbox are MIT. The
-  Barlow fonts are SIL Open Font License 1.1. CUE4Parse, which the icon extractor uses, is Apache-2.0. All of
+- **Dependencies** keep their own licenses. HiGHS, React, React Flow, dagre, zustand and Workbox are MIT, Leaflet
+  is BSD-2-Clause. The Heebo, Poppins, Inter, Rajdhani and Barlow fonts are SIL Open Font License 1.1. CUE4Parse, which the icon extractor uses, is Apache-2.0. All of
   them can be combined with GPLv3.
 - **World resource limits** come from [SatisfactoryTools](https://github.com/greeny/SatisfactoryTools), MIT.

@@ -8,6 +8,7 @@ import { PLANT_NAMES, type Plant, type SizeBy, sizable } from './lib/power';
 import { cleanChoice, cleanNumber, cleanPlan, cleanPowerPlan, cleanSettings, gridToPower } from './lib/sanitize';
 import { DEFAULT_SETTINGS, type Settings } from './lib/settings';
 import type { RecipeMod, Target } from './lib/solver';
+import { cleanMapFilter, DEFAULT_MAP_FILTER, type MapFilter } from './lib/world';
 
 export const MAX_TIER = Math.max(...data.recipes.map((r) => r.tier ?? 0));
 
@@ -103,8 +104,12 @@ export const newPlan = (name: string): Plan => ({
 
 interface State {
   lang: Lang;
-  /** What's on screen: the factory planner, the power planner, or the Codex. */
-  mode: 'factory' | 'power' | 'codex';
+  /** What's on screen: the factory planner, the power planner, the Codex or the world map. */
+  mode: 'factory' | 'power' | 'codex' | 'map';
+  /** World map: resources left off it, and which node purities show (0 impure, 1 normal, 2 pure). */
+  mapFilter: MapFilter;
+  /** A resource the map was just asked to show (from the Codex or the resources panel). Not persisted. */
+  mapFocus?: string;
   /** Codex page on screen, as in the address: '' for its home, 'item/Desc_Motor_C' for a part. */
   codexPage: string;
   /** Power plant tabs, and the one on screen. */
@@ -147,6 +152,8 @@ interface State {
         | 'lang'
         | 'mode'
         | 'codexPage'
+        | 'mapFilter'
+        | 'mapFocus'
         | 'dialog'
         | 'tier'
         | 'onboarded'
@@ -256,6 +263,7 @@ export const useStore = create<State>()(
         lang: 'en',
         mode: 'factory',
         codexPage: '',
+        mapFilter: DEFAULT_MAP_FILTER,
         power: [firstPower],
         activePower: firstPower.id,
         settings: DEFAULT_SETTINGS,
@@ -466,6 +474,7 @@ export const useStore = create<State>()(
         lang: s.lang,
         mode: s.mode,
         codexPage: s.codexPage,
+        mapFilter: s.mapFilter,
         power: s.power,
         activePower: s.activePower,
         settings: s.settings,
@@ -493,6 +502,7 @@ type Persisted = Partial<
     | 'lang'
     | 'mode'
     | 'codexPage'
+    | 'mapFilter'
     | 'power'
     | 'activePower'
     | 'settings'
@@ -564,8 +574,9 @@ export function mergeState<S extends State>(persisted: unknown, current: S): S {
   return {
     ...current,
     lang: isLang(p.lang) ? p.lang : current.lang,
-    mode: cleanChoice(p.mode, ['factory', 'power', 'codex'] as const, 'factory'),
+    mode: cleanChoice(p.mode, ['factory', 'power', 'codex', 'map'] as const, 'factory'),
     codexPage: typeof p.codexPage === 'string' ? p.codexPage.slice(0, 200) : '',
+    mapFilter: cleanMapFilter(p.mapFilter),
     power,
     activePower,
     settings: cleanSettings(p.settings),
