@@ -61,6 +61,7 @@ export function TargetsPanel({ result }: { result?: SolveResult }) {
   return (
     <div className="panel-body targets">
       <section className="stack">
+        <h3 className="section-title">{t('productsTitle')}</h3>
         <Cards list={plan.targets} size={64} onRate={s.setTarget} onRemove={s.removeTarget} />
         <ItemPicker items={craftableItems} label={t('addProduct')} onPick={s.addTarget} exclude={plan.targets.map((x) => x.item)} />
         {exports.length > 0 && (

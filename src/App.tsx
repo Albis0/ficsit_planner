@@ -152,7 +152,10 @@ export default function App() {
   const panel = phone ? 'top' : codexMode ? 'left' : powerMode && s.settings.panel === 'top' ? 'left' : s.settings.panel;
 
   const style: Record<string, string> = settingsStyle(s.settings);
-  if (s.deckHeight) style['--deck-h'] = `${s.deckHeight}px`;
+  if (s.deckHeight) {
+    style['--deck-h'] = `${s.deckHeight}px`;
+    style['--deck-row'] = 'var(--deck)';
+  }
   if (s.sideWidth) style['--side-w'] = `${s.sideWidth}px`;
 
   return (

@@ -691,10 +691,6 @@ function Preview() {
       <div className="machine-strip">
         <Icon id={r.outputs[0].item} size={30} className="strip-icon" />
         <span className="machine-product">{name(r).replace(/^[^:]+:\s*/, '')}</span>
-        <span className="machine-power">
-          {num(r.power * n)}
-          <small>MW</small>
-        </span>
       </div>
       <div className="machine-body">
         <Icon id={r.machine} size={60} className="machine-icon" />
@@ -705,6 +701,12 @@ function Preview() {
               <b>{n}</b>
               <span className="times">×</span>
               {num(clock * 100)}%
+            </span>
+          </span>
+          <span className="machine-mods">
+            <span className="machine-draw">
+              {num(r.power * n)}
+              <small>MW</small>
             </span>
           </span>
         </span>

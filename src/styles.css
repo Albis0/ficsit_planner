@@ -119,7 +119,9 @@ button:disabled {
   grid-template-columns: minmax(0, 1fr);
   /* A height saved on a taller window never pushes the floor under 300px here. */
   --deck: min(var(--deck-h, calc(clamp(220px, 32vh, 400px) * var(--ui-scale, 1))), max(170px, 100dvh - var(--top-h) - 300px));
-  grid-template-rows: var(--top-h) var(--deck) minmax(0, 1fr);
+  /* Until its edge is dragged, the panel is only as tall as what it holds, up to that height. */
+  --deck-row: fit-content(var(--deck));
+  grid-template-rows: var(--top-h) var(--deck-row) minmax(0, 1fr);
   height: 100%;
   /* It's an app, not a page: clicks and drags shouldn't paint text selections. */
   -webkit-user-select: none;
@@ -485,6 +487,7 @@ button:disabled {
 .rate-input::placeholder {
   color: var(--faint);
   font-weight: 500;
+  font-size: 15px;
 }
 
 .rate-input:focus {
@@ -753,6 +756,9 @@ button.slot:hover {
   flex: 1;
   min-height: 0;
   overflow-y: auto;
+  /* Content running past the bottom fades out instead of stopping at a hard cut; when it all fits, only the
+     empty padding is under the fade. */
+  mask-image: linear-gradient(to bottom, #000 calc(100% - 20px), transparent);
   padding: 20px;
   display: flex;
   flex-direction: column;
@@ -771,6 +777,14 @@ button.slot:hover {
   grid-template-columns: repeat(auto-fit, minmax(360px, 1fr));
   align-items: start;
   gap: 24px 36px;
+}
+
+/* Each column opens on a title row of the same height, with or without buttons in it. */
+.panel-body.targets > .stack > .section-title:first-child,
+.panel-body.targets > .stack > .section-head:first-child {
+  min-height: 34px;
+  display: flex;
+  align-items: center;
 }
 
 .section-title {
@@ -898,7 +912,7 @@ button.slot:hover {
 
 .recipe-tools {
   flex: none;
-  width: 400px;
+  width: 360px;
   display: flex;
   flex-direction: column;
   gap: 12px;
@@ -908,7 +922,12 @@ button.slot:hover {
 }
 
 .recipe-tools .segmented {
-  align-self: flex-start;
+  align-self: stretch;
+}
+
+.recipe-tools .segmented button {
+  flex: 1;
+  padding-inline: 6px;
 }
 
 .tier-picker {
@@ -965,8 +984,8 @@ button.slot:hover {
   min-height: 0;
   overflow-y: auto;
   padding: 16px 20px 12px;
-  column-width: 400px;
-  column-gap: 28px;
+  column-width: 340px;
+  column-gap: 24px;
 }
 
 .recipe-group {
@@ -1281,11 +1300,12 @@ button.slot:hover {
   pointer-events: auto;
 }
 
+/* A line of text on a dark wash, no border: it tells, it isn't something to press. */
 .floor-hint {
-  padding: 5px 12px;
-  background: rgb(20 22 24 / 0.86);
-  border: 1px solid var(--line);
-  font: 500 16px var(--font-display);
+  pointer-events: none !important;
+  padding: 4px 10px;
+  background: rgb(21 21 22 / 0.88);
+  font: 500 15px var(--font-body);
   color: var(--faint);
 }
 
@@ -1549,6 +1569,32 @@ button.slot:hover {
   --slot-size: 36px !important;
 }
 
+/* What a plan needs or leaves over, in the readouts: icon and amount side by side. */
+.rate-chips {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 14px;
+}
+
+.rate-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font: 700 18px / 1.2 var(--font-display);
+  white-space: nowrap;
+}
+
+.rate-chip small {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--dim);
+}
+
+.rate-chips.muted .rate-chip {
+  color: var(--dim);
+}
+
 /* Raw inputs in the summary: icon and an amount you can retype or step; a pinned one turns orange. */
 .raw-inputs {
   display: flex;
@@ -1749,12 +1795,10 @@ button.slot:hover {
   display: flex;
   align-items: center;
   gap: 8px;
-  padding: 3px 24px 3px 8px;
+  padding: 3px 22px 3px 8px;
   background: var(--kind);
   color: var(--kind-ink);
   font: 700 calc(18px * var(--t)) / 1.2 var(--font-display);
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
 }
 
 .strip-icon {
@@ -1810,6 +1854,20 @@ button.slot:hover {
   padding: 0 12px 6px 8px;
 }
 
+/* A machine's draw, under its count: the strip is left to the product's name. */
+.machine-draw {
+  font: 700 calc(16px * var(--t)) / 1.2 var(--font-body);
+  color: var(--power);
+  white-space: nowrap;
+}
+
+.machine-draw small {
+  margin-left: 3px;
+  font-size: calc(11px * var(--t));
+  font-weight: 600;
+  color: var(--dim);
+}
+
 .machine-icon {
   flex: none;
   filter: drop-shadow(0 3px 4px rgb(0 0 0 / 0.55));
@@ -1827,6 +1885,16 @@ button.slot:hover {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+/* Generators have long names ("Coal-Powered Generator") and no draw line under them: two lines are free. */
+.machine-node.power .machine-type {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  white-space: normal;
+  font-size: calc(19px * var(--t));
 }
 
 /* "3 × 88.89%": plain (not condensed) digits, the clock nearly as big as the count. */
@@ -1870,7 +1938,8 @@ button.slot:hover {
 
 .machine-mods {
   display: flex;
-  gap: 10px;
+  align-items: baseline;
+  gap: 12px;
 }
 
 .mod-badge {
@@ -1893,7 +1962,7 @@ button.slot:hover {
   --accent: var(--line-2);
   --t: var(--card-text, 1);
   zoom: var(--card-scale, 1);
-  width: calc(280px * (0.6 + 0.4 * var(--t)));
+  width: calc(300px * (0.6 + 0.4 * var(--t)));
   height: calc(84px * (0.3 + 0.7 * var(--t)));
   display: flex;
   align-items: center;
@@ -2322,6 +2391,8 @@ button.slot:hover {
 .plan-table td {
   padding: 11px 14px;
   vertical-align: top;
+  /* One line is as tall as an icon row, so plain text sits level with the icons beside it. */
+  line-height: 30px;
   border-bottom: 1px solid var(--line);
 }
 
@@ -2343,7 +2414,7 @@ button.slot:hover {
 }
 
 .plan-table .strong {
-  font: 700 26px / 1 var(--font-display);
+  font: 700 26px / 30px var(--font-display);
   color: var(--ficsit);
 }
 
@@ -2529,10 +2600,17 @@ button.slot:hover {
   margin-top: 18px;
 }
 
+/* Each phase is a row: its name on the left, its tiers beside it, so short phases leave no hole. */
 .phase {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
+  display: grid;
+  grid-template-columns: 150px minmax(0, 1fr);
+  align-items: center;
+  gap: 8px 16px;
+}
+
+.tier-dialog > .hint {
+  max-width: 70ch;
+  margin-top: 8px;
 }
 
 .phase-tiers {
@@ -2772,9 +2850,10 @@ button.slot:hover {
 
 /* Bottom centre, between the view switch and the floor controls, clear of the tabs and readouts. */
 /* Above the floor's own buttons along the bottom edge, so it never covers them. */
+/* A corner note above the floor's own buttons, clear of the machine panel on the right. */
 .toast {
   position: fixed;
-  left: 50%;
+  left: 18px;
   white-space: nowrap;
   bottom: calc(84px + env(safe-area-inset-bottom));
   z-index: 40;
@@ -2782,7 +2861,6 @@ button.slot:hover {
   align-items: center;
   gap: 16px;
   padding: 10px 12px 10px 16px;
-  transform: translateX(-50%);
   background: var(--raised);
   border: 1px solid var(--line-2);
   border-left: 4px solid var(--ficsit);
@@ -3205,8 +3283,6 @@ button.slot:hover {
   background: var(--power);
   color: var(--power-ink, var(--ficsit-ink));
   font: 700 17px / 1.2 var(--font-display);
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
   clip-path: polygon(0 0, calc(100% - 14px) 0, 100% 14px, 100% 100%, 0 100%);
 }
 
@@ -5399,6 +5475,11 @@ button.gen-count[aria-pressed='true'] {
     display: inline;
   }
 
+  /* A phone runs the line top to bottom; the other way stays in Settings, off the small floor. */
+  .floor-controls .segmented {
+    display: none;
+  }
+
   .busy {
     left: 12px;
     top: 10px;
@@ -5520,15 +5601,25 @@ button.gen-count[aria-pressed='true'] {
     border-top: 4px solid var(--ficsit);
   }
 
+  .phase {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
   .phase-tiers {
     grid-template-columns: minmax(0, 1fr);
   }
 
-  /* Above the view switch and the bottom navigation, clear of the readouts. */
+  /* Along the top, under the bar: the bottom of a phone is where the thumbs and the buttons are. */
   .toast {
-    bottom: calc(136px + env(safe-area-inset-bottom));
-    max-width: calc(100vw - 24px);
+    top: calc(76px + env(safe-area-inset-top));
+    right: 12px;
+    left: 12px;
+    bottom: auto;
     white-space: normal;
+  }
+
+  .toast + .toast {
+    translate: 0 calc(100% + 10px);
   }
 }
 
@@ -5669,9 +5760,14 @@ button.gen-count[aria-pressed='true'] {
     min-width: 44px;
   }
 
+  /* Settings and Feedback share the row evenly, the way Share above spans it. */
   .sheet-links {
-    justify-content: flex-start;
     gap: 10px;
+  }
+
+  .sheet-links > * {
+    flex: 1;
+    justify-content: center;
   }
 
   .readout.mix {
@@ -6178,18 +6274,18 @@ button.gen-count[aria-pressed='true'] {
 
 .codex-cat-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(230px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
   gap: 12px;
 }
 
 .codex-cat-card {
   position: relative;
   display: grid;
-  grid-template-columns: 64px 1fr;
+  grid-template-columns: 64px minmax(0, 1fr) auto;
   grid-template-rows: auto auto;
   column-gap: 14px;
   align-items: center;
-  padding: 14px 16px;
+  padding: 14px 14px 14px 16px;
   background: var(--panel);
   border: 1px solid var(--line);
   text-decoration: none;
@@ -6207,23 +6303,25 @@ button.gen-count[aria-pressed='true'] {
 }
 
 .codex-cat-card-name {
+  grid-column: 2 / 4;
   align-self: end;
-  font: 700 21px / 1.1 var(--font-display);
+  font: 700 18px / 1.15 var(--font-display);
   text-transform: uppercase;
   letter-spacing: 0.03em;
 }
 
 .codex-cat-card-sub {
+  grid-column: 2;
   align-self: start;
   font-size: 14px;
   color: var(--faint);
 }
 
 .codex-cat-card-count {
-  position: absolute;
-  top: 8px;
-  right: 10px;
-  font: 700 15px var(--font-display);
+  grid-column: 3;
+  grid-row: 2;
+  align-self: end;
+  font: 700 15px / 1.4 var(--font-display);
   color: var(--codex);
 }
 

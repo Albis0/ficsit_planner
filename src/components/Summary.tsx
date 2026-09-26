@@ -7,7 +7,22 @@ import { usePlan, useStore } from '../store';
 import { Icon } from './Icon';
 import { MissingList } from './MissingList';
 import { RateInput } from './RateInput';
-import { Slot } from './Slot';
+
+/** Items and their amounts as icon-and-number pairs: a count badge on a small slot runs into the next one. */
+export function RateChips({ list, muted }: { list: { item: string; rate: number }[]; muted?: boolean }) {
+  const { t, name, num } = useT();
+  return (
+    <span className={`rate-chips ${muted ? 'muted' : ''}`}>
+      {list.map((r) => (
+        <span key={r.item} className="rate-chip" title={name(data.items[r.item])}>
+          <Icon id={r.item} size={30} />
+          <b>{num(r.rate)}</b>
+          <small>{t('perMin')}</small>
+        </span>
+      ))}
+    </span>
+  );
+}
 
 export function Summary({ result, extraction }: { result: SolveResult; extraction: ExtractionUse[] }) {
   const { t, num } = useT();
@@ -69,11 +84,7 @@ export function Summary({ result, extraction }: { result: SolveResult; extractio
         {result.surplus.length > 0 && (
           <div className="readout">
             <span className="readout-label">{t('surplus')}</span>
-            <span className="slots">
-              {result.surplus.map((r) => (
-                <Slot key={r.item} id={r.item} rate={r.rate} size={48} tone="muted" />
-              ))}
-            </span>
+            <RateChips list={result.surplus} muted />
           </div>
         )}
       </div>

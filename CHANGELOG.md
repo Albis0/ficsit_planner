@@ -2,6 +2,37 @@
 
 All notable changes to FICSIT Planner. Dates are when the version was finished.
 
+## 0.9.1 — 2026-09-27
+
+### Changed
+
+- The factory floor opens at a size you can read: the whole factory when it fits that way, otherwise its whole
+  height (or width, top to bottom) from the ore end. Before, a big factory opened either too small to read or with
+  its top row cut off under the totals.
+- Machine cards give their strip to the product's full name ("Encased Industrial Beam" no longer ends in "…"); the
+  power draw moved under the machine count. Generator names get two lines.
+- The panel over the floor is only as tall as what's in it until you drag its edge, so a short target list leaves
+  more floor. Its three columns open on titles of the same height, the explanations under them are shorter, and
+  anything running past the bottom fades out instead of stopping at a hard cut.
+- The hint under the floor is plain text instead of a box that looked like a button.
+- The tier dialog lists each phase as a row with its tiers beside it, and opens on the tier you're at.
+- "Ready to work offline" shows in the corner above the floor's buttons instead of over the middle of the floor,
+  and under the top bar on phones.
+- Phones: the direction switch is off the floor (it stays in Settings), a factory too wide for the screen opens
+  from its left edge instead of with a machine cut in half, and a tapped machine is centred above the panel that
+  opens over it.
+
+### Fixed
+
+- Codex home: the entry counts ran into long category names.
+- Power planner: the amounts under **Needs** ran into each other; leftovers in the factory totals did the same.
+- A tapped machine on a phone left the rest of the floor faded until the next tap.
+- **All** in the recipe filters was cut off, and **unlimited** in the water limit didn't fit its field.
+- Miners on a raw input card ("20× Miner Mk.2") were cut off; they now read "20× Mk.2".
+- The list view's text sat higher than the icons beside it.
+- Escape closes the machine panel.
+- The colour preview in Settings still showed the old machine card.
+
 ## 0.9.0 — 2026-09-26
 
 ### Added

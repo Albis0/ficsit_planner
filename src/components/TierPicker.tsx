@@ -33,6 +33,8 @@ export function TierDialog({ onClose }: { onClose: () => void }) {
 
   useEffect(() => {
     dialog.current?.showModal();
+    // Open on the tier you're at, not on the first card.
+    dialog.current?.querySelector<HTMLButtonElement>('.tier-card.current')?.focus();
   }, []);
 
   const pick = (step: number) => {

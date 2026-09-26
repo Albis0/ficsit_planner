@@ -35,7 +35,7 @@ import {
 } from '../lib/graph';
 import { useT } from '../lib/i18n';
 import { generatorById } from '../lib/data';
-import { recipeLabel } from '../lib/text';
+import { minerLabel, recipeLabel } from '../lib/text';
 import { COARSE, useMediaQuery } from '../lib/useMediaQuery';
 import type { SolveResult } from '../lib/solver';
 import { usePlan, useStore } from '../store';
@@ -165,13 +165,11 @@ function MachineNode(props: NodeProps) {
       style={bar ? { ['--mod-bar' as string]: bar } : undefined}
     >
       <Handle type="target" position={inSide(dir)} />
-      {/* The in-game build menu look: a coloured strip naming what it makes and what it draws, the building below. */}
+      {/* The in-game build menu look: a coloured strip naming what it makes, the building and its draw below. */}
       <div className="machine-strip">
         <Icon id={recipe.outputs[0].item} size={30} className="strip-icon" />
-        <span className="machine-product">{recipeLabel(name(recipe), recipe.kind)}</span>
-        <span className="machine-power">
-          {num(use.power)}
-          <small>MW</small>
+        <span className="machine-product" title={recipeLabel(name(recipe), recipe.kind)}>
+          {recipeLabel(name(recipe), recipe.kind)}
         </span>
       </div>
       <div className="machine-body">
@@ -180,12 +178,14 @@ function MachineNode(props: NodeProps) {
           <span className="machine-type">{name(data.machines[recipe.machine])}</span>
           {/* Count and clock read as one: "3 × 83.33%" is three machines at 83.33% each. */}
           <RunLine clocks={use.clocks} />
-          {(use.shards > 0 || use.sloops > 0) && (
-            <span className="machine-mods">
-              {use.shards > 0 && <span className="mod-badge shard">{use.shards} ◆</span>}
-              {use.sloops > 0 && <span className="mod-badge sloop">{use.sloops} ●</span>}
+          <span className="machine-mods">
+            <span className="machine-draw">
+              {num(use.power)}
+              <small>MW</small>
             </span>
-          )}
+            {use.shards > 0 && <span className="mod-badge shard">{use.shards} ◆</span>}
+            {use.sloops > 0 && <span className="mod-badge sloop">{use.sloops} ●</span>}
+          </span>
         </span>
       </div>
       <Handle type="source" position={outSide(dir)} />
@@ -292,9 +292,10 @@ function EndpointNode({ id, data: d }: NodeProps) {
             </span>
           )}
           {kind === 'raw' && ex && (
-            <span className="endpoint-extract">
+            <span className="endpoint-extract" title={`${ex.built}× ${name(ex.extractor)}`}>
               <Icon id={ex.extractor.id} size={20} />
-              {ex.built}× {name(ex.extractor)}
+              {/* A miner is its mark on its own ("8× Mk.3"), so the line fits beside the amount. */}
+              {ex.built}× {minerLabel(name(ex.extractor))}
             </span>
           )}
         </span>
@@ -545,48 +546,48 @@ let solveCount = 0;
 /** Room kept along the floor's bottom edge for its buttons (view switch, direction, fit), so no card opens under them. */
 const BAR = 76;
 
-/** Zoomed out further than this, fitting the whole factory at once isn't worth it. */
-const MIN_FIT = 0.45;
-/** Where the camera starts on a factory too big to fit: close enough to read, at the ore end. */
-const START_ZOOM = 0.6;
+/** Below this zoom a machine's text is too small to read, so the camera never opens further out (phones sit closer to the eye). */
+const readable = (width: number) => (width < 600 ? 0.5 : 0.72);
+/** Nor closer in than this: a small factory still opens at a comfortable size rather than blown up. */
+const MAX_OPEN = 1.05;
 
 /**
- * Opening camera: the whole factory filling the floor while that stays readable; otherwise a readable zoom from the ore end, the way the line is built.
+ * Opening camera: the whole factory when it fits at a readable zoom. Otherwise the whole height (or width, top to
+ * bottom) if that's readable, starting from the ore end the way the line is built; a readable zoom failing that.
  */
 function openingViewport(nodes: Node[], width: number, height: number, dir: Direction): Viewport {
   const minX = Math.min(...nodes.map((n) => n.position.x));
   const minY = Math.min(...nodes.map((n) => n.position.y));
   const maxX = Math.max(...nodes.map((n) => n.position.x + (n.width ?? 0)));
   const maxY = Math.max(...nodes.map((n) => n.position.y + (n.height ?? 0)));
-  const pad = width < 600 ? 12 : 28;
-  const fit = Math.min((width - pad * 2) / (maxX - minX), (height - pad * 2) / (maxY - minY), 1.1);
+  const pad = width < 600 ? 16 : 32;
+  const fitX = (width - pad * 2) / (maxX - minX);
+  const fitY = (height - pad * 2) / (maxY - minY);
   const centred = (size: number, span: number, min: number, zoom: number) => (size - span * zoom) / 2 - min * zoom;
-  if (fit >= MIN_FIT) {
+  const fit = Math.min(fitX, fitY, MAX_OPEN);
+  const least = readable(width);
+  if (fit >= least) {
     return { x: centred(width, maxX - minX, minX, fit), y: centred(height, maxY - minY, minY, fit), zoom: fit };
   }
-  // Too big: start from the inputs, centred the other way when that side fits.
-  const zoom = START_ZOOM;
+  // Too big to show whole: fit it across the flow if that reads, and start at the inputs along it.
+  const across = dir === 'LR' ? fitY : fitX;
+  const zoom = Math.max(least, Math.min(across, MAX_OPEN));
   // Across the flow, aim at the first column of inputs rather than the bounding box's corner, which
   // on a big factory is often empty floor.
   const first = nodes.filter((n) => (dir === 'LR' ? n.position.x : n.position.y) < (dir === 'LR' ? minX : minY) + 120);
-  const span = (lo: number, hi: number, full: number, min: number, size: number) =>
-    (hi - lo) * zoom > size
-      ? pad - lo * zoom
-      : Math.min(pad - min * zoom, Math.max(size - pad - full * zoom, centred(size, hi - lo, lo, zoom)));
-  const x =
-    dir === 'LR'
-      ? pad - minX * zoom
-      : span(Math.min(...first.map((n) => n.position.x)), Math.max(...first.map((n) => n.position.x + (n.width ?? 0))), maxX, minX, width);
-  const y =
-    dir === 'TB'
-      ? pad - minY * zoom
-      : span(
-          Math.min(...first.map((n) => n.position.y)),
-          Math.max(...first.map((n) => n.position.y + (n.height ?? 0))),
-          maxY,
-          minY,
-          height,
-        );
+  const place = (lo: number, hi: number, min: number, max: number, size: number) => {
+    if ((max - min) * zoom <= size - pad * 2) return centred(size, max - min, min, zoom);
+    // Doesn't fit: start from the near edge when the first column shows from there, so no machine opens cut in half;
+    // otherwise centre that column, without showing empty floor past either edge.
+    const edge = pad - min * zoom;
+    if (edge + hi * zoom <= size - pad) return edge;
+    const aim = centred(size, hi - lo, lo, zoom);
+    return Math.min(pad - min * zoom, Math.max(size - pad - max * zoom, aim));
+  };
+  const firstLo = (axis: 'x' | 'y') => Math.min(...first.map((n) => n.position[axis]));
+  const firstHi = (axis: 'x' | 'y') => Math.max(...first.map((n) => n.position[axis] + ((axis === 'x' ? n.width : n.height) ?? 0)));
+  const x = dir === 'LR' ? pad - minX * zoom : place(firstLo('x'), firstHi('x'), minX, maxX, width);
+  const y = dir === 'TB' ? pad - minY * zoom : place(firstLo('y'), firstHi('y'), minY, maxY, height);
   return { x, y, zoom };
 }
 
@@ -617,8 +618,27 @@ function Canvas({ nodes, edges, sig, dir }: { nodes: Node[]; edges: Edge[]; sig:
     const node = flow.getNode(`recipe:${inspect}`);
     if (!node) return;
     const zoom = Math.max(flow.getZoom(), 0.9);
-    flow.setCenter(node.position.x + (node.width ?? 0) / 2, node.position.y + (node.height ?? 0) / 2, { zoom, duration: 300 });
+    // On a phone the machine panel is a sheet over the floor's lower part: centre the machine in what's left above it.
+    const floor = document.querySelector('.floor-view')?.getBoundingClientRect();
+    const sheet = document.querySelector('.inspector')?.getBoundingClientRect();
+    const covered = floor && sheet && sheet.width >= floor.width - 1 ? Math.max(0, floor.bottom - sheet.top) : 0;
+    flow.setCenter(node.position.x + (node.width ?? 0) / 2, node.position.y + (node.height ?? 0) / 2 + covered / 2 / zoom, {
+      zoom,
+      duration: 300,
+    });
   }, [inspect, flow]);
+
+  // Escape puts the machine panel away, unless a dialog or a field has the key.
+  useEffect(() => {
+    if (!inspect) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key !== 'Escape' || e.defaultPrevented || document.querySelector('dialog[open]')) return;
+      if ((e.target as HTMLElement | null)?.closest('input, textarea, select')) return;
+      set({ inspect: undefined });
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [inspect, set]);
 
   const focusNode = hover ?? (inspect ? `recipe:${inspect}` : undefined);
   const focus = useMemo(
@@ -652,8 +672,9 @@ function Canvas({ nodes, edges, sig, dir }: { nodes: Node[]; edges: Edge[]; sig:
           }
           camera = { sig, viewport: flow.getViewport() };
         }}
-        onNodeMouseEnter={(_, n) => setHover(n.id)}
-        onNodeMouseLeave={() => setHover(undefined)}
+        // A finger has no hover: a tap would leave the whole floor faded around it until the next tap.
+        onNodeMouseEnter={coarse ? undefined : (_, n) => setHover(n.id)}
+        onNodeMouseLeave={coarse ? undefined : () => setHover(undefined)}
         onNodeClick={(_, n) => n.type === 'machine' && set({ inspect: (n.data as MachineNodeData).use.recipe.id })}
         onPaneClick={() => set({ inspect: undefined })}
       >

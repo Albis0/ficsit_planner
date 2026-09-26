@@ -10,7 +10,7 @@ import { Icon } from './Icon';
 import { MissingList } from './MissingList';
 import { motionReduced } from './ModeSwitch';
 import { RateInput } from './RateInput';
-import { Slot } from './Slot';
+import { RateChips } from './Summary';
 
 /** A generator's colour in the power mix, close to how the building reads in the game. */
 export const GENERATOR_COLORS: Record<string, string> = {
@@ -113,21 +113,13 @@ export function PowerSummary({
         {needs.length > 0 && (
           <div className="readout">
             <span className="readout-label">{t('needs')}</span>
-            <span className="slots">
-              {needs.map((r) => (
-                <Slot key={r.item} id={r.item} rate={r.rate} size={44} />
-              ))}
-            </span>
+            <RateChips list={needs} />
           </div>
         )}
         {left.length > 0 && (
           <div className="readout">
             <span className="readout-label">{t('makesAsWell')}</span>
-            <span className="slots">
-              {left.map((r) => (
-                <Slot key={r.item} id={r.item} rate={r.rate} size={44} />
-              ))}
-            </span>
+            <RateChips list={left} muted />
           </div>
         )}
       </div>
