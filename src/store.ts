@@ -131,6 +131,8 @@ interface State {
   deckClosed?: boolean;
   /** Graph direction picked by the player; unset lets the layout choose what fits the screen. */
   graphDir?: 'LR' | 'TB';
+  /** A short message at the foot of the screen (a shared link opened, or couldn't be read). Not persisted. */
+  notice?: { key: 'sharedOpened' | 'sharedPlantOpened' | 'sharedBroken'; name?: string };
 
   set: (
     patch: Partial<
@@ -154,6 +156,7 @@ interface State {
         | 'sideWidth'
         | 'deckClosed'
         | 'graphDir'
+        | 'notice'
       >
     >,
   ) => void;
@@ -172,6 +175,13 @@ interface State {
   setFixed: (item: string, rate: number | undefined) => void;
   updatePlan: (patch: Partial<Plan> | ((p: Plan) => Partial<Plan>)) => void;
   addPlan: (name: string) => void;
+  /**
+   * Opens a factory making one item (the Codex's build buttons): in the tab on screen when it's still blank,
+   * otherwise in a new tab named after the item. With a recipe, that recipe is the only one making the item.
+   */
+  buildFactory: (item: string, name: string, recipe?: string) => void;
+  /** Opens a power plant burning one fuel: in the plant on screen when it has no generators yet, otherwise in a new one. */
+  buildPlant: (generator: string, fuel: string) => void;
   duplicatePlan: (id: string) => void;
   removePlan: (id: string) => void;
   renamePlan: (id: string, name: string) => void;
@@ -314,6 +324,40 @@ export const useStore = create<State>()(
         addPlan: (name) => {
           const p = newPlan(name);
           set({ plans: [...get().plans, p], active: p.id, inspect: undefined });
+        },
+        buildFactory: (item, name, recipe) => {
+          const { plans, active } = get();
+          const cur = plans.find((p) => p.id === active);
+          const blank = cur && cur.targets.length === 0 && cur.supplies.length === 0 ? cur : undefined;
+          let enabled = defaultEnabled();
+          if (recipe) {
+            const rivals = new Set(data.recipes.filter((r) => r.id !== recipe && r.outputs[0]?.item === item).map((r) => r.id));
+            enabled = [...enabled.filter((id) => !rivals.has(id)), recipe];
+          }
+          const plan: Plan = {
+            ...newPlan(
+              freeName(
+                name,
+                plans.filter((p) => p !== blank).map((p) => p.name),
+              ),
+            ),
+            targets: [{ item, rate: 10 }],
+            enabled,
+          };
+          if (blank) plan.id = blank.id;
+          set({
+            plans: blank ? plans.map((p) => (p === blank ? plan : p)) : [...plans, plan],
+            active: plan.id,
+            mode: 'factory',
+            tab: 'targets',
+            pane: 'floor',
+            inspect: undefined,
+          });
+        },
+        buildPlant: (generator, fuel) => {
+          if (activePowerPlan(get()).plants.length > 0) get().addPowerPlan(`Plant ${get().power.length + 1}`);
+          get().addPlant(generator, fuel);
+          set({ mode: 'power', tab: 'targets', pane: 'floor', inspect: undefined });
         },
         duplicatePlan: (id) => {
           const src = get().plans.find((p) => p.id === id);

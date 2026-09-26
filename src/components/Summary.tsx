@@ -92,7 +92,7 @@ export function Summary({ result, extraction }: { result: SolveResult; extractio
         </div>
       )}
       {result.missing.length > 0 && result.recipes.length > 0 && (
-        <div className="missing" role="alert">
+        <div className="missing-banner" role="alert">
           <span className="missing-title">{t('missing')}</span>
           <MissingList missing={result.missing} />
         </div>

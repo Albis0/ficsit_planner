@@ -26,8 +26,9 @@ const copy = (patch: object = {}) =>
 describe('loading a copy', () => {
   test('an old copy’s grid becomes a plant feeding the same factories; settings only fill what is untouched', async () => {
     const empty = newPowerPlan('Plant 1');
-    useStore.setState({ plans: [newPlan('Mine')], power: [empty], activePower: empty.id, settings: DEFAULT_SETTINGS });
-    expect(await importFile(copy())).toEqual({ ok: true, count: 2, power: 1, settings: 'loaded' });
+    const mine = { ...newPlan('Mine'), targets: [{ item: 'Desc_IronPlate_C', rate: 10 }] };
+    useStore.setState({ plans: [mine], power: [empty], activePower: empty.id, settings: DEFAULT_SETTINGS });
+    expect(await importFile(copy())).toMatchObject({ ok: true, count: 2, power: 1, settings: 'loaded' });
     const s = useStore.getState();
     const a = s.plans.find((p) => p.name === 'A')!;
     expect(a.id).not.toBe('a');

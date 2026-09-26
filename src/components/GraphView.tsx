@@ -533,8 +533,27 @@ function openingViewport(nodes: Node[], width: number, height: number, dir: Dire
   }
   // Too big: start from the inputs, centred the other way when that side fits.
   const zoom = START_ZOOM;
-  const x = dir === 'LR' || (maxX - minX) * zoom > width ? pad - minX * zoom : centred(width, maxX - minX, minX, zoom);
-  const y = dir === 'TB' || (maxY - minY) * zoom > height ? pad - minY * zoom : centred(height, maxY - minY, minY, zoom);
+  // Across the flow, aim at the first column of inputs rather than the bounding box's corner, which
+  // on a big factory is often empty floor.
+  const first = nodes.filter((n) => (dir === 'LR' ? n.position.x : n.position.y) < (dir === 'LR' ? minX : minY) + 120);
+  const span = (lo: number, hi: number, full: number, min: number, size: number) =>
+    (hi - lo) * zoom > size
+      ? pad - lo * zoom
+      : Math.min(pad - min * zoom, Math.max(size - pad - full * zoom, centred(size, hi - lo, lo, zoom)));
+  const x =
+    dir === 'LR'
+      ? pad - minX * zoom
+      : span(Math.min(...first.map((n) => n.position.x)), Math.max(...first.map((n) => n.position.x + (n.width ?? 0))), maxX, minX, width);
+  const y =
+    dir === 'TB'
+      ? pad - minY * zoom
+      : span(
+          Math.min(...first.map((n) => n.position.y)),
+          Math.max(...first.map((n) => n.position.y + (n.height ?? 0))),
+          maxY,
+          minY,
+          height,
+        );
   return { x, y, zoom };
 }
 
@@ -588,7 +607,11 @@ function Canvas({ nodes, edges, sig, dir }: { nodes: Node[]; edges: Edge[]; sig:
         maxZoom={2}
         proOptions={{ hideAttribution: true }}
         defaultViewport={restore}
-        onMoveEnd={(_, viewport) => (camera = { sig, viewport })}
+        onMoveStart={() => document.querySelector('.react-flow')?.classList.add('moving')}
+        onMoveEnd={(_, viewport) => {
+          document.querySelector('.react-flow')?.classList.remove('moving');
+          camera = { sig, viewport };
+        }}
         onInit={(flow) => {
           if (!restore) {
             const box = document.querySelector('.floor-view')?.getBoundingClientRect();

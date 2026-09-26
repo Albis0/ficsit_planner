@@ -293,13 +293,14 @@ button:disabled {
 }
 
 /* Drag handle on the panel's bottom edge. */
+/* The grab strip sits just outside the panel, on the floor side, so it never shares room with the panel's scrollbar. */
 .splitter {
   position: absolute;
   left: 0;
   right: 0;
-  bottom: -6px;
+  bottom: -11px;
   z-index: 20;
-  height: 12px;
+  height: 10px;
   cursor: row-resize;
   touch-action: none;
 }
@@ -309,8 +310,8 @@ button:disabled {
   position: absolute;
   left: 0;
   right: 0;
-  top: 5px;
-  height: 2px;
+  top: 0;
+  height: 3px;
   transition: background 120ms;
 }
 
@@ -1454,7 +1455,7 @@ button.slot:hover {
   white-space: nowrap;
 }
 
-.missing {
+.missing-banner {
   flex-basis: 100%;
   display: flex;
   flex-direction: column;
@@ -2585,11 +2586,12 @@ button.slot:hover {
 }
 
 /* Bottom centre, between the view switch and the floor controls, clear of the tabs and readouts. */
+/* Above the floor's own buttons along the bottom edge, so it never covers them. */
 .toast {
   position: fixed;
   left: 50%;
   white-space: nowrap;
-  bottom: calc(18px + env(safe-area-inset-bottom));
+  bottom: calc(84px + env(safe-area-inset-bottom));
   z-index: 40;
   display: flex;
   align-items: center;
@@ -2601,6 +2603,15 @@ button.slot:hover {
   border-left: 4px solid var(--ficsit);
   box-shadow: 0 12px 30px rgb(0 0 0 / 0.5);
   font-size: 15px;
+}
+
+.toast.bad {
+  border-left-color: var(--alert);
+}
+
+/* A second message while the first is up sits above it. */
+.toast + .toast {
+  translate: 0 calc(-100% - 10px);
 }
 
 /* ---------- Interface size ---------- */
@@ -3490,7 +3501,7 @@ button.gen-count:hover {
 }
 
 .readout.balance.ok {
-  box-shadow: inset 0 3px var(--supply);
+  box-shadow: inset 4px 0 var(--supply);
 }
 
 .readout.balance.ok .readout-value {
@@ -3498,7 +3509,7 @@ button.gen-count:hover {
 }
 
 .readout.balance.short {
-  box-shadow: inset 0 3px var(--alert);
+  box-shadow: inset 4px 0 var(--alert);
   background: color-mix(in srgb, var(--alert) 9%, var(--panel));
 }
 
@@ -3508,7 +3519,7 @@ button.gen-count:hover {
 
 /* Enough to run, but under the spare capacity the player asked for. */
 .readout.balance.thin {
-  box-shadow: inset 0 3px var(--power);
+  box-shadow: inset 4px 0 var(--power);
 }
 
 .readout.balance.thin .readout-value,
@@ -3797,6 +3808,11 @@ button.gen-count:hover {
 .edge-label.power .edge-rate small {
   font-size: 13px;
   color: var(--dim);
+}
+
+/* Held still while the floor pans or zooms, so a big factory moves smoothly. */
+.react-flow.moving :is(.belt-slats, .pipe-fluid, .cable-core) {
+  animation-play-state: paused;
 }
 
 .app[data-belt-motion='off'] .belt-slats,
@@ -5004,24 +5020,29 @@ button.gen-count:hover {
     top: 0;
     bottom: 0;
     left: auto;
-    right: -6px;
-    width: 12px;
+    right: -11px;
+    width: 10px;
     height: auto;
     cursor: col-resize;
   }
 
   .app[data-panel='right'] .splitter.across {
-    left: -6px;
+    left: -11px;
     right: auto;
   }
 
   .splitter.across::after {
     top: 0;
     bottom: 0;
-    left: 5px;
+    left: 0;
     right: auto;
-    width: 2px;
+    width: 3px;
     height: auto;
+  }
+
+  .app[data-panel='right'] .splitter.across::after {
+    left: auto;
+    right: 0;
   }
 
   .app[data-deck='closed'] .splitter {
@@ -5358,10 +5379,17 @@ button.gen-count:hover {
   }
 
   .readouts {
+    flex: none;
     display: flex;
     gap: 1px;
     overflow-x: auto;
     scrollbar-width: none;
+  }
+
+  /* In a column the desktop's full-width basis would read as full height and squeeze the readouts. */
+  .summary > .missing-banner,
+  .summary > .scaled {
+    flex: none;
   }
 
   .readout,
@@ -5403,7 +5431,7 @@ button.gen-count:hover {
     height: 30px;
   }
 
-  .missing,
+  .missing-banner,
   .scaled {
     padding: 10px 14px;
     font-size: 15px;
@@ -5563,6 +5591,7 @@ button.gen-count:hover {
   .toast {
     bottom: calc(136px + env(safe-area-inset-bottom));
     max-width: calc(100vw - 24px);
+    white-space: normal;
   }
 }
 
@@ -6191,6 +6220,7 @@ button.gen-count:hover {
   flex-direction: column;
   gap: 28px;
   zoom: var(--ui-scale, 1);
+  container: codex-page / inline-size;
 }
 
 .codex-page a {
@@ -6415,7 +6445,7 @@ button.gen-count:hover {
 /* Entry pages: a title block with the icon, the key figures and the game's own text. */
 .codex-head {
   display: grid;
-  grid-template-columns: auto 1fr;
+  grid-template-columns: auto minmax(0, 1fr) auto;
   gap: 18px 24px;
   padding: 22px 24px;
   background: var(--panel);
@@ -6461,11 +6491,36 @@ button.gen-count:hover {
   color: var(--paper);
 }
 
+/* What to do with it, in the head's top right corner. */
 .codex-actions {
   display: flex;
-  flex-wrap: wrap;
+  flex-direction: column;
+  align-items: stretch;
+  align-self: start;
   gap: 10px;
-  margin-top: 4px;
+}
+
+/* A narrow page (a tablet, a wide index) has no room beside the title: the buttons go under the figures. */
+@container codex-page (max-width: 760px) {
+  .codex-head {
+    grid-template-columns: auto minmax(0, 1fr);
+  }
+
+  .codex-actions {
+    grid-column: 2;
+    flex-flow: row wrap;
+    align-items: center;
+  }
+}
+
+/* Build a factory from one recipe card: at the end of its title row. */
+.codex-build {
+  margin-left: auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 15px;
+  white-space: nowrap;
 }
 
 .codex-desc {
@@ -6922,6 +6977,11 @@ a.codex-machine:hover {
   .codex-head {
     grid-template-columns: 1fr;
     padding: 16px;
+  }
+
+  .codex-actions {
+    grid-column: auto;
+    flex-flow: row wrap;
   }
 
   .codex-head-icon {

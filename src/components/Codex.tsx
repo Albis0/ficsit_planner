@@ -51,7 +51,8 @@ export function useCodexRoute() {
     const read = () => {
       if (!location.hash.startsWith(HASH)) return;
       const key = pageKey(parsePage(location.hash.slice(HASH.length + 1)));
-      useStore.getState().set({ mode: 'codex', codexPage: key });
+      // A link to a page opens on the page, also on phones where the index might be showing.
+      useStore.getState().set({ mode: 'codex', codexPage: key, ...(key ? { pane: 'floor' as const } : {}) });
     };
     read();
     window.addEventListener('popstate', read);
@@ -482,8 +483,8 @@ function Head({
             ))}
           </dl>
         )}
-        {actions && <div className="codex-actions">{actions}</div>}
       </div>
+      {actions && <div className="codex-actions">{actions}</div>}
       {desc && (
         <blockquote className="codex-desc">
           {desc.split('\n\n').map((p) => (
@@ -550,8 +551,10 @@ function Amounts({ list, index, unit }: { list: Cost[]; index: CodexIndex; unit?
 }
 
 /** One way of making something: ingredients, results, where, how long and how much power. */
-function RecipeCard({ recipe, index }: { recipe: Recipe; index: CodexIndex }) {
+/** `build`: the item a "Build with this recipe" button makes a factory for. */
+function RecipeCard({ recipe, index, build }: { recipe: Recipe; index: CodexIndex; build?: string }) {
   const { t, num } = useT();
+  const buildable = build && data.items[build] && !data.items[build].raw;
   const unlock = index.data.recipeUnlock[recipe.id];
   const s = unlock ? index.schematic.get(unlock) : undefined;
   const fluid = (item: string) => data.items[item]?.form !== 'solid';
@@ -563,6 +566,17 @@ function RecipeCard({ recipe, index }: { recipe: Recipe; index: CodexIndex }) {
         <span className="codex-recipe-name">{recipeLabel(recipe.name, recipe.kind)}</span>
         {recipe.kind === 'alternate' && <span className="codex-pill alt">{t('alternate')}</span>}
         {index.data.handCraft.includes(recipe.id) && <span className="codex-pill">{t('handCraft')}</span>}
+        {buildable && (
+          <button
+            type="button"
+            className="text-button codex-build"
+            title={t('buildWithHint')}
+            onClick={() => useStore.getState().buildFactory(build, nameOf(build, index.data), recipe.id)}
+          >
+            <Glyph name="factory" size={16} />
+            {t('buildWith')}
+          </button>
+        )}
       </div>
       <div className="codex-recipe-flow">
         <div className="codex-amounts">
@@ -621,7 +635,8 @@ function schematicWhere(s: Schematic, t: ReturnType<typeof useT>['t']): string {
 
 function ItemPage({ id, index }: { id: string; index: CodexIndex }) {
   const { t, num } = useT();
-  const set = useStore((s) => s.set);
+  const buildFactory = useStore((s) => s.buildFactory);
+  const buildPlant = useStore((s) => s.buildPlant);
   const it = index.data.items[id];
   if (!it) return <p className="hint">{t('codexMissing')}</p>;
   const planned = data.items[id];
@@ -659,28 +674,13 @@ function ItemPage({ id, index }: { id: string; index: CodexIndex }) {
           canPlan || burners.length ? (
             <>
               {canPlan && (
-                <button
-                  type="button"
-                  className="primary-button"
-                  onClick={() => {
-                    const s = useStore.getState();
-                    set({ mode: 'factory', pane: 'floor' });
-                    if (!s.plans.find((p) => p.id === s.active)?.targets.some((x) => x.item === id)) s.addTarget(id);
-                  }}
-                >
+                <button type="button" className="primary-button" title={t('buildFactoryHint')} onClick={() => buildFactory(id, it.name)}>
                   <Glyph name="factory" size={18} />
-                  {t('planThis')}
+                  {t('buildFactory')}
                 </button>
               )}
               {burners.length > 0 && (
-                <button
-                  type="button"
-                  className="ghost-button"
-                  onClick={() => {
-                    set({ mode: 'power', pane: 'floor' });
-                    useStore.getState().addPlant(burners[0].id, id);
-                  }}
-                >
+                <button type="button" className="ghost-button" title={t('burnThisHint')} onClick={() => buildPlant(burners[0].id, id)}>
                   <Glyph name="bolt" size={18} />
                   {t('burnThis')}
                 </button>
@@ -723,7 +723,7 @@ function ItemPage({ id, index }: { id: string; index: CodexIndex }) {
         <Section title={t('howToMake')} count={recipes.length}>
           <div className="codex-recipes">
             {recipes.map((r) => (
-              <RecipeCard key={r.id} recipe={r} index={index} />
+              <RecipeCard key={r.id} recipe={r} index={index} build={canPlan ? id : undefined} />
             ))}
           </div>
         </Section>
@@ -1059,7 +1059,7 @@ function SchematicPage({ id, index }: { id: string; index: CodexIndex }) {
         >
           <div className="codex-recipes">
             {recipes.map((r) => (
-              <RecipeCard key={r.id} recipe={r} index={index} />
+              <RecipeCard key={r.id} recipe={r} index={index} build={r.outputs[0]?.item} />
             ))}
           </div>
         </Section>

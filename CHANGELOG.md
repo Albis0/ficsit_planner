@@ -2,6 +2,31 @@
 
 All notable changes to FICSIT Planner. Dates are when the version was finished.
 
+## 0.8.0 — 2026-09-26
+
+### Added
+
+- **Share a factory by link.** **Share** next to Duplicate and Delete (in the ⋯ menu on phones) copies a link to
+  the tab on screen. A factory's link carries the power plants that run it; a plant's link carries the factories
+  it runs. Whoever opens it gets a copy as a new tab, next to their own factories (an untouched first tab gives
+  way). The factory travels inside the link itself, so nothing is stored anywhere and it opens offline too. A
+  damaged link says so and adds nothing.
+- **Build from the Codex.** **Build this factory** (top right of a part's page) opens a factory making it in a
+  tab of its own, named after the part. Each recipe card has **Build with this recipe**, which makes the part
+  that way only. **Make power with it** opens a new power plant burning the fuel.
+
+### Fixed
+
+- The "Bring in" node on the floor lost its layout when something couldn't be made (text spilled under the box).
+- The panel's resize strip sat on top of its scrollbar; it now sits just outside the panel's edge.
+- The power readout's colour stripe ran into the plant tab's underline; it's on the readout's left edge now.
+- Messages at the foot of the screen no longer cover the floor's buttons.
+- On phones, a message under the power readouts squeezed them until their text was cut off.
+- A link to a Codex page opens on that page on phones, not on the index.
+- On a narrow Codex page, the build buttons move under the figures instead of covering the title.
+- A factory too big to fit opens on its inputs instead of an empty corner, and belts hold still while the floor
+  moves.
+
 ## 0.7.0 — 2026-09-25
 
 ### Added

@@ -111,6 +111,14 @@ Remove that target with the **×** on its card before going on. *Expect:* you're
 - [ ] **8.3** Double-click a tab name, rename it, press **Enter**. Then **Duplicate** and **Delete** (click twice
   to confirm). *Expect:* each does what it says.
 - [ ] **8.4** The top bar has no "Optimize for" switch.
+- [ ] **8.5** Make a factory, add a coal plant in Power that runs it, go back to the factory and click **Share**.
+  *Expect:* the button says **Link copied**. Paste the link into a private window. *Expect:* the factory opens as
+  a tab (the empty first tab gives way), with a note at the bottom; in Power, the coal plant is there, running
+  only that factory. Reload: nothing is added twice.
+- [ ] **8.6** Share a power plant, open the link. *Expect:* it opens on the plant, with the factories it runs.
+- [ ] **8.7** Change a few letters in the middle of a shared link and open it. *Expect:* a note that the link is
+  damaged; nothing is added.
+- [ ] **8.8** On a phone, open **⋯** and tap **Share**. *Expect:* the phone's share sheet (or the link copied).
 
 ## 8b. Power planner
 
@@ -180,7 +188,11 @@ Remove that target with the **×** on its card before going on. *Expect:* you're
   that unlocks it.
 - [ ] **C.5** Open **Game mechanics**, then **Clock speed and power shards**, and drag the slider to 150%.
   *Expect:* output × 1.5, one power shard.
-- [ ] **C.6** On a part's page, click **Plan this**. *Expect:* the factory planner with that part as a target.
+- [ ] **C.6** On a part's page, click **Build this factory** (top right). *Expect:* the factory planner, with a new
+  tab named after the part making 10 a minute (or the empty first tab, renamed). Back in the Codex, click
+  **Build with this recipe** on an alternate. *Expect:* another tab, making it only that way.
+- [ ] **C.6b** On Coal's page, click **Make power with it**. *Expect:* the power planner with a coal generator, in a
+  new plant if the one on screen already had generators.
 - [ ] **C.7** Copy a Codex page's address into a new tab. *Expect:* it opens on that page.
 - [ ] **C.8** **Settings → Help**, type `spare`. *Expect:* Spare capacity and what it means.
 
@@ -191,6 +203,7 @@ Remove that target with the **×** on its card before going on. *Expect:* you're
   *Expect:* it opens in its own window, with a FICSIT icon on the desktop or in the Start menu.
 - [ ] **9.3** Turn off Wi-Fi (or DevTools → Network → Offline) and reload. *Expect:* the app still opens and still
   solves new targets.
+- [ ] **9.4** Still offline, open a shared factory link. *Expect:* it opens and solves.
 
 ## 10. Phone
 

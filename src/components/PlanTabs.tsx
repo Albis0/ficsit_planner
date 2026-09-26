@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { useT } from '../lib/i18n';
+import { shareTab } from '../lib/share';
 import { useStore } from '../store';
 import { Icon } from './Icon';
 
@@ -48,6 +49,14 @@ export function PlanActions({ rename = false, onDone }: { rename?: boolean; onDo
   // Which tab the Delete button is asking about, so switching tabs drops the question.
   const [asking, setAsking] = useState<string>();
   const confirming = asking === active;
+  // What the last Share press did, said on the button for a moment.
+  const [shared, setShared] = useState<'copied' | 'failed'>();
+  useEffect(() => {
+    if (!shared) return;
+    const timer = setTimeout(() => setShared(undefined), 2500);
+    return () => clearTimeout(timer);
+  }, [shared]);
+  const name = tabs.list.find((p) => p.id === active)?.name ?? '';
 
   return (
     <span className="plan-actions">
@@ -63,6 +72,18 @@ export function PlanActions({ rename = false, onDone }: { rename?: boolean; onDo
           {t('rename')}
         </button>
       )}
+      <button
+        type="button"
+        className={`text-button ${shared === 'failed' ? 'danger' : ''}`}
+        title={t('shareHint')}
+        onClick={async () => {
+          const r = await shareTab(name);
+          if (r === 'shared') return onDone?.();
+          setShared(r);
+        }}
+      >
+        {shared === 'copied' ? t('linkCopied') : shared === 'failed' ? t('shareFailed') : t('share')}
+      </button>
       <button
         type="button"
         className="text-button"

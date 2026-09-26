@@ -200,3 +200,37 @@ describe('power plant tabs', () => {
     useStore.setState({ mode: 'factory' });
   });
 });
+
+describe('building from the Codex', () => {
+  test('a blank tab takes the factory; after that each build gets its own tab named after the item', () => {
+    const blank = newPlan('Factory 1');
+    useStore.setState({ mode: 'codex', plans: [blank], active: blank.id });
+    current().buildFactory('Desc_Motor_C', 'Motor');
+    let s = current();
+    expect(s.plans).toHaveLength(1);
+    expect(s.plans[0]).toMatchObject({ id: blank.id, name: 'Motor', targets: [{ item: 'Desc_Motor_C', rate: 10 }] });
+    expect(s.mode).toBe('factory');
+
+    current().buildFactory('Desc_Motor_C', 'Motor', 'Recipe_Alternate_Motor_1_C');
+    s = current();
+    expect(s.plans.map((p) => p.name)).toEqual(['Motor', 'Motor 2']);
+    expect(s.active).toBe(s.plans[1].id);
+    // That recipe is the only way the new tab makes motors.
+    expect(s.plans[1].enabled).toContain('Recipe_Alternate_Motor_1_C');
+    expect(s.plans[1].enabled).not.toContain('Recipe_Motor_C');
+    expect(s.plans[1].enabled).toContain('Recipe_Rotor_C');
+  });
+
+  test('a fuel goes to the plant on screen while it has no generators, then to a new plant', () => {
+    const empty = newPowerPlan('Plant 1');
+    useStore.setState({ mode: 'codex', power: [empty], activePower: empty.id });
+    current().buildPlant('Build_GeneratorCoal_C', 'Desc_Coal_C');
+    expect(current().power).toHaveLength(1);
+    expect(current().mode).toBe('power');
+    current().buildPlant('Build_GeneratorFuel_C', 'Desc_LiquidFuel_C');
+    const s = current();
+    expect(s.power).toHaveLength(2);
+    expect(s.activePower).toBe(s.power[1].id);
+    expect(s.power[1].plants[0]).toMatchObject({ generator: 'Build_GeneratorFuel_C', fuel: 'Desc_LiquidFuel_C' });
+  });
+});

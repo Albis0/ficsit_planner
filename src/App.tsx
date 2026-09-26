@@ -9,7 +9,7 @@ import { ModeFlash, ModeSwitch } from './components/ModeSwitch';
 import { PlanTabs } from './components/PlanTabs';
 import { PlantInspector, PowerQuickStart, PowerSummary } from './components/PowerFloor';
 import { PowerPanel } from './components/PowerPanel';
-import { InstallButton, PwaStatus } from './components/PwaStatus';
+import { InstallButton, Notice, PwaStatus } from './components/PwaStatus';
 import { QuickPick } from './components/QuickPick';
 import { RecipesPanel } from './components/RecipesPanel';
 import { ReportDialog } from './components/ReportDialog';
@@ -25,6 +25,7 @@ import type { Consumer } from './lib/graph';
 import { useT } from './lib/i18n';
 import { plantIdOf, plantSize, plantUnlocked, plantValid } from './lib/power';
 import { settingsStyle } from './lib/settings';
+import { useSharedLinks } from './lib/share';
 import { factoryInput, powerInput, powerLoad, useFactoryDraws, useSolve } from './lib/solution';
 import { failureText } from './lib/solveFailure';
 import { useMediaQuery } from './lib/useMediaQuery';
@@ -97,6 +98,7 @@ export default function App() {
   const powerMode = s.mode === 'power';
   const codexMode = s.mode === 'codex';
   useCodexRoute();
+  useSharedLinks();
   const pp = activePowerPlan(s);
   const { result, error, busy } = powerMode ? power : factory;
   const extraction = useMemo(
@@ -324,6 +326,7 @@ export default function App() {
       {s.dialog === 'settings' && <SettingsDialog onClose={() => s.set({ dialog: undefined })} />}
       {s.dialog === 'report' && <ReportDialog onClose={() => s.set({ dialog: undefined })} />}
       <ModeFlash />
+      <Notice />
       <PwaStatus />
     </div>
   );
