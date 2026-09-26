@@ -25,7 +25,7 @@ describe('shared links', () => {
   });
 
   test('a link reads back to what went in, and garbage is refused', async () => {
-    const value = { kind: 'ficsit-planner', plans: [pack(factory('Frames'))], note: 'çok güzel ✓' };
+    const value = { kind: 'ficsit-planner', plans: [pack(factory('Frames'))], note: 'Crème brûlée, 3 × 50%, 日本 ✓' };
     const text = await encode(value);
     expect(text.startsWith('z')).toBe(true);
     expect(text).toMatch(/^[\w-]+$/);
