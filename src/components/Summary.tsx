@@ -1,6 +1,7 @@
 import { data } from '../lib/data';
 import type { ExtractionUse } from '../lib/extraction';
 import { useT } from '../lib/i18n';
+import { showInPanel } from '../lib/panel';
 import type { SolveResult } from '../lib/solver';
 import { usePlan, useStore } from '../store';
 import { Icon } from './Icon';
@@ -10,7 +11,6 @@ import { Slot } from './Slot';
 
 export function Summary({ result, extraction }: { result: SolveResult; extraction: ExtractionUse[] }) {
   const { t, num } = useT();
-  const set = useStore((s) => s.set);
   const inventory = useStore((s) => s.inventory);
   const updatePlan = useStore((s) => s.updatePlan);
   const fixed = usePlan().fixed;
@@ -35,7 +35,7 @@ export function Summary({ result, extraction }: { result: SolveResult; extractio
           <span className="readout-label">{t('machines')}</span>
           <span className="readout-value">{machines}</span>
         </div>
-        <button type="button" className="readout link" onClick={() => set({ tab: 'resources' })}>
+        <button type="button" className="readout link" onClick={() => showInPanel('resources', '.panel-body.resources .extraction')}>
           <span className="readout-label">{t('extractors')}</span>
           <span className="readout-value">{extractors}</span>
         </button>

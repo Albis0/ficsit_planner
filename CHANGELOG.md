@@ -27,6 +27,10 @@ All notable changes to FICSIT Planner. Dates are when the version was finished.
 - A factory too big to fit opens on its inputs instead of an empty corner, and belts hold still while the floor
   moves.
 - The floor opens, and **Fit to screen** fits, above the buttons along its bottom edge, so no card sits under them.
+- **Extractors** in the summary strip now opens the panel on Resources and lights up the extraction settings,
+  also when that tab was already open.
+- A generator's count in the power panel shows when its panel is open on the floor, and closes it when pressed
+  again.
 
 ## 0.7.0 — 2026-09-25
 

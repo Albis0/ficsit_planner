@@ -3332,7 +3332,8 @@ button.slot:hover {
   font-size: 21px;
 }
 
-button.gen-count:hover {
+button.gen-count:hover,
+button.gen-count[aria-pressed='true'] {
   color: var(--power);
 }
 
@@ -6020,12 +6021,16 @@ button.gen-count:hover {
   animation: panel-flash 1.4s ease-out;
 }
 
+.app[data-mode='factory'] .panel-body .flash {
+  --flash: var(--ficsit);
+}
+
 @keyframes panel-flash {
   0%,
   30% {
     box-shadow:
-      0 0 0 3px var(--power),
-      0 0 28px color-mix(in srgb, var(--power) 45%, transparent);
+      0 0 0 3px var(--flash, var(--power)),
+      0 0 28px color-mix(in srgb, var(--flash, var(--power)) 45%, transparent);
   }
   100% {
     box-shadow: 0 0 0 3px transparent;

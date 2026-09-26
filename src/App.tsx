@@ -25,6 +25,7 @@ import type { Consumer } from './lib/graph';
 import { useT } from './lib/i18n';
 import { plantIdOf, plantSize, plantUnlocked, plantValid } from './lib/power';
 import { settingsStyle } from './lib/settings';
+import { showInPanel } from './lib/panel';
 import { useSharedLinks } from './lib/share';
 import { factoryInput, powerInput, powerLoad, useFactoryDraws, useSolve } from './lib/solution';
 import { failureText } from './lib/solveFailure';
@@ -66,27 +67,6 @@ function useSolutions() {
   const power = useSolve(powerIn, mode === 'power');
   const probe = useSolve(probeIn, mode === 'power');
   return { factory, power, probe: probe.result, draws, load };
-}
-
-/**
- * Brings a part of the power panel into view from a message on the floor: opens the panel (on phones,
- * switches to it), scrolls the part in, flashes it, and optionally presses the button inside it.
- */
-function showInPanel(part: 'gens' | 'size-by', press?: string) {
-  useStore.getState().set({ tab: 'targets', deckClosed: false, pane: 'side' });
-  // Two frames: one for the panel to render, one for its layout to settle.
-  requestAnimationFrame(() =>
-    requestAnimationFrame(() => {
-      const el = document.querySelector<HTMLElement>(`.panel-body.power .${part}`);
-      if (!el) return;
-      el.scrollIntoView({ behavior: 'smooth', block: 'start' });
-      el.classList.remove('flash');
-      void el.offsetWidth;
-      el.classList.add('flash');
-      if (press) el.querySelector<HTMLElement>(press)?.click();
-      else el.querySelector<HTMLElement>('button, input')?.focus({ preventScroll: true });
-    }),
-  );
 }
 
 export default function App() {
@@ -279,7 +259,11 @@ export default function App() {
                 <div className="blocked">
                   <h2 className="quick-title">{t('listWhatYouHave')}</h2>
                   <p className="hint">{t('listWhatYouHaveHint')}</p>
-                  <button type="button" className="primary-button" onClick={() => showInPanel('size-by', '.size-box .add-button')}>
+                  <button
+                    type="button"
+                    className="primary-button"
+                    onClick={() => showInPanel('targets', '.panel-body.power .size-by', '.size-box .add-button')}
+                  >
                     {t('addHave')}
                   </button>
                 </div>
@@ -290,7 +274,11 @@ export default function App() {
                 <div className="blocked">
                   <h2 className="quick-title">{idle === 'none' ? t('noPlantRuns') : t('nothingToPower')}</h2>
                   <p className="hint">{idle === 'none' ? t('noPlantRunsHint') : t('nothingToPowerHint')}</p>
-                  <button type="button" className="primary-button" onClick={() => showInPanel(idle === 'none' ? 'gens' : 'size-by')}>
+                  <button
+                    type="button"
+                    className="primary-button"
+                    onClick={() => showInPanel('targets', `.panel-body.power .${idle === 'none' ? 'gens' : 'size-by'}`)}
+                  >
                     {idle === 'none' ? t('openPlants') : t('setDemand')}
                   </button>
                 </div>

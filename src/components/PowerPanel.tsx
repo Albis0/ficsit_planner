@@ -77,6 +77,7 @@ function GenRow({ plant, result }: { plant: Plant; result?: SolveResult }) {
   const updatePlant = useStore((s) => s.updatePlant);
   const removePlant = useStore((s) => s.removePlant);
   const set = useStore((s) => s.set);
+  const inspected = useStore((s) => s.inspect);
   const g = generatorOf(plant);
   const use = result?.recipes.find((u) => u.recipe.id === PLANT_PREFIX + plant.id);
   const mw = result?.grid?.plants[plant.id] ?? 0;
@@ -139,7 +140,14 @@ function GenRow({ plant, result }: { plant: Plant; result?: SolveResult }) {
         {auto ? (
           <>
             {use ? (
-              <button type="button" className="gen-count" title={t('inspectPowerHint')} onClick={() => set({ inspect: use.recipe.id })}>
+              <button
+                type="button"
+                className="gen-count"
+                title={t('inspectPowerHint')}
+                aria-pressed={inspected === use.recipe.id}
+                // Pressed again, it closes the generator's panel on the floor.
+                onClick={() => set({ inspect: inspected === use.recipe.id ? undefined : use.recipe.id })}
+              >
                 <b>{use.built}</b> × {num(use.clock * 100)}%
               </button>
             ) : (
