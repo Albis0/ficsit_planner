@@ -26,6 +26,7 @@ All notable changes to FICSIT Planner. Dates are when the version was finished.
 - On a narrow Codex page, the build buttons move under the figures instead of covering the title.
 - A factory too big to fit opens on its inputs instead of an empty corner, and belts hold still while the floor
   moves.
+- The floor opens, and **Fit to screen** fits, above the buttons along its bottom edge, so no card sits under them.
 
 ## 0.7.0 — 2026-09-25
 

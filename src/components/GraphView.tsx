@@ -500,7 +500,7 @@ function FloorControls() {
           <span className="sr-only">{t('topToBottom')}</span>
         </button>
       </div>
-      <button type="button" className="floor-button" title={t('fit')} onClick={() => flow.fitView({ padding: 0.04, duration: 250 })}>
+      <button type="button" className="floor-button" title={t('fit')} onClick={() => flow.fitView({ padding: { top: '24px', left: '24px', right: '24px', bottom: `${BAR}px` }, duration: 250 })}>
         <span className="fit-icon" aria-hidden>
           ⤢
         </span>
@@ -511,6 +511,9 @@ function FloorControls() {
 }
 
 let solveCount = 0;
+
+/** Room kept along the floor's bottom edge for its buttons (view switch, direction, fit), so no card opens under them. */
+const BAR = 76;
 
 /** Zoomed out further than this, fitting the whole factory at once isn't worth it. */
 const MIN_FIT = 0.45;
@@ -615,7 +618,7 @@ function Canvas({ nodes, edges, sig, dir }: { nodes: Node[]; edges: Edge[]; sig:
         onInit={(flow) => {
           if (!restore) {
             const box = document.querySelector('.floor-view')?.getBoundingClientRect();
-            if (box) flow.setViewport(openingViewport(nodes, box.width, box.height, dir));
+            if (box) flow.setViewport(openingViewport(nodes, box.width, box.height - BAR, dir));
           }
           camera = { sig, viewport: flow.getViewport() };
         }}
