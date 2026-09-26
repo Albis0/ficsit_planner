@@ -500,7 +500,12 @@ function FloorControls() {
           <span className="sr-only">{t('topToBottom')}</span>
         </button>
       </div>
-      <button type="button" className="floor-button" title={t('fit')} onClick={() => flow.fitView({ padding: { top: '24px', left: '24px', right: '24px', bottom: `${BAR}px` }, duration: 250 })}>
+      <button
+        type="button"
+        className="floor-button"
+        title={t('fit')}
+        onClick={() => flow.fitView({ padding: { top: '24px', left: '24px', right: '24px', bottom: `${BAR}px` }, duration: 250 })}
+      >
         <span className="fit-icon" aria-hidden>
           ⤢
         </span>
