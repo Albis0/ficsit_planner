@@ -679,8 +679,8 @@ function Canvas({ nodes, edges, sig, dir }: { nodes: Node[]; edges: Edge[]; sig:
         onPaneClick={() => set({ inspect: undefined })}
       >
         {/* Foundation grid: minor lines every 8 m tile, a heavier seam every 4 tiles. */}
-        {gridLines && <Background id="minor" variant={BackgroundVariant.Lines} gap={40} lineWidth={1} color="#2a2e33" />}
-        {gridLines && <Background id="major" variant={BackgroundVariant.Lines} gap={160} lineWidth={1} color="#383e45" />}
+        {gridLines && <Background id="minor" variant={BackgroundVariant.Lines} gap={40} lineWidth={1} color="#2f2f2f" />}
+        {gridLines && <Background id="major" variant={BackgroundVariant.Lines} gap={160} lineWidth={1} color="#3b3b3b" />}
         <FloorControls />
       </ReactFlow>
     </Focus.Provider>

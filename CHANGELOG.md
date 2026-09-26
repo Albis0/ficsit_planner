@@ -17,6 +17,17 @@ All notable changes to FICSIT Planner. Dates are when the version was finished.
   - A resource's Codex page has **Show on the map**, which opens the map on its nodes.
   - The overview works offline from the first visit; closer tiles are kept as you look at them.
 
+### Changed
+
+- **A look taken from the game itself.** The colours and shapes now come from the game's own interface files
+  instead of being made up:
+  - The greys are the game's (#3F3F3F, #575757, #CCCBCB), and buttons are its dark bevelled buttons.
+  - Panels and windows are built like the game's machine windows: a grey metal casing with screws in the
+    corners, and dark glass screens set into it for the content and the totals.
+  - Corners are rounded the way the game's are; the cut corners and the stripe blocks in window titles are gone.
+  - Labels are plain words instead of letter-spaced capitals.
+  - The planner's own logo replaces the painted stripe block in the top bar.
+
 ## 0.9.1 — 2026-09-27
 
 ### Changed

@@ -44,6 +44,8 @@ and works without a network. There's nothing to download and run. It works on ph
 
 ![The Codex: the Motor's page, with every way to make it and what it goes into](docs/desktop-codex.webp)
 
+![The world map: the game's own map with every resource node, ringed by purity](docs/desktop-map.webp)
+
 <p align="center">
   <img src="docs/phone-graph.webp" width="30%" alt="Phone: the factory runs top to bottom">
   <img src="docs/phone-inspector.webp" width="30%" alt="Phone: clock speed and somersloops in a bottom sheet">

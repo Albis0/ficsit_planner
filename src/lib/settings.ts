@@ -95,7 +95,7 @@ export const clampSetting = (key: keyof typeof LIMITS, v: number) => Math.min(LI
 const DARK_INK = '#1d1206';
 const LIGHT_INK = '#fbf7f0';
 /** The panels' charcoal (--panel-2), what outlines and accent text sit on. */
-const PANEL = '#232425';
+const PANEL = '#303030';
 
 /** Relative luminance (WCAG) of a #rrggbb colour, or undefined when it isn't one. */
 function luminance(hex: string): number | undefined {

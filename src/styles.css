@@ -5,17 +5,26 @@
   "Tablet and phone" section at the end reflows it for small and touch screens.
 */
 :root {
-  --bg: #151516;
-  --panel: #1d1e1f;
-  --panel-2: #232425;
-  --raised: #2b2c2e;
-  --line: #37393b;
-  --line-2: #4b4e51;
-  --slot-top: #37393b;
-  --slot-bottom: #28292b;
-  --paper: #efece5;
-  --dim: #b5b6b8;
-  --faint: #8a8c8f;
+  /*
+    The game's own UI greys, read from its files (BP_SatisfactoryColorFunctions): dark #3F3F3F for
+    cards, mid #575757 for edges, light #CCCBCB for quiet text. The frame around them steps down from there.
+  */
+  --bg: #1f1f1f;
+  --panel: #292929;
+  --panel-2: #303030;
+  --raised: #3f3f3f;
+  --line: #474747;
+  --line-2: #575757;
+  --slot-top: #545454;
+  --slot-bottom: #3d3d3d;
+  --paper: #ffffff;
+  --dim: #cccbcb;
+  --faint: #a09f9f;
+  --radius: 4px;
+  --radius-lg: 6px;
+  --button-top: #4c4c4c;
+  --button-bottom: #393939;
+  --button-edge: #1c1c1c;
   --ficsit: #fa9549;
   --ficsit-deep: #e07a2e;
   --ficsit-ink: #1d1206;
@@ -28,7 +37,7 @@
   --sloop: #f27ad2;
   --supply: #8cc27a;
   --alert: #e95a4f;
-  --floor: #19191a;
+  --floor: #242424;
 
   --font-display: 'Barlow Condensed', 'Arial Narrow', sans-serif;
   --font-body: 'Barlow', 'Segoe UI', sans-serif;
@@ -1352,8 +1361,8 @@ button.slot:hover {
   overflow-y: auto;
   padding: 48px 48px 60px;
   background:
-    linear-gradient(#24282c 1px, transparent 1px) 0 0 / 40px 40px,
-    linear-gradient(90deg, #24282c 1px, transparent 1px) 0 0 / 40px 40px;
+    linear-gradient(#2c2c2c 1px, transparent 1px) 0 0 / 40px 40px,
+    linear-gradient(90deg, #2c2c2c 1px, transparent 1px) 0 0 / 40px 40px;
 }
 
 .quick-title {
@@ -4498,8 +4507,8 @@ button.gen-count[aria-pressed='true'] {
 
 .preview-floor.lines {
   background-image:
-    linear-gradient(#383e45 1px, transparent 1px), linear-gradient(90deg, #383e45 1px, transparent 1px),
-    linear-gradient(#2a2e33 1px, transparent 1px), linear-gradient(90deg, #2a2e33 1px, transparent 1px);
+    linear-gradient(#3b3b3b 1px, transparent 1px), linear-gradient(90deg, #3b3b3b 1px, transparent 1px),
+    linear-gradient(#2f2f2f 1px, transparent 1px), linear-gradient(90deg, #2f2f2f 1px, transparent 1px);
   background-size:
     96px 96px,
     96px 96px,
@@ -7452,4 +7461,482 @@ a.codex-machine:hover {
 
 .map-reset {
   align-self: flex-start;
+}
+
+/* ---------- The game's own look ---------- */
+
+/*
+  Shapes and colours read from the game's UI files rather than made up: rounded 4–6 px corners
+  (Rectangle_Background_Rounded), dark bevelled buttons (TXUI_DarkButton: a grey that darkens
+  downwards, a near-black edge, a faint light line on top), the UI greys above, and labels written as
+  words rather than letter-spaced capitals. Hazard stripes stay where the game paints them: on the
+  logo, not on every header.
+*/
+
+/* The planner's own logo in place of the painted stripe block. */
+.brand-mark {
+  width: 38px;
+  margin: 12px 0 12px 16px;
+  clip-path: none;
+  background: url('/logo.png') center / contain no-repeat;
+}
+
+.brand-mark::before {
+  content: none;
+}
+
+.brand-name {
+  font: 700 23px / 1 var(--font-display);
+  letter-spacing: 0.02em;
+  color: var(--paper);
+}
+
+.topbar {
+  background: var(--bg);
+  border-bottom-color: #151515;
+}
+
+/* Words, not letter-spaced capitals. */
+.tabs button,
+.section-title,
+.readout-label,
+.mode-switch button,
+.modal-title,
+.settings-heading,
+.inspector-label,
+.inspector-machine,
+.plan-table th,
+.map-nav-title,
+.codex-home-link,
+.help-title,
+.power-more > summary,
+.size-total-label,
+.grid-head,
+.consumer-kind,
+.endpoint-kind,
+.gen-add,
+.codex-h,
+.codex-title,
+.codex-cat-card-name,
+.codex-recipe-name,
+.codex-table th,
+.codex-stat dt,
+.codex-crumbs,
+.codex-readout span,
+.crash-title,
+.settings-preview figcaption {
+  text-transform: none;
+  letter-spacing: 0;
+}
+
+.tabs button {
+  font-size: 18px;
+}
+
+.section-title {
+  font-size: 18px;
+  color: var(--paper);
+}
+
+.readout-label {
+  font-size: 14px;
+  color: var(--dim);
+}
+
+.mode-switch button {
+  font-size: 16px;
+}
+
+.modal-title {
+  font-size: 24px;
+}
+
+.endpoint-kind {
+  color: var(--dim);
+}
+
+/* Buttons: the game's dark button, and its orange one for the main action. */
+.ghost-button,
+.chrome-button,
+.tier-button,
+.add-button,
+.floor-button,
+.fuel-chip {
+  border: 1px solid var(--button-edge);
+  border-radius: var(--radius);
+  background: linear-gradient(180deg, var(--button-top), var(--button-bottom));
+  box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.07);
+  color: var(--paper);
+}
+
+.ghost-button:hover:not(:disabled),
+.chrome-button:hover,
+.tier-button:hover,
+.add-button:hover,
+.floor-button:hover,
+.fuel-chip:hover {
+  border-color: var(--button-edge);
+  background: linear-gradient(180deg, #595959, #444);
+  color: var(--paper);
+}
+
+.primary-button {
+  border-radius: var(--radius);
+  background-image: linear-gradient(rgb(255 255 255 / 0.14), rgb(255 255 255 / 0));
+  box-shadow:
+    inset 0 1px 0 rgb(255 255 255 / 0.25),
+    0 1px 0 rgb(0 0 0 / 0.35);
+}
+
+.add-button {
+  color: var(--paper);
+}
+
+.add-button .glyph,
+.add-button > span:first-child {
+  color: var(--ficsit);
+}
+
+/* Switches: a sunken track with a raised thumb. */
+.segmented,
+.mode-switch {
+  border-radius: var(--radius-lg);
+  border-color: #151515;
+  background: #1a1a1a;
+  box-shadow: inset 0 1px 2px rgb(0 0 0 / 0.4);
+}
+
+.segmented button,
+.mode-thumb {
+  border-radius: var(--radius);
+}
+
+.segmented button[aria-checked='true'] {
+  box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.25);
+}
+
+.mode-thumb {
+  background: var(--thumb);
+  box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.25);
+}
+
+/* Fields: sunken, rounded. */
+.rate-input,
+.search,
+.quick-search,
+.field input,
+.modal input,
+.modal textarea,
+.modal select,
+.supply-from select {
+  border-radius: var(--radius);
+}
+
+.rate-field .rate-input {
+  border-radius: var(--radius) 0 0 var(--radius);
+}
+
+.rate-step {
+  border-radius: 0 var(--radius) var(--radius) 0;
+  overflow: hidden;
+}
+
+/* Cards: the game's rounded panels, no painted stripe down the side. */
+.item-card,
+.recipe-row,
+.resource-card,
+.gen-row,
+.tier-card,
+.quick-item,
+.codex-cat-card,
+.codex-tile,
+.codex-fact,
+.codex-recipe,
+.exports-list li,
+.size-box,
+.draw-row,
+.setting-note,
+.inventory-row,
+.placements button,
+.readout.wide .raw-chip,
+.rate-chip {
+  border-radius: var(--radius-lg);
+}
+
+.item-card,
+.codex-fact,
+.exports-list li,
+.setting-note {
+  border-left: 0;
+}
+
+.gen-row {
+  overflow: hidden;
+}
+
+.gen-row-head {
+  clip-path: none;
+}
+
+/* Windows: rounded, no cut corner, no stripe block in the title bar. */
+.modal,
+.tier-dialog,
+.inspector,
+.sheet {
+  border-radius: 8px;
+  clip-path: none;
+}
+
+.modal-head::before {
+  content: none;
+}
+
+.modal-head {
+  padding-left: 22px;
+}
+
+.tier-dialog {
+  border-top-width: 1px;
+  border-top-color: var(--line-2);
+}
+
+.toast {
+  border: 1px solid var(--line-2);
+  border-radius: var(--radius-lg);
+}
+
+.floor-hint {
+  border-radius: var(--radius);
+}
+
+.floor-bar .segmented,
+.floor-controls .segmented {
+  background: #1a1a1a;
+}
+
+::-webkit-scrollbar-thumb {
+  border-radius: 6px;
+}
+
+/* ---------- Machine console ---------- */
+
+/*
+  The frame is built the way the game builds its machine windows (TXUI_Manufacturer_BG,
+  GeneratorBG): a grey metal casing with screws in the corners, and dark glass screens set into it
+  where the numbers are. Words painted on the metal are dark; on the glass they're light.
+*/
+:root {
+  --metal: linear-gradient(180deg, #727272, #5f5f5f);
+  --metal-edge: inset 0 1px 0 rgb(255 255 255 / 0.3), inset 0 -2px 0 rgb(0 0 0 / 0.28);
+  --glass: linear-gradient(118deg, #1b1b1b 0 36%, #202020 36% 50%, #1b1b1b 50%);
+  --glass-edge: inset 0 2px 6px rgb(0 0 0 / 0.7), 0 1px 0 rgb(255 255 255 / 0.25);
+  --screw: radial-gradient(circle, #b4b4b4 0 1.6px, #3b3b3b 2.2px 3.2px, rgb(0 0 0 / 0) 3.6px);
+  --screws:
+    var(--screw) left 5px top 5px / 12px 12px no-repeat, var(--screw) right 5px top 5px / 12px 12px no-repeat,
+    var(--screw) left 5px bottom 5px / 12px 12px no-repeat, var(--screw) right 5px bottom 5px / 12px 12px no-repeat;
+  --painted: #242424;
+}
+
+/* The top bar is the casing's own header screen. */
+.topbar {
+  background: linear-gradient(118deg, #161616 0 30%, #1c1c1c 30% 44%, #161616 44%);
+  border-bottom: 2px solid #4a4a4a;
+}
+
+/* The panel: metal with the tabs painted on it and glass for each column. */
+.side {
+  background: var(--screws), var(--metal);
+  box-shadow: var(--metal-edge);
+  border-color: #2c2c2c;
+}
+
+.side .tabs {
+  background: transparent;
+  border-bottom-color: rgb(0 0 0 / 0.25);
+  box-shadow: 0 1px 0 rgb(255 255 255 / 0.18);
+}
+
+.side .tabs button,
+.side .deck-toggle {
+  color: var(--painted);
+  text-shadow: 0 1px 0 rgb(255 255 255 / 0.28);
+}
+
+/* The open tab is a lit screen label on the metal. */
+.side .tabs button[aria-selected='true'] {
+  color: var(--paper);
+  text-shadow: none;
+  background: linear-gradient(118deg, #1b1b1b 0 36%, #202020 36% 50%, #1b1b1b 50%);
+  border-radius: 6px 6px 0 0;
+}
+
+.side .tabs button[aria-selected='true'] .tab-badge {
+  color: var(--faint);
+}
+
+.side .tabs button:not([aria-selected='true']):hover {
+  color: #000;
+}
+
+.side .tab-badge {
+  color: rgb(0 0 0 / 0.55);
+}
+
+/* Panel on top: each column is its own screen. */
+.app[data-panel='top'] .panel-body.targets {
+  padding: 12px 14px 14px;
+  gap: 12px;
+}
+
+.app[data-panel='top'] .panel-body.targets > .stack,
+.app[data-panel='top'] .recipe-tools,
+.app[data-panel='top'] .recipe-list,
+.app[data-panel='top'] .panel-body.resources > .stack {
+  align-self: stretch;
+  padding: 14px 16px 16px;
+  border-radius: 8px;
+  background: var(--glass);
+  box-shadow: var(--glass-edge);
+}
+
+.app[data-panel='top'] :is(.panel-body.recipes, .panel-body.resources) {
+  padding: 12px 14px 14px;
+  gap: 12px;
+}
+
+.app[data-panel='top'] .recipe-tools,
+.app[data-panel='top'] .panel-body.resources > .extraction {
+  border-right: 0;
+}
+
+/* Panel beside the floor (and the Codex's index, the map's filter): one tall screen. */
+.app:is([data-panel='left'], [data-panel='right']) .side > .panel-body {
+  margin: 0 10px 10px;
+  border-radius: 8px;
+  background: var(--glass);
+  box-shadow: var(--glass-edge);
+}
+
+.app[data-mode='codex'] .side > .panel-body,
+.app[data-mode='map'] .side > .panel-body {
+  margin-top: 10px;
+}
+
+/* The totals: small displays along a metal strip. */
+.summary {
+  gap: 8px;
+  padding: 8px 10px;
+  background: var(--metal);
+  box-shadow: var(--metal-edge);
+  border-bottom-color: #2c2c2c;
+}
+
+.summary .readout {
+  border: 0;
+  border-radius: 6px;
+  background: var(--glass);
+  box-shadow: var(--glass-edge);
+}
+
+/* Windows: a metal casing, the title on a screen along the top, the content on glass. */
+.modal,
+.tier-dialog,
+.sheet {
+  background: var(--screws), var(--metal);
+  border-color: #2c2c2c;
+  box-shadow:
+    var(--metal-edge),
+    0 24px 60px rgb(0 0 0 / 0.6);
+}
+
+.modal-head {
+  margin: 12px 14px 0;
+  padding-left: 16px;
+  border: 0;
+  border-radius: 6px;
+  background: linear-gradient(118deg, #161616 0 36%, #1c1c1c 36% 50%, #161616 50%);
+  box-shadow: var(--glass-edge);
+}
+
+.modal > :not(.modal-head) {
+  margin: 10px 14px 0;
+  border-radius: 8px;
+  background: var(--glass);
+  box-shadow: var(--glass-edge);
+}
+
+.modal > :last-child {
+  margin-bottom: 14px;
+}
+
+.settings-foot,
+.report-foot {
+  border-top: 0;
+}
+
+.tier-dialog > .quick-title,
+.tier-dialog > .hint,
+.tier-dialog .section-title {
+  color: #151515;
+  text-shadow: 0 1px 0 rgb(255 255 255 / 0.3);
+}
+
+.tier-card {
+  border: 0;
+  background: var(--glass);
+  box-shadow: var(--glass-edge);
+}
+
+.tier-card.current {
+  box-shadow:
+    var(--glass-edge),
+    inset 0 0 0 2px var(--ficsit);
+}
+
+/* The machine panel on the floor: the game's machine window in small. */
+.inspector {
+  border: 1px solid #2c2c2c;
+  background: var(--screws), var(--metal);
+  box-shadow:
+    var(--metal-edge),
+    0 18px 44px rgb(0 0 0 / 0.55);
+}
+
+.inspector > * {
+  padding: 12px 14px;
+  border-radius: 8px;
+  background: var(--glass);
+  box-shadow: var(--glass-edge);
+}
+
+.inspector > .inspector-head {
+  background: none;
+  box-shadow: none;
+  padding: 0 4px;
+}
+
+.inspector-head .inspector-recipe,
+.inspector-head .modal-close,
+.inspector-head .icon-button {
+  color: #141414;
+  text-shadow: 0 1px 0 rgb(255 255 255 / 0.3);
+}
+
+.inspector-head .inspector-machine {
+  color: #3a1d05;
+}
+
+/* Words painted straight on the metal (the phone menu, the machine panel's title): dark, like stencils. */
+.sheet .control-label,
+.sheet-row > .control-label {
+  color: #1c1c1c;
+  text-shadow: 0 1px 0 rgb(255 255 255 / 0.3);
+}
+
+.inspector-head .inspector-machine {
+  color: #3a1d05;
+}
+
+.mobile-nav {
+  background: linear-gradient(118deg, #161616 0 30%, #1c1c1c 30% 44%, #161616 44%);
 }
