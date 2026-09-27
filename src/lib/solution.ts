@@ -11,6 +11,34 @@ import type { SolveFailure } from './solveFailure';
 export const usableRecipes = (plan: Pick<Plan, 'enabled'>, tier: number) =>
   new Set(plan.enabled.filter((id) => recipeUnlocked(recipeById.get(id)!, tier)));
 
+const EMPTIES = new Set(['Desc_FluidCanister_C', 'Desc_GasTank_C']);
+/** Unpackaging gives the fluid back from its package, which only ever loops back to the same fluid. */
+const unpacks = (r: { outputs: { item: string }[] }) => r.outputs.some((o) => EMPTIES.has(o.item));
+
+/**
+ * Raw resources a plan could draw on: everything its goals can be made from with the given recipes,
+ * walking back from the goals. A raw resource is mined, so the walk stops there.
+ */
+export function reachableRaw(goals: Iterable<string>, recipes: Set<string>): Set<string> {
+  const raw = new Set<string>();
+  const seen = new Set<string>();
+  const queue = [...goals];
+  while (queue.length) {
+    const item = queue.pop()!;
+    if (seen.has(item)) continue;
+    seen.add(item);
+    if (data.items[item]?.raw) {
+      raw.add(item);
+      continue;
+    }
+    for (const id of recipes) {
+      const r = recipeById.get(id);
+      if (r && !unpacks(r) && r.outputs.some((o) => o.item === item)) for (const i of r.inputs) queue.push(i.item);
+    }
+  }
+  return raw;
+}
+
 type SolvedPart = Pick<Plan, 'targets' | 'supplies' | 'enabled' | 'caps' | 'mods' | 'fixed'>;
 
 export type Export = { item: string; rate: number; to: string };

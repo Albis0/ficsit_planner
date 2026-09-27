@@ -2,10 +2,13 @@ import { type ReactNode, useState } from 'react';
 import { GUIDE_ICON, type GuideId } from '../lib/codex';
 import { data, transportFor } from '../lib/data';
 import { PURITIES, PURITY } from '../lib/extraction';
+import { useWorld } from '../lib/finds';
 import { useT } from '../lib/i18n';
 import { fuelRate, MAX_CLOCK } from '../lib/power';
 import { shardsFor } from '../lib/solver';
 import { CodexLink } from './Codex';
+import { Glyph } from './Glyph';
+import { openMapOn } from './MapNav';
 import { Icon } from './Icon';
 import { RateInput } from './RateInput';
 
@@ -17,7 +20,7 @@ export function GuidePage({ id }: { id: GuideId }) {
       <header className="codex-cat-head">
         <Icon id={GUIDE_ICON[id]} size={72} />
         <div>
-          <span className="codex-tag">{t('cat_guides')}</span>
+          <span className="codex-tag">{t(id === 'crashsites' ? 'cat_world' : 'cat_guides')}</span>
           <h2 className="codex-title">{t(`guide_${id}`)}</h2>
         </div>
       </header>
@@ -28,6 +31,7 @@ export function GuidePage({ id }: { id: GuideId }) {
       {id === 'transport' && <Transport />}
       {id === 'world' && <World />}
       {id === 'sink' && <Sink />}
+      {id === 'crashsites' && <CrashSites />}
     </>
   );
 }
@@ -431,6 +435,70 @@ function World() {
           ))}
         </div>
       </Box>
+    </>
+  );
+}
+
+/** Every crash site's price, read from the level: how many open free, for power or for parts, and which parts. */
+function CrashSites() {
+  const { t, num } = useT();
+  const world = useWorld();
+  const pods = world?.finds.pod ?? [];
+  const parts = new Map<string, number[]>();
+  for (const [, , cost] of pods) if (cost && 'item' in cost) parts.set(cost.item, [...(parts.get(cost.item) ?? []), cost.amount]);
+  const rows = [...parts].sort(
+    (a, b) => b[1].length - a[1].length || (data.items[a[0]]?.name ?? '').localeCompare(data.items[b[0]]?.name ?? ''),
+  );
+  const count = (f: (c: (typeof pods)[number][2]) => boolean) => pods.filter((p) => f(p[2])).length;
+  return (
+    <>
+      <Text k="guideText_crashsites" />
+      <p>
+        <button type="button" className="ghost-button" onClick={() => openMapOn('pod')}>
+          <Glyph name="map" size={18} />
+          {t('showOnMap')}
+        </button>
+      </p>
+      {world && (
+        <>
+          <Box title={t('atAGlance')}>
+            <div className="codex-readouts">
+              <Readout label={t('crashFree')} value={num(count((c) => !c))} tone="good" />
+              <Readout label={t('crashPower')} value={num(count((c) => !!c && 'mw' in c))} />
+              <Readout label={t('crashParts')} value={num(count((c) => !!c && 'item' in c))} />
+            </div>
+          </Box>
+          <Box title={t('crashPartsTitle')}>
+            <table className="codex-table">
+              <thead>
+                <tr>
+                  <th>{t('item')}</th>
+                  <th>{t('crashSites')}</th>
+                  <th>{t('crashAmounts')}</th>
+                </tr>
+              </thead>
+              <tbody>
+                {rows.map(([id, amounts]) => (
+                  <tr key={id}>
+                    <td>
+                      <CodexLink page={{ kind: 'item', id }} className="codex-machine">
+                        <Icon id={id} size={24} />
+                        {data.items[id]?.name ?? id}
+                      </CodexLink>
+                    </td>
+                    <td>{amounts.length}</td>
+                    <td>
+                      {Math.min(...amounts) === Math.max(...amounts)
+                        ? num(amounts[0])
+                        : `${num(Math.min(...amounts))}–${num(Math.max(...amounts))}`}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </Box>
+        </>
+      )}
     </>
   );
 }

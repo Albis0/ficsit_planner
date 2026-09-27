@@ -2,6 +2,35 @@
 
 All notable changes to FICSIT Planner. Dates are when the version was finished.
 
+## 0.11.0 — 2026-09-27
+
+### Added
+
+- **More on the world map.** Somersloops (106), Mercer Spheres (298), blue, yellow and purple power slugs, crash sites
+  (118), Paleberries, Beryl Nuts, Bacon Agarics and every creature's spawn points, all read from the game's level.
+  Each can be turned on in the filter; a crash site's pin says what opens it.
+- **Codex: creatures.** All 21 creatures with the game's names, health, running and sprinting speed, the remains
+  they leave behind and how many spawn in the world, each with **Show on the map**. Remains list the creatures that
+  leave them.
+- **Codex: found in the world.** Artifacts, power slugs and plants with how many the map holds, and a crash sites page:
+  how many open straight away, need power or need parts, and which parts.
+
+### Changed
+
+- **The map is much smoother.** Pins are drawn on one canvas instead of one element each, so thousands of them pan
+  and zoom without stutter.
+- **Resources tab** lists only the resources the plan can use (a coal plant shows coal and water, not iron); the rest
+  are behind one button.
+- **Belts stop moving when zoomed far out**, where the slats strobed and seemed to race, and fast belts move a little
+  slower.
+- **Input and output cards** are wider and step long names down a size, so names like Electromagnetic Control Rod
+  and extractor counts like "4× Water Extractor" fit.
+
+### Fixed
+
+- **Panel beside the floor:** the fold button is visible again, folding no longer squeezes the floor to half height
+  or leaves part of the panel showing, and in a narrow panel names no longer hide under the amount boxes.
+
 ## 0.10.1 — 2026-09-27
 
 ### Changed

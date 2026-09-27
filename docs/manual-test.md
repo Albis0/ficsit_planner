@@ -183,7 +183,7 @@ Remove that target with the **×** on its card before going on. *Expect:* you're
 
 ## 8d. Codex
 
-- [ ] **C.1** Click **Codex** on the switch in the top bar. *Expect:* the Codex home with ten category cards; the
+- [ ] **C.1** Click **Codex** on the switch in the top bar. *Expect:* the Codex home with twelve category cards; the
   address ends in `#codex`.
 - [ ] **C.2** Open **Parts**, type `frame` in **Filter this page**, open **Modular Frame**. *Expect:* its stats,
   the game's description, every recipe (the alternates marked), what it's used to make and build, and the
@@ -214,6 +214,12 @@ Remove that target with the **×** on its card before going on. *Expect:* you're
 - [ ] **M.5** In the Codex, open **Bauxite** and click **Show on the map**. *Expect:* the map with only bauxite,
   framed on its 17 nodes.
 - [ ] **M.6** Phone: **Map**, then **Filter** and back. *Expect:* the map fills the screen and pinches to zoom.
+- [ ] **M.7** In the filter, turn on **Somersloop**, **Crash site** and **Fluffy-Tailed Hog**. *Expect:* their pins
+  appear (106, 118 and the hogs' spawn points); a crash site's pin says what opens it; panning stays smooth.
+- [ ] **M.8** In the Codex, open **Creatures** → **Cliff Hog** and click **Show on the map**. *Expect:* the map with
+  only its spawn points, framed on them.
+- [ ] **M.9** Codex → **Found in the world** → **Crash sites**. *Expect:* 28 open straight away, 23 need power, 67 need
+  parts, and a table of the parts.
 
 ## 9. Offline and install
 

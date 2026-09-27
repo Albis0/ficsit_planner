@@ -94,7 +94,7 @@ function handlesFor(size: { width: number; height: number }, sides: { target: bo
 
 export const SIZE = {
   machine: { width: 310, height: 130 },
-  endpoint: { width: 300, height: 84 },
+  endpoint: { width: 330, height: 100 },
   grid: { width: 300, height: 124 },
   consumer: { width: 260, height: 84 },
 };

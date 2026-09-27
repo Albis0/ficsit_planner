@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { type Cost, data, generatorById, producersOf, type Recipe, recipeById, recipeTier } from './data';
+import type { Creature, FindCounts } from './finds';
 import { searchKey } from './text';
 
 /**
@@ -86,6 +87,9 @@ export interface CodexData {
   handCraft: string[];
   recipeUnlock: Record<string, string>;
   schematics: Schematic[];
+  /** From the world's level (scripts/extract-world.mjs): its creatures, and how many of each find it holds. */
+  creatures: Creature[];
+  counts: FindCounts;
 }
 
 export type Category =
@@ -98,6 +102,8 @@ export type Category =
   | 'research'
   | 'alternates'
   | 'shop'
+  | 'world'
+  | 'creatures'
   | 'guides';
 export const CATEGORIES: Category[] = [
   'parts',
@@ -109,11 +115,13 @@ export const CATEGORIES: Category[] = [
   'research',
   'alternates',
   'shop',
+  'world',
+  'creatures',
   'guides',
 ];
 
-export type GuideId = 'overclock' | 'sloops' | 'nodes' | 'fuel' | 'transport' | 'world' | 'sink';
-export const GUIDES: GuideId[] = ['overclock', 'sloops', 'nodes', 'fuel', 'transport', 'world', 'sink'];
+export type GuideId = 'overclock' | 'sloops' | 'nodes' | 'fuel' | 'transport' | 'world' | 'sink' | 'crashsites';
+export const GUIDES: GuideId[] = ['overclock', 'sloops', 'nodes', 'fuel', 'transport', 'world', 'sink', 'crashsites'];
 
 /** A game icon for each guide. */
 export const GUIDE_ICON: Record<GuideId, string> = {
@@ -124,13 +132,14 @@ export const GUIDE_ICON: Record<GuideId, string> = {
   transport: 'Build_ConveyorBeltMk6_C',
   world: 'Build_RadarTower_C',
   sink: 'Build_ResourceSink_C',
+  crashsites: 'Desc_HardDrive_C',
 };
 
 /** A Codex page: its home, a category, or one entry. Written into the address as #codex/<kind>/<id>. */
 export type Page =
   | { kind: 'home' }
   | { kind: 'cat'; id: Category }
-  | { kind: 'item' | 'building' | 'vehicle' | 'schematic'; id: string }
+  | { kind: 'item' | 'building' | 'vehicle' | 'schematic' | 'creature'; id: string }
   | { kind: 'guide'; id: GuideId };
 
 export const pageKey = (p: Page) => (p.kind === 'home' ? '' : `${p.kind}/${p.id}`);
@@ -139,7 +148,8 @@ export function parsePage(key: string | undefined): Page {
   const [kind, id] = (key ?? '').split('/');
   if (kind === 'cat' && CATEGORIES.includes(id as Category)) return { kind, id: id as Category };
   if (kind === 'guide' && GUIDES.includes(id as GuideId)) return { kind, id: id as GuideId };
-  if ((kind === 'item' || kind === 'building' || kind === 'vehicle' || kind === 'schematic') && id) return { kind, id };
+  if ((kind === 'item' || kind === 'building' || kind === 'vehicle' || kind === 'schematic' || kind === 'creature') && id)
+    return { kind, id };
   return { kind: 'home' };
 }
 
@@ -147,8 +157,11 @@ let loaded: CodexData | undefined;
 let loading: Promise<CodexData> | undefined;
 
 export function loadCodex(): Promise<CodexData> {
-  loading ??= import('../data/codex.json').then((m) => {
-    loaded = m.default as unknown as CodexData;
+  loading ??= Promise.all([import('../data/codex.json'), import('../data/creatures.json')]).then(([m, c]) => {
+    loaded = {
+      ...(m.default as unknown as Omit<CodexData, 'creatures' | 'counts'>),
+      ...(c.default as Pick<CodexData, 'creatures' | 'counts'>),
+    };
     return loaded;
   });
   return loading;
@@ -224,6 +237,7 @@ export function indexOf(codex: CodexData): CodexIndex {
   for (const [id, b] of Object.entries(codex.buildings)) entries.push({ page: { kind: 'building', id }, name: b.name, icon: id });
   for (const [id, v] of Object.entries(codex.vehicles)) entries.push({ page: { kind: 'vehicle', id }, name: v.name, icon: id });
   for (const s of codex.schematics) entries.push({ page: { kind: 'schematic', id: s.id }, name: s.name, icon: schematicIcon(s, codex) });
+  for (const c of codex.creatures) entries.push({ page: { kind: 'creature', id: c.id }, name: c.name, icon: c.id });
 
   cached = {
     data: codex,

@@ -55,15 +55,15 @@ alternate recipes, and a map of every resource node. It can be installed as an a
 | <img src="public/icons/Desc_IronPlate_C.webp" width="36" alt="Iron Plate"> | **On-hand items.** Parts that arrive from elsewhere (another factory, a train). The planner uses them instead of making them. |
 | <img src="public/icons/Build_AssemblerMk1_C.webp" width="36" alt="Assembler"> | **Recipes.** Standard, alternate and converter recipes, grouped by product, each one on or off. When something can't be made, the planner says why (the tier that unlocks it, or the recipe that's off) and offers the fix. |
 | <img src="public/icons/Desc_SpaceElevatorPart_2_C.webp" width="36" alt="Versatile Framework"> | **Tier.** You pick the highest tier you've unlocked. Recipes, buildings, belts and miners above it are left out. |
-| <img src="public/icons/Desc_OreIron_C.webp" width="36" alt="Iron Ore"> | **Resource limits.** A per-minute cap for each raw resource. Empty means the whole map's supply. |
+| <img src="public/icons/Desc_OreIron_C.webp" width="36" alt="Iron Ore"> | **Resource limits.** A per-minute cap for each raw resource. Empty means the whole map's supply. The list shows only the resources the plan can use; the rest are one click away. |
 | <img src="public/icons/Desc_Coal_C.webp" width="36" alt="Coal"> | **Pinned inputs.** Type the amount of a raw resource you actually have into the totals strip, and the targets scale to it. |
 | <img src="public/icons/Desc_CrystalShard_C.webp" width="36" alt="Power Shard"> | **Machines and clocks.** Select a machine to set how many there are or their clock speed. Power uses the game's formula. Overclocked lines use as few power shards as possible. |
 | <img src="public/icons/Desc_WAT1_C.webp" width="36" alt="Somersloop"> | **Somersloops and shards.** Set them per machine, or enter how many you own and let the planner place them (**Auto place** or **Use all**). |
 | <img src="public/icons/Build_MinerMk2_C.webp" width="36" alt="Miner Mk.2"> | **Extraction.** Miner mark, node purity and extractor clock decide how many miners and pumps each resource needs, and their power. |
 | <img src="public/icons/Build_ConveyorBeltMk5_C.webp" width="36" alt="Conveyor Belt Mk.5"> | **Graph and list.** The graph runs left to right or top to bottom, colours belts by tier and splits a flow over more belts when one isn't enough. The list shows every recipe and the build cost. |
 | <img src="public/icons/Build_GeneratorNuclear_C.webp" width="36" alt="Nuclear Power Plant"> | **Power planner.** Power plants are tabs too and can mix generators. Size one by the fuel you have, the MW you want or the factories it runs. The fuel chain, water, nuclear waste, augmenters and Power Storage are counted. |
-| <img src="public/icons/Desc_HardDrive_C.webp" width="36" alt="Hard Drive"> | **Codex.** Parts, resources, buildings, vehicles, equipment, milestones, MAM research, alternate recipes and the AWESOME Shop, with the game's descriptions. Pages for game mechanics have small calculators. **Build this factory** opens a factory for any part. |
-| <img src="public/icons/Build_MinerMk3_C.webp" width="36" alt="Miner Mk.3"> | **World map.** All 459 resource nodes, 118 well nodes and 31 geysers on the game's map, filtered by resource and purity. Pressing a node shows what each miner or extractor gets from it. |
+| <img src="public/icons/Desc_HardDrive_C.webp" width="36" alt="Hard Drive"> | **Codex.** Parts, resources, buildings, vehicles, equipment, milestones, MAM research, alternate recipes and the AWESOME Shop, with the game's descriptions. Also the creatures (health, speed, what they leave behind, where they spawn), what can be found in the world, and what each crash site takes to open. Pages for game mechanics have small calculators. **Build this factory** opens a factory for any part. |
+| <img src="public/icons/Build_MinerMk3_C.webp" width="36" alt="Miner Mk.3"> | **World map.** All 459 resource nodes, 118 well nodes and 31 geysers on the game's map, filtered by resource and purity. Pressing a node shows what each miner or extractor gets from it. Somersloops, Mercer Spheres, power slugs, crash sites, berries, nuts, mushrooms and every creature's spawn points can be turned on too. |
 | <img src="public/icons/Desc_FreightWagon_C.webp" width="36" alt="Freight Wagon"> | **Linked factories.** A factory can take an item from another factory tab, which then makes it on top of its own products. |
 | <img src="public/icons/Desc_ModularFrameLightweight_C.webp" width="36" alt="Radio Control Unit"> | **Share links.** The **Share** button copies a link that contains the factory (and the power plants that run it). Opening it adds a copy as a new tab. Nothing is uploaded. |
 | <img src="public/icons/Desc_CircuitBoard_C.webp" width="36" alt="Circuit Board"> | **Settings.** Panel position, card and text size, spacing, belt labels, colours, interface size, decimals and animations. Save all factories and settings to a file and load them back. **Help** explains the terms on screen. |
@@ -227,6 +227,9 @@ saved factories when they load.
 | `public/icons/*.webp` | item and building icons | `bun run icons`, `bun run icons:codex` |
 | `src/data/world.json` | every resource node, well node and geyser: resource, purity, place on the map | `bun run extract:map` |
 | `public/map/{z}/{x}/{y}.webp` | the game's map picture (8192 px) as 256 px tiles, zoom 0 to 5 | `bun run extract:map` |
+| `src/data/finds.json` | somersloops, Mercer Spheres, power slugs, crash sites (with what opens them), plants and creature spawns on the map | `bun run extract:world` |
+| `src/data/creatures.json` | each creature's name, description, health, speed and remains, and how many of everything the world holds | `bun run extract:world` |
+| `src/data/world-icons.json`, `public/icons/Desc_Hog*.webp` … | creature icons and the textures they come from | `bun run extract:world`, `bun run icons:world` |
 
 Last extract: **Satisfactory 1.2.4.0**, build 502094, Unreal Engine 5.6.1, on 2026-09-24 (see `src/data/meta.json`).
 
@@ -239,6 +242,7 @@ bun run extract:codex                                      # after extract: it r
 bun run icons                                              # needs the .NET 10 SDK
 bun run icons:codex
 bun run extract:map                                        # the world map: nodes and tiles, needs .NET too
+bun run extract:world                                      # after extract:map: finds, creatures and their icons
 dotnet run --project tools/icon-extractor -- "D:/SteamLibrary/steamapps/common/Satisfactory"
 ```
 

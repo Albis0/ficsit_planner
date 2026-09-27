@@ -1,0 +1,23 @@
+{
+ "Desc_HogBasic_C": "FactoryGame/Content/FactoryGame/Character/Creature/CreatureDescriptors/UI/IconDesc_Hog_256",
+ "Desc_HogAlpha_C": "FactoryGame/Content/FactoryGame/Character/Creature/CreatureDescriptors/UI/IconDesc_HogAlpha_256",
+ "Desc_HogCliff_C": "FactoryGame/Content/FactoryGame/Character/Creature/CreatureDescriptors/UI/IconDesc_CliffHog_256",
+ "Desc_HogNuclear_C": "FactoryGame/Content/FactoryGame/Character/Creature/CreatureDescriptors/UI/IconDesc_NuclearHog_256",
+ "Desc_SpitterDesert_Small_C": "FactoryGame/Content/FactoryGame/Character/Creature/CreatureDescriptors/UI/IconDesc_SpitterDesert_256",
+ "Desc_SpitterAquatic_Small_C": "FactoryGame/Content/FactoryGame/Character/Creature/CreatureDescriptors/UI/IconDesc_SpitterAquaAlpha_256",
+ "Desc_SpitterForest_Small_C": "FactoryGame/Content/FactoryGame/Character/Creature/CreatureDescriptors/UI/IconDesc_SpitterForest_256",
+ "Desc_SpitterForest_Small_Red_C": "FactoryGame/Content/FactoryGame/Character/Creature/CreatureDescriptors/UI/IconDesc_SpitterRForest_256",
+ "Desc_SpitterDesert_Alpha_C": "FactoryGame/Content/FactoryGame/Character/Creature/CreatureDescriptors/UI/IconDesc_SpitterDesertAlpha_256",
+ "Desc_SpitterAquatic_Alpha_C": "FactoryGame/Content/FactoryGame/Character/Creature/CreatureDescriptors/UI/IconDesc_SpitterAqua_256",
+ "Desc_SpitterForest_Alpha_C": "FactoryGame/Content/FactoryGame/Character/Creature/CreatureDescriptors/UI/IconDesc_SpitterForestAlpha_256",
+ "Desc_SpitterForest_Red_Alpha_C": "FactoryGame/Content/FactoryGame/Character/Creature/CreatureDescriptors/UI/IconDesc_SpitterRForestAlpha_256",
+ "Desc_StingerSmall_C": "FactoryGame/Content/FactoryGame/Character/Creature/CreatureDescriptors/UI/IconDesc_StingerChild_256",
+ "Desc_StingerAlpha_C": "FactoryGame/Content/FactoryGame/Character/Creature/CreatureDescriptors/UI/IconDesc_Stinger_256",
+ "Desc_StingerElite_C": "FactoryGame/Content/FactoryGame/Character/Creature/CreatureDescriptors/UI/IconDesc_StingerElite_256",
+ "Desc_HatcherElite_C": "FactoryGame/Content/FactoryGame/Character/Creature/CreatureDescriptors/UI/IconDesc_Hatcher_256",
+ "Desc_HatcherBasic_C": "FactoryGame/Content/FactoryGame/Character/Creature/CreatureDescriptors/UI/IconDesc_Hatcher_256",
+ "Desc_NonflyingBird_C": "FactoryGame/Content/FactoryGame/Character/Creature/CreatureDescriptors/UI/IconDesc_NonFlyingBird_256",
+ "Desc_SpaceRabbit_C": "FactoryGame/Content/FactoryGame/Character/Creature/CreatureDescriptors/UI/IconDesc_LizardDoggo_256",
+ "Desc_Beetle_C": "FactoryGame/Content/FactoryGame/Equipment/ObjectScanner/Icons/Monsters_256",
+ "Desc_SpaceGiraffe_C": "FactoryGame/Content/FactoryGame/Character/Creature/CreatureDescriptors/UI/IconDesc_SpaceTick_256"
+}

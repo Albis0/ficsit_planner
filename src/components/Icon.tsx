@@ -1,10 +1,11 @@
 import codexIcons from '../data/codex-icons.json';
 import manifest from '../data/icon-manifest.json';
+import worldIcons from '../data/world-icons.json';
 import { data } from '../lib/data';
 import { FormMark } from './FormMark';
 
-// The planner's icons, and the ones only the Codex shows (equipment, vehicles, every building).
-const available = new Set([...Object.keys(manifest), ...Object.keys(codexIcons)]);
+// The planner's icons, the ones only the Codex shows (equipment, vehicles, every building) and the creatures.
+const available = new Set([...Object.keys(manifest), ...Object.keys(codexIcons), ...Object.keys(worldIcons)]);
 const base = import.meta.env.BASE_URL;
 
 /** Game icon for an item or building, extracted from the game's archives. Falls back to a form swatch. */

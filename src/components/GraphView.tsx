@@ -84,6 +84,13 @@ const FAR_ZOOM = 0.55;
 const zoomSelector = (s: { transform: [number, number, number] }) =>
   s.transform[2] < FAR_ZOOM ? 'far' : s.transform[2] < 0.8 ? 'mid' : 'near';
 
+/**
+ * Below this zoom belts stop moving: slats a few pixels apart, redrawn slower on a big floor, strobe
+ * and seem to race instead of moving.
+ */
+const STILL_ZOOM = 0.7;
+const stillSelector = (s: { transform: [number, number, number] }) => s.transform[2] < STILL_ZOOM;
+
 /** Bottom edge colour for machines holding power shards (blue), somersloops (pink) or both (half and half). */
 function modBar(shards: number, sloops: number): string | undefined {
   if (shards > 0 && sloops > 0) return 'linear-gradient(90deg, var(--shard) 50%, var(--sloop) 50%)';
@@ -274,7 +281,7 @@ function EndpointNode({ id, data: d }: NodeProps) {
       <Slot id={item} size={60} tone={kind === 'target' ? 'target' : 'default'} />
       <span className="endpoint-text">
         <span className="endpoint-kind">{label}</span>
-        <span className="endpoint-name">{name(it)}</span>
+        <span className={`endpoint-name ${name(it).length > 21 ? 'long' : ''}`}>{name(it)}</span>
         {/* The amount under the name, so a long name or a wide typeface keeps the whole width; its miners or
             where part of it goes beside it. */}
         <span className="endpoint-line">
@@ -356,6 +363,7 @@ function PowerEdge({ source, target, sourceX, sourceY, targetX, targetY, sourceP
   const { num } = useT();
   const focus = useContext(Focus);
   const zoom = useFlowStore(zoomSelector);
+  const still = useFlowStore(stillSelector);
   const labels = useStore((s) => s.settings.beltLabels);
   const { mw, route } = d as PowerEdgeData;
   const dir = useContext(Flow);
@@ -373,7 +381,7 @@ function PowerEdge({ source, target, sourceX, sourceY, targetX, targetY, sourceP
   }
   const lit = focus.node !== undefined && (source === focus.node || target === focus.node);
   const faded = focus.node !== undefined && !lit;
-  const state = `${faded ? 'faded' : ''} ${lit ? 'lit' : ''}`;
+  const state = `${faded ? 'faded' : ''} ${lit ? 'lit' : ''} ${still ? 'still' : ''}`;
   const showLabel = labels === 'always' || lit || (labels === 'auto' && zoom !== 'far');
   return (
     <>
@@ -424,6 +432,7 @@ function FlowEdge({ source, target, sourceX, sourceY, targetX, targetY, sourcePo
   const { name, num, t } = useT();
   const focus = useContext(Focus);
   const zoom = useFlowStore(zoomSelector);
+  const still = useFlowStore(stillSelector);
   const labels = useStore((s) => s.settings.beltLabels);
   const oneColor = useStore((s) => s.settings.beltColors === 'one');
   const { item, rate, transport, lanes, route } = d as FlowEdgeData;
@@ -446,7 +455,7 @@ function FlowEdge({ source, target, sourceX, sourceY, targetX, targetY, sourcePo
   const lit = focus.node !== undefined && (source === focus.node || target === focus.node);
   const faded = focus.node !== undefined && !lit;
   const showLabel = labels === 'always' || lit || (labels === 'auto' && zoom !== 'far');
-  const state = `${faded ? 'faded' : ''} ${lit ? 'lit' : ''}`;
+  const state = `${faded ? 'faded' : ''} ${lit ? 'lit' : ''} ${still ? 'still' : ''}`;
 
   let body: ReactNode;
   let tierColor: string;
@@ -467,7 +476,7 @@ function FlowEdge({ source, target, sourceX, sourceY, targetX, targetY, sourcePo
     body = (
       <g
         className={`belt-edge ${state}`}
-        style={{ ['--belt' as string]: tierColor, ['--belt-speed' as string]: `${1.4 / Math.sqrt(mk + 1)}s` }}
+        style={{ ['--belt' as string]: tierColor, ['--belt-speed' as string]: `${2 / Math.sqrt(mk + 1)}s` }}
       >
         <path d={path} className="belt-rails" style={{ strokeWidth: w }} />
         <path d={path} className="belt-bed" style={{ strokeWidth: w - 5 }} />

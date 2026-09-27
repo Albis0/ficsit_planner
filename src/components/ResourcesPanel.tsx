@@ -1,10 +1,12 @@
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import { data, rawItems } from '../lib/data';
 import { effectiveExtraction, MINERS, PURITIES, planExtraction } from '../lib/extraction';
 import { useT } from '../lib/i18n';
 import { minerLabel } from '../lib/text';
+import { plantRecipe, plantValid } from '../lib/power';
+import { reachableRaw, useExports, usableRecipes } from '../lib/solution';
 import type { SolveResult } from '../lib/solver';
-import { usePlan, useStore } from '../store';
+import { activePowerPlan, usePlan, useStore } from '../store';
 import { Icon } from './Icon';
 import { RateInput } from './RateInput';
 import { Slot } from './Slot';
@@ -22,6 +24,21 @@ export function ResourcesPanel({ result }: { result?: SolveResult }) {
 
   const uses = useMemo(() => new Map(planExtraction(result?.raw ?? [], ex).map((u) => [u.item, u])), [result, ex]);
   const usesWell = [...uses.values()].some((u) => u.extractor.id === 'Build_FrackingExtractor_C');
+
+  // Only the resources this plan can use: what its products (or its generators' fuel) are made from.
+  const power = useStore((s) => (s.mode === 'power' ? activePowerPlan(s) : undefined));
+  const active = useStore((s) => s.active);
+  const exports = useExports(active);
+  const [showAll, setShowAll] = useState(false);
+  const relevant = useMemo(() => {
+    const goals = power
+      ? power.plants.filter(plantValid).flatMap((p) => plantRecipe(p).inputs.map((i) => i.item))
+      : [...plan.targets, ...exports].map((x) => x.item);
+    return reachableRaw(goals, usableRecipes(plan, tier));
+  }, [power, plan, exports, tier]);
+  const counts = (id: string) => relevant.has(id) || uses.has(id) || plan.caps[id] != null;
+  const shown = sorted.filter((i) => counts(i.id));
+  const hidden = sorted.length - shown.length;
 
   return (
     <div className="panel-body resources">
@@ -70,7 +87,7 @@ export function ResourcesPanel({ result }: { result?: SolveResult }) {
         <h3 className="section-title">{t('resources')}</h3>
         <p className="hint">{t('resourceHint')}</p>
         <div className="resource-cards">
-          {sorted.map((item) => {
+          {(showAll ? sorted : shown).map((item) => {
             const world = data.worldLimits[item.id];
             const cap = plan.caps[item.id] ?? world;
             const use = uses.get(item.id);
@@ -123,6 +140,11 @@ export function ResourcesPanel({ result }: { result?: SolveResult }) {
             );
           })}
         </div>
+        {hidden > 0 && (
+          <button type="button" className="text-button more-resources" onClick={() => setShowAll(!showAll)}>
+            {showAll ? t('hideResources') : t('moreResources', { n: hidden })}
+          </button>
+        )}
         {usesWell && <p className="hint">{t('wellNote')}</p>}
       </section>
     </div>

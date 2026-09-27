@@ -3,8 +3,9 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { type CodexData, indexOf, pageKey, pageOf, parsePage, recipesFor, schematicIcon, search } from '../src/lib/codex';
 import codexJson from '../src/data/codex.json';
+import creaturesJson from '../src/data/creatures.json';
 
-const codex = codexJson as unknown as CodexData;
+const codex = { ...codexJson, ...creaturesJson } as unknown as CodexData;
 const index = indexOf(codex);
 const icons = new Set(fs.readdirSync(path.join(import.meta.dir, '..', 'public', 'icons')).map((f) => f.replace(/\.webp$/, '')));
 
@@ -57,4 +58,15 @@ test('milestones, research, alternates and the shop are all there', () => {
   const tier1 = codex.schematics.find((s) => s.name === 'Base Building');
   expect(tier1?.tier).toBe(1);
   for (const s of codex.schematics) expect(schematicIcon(s, codex)).toBeDefined();
+});
+
+test('every creature has an icon, a page and remains that exist', () => {
+  expect(codex.creatures.length).toBeGreaterThan(15);
+  for (const c of codex.creatures) {
+    expect(icons.has(c.id)).toBe(true);
+    expect(parsePage(pageKey({ kind: 'creature', id: c.id }))).toEqual({ kind: 'creature', id: c.id });
+    if (c.drop) expect(codex.items[c.drop]).toBeDefined();
+  }
+  expect(search(index, 'hog').some((e) => e.page.kind === 'creature')).toBe(true);
+  expect(codex.counts.pod).toBe(118);
 });

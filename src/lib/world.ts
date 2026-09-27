@@ -1,4 +1,5 @@
 import world from '../data/world.json';
+import { DEFAULT_LAYERS, knownLayer } from './finds';
 
 /** A resource node, a well's satellite node or a geyser, placed on the map picture (0..size px). */
 export interface WorldNode {
@@ -19,13 +20,15 @@ export const NODES = world.nodes as WorldNode[];
 /** The middle of each resource well, where its pressurizer goes. */
 export const WELLS = world.wells as { item: string; x: number; y: number }[];
 
-/** How the map's filter reads: what's left off, and which purities show. */
+/** How the map's filter reads: resources left off, which purities show, and which other layers are on. */
 export interface MapFilter {
   hidden: string[];
   purities: number[];
+  /** Artifacts, power slugs, crash sites, plants and creatures that show. */
+  layers: string[];
 }
 
-export const DEFAULT_MAP_FILTER: MapFilter = { hidden: [], purities: [0, 1, 2] };
+export const DEFAULT_MAP_FILTER: MapFilter = { hidden: [], purities: [0, 1, 2], layers: DEFAULT_LAYERS };
 
 /** The resources on the map, in the order the filter lists them: ores, then fluids, then geysers. */
 export const MAP_GROUPS: { id: 'ores' | 'fluids' | 'geysers'; items: string[] }[] = (() => {
@@ -50,7 +53,8 @@ export function cleanMapFilter(v: unknown): MapFilter {
   const purities = Array.isArray(f.purities)
     ? [...new Set(f.purities.filter((p): p is number => p === 0 || p === 1 || p === 2))].sort()
     : DEFAULT_MAP_FILTER.purities;
-  return { hidden: [...new Set(hidden)], purities };
+  const layers = Array.isArray(f.layers) ? [...new Set(f.layers.filter(knownLayer))] : DEFAULT_MAP_FILTER.layers;
+  return { hidden: [...new Set(hidden)], purities, layers };
 }
 
 /** Nodes of one resource by purity: [impure, normal, pure]. */

@@ -48,11 +48,13 @@ const used = new Set([...called, ...quoted]);
 const DYNAMIC_PREFIXES = [
   'cat_',
   'extra_',
+  'family_',
   'form_',
   'group_',
   'guide_',
   'guideText_',
   'kind_',
+  'layer_',
   'mapGroup_',
   'pageKind_',
   'stat_',

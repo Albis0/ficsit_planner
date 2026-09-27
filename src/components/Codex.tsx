@@ -21,13 +21,14 @@ import {
 } from '../lib/codex';
 import { type Cost, data, generatorById, type Recipe, recipeTier } from '../lib/data';
 import { PURITIES, PURITY } from '../lib/extraction';
+import { type Family, type Layer, LAYER_GROUPS, LAYER_ITEM, layerOfItem } from '../lib/finds';
 import { useT } from '../lib/i18n';
 import { fuelRate } from '../lib/power';
 import { recipeLabel, searchKey } from '../lib/text';
 import { useStore } from '../store';
 import { GuidePage } from './CodexGuides';
 import { Glyph } from './Glyph';
-import { onMap, openMapOn } from './MapNav';
+import { onMapAny, openMapOn } from './MapNav';
 import { Icon } from './Icon';
 
 const HASH = '#codex';
@@ -99,7 +100,8 @@ export function CodexLink({ page, className, children, title }: { page: Page; cl
 /** The category a page belongs to, for the index to mark. */
 function categoryOf(page: Page, index: CodexIndex | undefined): Category | undefined {
   if (page.kind === 'cat') return page.id;
-  if (page.kind === 'guide') return 'guides';
+  if (page.kind === 'creature') return 'creatures';
+  if (page.kind === 'guide') return page.id === 'crashsites' ? 'world' : 'guides';
   if (page.kind === 'building') return 'buildings';
   if (page.kind === 'vehicle') return 'vehicles';
   if (!index) return undefined;
@@ -125,8 +127,12 @@ const CATEGORY_ICON: Record<Category, string> = {
   research: 'Build_Mam_C',
   alternates: 'Desc_HardDrive_C',
   shop: 'Desc_ResourceSinkCoupon_C',
+  world: 'Desc_WAT2_C',
+  creatures: 'Desc_HogBasic_C',
   guides: 'Desc_CrystalShard_C',
 };
+
+const FAMILIES: Family[] = ['hog', 'spitter', 'stinger', 'hatcher', 'passive'];
 
 /** The Codex's own entries in a category, grouped under headings. */
 function categoryGroups(cat: Category, index: CodexIndex, t: ReturnType<typeof useT>['t']): { title: string; entries: Entry[] }[] {
@@ -225,11 +231,34 @@ function categoryGroups(cat: Category, index: CodexIndex, t: ReturnType<typeof u
         })),
         (e) => index.schematic.get((e.page as { id: string }).id)?.group ?? '',
       );
+    case 'world':
+      // Each find links to its item's page; crash sites, which aren't an item, to their own.
+      return LAYER_GROUPS.map((g) => ({
+        title: t(`mapGroup_${g.id}`),
+        entries: (g.layers as readonly Layer[]).map((l) => ({
+          page: (l === 'pod' ? { kind: 'guide', id: 'crashsites' } : { kind: 'item', id: LAYER_ITEM[l] }) as Page,
+          name: l === 'pod' ? t('guide_crashsites') : nameOf(LAYER_ITEM[l], codex),
+          icon: LAYER_ITEM[l],
+          note: t('onMapN', { n: codex.counts[l] }),
+        })),
+      }));
+    case 'creatures':
+      return FAMILIES.map((f) => ({
+        title: t(`family_${f}`),
+        entries: codex.creatures
+          .filter((c) => c.family === f)
+          .map((c) => ({
+            page: { kind: 'creature', id: c.id } as Page,
+            name: c.name,
+            icon: c.id,
+            note: c.health ? t('healthN', { n: c.health }) : undefined,
+          })),
+      })).filter((g) => g.entries.length);
     case 'guides':
       return [
         {
           title: '',
-          entries: GUIDES.map((id) => ({
+          entries: GUIDES.filter((id) => id !== 'crashsites').map((id) => ({
             page: { kind: 'guide', id } as Page,
             name: t(`guide_${id}`),
             icon: GUIDE_ICON[id],
@@ -262,8 +291,12 @@ function countOf(cat: Category, index: CodexIndex): number {
       return schematics(['alternate']);
     case 'shop':
       return schematics(['shop']);
+    case 'world':
+      return LAYER_GROUPS.reduce((n, g) => n + g.layers.length, 0);
+    case 'creatures':
+      return codex.creatures.length;
     case 'guides':
-      return GUIDES.length;
+      return GUIDES.length - 1;
   }
 }
 
@@ -338,6 +371,7 @@ export function CodexPage() {
         {page.kind === 'vehicle' && <VehiclePage id={page.id} index={index} />}
         {page.kind === 'schematic' && <SchematicPage id={page.id} index={index} />}
         {page.kind === 'guide' && <GuidePage id={page.id} />}
+        {page.kind === 'creature' && <CreaturePage id={page.id} index={index} />}
       </article>
     </div>
   );
@@ -635,6 +669,9 @@ function ItemPage({ id, index }: { id: string; index: CodexIndex }) {
   if (it.sink) stats.push([t('statSink'), `${num(it.sink)} ${t('pointsShort')}`]);
   if (it.energy) stats.push([t('statEnergy'), `${num(it.energy)} MJ`]);
   if (it.radioactive) stats.push([t('statRadioactive'), t('yes')]);
+  const find = layerOfItem(id);
+  if (find) stats.push([t('statInWorld'), num(index.data.counts[find])]);
+  const leftBy = index.data.creatures.filter((c) => c.drop === id);
   if (it.kind === 'resource' && data.worldLimits[id] !== undefined)
     stats.push([t('statWorld'), data.worldLimits[id] === null ? t('unlimited') : `${num(data.worldLimits[id]!)}${t('perMin')}`]);
   const tag = it.kind === 'part' ? (fluidUnit ? t(`form_${it.form}`) : t('kind_part')) : t(`kind_${it.kind}`);
@@ -649,7 +686,7 @@ function ItemPage({ id, index }: { id: string; index: CodexIndex }) {
         stats={stats}
         desc={it.desc}
         actions={
-          canPlan || burners.length || onMap(id) ? (
+          canPlan || burners.length || onMapAny(id) ? (
             <>
               {canPlan && (
                 <button type="button" className="primary-button" title={t('buildFactoryHint')} onClick={() => buildFactory(id, it.name)}>
@@ -663,7 +700,7 @@ function ItemPage({ id, index }: { id: string; index: CodexIndex }) {
                   {t('burnThis')}
                 </button>
               )}
-              {onMap(id) && (
+              {onMapAny(id) && (
                 <button type="button" className="ghost-button" onClick={() => openMapOn(id)}>
                   <Glyph name="map" size={18} />
                   {t('showOnMap')}
@@ -817,6 +854,19 @@ function ItemPage({ id, index }: { id: string; index: CodexIndex }) {
           </div>
         </Section>
       )}
+      {leftBy.length > 0 && (
+        <Section title={t('droppedBy')} count={leftBy.length}>
+          <div className="codex-uses">
+            {leftBy.map((c) => (
+              <CodexLink key={c.id} page={{ kind: 'creature', id: c.id }} className="codex-use">
+                <Icon id={c.id} size={30} />
+                <span className="codex-use-name">{c.name}</span>
+                {c.health && <span className="codex-use-where">{t('healthN', { n: num(c.health) })}</span>}
+              </CodexLink>
+            ))}
+          </div>
+        </Section>
+      )}
       {sold.length > 0 && (
         <Section title={t('soldInShop')}>
           <div className="codex-uses">
@@ -830,6 +880,61 @@ function ItemPage({ id, index }: { id: string; index: CodexIndex }) {
                 </CodexLink>
               );
             })}
+          </div>
+        </Section>
+      )}
+    </>
+  );
+}
+
+/** Game speeds are in cm/s; km/h reads better next to the game's own vehicles. */
+const kmh = (cmPerS: number) => Math.round(cmPerS * 0.036);
+
+function CreaturePage({ id, index }: { id: string; index: CodexIndex }) {
+  const { t, num } = useT();
+  const c = index.data.creatures.find((x) => x.id === id);
+  if (!c) return <p className="hint">{t('codexMissing')}</p>;
+  const stats: [string, ReactNode][] = [];
+  if (c.health) stats.push([t('statHealth'), num(c.health)]);
+  if (c.run) stats.push([t('statRun'), t('kmh', { n: kmh(c.run) })]);
+  if (c.sprint) stats.push([t('statSprint'), t('kmh', { n: kmh(c.sprint) })]);
+  stats.push([t('statInWorld'), num(c.count)]);
+  const kin = index.data.creatures.filter((x) => x.family === c.family && x.id !== c.id);
+  return (
+    <>
+      <Head
+        icon={c.id}
+        name={c.name}
+        tag={t(`family_${c.family}`)}
+        stats={stats}
+        desc={c.note}
+        actions={
+          <button type="button" className="ghost-button" onClick={() => openMapOn(c.id)}>
+            <Glyph name="map" size={18} />
+            {t('showOnMap')}
+          </button>
+        }
+      />
+      <Section title={t('whereFound')}>
+        <p className="hint">{t('spawnPoints', { n: num(c.spawners), count: num(c.count) })}</p>
+      </Section>
+      {c.drop && (
+        <Section title={t('drops')}>
+          <div className="codex-amounts">
+            <Amount item={c.drop} index={index} />
+          </div>
+        </Section>
+      )}
+      {kin.length > 0 && c.family !== 'passive' && (
+        <Section title={t(`family_${c.family}`)} count={kin.length}>
+          <div className="codex-uses">
+            {kin.map((k) => (
+              <CodexLink key={k.id} page={{ kind: 'creature', id: k.id }} className="codex-use">
+                <Icon id={k.id} size={30} />
+                <span className="codex-use-name">{k.name}</span>
+                {k.health && <span className="codex-use-where">{t('healthN', { n: num(k.health) })}</span>}
+              </CodexLink>
+            ))}
           </div>
         </Section>
       )}

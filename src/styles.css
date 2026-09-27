@@ -1962,8 +1962,8 @@ button.slot:hover {
   --accent: var(--line-2);
   --t: var(--card-text, 1);
   zoom: var(--card-scale, 1);
-  width: calc(300px * (0.6 + 0.4 * var(--t)));
-  height: calc(84px * (0.3 + 0.7 * var(--t)));
+  width: calc(330px * (0.6 + 0.4 * var(--t)));
+  height: calc(100px * (0.3 + 0.7 * var(--t)));
   display: flex;
   align-items: center;
   gap: 12px;
@@ -2028,10 +2028,17 @@ button.slot:hover {
   white-space: nowrap;
 }
 
+/* Long names (Electromagnetic Control Rod) step down a size rather than lose their end. */
+.endpoint-name.long {
+  font-size: calc(16px * var(--t));
+}
+
+/* The extractors go under the amount when both don't fit on one line. */
 .endpoint-line {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
-  gap: 8px;
+  gap: 0 8px;
   min-width: 0;
 }
 
@@ -2473,6 +2480,12 @@ button.slot:hover {
   to {
     stroke-dashoffset: -20;
   }
+}
+
+.belt-edge.still .belt-slats,
+.pipe-edge.still .pipe-fluid,
+.still .cable-core {
+  animation: none;
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -7384,6 +7397,27 @@ a.codex-machine:hover {
   color: var(--faint);
 }
 
+/* A find's or creature's count, with a dot in the colour its pins are ringed in. */
+.map-layer-count {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font: 700 13px / 1 var(--font-body);
+  color: var(--dim);
+}
+
+.map-layer-count::before {
+  content: '';
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--ring);
+}
+
+.map-item[aria-pressed='false'] .map-layer-count::before {
+  background: var(--line-2);
+}
+
 .map-reset {
   align-self: flex-start;
 }
@@ -7862,4 +7896,169 @@ a.codex-machine:hover {
 
 .mobile-nav {
   background: linear-gradient(118deg, #161616 0 30%, #1c1c1c 30% 44%, #161616 44%);
+}
+
+/* ---------- Panel beside the floor: folding and narrow widths ---------- */
+
+@media (min-width: 901px) {
+  /* The fold button is a dark game button on the metal, so it reads over the tabs scrolled under it. */
+  .app:is([data-panel='left'], [data-panel='right']) .side .tabs .deck-toggle {
+    align-self: center;
+    height: 34px;
+    margin: 0 6px 0 auto;
+    padding: 0 12px;
+    color: var(--paper);
+    text-shadow: none;
+    background: linear-gradient(180deg, var(--button-top), var(--button-bottom));
+    border: 1px solid var(--button-edge);
+    border-radius: var(--radius);
+    box-shadow:
+      inset 0 1px 0 rgb(255 255 255 / 0.12),
+      -8px 0 10px -4px rgb(0 0 0 / 0.45);
+  }
+
+  .app:is([data-panel='left'], [data-panel='right']) .side .tabs .deck-toggle:hover {
+    color: var(--ficsit);
+  }
+
+  /* Folded: a fixed strip the height of the floor, holding only the tabs and the unfold button. */
+  .app[data-panel='left'][data-deck='closed']:not([data-empty]) {
+    grid-template-columns: 50px minmax(0, 1fr);
+    grid-template-rows: var(--top-h) minmax(0, 1fr);
+  }
+
+  .app[data-panel='right'][data-deck='closed']:not([data-empty]) {
+    grid-template-columns: minmax(0, 1fr) 50px;
+    grid-template-rows: var(--top-h) minmax(0, 1fr);
+  }
+
+  .app:is([data-panel='left'], [data-panel='right'])[data-deck='closed'] .side > :not(.tabs) {
+    display: none;
+  }
+
+  .app:is([data-panel='left'], [data-panel='right'])[data-deck='closed'] .side .tabs {
+    align-items: center;
+    gap: 4px;
+    padding: 14px 0 10px;
+    overflow: hidden;
+  }
+
+  .app:is([data-panel='left'], [data-panel='right'])[data-deck='closed'] .side .tabs button:not(.deck-toggle) {
+    padding: 14px 12px;
+  }
+
+  .app:is([data-panel='left'], [data-panel='right'])[data-deck='closed'] .side .tab-badge {
+    margin: 0;
+    margin-inline-start: 6px;
+  }
+
+  .app:is([data-panel='left'], [data-panel='right'])[data-deck='closed'] .side .tabs .deck-toggle {
+    margin: auto 0 0;
+    width: 36px;
+    height: 36px;
+    padding: 0;
+    justify-content: center;
+  }
+}
+
+/* A narrow panel (beside the floor, or a phone): cards put the amount under the name instead of over it. */
+.side {
+  container: side / inline-size;
+}
+
+@container side (max-width: 480px) {
+  .item-card:not(.flat) {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    grid-template-areas:
+      'slot name remove'
+      'slot rate rate';
+    gap: 6px 12px;
+  }
+
+  .item-card:not(.flat) > .slot {
+    grid-area: slot;
+  }
+
+  .item-card:not(.flat) > .item-card-name {
+    grid-area: name;
+  }
+
+  .item-card:not(.flat) > .item-card-rate {
+    grid-area: rate;
+  }
+
+  .item-card:not(.flat) > .icon-button {
+    grid-area: remove;
+  }
+
+  .item-card-name {
+    font-size: 18px;
+  }
+
+  .resource-card .item-card.flat {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr);
+    grid-template-areas:
+      'slot name'
+      'slot rate';
+    gap: 4px 12px;
+  }
+
+  .resource-card .item-card.flat > .slot {
+    grid-area: slot;
+  }
+
+  .resource-card .item-card.flat > .item-card-name {
+    grid-area: name;
+  }
+
+  .resource-card .item-card.flat > .item-card-rate {
+    grid-area: rate;
+  }
+
+  .extract-row {
+    flex-wrap: wrap;
+  }
+
+  .extract-name {
+    flex-basis: calc(100% - 40px);
+  }
+
+  .section-head {
+    flex-wrap: wrap;
+  }
+
+  .inventory-row.item-card.flat {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr);
+    grid-template-areas:
+      'slot name'
+      'slot rate';
+    gap: 4px 12px;
+  }
+
+  .inventory-row > .slot {
+    grid-area: slot;
+  }
+
+  .inventory-row > .item-card-name {
+    grid-area: name;
+    flex-direction: row;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: 0 10px;
+    font-size: 17px;
+  }
+
+  .inventory-row > .rate-field {
+    grid-area: rate;
+    justify-self: start;
+  }
+}
+
+@container side (max-width: 360px) {
+  .add-button {
+    font-size: 16px;
+  }
 }

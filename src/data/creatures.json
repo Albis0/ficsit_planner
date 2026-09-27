@@ -1,0 +1,246 @@
+{
+ "creatures": [
+  {
+   "id": "Desc_HogBasic_C",
+   "name": "Fluffy-Tailed Hog",
+   "note": "A hostile melee creature. Attacks by charging like a bull, dealing damage with a knockback effect.",
+   "family": "hog",
+   "health": 20,
+   "run": 350,
+   "sprint": 1000,
+   "drop": "Desc_HogParts_C",
+   "spawners": 318,
+   "count": 587
+  },
+  {
+   "id": "Desc_HogAlpha_C",
+   "name": "Alpha Hog",
+   "note": "A hostile melee creature. Larger and more dangerous than Fluffy-tailed Hog. dealing up to 3x the damage. Has tusks and bright edges on the back of its carapace. Emits a shockwave-like particle effect when it prepares to attack.",
+   "family": "hog",
+   "health": 60,
+   "run": 525,
+   "sprint": 1500,
+   "drop": "Desc_HogParts_C",
+   "spawners": 115,
+   "count": 127
+  },
+  {
+   "id": "Desc_HogCliff_C",
+   "name": "Cliff Hog",
+   "family": "hog",
+   "health": 100,
+   "run": 650,
+   "sprint": 2000,
+   "drop": "Desc_HogParts_C",
+   "spawners": 113,
+   "count": 147
+  },
+  {
+   "id": "Desc_HogNuclear_C",
+   "name": "Radioactive Cliff Hog",
+   "family": "hog",
+   "health": 150,
+   "run": 715,
+   "sprint": 2200,
+   "drop": "Desc_HogParts_C",
+   "spawners": 62,
+   "count": 66
+  },
+  {
+   "id": "Desc_SpitterDesert_Small_C",
+   "name": "Small Desert Spitter",
+   "note": "A type of hostile creatures that deals damage with its fireball attack.",
+   "family": "spitter",
+   "health": 20,
+   "run": 400,
+   "sprint": 600,
+   "drop": "Desc_SpitterParts_C",
+   "spawners": 180,
+   "count": 225
+  },
+  {
+   "id": "Desc_SpitterAquatic_Small_C",
+   "name": "Small Aquatic Spitter",
+   "note": "A type of hostile creatures that deals damage with its fireball attack.",
+   "family": "spitter",
+   "health": 25,
+   "run": 400,
+   "sprint": 600,
+   "drop": "Desc_SpitterParts_C",
+   "spawners": 67,
+   "count": 104
+  },
+  {
+   "id": "Desc_SpitterForest_Small_C",
+   "name": "Small Forest Spitter",
+   "note": "A type of hostile creatures that deals damage with its fireball attack.",
+   "family": "spitter",
+   "health": 30,
+   "run": 400,
+   "sprint": 600,
+   "drop": "Desc_SpitterParts_C",
+   "spawners": 140,
+   "count": 207
+  },
+  {
+   "id": "Desc_SpitterForest_Small_Red_C",
+   "name": "Small Forest Spitter (red)",
+   "note": "A type of hostile creatures that deals damage with its fireball attack.",
+   "family": "spitter",
+   "health": 30,
+   "run": 400,
+   "sprint": 600,
+   "drop": "Desc_SpitterParts_C",
+   "spawners": 17,
+   "count": 37
+  },
+  {
+   "id": "Desc_SpitterDesert_Alpha_C",
+   "name": "Alpha Desert Spitter",
+   "note": "A type of hostile creatures that deals damage with its fireball attack.",
+   "family": "spitter",
+   "health": 60,
+   "run": 600,
+   "sprint": 900,
+   "drop": "Desc_SpitterParts_C",
+   "spawners": 86,
+   "count": 95
+  },
+  {
+   "id": "Desc_SpitterAquatic_Alpha_C",
+   "name": "Alpha Aquatic Spitter",
+   "note": "A type of hostile creatures that deals damage with its fireball attack.",
+   "family": "spitter",
+   "health": 75,
+   "run": 600,
+   "sprint": 900,
+   "drop": "Desc_SpitterParts_C",
+   "spawners": 78,
+   "count": 87
+  },
+  {
+   "id": "Desc_SpitterForest_Alpha_C",
+   "name": "Alpha Forest Spitter",
+   "note": "A type of hostile creatures that deals damage with its fireball attack.",
+   "family": "spitter",
+   "health": 100,
+   "run": 600,
+   "sprint": 900,
+   "drop": "Desc_SpitterParts_C",
+   "spawners": 62,
+   "count": 67
+  },
+  {
+   "id": "Desc_SpitterForest_Red_Alpha_C",
+   "name": "Alpha Forest Spitter (red)",
+   "note": "A type of hostile creatures that deals damage with its fireball attack.",
+   "family": "spitter",
+   "health": 100,
+   "run": 600,
+   "sprint": 900,
+   "drop": "Desc_SpitterParts_C",
+   "spawners": 28,
+   "count": 36
+  },
+  {
+   "id": "Desc_StingerSmall_C",
+   "name": "Small Stinger",
+   "note": "A spider-like creature found mostly in caves and jungles. Has four pointy legs attached to their torso, and another 4 similar pointy appendages attached to their head which they use for combat. Moves very swiftly and come in three variants.",
+   "family": "stinger",
+   "health": 10,
+   "drop": "Desc_StingerParts_C",
+   "spawners": 203,
+   "count": 572
+  },
+  {
+   "id": "Desc_StingerAlpha_C",
+   "name": "Alpha Stinger",
+   "note": "A spider-like creature found mostly in caves and jungles. Has four pointy legs attached to their torso, and another 4 similar pointy appendages attached to their head which they use for combat. Moves very swiftly and come in three variants.",
+   "family": "stinger",
+   "health": 50,
+   "drop": "Desc_StingerParts_C",
+   "spawners": 154,
+   "count": 206
+  },
+  {
+   "id": "Desc_StingerElite_C",
+   "name": "Gas Stinger",
+   "note": "A spider-like creature found mostly in caves and jungles. Has four pointy legs attached to their torso, and another 4 similar pointy appendages attached to their head which they use for combat. Moves very swiftly and come in three variants.",
+   "family": "stinger",
+   "health": 100,
+   "drop": "Desc_StingerParts_C",
+   "spawners": 51,
+   "count": 58
+  },
+  {
+   "id": "Desc_HatcherBasic_C",
+   "name": "Tropical Crab Hatcher",
+   "family": "hatcher",
+   "drop": "Desc_HatcherParts_C",
+   "spawners": 398,
+   "count": 398,
+   "health": 20
+  },
+  {
+   "id": "Desc_HatcherElite_C",
+   "name": "Elite Tropical Crab Hatcher",
+   "family": "hatcher",
+   "drop": "Desc_HatcherParts_C",
+   "spawners": 151,
+   "count": 151,
+   "health": 45
+  },
+  {
+   "id": "Desc_NonflyingBird_C",
+   "name": "Flightless Birb",
+   "note": "A harmless small bird-like creature. Has a colorful plumage with green upper parts and blue underparts, small blue crest or tufted feathers on the crown. Uses its four-parted bill and three tongues to mimic the petals and pistils of a flower to lure in unsuspecting insects that it feeds on. Despite its name, it is capable of flight, but only for short distances and if sufficiently disturbed.",
+   "family": "passive",
+   "health": 10,
+   "run": 400,
+   "spawners": 265,
+   "count": 586
+  },
+  {
+   "id": "Desc_SpaceRabbit_C",
+   "name": "Lizard Doggo",
+   "note": "A small reptilian dog-like creature. Tamable. Mascot of the game.",
+   "family": "passive",
+   "health": 15,
+   "sprint": 750,
+   "spawners": 159,
+   "count": 187
+  },
+  {
+   "id": "Desc_Beetle_C",
+   "name": "Beetle",
+   "family": "passive",
+   "health": 100,
+   "run": 500,
+   "sprint": 2500,
+   "spawners": 21,
+   "count": 22
+  },
+  {
+   "id": "Desc_SpaceGiraffe_C",
+   "name": "Unknown File Error #6265616e",
+   "family": "passive",
+   "health": 200,
+   "sprint": 2000,
+   "spawners": 155,
+   "count": 173
+  }
+ ],
+ "counts": {
+  "sloop": 106,
+  "sphere": 298,
+  "slug1": 596,
+  "slug2": 389,
+  "slug3": 257,
+  "berry": 2164,
+  "nut": 1525,
+  "shroom": 1615,
+  "pod": 118,
+  "podFree": 28,
+  "podPower": 23
+ }
+}
