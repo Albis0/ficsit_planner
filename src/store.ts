@@ -144,6 +144,8 @@ interface State {
   graphDir?: 'LR' | 'TB';
   /** A short message at the foot of the screen (a shared link opened, or couldn't be read). Not persisted. */
   notice?: { key: 'sharedOpened' | 'sharedPlantOpened' | 'sharedBroken'; name?: string };
+  /** The tab just closed, and everything as it was before, so Undo can put it back. Not persisted. */
+  closed?: { name: string; before: Pick<State, 'plans' | 'power' | 'active' | 'activePower'> };
 
   set: (
     patch: Partial<
@@ -170,6 +172,7 @@ interface State {
         | 'deckClosed'
         | 'graphDir'
         | 'notice'
+        | 'closed'
       >
     >,
   ) => void;

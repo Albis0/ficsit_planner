@@ -2,6 +2,19 @@
 
 All notable changes to FICSIT Planner. Dates are when the version was finished.
 
+## 0.11.2 — 2026-09-27
+
+### Changed
+
+- **Tabs close like a browser's.** Each tab has a **×** (on the tab on screen, and on others when hovered), and a
+  middle click closes one too. Closing no longer asks first, from the × or from **⋯ → Delete**: a note at the bottom
+  offers **Undo** for a few seconds instead.
+- **Tab row that doesn't fit:** game-style arrow buttons at both ends (dimmed at an end with nothing more past it),
+  a fade on each side that has more, and a thin bar along the top showing which part of the row is in view, so it's
+  clear which way it scrolls.
+- **Scrollbars** everywhere are the app's own: a dark slot with a metal slider that lights up in the accent colour
+  while held, instead of the system's.
+
 ## 0.11.1 — 2026-09-27
 
 ### Fixed

@@ -15,6 +15,14 @@ function useTabs() {
   const active = useStore((s) => (power ? s.activePower : s.active));
   const set = useStore((s) => s.set);
   const store = useStore.getState;
+  // Closing a tab takes one click, like a browser's; the toast after it offers Undo instead of asking first.
+  const closing = (remove: (id: string) => void) => (id: string) => {
+    const s = store();
+    const name = (power ? s.power : s.plans).find((p) => p.id === id)?.name ?? '';
+    const before = { plans: s.plans, power: s.power, active: s.active, activePower: s.activePower };
+    remove(id);
+    set({ closed: { name, before } });
+  };
   return power
     ? {
         power,
@@ -23,7 +31,7 @@ function useTabs() {
         select: (id: string) => set({ activePower: id, inspect: undefined }),
         add: () => store().addPowerPlan(`${t('plantName')} ${plants.length + 1}`),
         duplicate: (id: string) => store().duplicatePowerPlan(id),
-        remove: (id: string) => store().removePowerPlan(id),
+        remove: closing((id) => store().removePowerPlan(id)),
         rename: (id: string, name: string) => store().renamePowerPlan(id, name),
         label: t('plantName'),
         addLabel: t('newPlant'),
@@ -35,7 +43,7 @@ function useTabs() {
         select: (id: string) => set({ active: id, inspect: undefined }),
         add: () => store().addPlan(`${t('planName')} ${plans.length + 1}`),
         duplicate: (id: string) => store().duplicatePlan(id),
-        remove: (id: string) => store().removePlan(id),
+        remove: closing((id) => store().removePlan(id)),
         rename: (id: string, name: string) => store().renamePlan(id, name),
         label: t('planName'),
         addLabel: t('newPlan'),
@@ -79,9 +87,6 @@ export function PlanActions({ onDone }: { onDone?: () => void }) {
   const tabs = useTabs();
   const set = useStore((s) => s.set);
   const active = tabs.active;
-  // Which tab the Delete button is asking about, so switching tabs drops the question.
-  const [asking, setAsking] = useState<string>();
-  const confirming = asking === active;
 
   return (
     <>
@@ -109,16 +114,14 @@ export function PlanActions({ onDone }: { onDone?: () => void }) {
       </button>
       <button
         type="button"
-        className={`menu-item delete ${confirming ? 'asking' : ''}`}
+        className="menu-item delete"
         onClick={() => {
-          if (!confirming) return setAsking(active);
           tabs.remove(active);
           onDone?.();
         }}
-        onBlur={() => setAsking(undefined)}
       >
         <Glyph name="trash" size={18} />
-        {confirming ? t('confirmDelete') : t('deletePlan')}
+        {t('deletePlan')}
       </button>
     </>
   );
@@ -185,15 +188,23 @@ export function PlanTabs() {
 
   const stopEditing = () => set({ renaming: undefined });
 
-  // More tabs than room: they scroll sideways (the mouse wheel too), with an arrow at each end that has more,
-  // and the tab on screen is kept in view. The new tab and ⋯ buttons stay put after them.
+  // More tabs than room: they scroll sideways (the mouse wheel too). Arrows at both ends, a thin bar showing which
+  // part of the row is in view and a fade on each side that has more make it clear where the rest is. The tab on
+  // screen is kept in view, and the new tab and ⋯ buttons stay put after the row.
   const strip = useRef<HTMLDivElement>(null);
-  const [more, setMore] = useState({ left: false, right: false });
+  const [view, setView] = useState({ overflow: false, left: false, right: false, start: 0, size: 1 });
   // biome-ignore lint/correctness/useExhaustiveDependencies: a tab added or removed changes what overflows.
   useEffect(() => {
     const el = strip.current;
     if (!el) return;
-    const measure = () => setMore({ left: el.scrollLeft > 2, right: el.scrollLeft + el.clientWidth < el.scrollWidth - 2 });
+    const measure = () =>
+      setView({
+        overflow: el.scrollWidth > el.clientWidth + 2,
+        left: el.scrollLeft > 2,
+        right: el.scrollLeft + el.clientWidth < el.scrollWidth - 2,
+        start: el.scrollLeft / el.scrollWidth,
+        size: el.clientWidth / el.scrollWidth,
+      });
     const wheel = (e: WheelEvent) => {
       if (el.scrollWidth <= el.clientWidth || Math.abs(e.deltaX) > Math.abs(e.deltaY)) return;
       e.preventDefault();
@@ -216,53 +227,75 @@ export function PlanTabs() {
     strip.current?.querySelector('[aria-current="page"]')?.scrollIntoView({ block: 'nearest', inline: 'nearest' });
   }, [tabs.active, tabs.list.length]);
   const nudge = (dir: 1 | -1) => strip.current?.scrollBy({ left: dir * strip.current.clientWidth * 0.7, behavior: 'smooth' });
+  const arrow = (dir: 1 | -1) =>
+    view.overflow && (
+      <button
+        type="button"
+        className={`tabs-nudge ${dir < 0 ? 'left' : 'right'}`}
+        aria-label={dir < 0 ? t('tabsEarlier') : t('tabsLater')}
+        title={dir < 0 ? t('tabsEarlier') : t('tabsLater')}
+        disabled={dir < 0 ? !view.left : !view.right}
+        onClick={() => nudge(dir)}
+      >
+        <Glyph name={dir < 0 ? 'chevronLeft' : 'chevronRight'} size={18} />
+      </button>
+    );
 
   return (
     <nav className={`plan-tabs ${tabs.power ? 'power' : ''}`} aria-label={tabs.label}>
-      {more.left && (
-        <button type="button" className="tabs-nudge left" aria-label="‹" tabIndex={-1} onClick={() => nudge(-1)}>
-          ‹
-        </button>
-      )}
-      <div className="plan-tabs-strip" ref={strip}>
-        {tabs.list.map((p) =>
-          editing === p.id ? (
-            <input
-              key={p.id}
-              ref={input}
-              className="plan-tab editing"
-              defaultValue={p.name}
-              aria-label={t('rename')}
-              onBlur={(e) => {
-                tabs.rename(p.id, e.target.value.trim() || p.name);
-                stopEditing();
-              }}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter') e.currentTarget.blur();
-                if (e.key === 'Escape') stopEditing();
-              }}
-            />
-          ) : (
-            <button
-              key={p.id}
-              type="button"
-              className="plan-tab"
-              aria-current={p.id === tabs.active ? 'page' : undefined}
-              title={t('renameHint')}
-              onClick={() => tabs.select(p.id)}
-              onDoubleClick={() => set({ renaming: p.id })}
-            >
-              {p.icon && <Icon id={p.icon} size={22} className="plan-tab-icon" />}
-              {p.name}
-            </button>
-          ),
+      {arrow(-1)}
+      <div className="plan-tabs-frame" data-more-left={view.left || undefined} data-more-right={view.right || undefined}>
+        <div className="plan-tabs-strip" ref={strip}>
+          {tabs.list.map((p) =>
+            editing === p.id ? (
+              <input
+                key={p.id}
+                ref={input}
+                className="plan-tab editing"
+                defaultValue={p.name}
+                aria-label={t('rename')}
+                onBlur={(e) => {
+                  tabs.rename(p.id, e.target.value.trim() || p.name);
+                  stopEditing();
+                }}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') e.currentTarget.blur();
+                  if (e.key === 'Escape') stopEditing();
+                }}
+              />
+            ) : (
+              <span key={p.id} className="plan-tab" aria-current={p.id === tabs.active ? 'page' : undefined}>
+                <button
+                  type="button"
+                  className="plan-tab-name"
+                  title={t('renameHint')}
+                  onClick={() => tabs.select(p.id)}
+                  onDoubleClick={() => set({ renaming: p.id })}
+                  onAuxClick={(e) => e.button === 1 && tabs.remove(p.id)}
+                >
+                  {p.icon && <Icon id={p.icon} size={22} className="plan-tab-icon" />}
+                  <span className="plan-tab-label">{p.name}</span>
+                </button>
+                <button
+                  type="button"
+                  className="plan-tab-close"
+                  aria-label={t('closeTab', { name: p.name })}
+                  title={t('closeTab', { name: p.name })}
+                  onClick={() => tabs.remove(p.id)}
+                >
+                  <Glyph name="close" size={14} />
+                </button>
+              </span>
+            ),
+          )}
+        </div>
+        {view.overflow && (
+          <span className="tabs-track" aria-hidden>
+            <span style={{ left: `${view.start * 100}%`, width: `${view.size * 100}%` }} />
+          </span>
         )}
       </div>
-      {more.right && (
-        <button type="button" className="tabs-nudge right" aria-label="›" tabIndex={-1} onClick={() => nudge(1)}>
-          ›
-        </button>
-      )}
+      {arrow(1)}
       <button type="button" className="plan-add" aria-label={tabs.addLabel} title={tabs.addLabel} onClick={tabs.add}>
         +
       </button>

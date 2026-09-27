@@ -10,7 +10,7 @@ import { ModeSwitch } from './components/ModeSwitch';
 import { PlanTabs, ShareButton } from './components/PlanTabs';
 import { PlantInspector, PowerQuickStart, PowerSummary } from './components/PowerFloor';
 import { PowerPanel } from './components/PowerPanel';
-import { InstallButton, Notice, PwaStatus } from './components/PwaStatus';
+import { InstallButton, ClosedTab, Notice, PwaStatus } from './components/PwaStatus';
 import { QuickPick } from './components/QuickPick';
 import { RecipesPanel } from './components/RecipesPanel';
 import { ReportDialog } from './components/ReportDialog';
@@ -342,6 +342,7 @@ export default function App() {
       {s.dialog === 'settings' && <SettingsDialog onClose={() => s.set({ dialog: undefined })} />}
       {s.dialog === 'report' && <ReportDialog onClose={() => s.set({ dialog: undefined })} />}
       <Notice />
+      <ClosedTab />
       <PwaStatus />
     </div>
   );

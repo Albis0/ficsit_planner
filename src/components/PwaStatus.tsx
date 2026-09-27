@@ -46,6 +46,31 @@ export function PwaStatus() {
   );
 }
 
+/** Says a tab was closed and offers it back for a few seconds, instead of asking before it goes. */
+export function ClosedTab() {
+  const { t } = useT();
+  const closed = useStore((s) => s.closed);
+  const set = useStore((s) => s.set);
+  useEffect(() => {
+    if (!closed) return;
+    const timer = setTimeout(() => set({ closed: undefined }), 8000);
+    return () => clearTimeout(timer);
+  }, [closed, set]);
+  if (!closed) return null;
+  return (
+    <div className="toast" role="status">
+      <span>{t('tabClosed', { name: closed.name })}</span>
+      <button
+        type="button"
+        className="text-button"
+        onClick={() => useStore.setState({ ...closed.before, closed: undefined, inspect: undefined, renaming: undefined })}
+      >
+        {t('undo')}
+      </button>
+    </div>
+  );
+}
+
 /** A short message from the app itself (a shared link opened, or couldn't be read), gone after a while. */
 export function Notice() {
   const { t } = useT();

@@ -108,10 +108,14 @@ Remove that target with the **×** on its card before going on. *Expect:* you're
   field focused, the ↑ and ↓ keys do the same.
 - [ ] **8.2** Click **+** next to the factory tab. *Expect:* a new empty factory showing the first screen. Switch
   back to the first tab: its plan is still there.
-- [ ] **8.3** Double-click a tab name, rename it, press **Enter**. Then **Duplicate** and **Delete** (click twice
-  to confirm). *Expect:* each does what it says.
+- [ ] **8.3** Double-click a tab name, rename it, press **Enter**. Then **Duplicate** and **Delete**. *Expect:*
+  each does what it says; Delete goes at once and the note at the bottom offers **Undo**.
 - [ ] **8.4** The top bar has no "Optimize for" switch.
-- [ ] **8.4b** Click **⋯** beside the tabs. *Expect:* Rename, Duplicate and Delete (red, last); Delete asks once more.
+- [ ] **8.4b** Click **⋯** beside the tabs. *Expect:* Rename, Duplicate and Delete (red, last).
+- [ ] **8.4d** Hover a tab and click its **×**. *Expect:* it closes at once, "Closed …" with **Undo** appears, and
+  Undo brings it back as it was. A middle click on a tab closes it too.
+- [ ] **8.4e** Open ten tabs. *Expect:* arrows at both ends of the tab row (dimmed at an end with nothing more), a
+  fade on the side that has more, a thin bar along the top showing where you are; the mouse wheel scrolls the row.
 - [ ] **8.4c** In a second factory, click **Take from another factory** and pick Steel Beam. *Expect:* the card says
   "from Factory 1"; this floor shows **From Factory 1**, Factory 1's floor shows **To Factory 2** and lists it
   under **Sent to other factories**. Set the card to "on hand": Factory 1 stops making it.
