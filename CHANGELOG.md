@@ -2,6 +2,14 @@
 
 All notable changes to FICSIT Planner. Dates are when the version was finished.
 
+## 0.11.1 — 2026-09-27
+
+### Fixed
+
+- **Many tabs in the top bar:** the tabs past the edge can be reached again. They scroll sideways with the mouse
+  wheel or the arrow at the end that has more, the tab on screen stays in view, and the new tab and ⋯ buttons stay
+  put after them.
+
 ## 0.11.0 — 2026-09-27
 
 ### Added

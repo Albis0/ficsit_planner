@@ -185,39 +185,83 @@ export function PlanTabs() {
 
   const stopEditing = () => set({ renaming: undefined });
 
+  // More tabs than room: they scroll sideways (the mouse wheel too), with an arrow at each end that has more,
+  // and the tab on screen is kept in view. The new tab and ⋯ buttons stay put after them.
+  const strip = useRef<HTMLDivElement>(null);
+  const [more, setMore] = useState({ left: false, right: false });
+  // biome-ignore lint/correctness/useExhaustiveDependencies: a tab added or removed changes what overflows.
+  useEffect(() => {
+    const el = strip.current;
+    if (!el) return;
+    const measure = () => setMore({ left: el.scrollLeft > 2, right: el.scrollLeft + el.clientWidth < el.scrollWidth - 2 });
+    const wheel = (e: WheelEvent) => {
+      if (el.scrollWidth <= el.clientWidth || Math.abs(e.deltaX) > Math.abs(e.deltaY)) return;
+      e.preventDefault();
+      el.scrollLeft += e.deltaY;
+    };
+    measure();
+    el.addEventListener('scroll', measure, { passive: true });
+    el.addEventListener('wheel', wheel, { passive: false });
+    const resize = new ResizeObserver(measure);
+    resize.observe(el);
+    for (const c of el.children) resize.observe(c);
+    return () => {
+      el.removeEventListener('scroll', measure);
+      el.removeEventListener('wheel', wheel);
+      resize.disconnect();
+    };
+  }, [tabs.list.length]);
+  // biome-ignore lint/correctness/useExhaustiveDependencies: runs when the tab on screen or the number of tabs changes.
+  useEffect(() => {
+    strip.current?.querySelector('[aria-current="page"]')?.scrollIntoView({ block: 'nearest', inline: 'nearest' });
+  }, [tabs.active, tabs.list.length]);
+  const nudge = (dir: 1 | -1) => strip.current?.scrollBy({ left: dir * strip.current.clientWidth * 0.7, behavior: 'smooth' });
+
   return (
     <nav className={`plan-tabs ${tabs.power ? 'power' : ''}`} aria-label={tabs.label}>
-      {tabs.list.map((p) =>
-        editing === p.id ? (
-          <input
-            key={p.id}
-            ref={input}
-            className="plan-tab editing"
-            defaultValue={p.name}
-            aria-label={t('rename')}
-            onBlur={(e) => {
-              tabs.rename(p.id, e.target.value.trim() || p.name);
-              stopEditing();
-            }}
-            onKeyDown={(e) => {
-              if (e.key === 'Enter') e.currentTarget.blur();
-              if (e.key === 'Escape') stopEditing();
-            }}
-          />
-        ) : (
-          <button
-            key={p.id}
-            type="button"
-            className="plan-tab"
-            aria-current={p.id === tabs.active ? 'page' : undefined}
-            title={t('renameHint')}
-            onClick={() => tabs.select(p.id)}
-            onDoubleClick={() => set({ renaming: p.id })}
-          >
-            {p.icon && <Icon id={p.icon} size={22} className="plan-tab-icon" />}
-            {p.name}
-          </button>
-        ),
+      {more.left && (
+        <button type="button" className="tabs-nudge left" aria-label="‹" tabIndex={-1} onClick={() => nudge(-1)}>
+          ‹
+        </button>
+      )}
+      <div className="plan-tabs-strip" ref={strip}>
+        {tabs.list.map((p) =>
+          editing === p.id ? (
+            <input
+              key={p.id}
+              ref={input}
+              className="plan-tab editing"
+              defaultValue={p.name}
+              aria-label={t('rename')}
+              onBlur={(e) => {
+                tabs.rename(p.id, e.target.value.trim() || p.name);
+                stopEditing();
+              }}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') e.currentTarget.blur();
+                if (e.key === 'Escape') stopEditing();
+              }}
+            />
+          ) : (
+            <button
+              key={p.id}
+              type="button"
+              className="plan-tab"
+              aria-current={p.id === tabs.active ? 'page' : undefined}
+              title={t('renameHint')}
+              onClick={() => tabs.select(p.id)}
+              onDoubleClick={() => set({ renaming: p.id })}
+            >
+              {p.icon && <Icon id={p.icon} size={22} className="plan-tab-icon" />}
+              {p.name}
+            </button>
+          ),
+        )}
+      </div>
+      {more.right && (
+        <button type="button" className="tabs-nudge right" aria-label="›" tabIndex={-1} onClick={() => nudge(1)}>
+          ›
+        </button>
       )}
       <button type="button" className="plan-add" aria-label={tabs.addLabel} title={tabs.addLabel} onClick={tabs.add}>
         +

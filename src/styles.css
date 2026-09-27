@@ -233,9 +233,37 @@ button:disabled {
   display: flex;
   align-items: stretch;
   align-self: stretch;
+}
+
+/* The tabs themselves scroll sideways when there are more than fit; + and ⋯ stay after them. */
+.plan-tabs-strip {
+  flex: 0 1 auto;
+  min-width: 0;
+  display: flex;
+  align-items: stretch;
   gap: 2px;
   overflow-x: auto;
   scrollbar-width: none;
+  overscroll-behavior-x: contain;
+}
+
+.plan-tabs-strip::-webkit-scrollbar {
+  display: none;
+}
+
+/* An arrow at an end that has more tabs past it. */
+.tabs-nudge {
+  flex: none;
+  width: 30px;
+  border: 0;
+  background: transparent;
+  color: var(--dim);
+  font: 700 26px / 1 var(--font-display);
+}
+
+.tabs-nudge:hover {
+  color: var(--ficsit);
+  background: var(--panel-2);
 }
 
 .plan-tab {
