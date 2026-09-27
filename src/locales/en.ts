@@ -444,7 +444,7 @@ export const en = {
   kind_part: 'Part',
   kind_resource: 'Resource',
   kind_equipment: 'Equipment',
-  kind_consumable: 'Consumables',
+  kind_consumable: 'Food and medicine',
   kind_ammo: 'Ammo',
   kind_vehicle: 'Vehicle',
   form_solid: 'Part',

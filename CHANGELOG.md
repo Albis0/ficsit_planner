@@ -2,6 +2,13 @@
 
 All notable changes to FICSIT Planner. Dates are when the version was finished.
 
+## 0.11.5 — 2026-09-27
+
+### Fixed
+
+- **Codex:** the Parachute is listed with the equipment instead of the consumables, and that group is now called
+  "Food and medicine" (Paleberry, Beryl Nut, Bacon Agaric, Medicinal Inhaler).
+
 ## 0.11.4 — 2026-09-27
 
 ### Changed

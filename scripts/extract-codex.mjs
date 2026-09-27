@@ -57,6 +57,8 @@ const ITEM_KIND = {
   FGAmmoTypeSpreadshot: 'ammo',
   FGAmmoTypeInstantHit: 'ammo',
 };
+// The game files the parachute as a consumable because one use spends it, but it's worn like the other gear.
+const KIND_OVERRIDE = { Desc_Parachute_C: 'equipment' };
 const items = {};
 for (const [nc, kind] of Object.entries(ITEM_KIND)) {
   for (const c of byNative(nc)) {
@@ -65,7 +67,7 @@ for (const [nc, kind] of Object.entries(ITEM_KIND)) {
     const stack = Number.parseInt(c.mCachedStackSize, 10) || STACKS[c.mStackSize];
     items[c.ClassName] = {
       name: c.mDisplayName,
-      kind,
+      kind: KIND_OVERRIDE[c.ClassName] ?? kind,
       desc: text(c.mDescription),
       form,
       // Fluids stack in litres; show m³ like the rest of the app.
