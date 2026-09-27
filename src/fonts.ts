@@ -4,6 +4,7 @@ import '@fontsource/heebo/latin-400.css';
 import '@fontsource/heebo/latin-500.css';
 import '@fontsource/heebo/latin-600.css';
 import '@fontsource/heebo/latin-700.css';
+import '@fontsource/heebo/latin-800.css';
 import '@fontsource/heebo/latin-ext-400.css';
 import '@fontsource/heebo/latin-ext-500.css';
 import '@fontsource/heebo/latin-ext-600.css';

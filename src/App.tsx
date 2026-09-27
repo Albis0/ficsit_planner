@@ -182,7 +182,7 @@ export default function App() {
         <div className="brand">
           <span className="brand-mark" aria-hidden />
           <h1 className="brand-name">
-            FICSIT<span className="sr-only"> Planner</span>
+            <span className="brand-word">FICSIT</span> <span className="brand-sub">Planner</span>
           </h1>
         </div>
         <ModeSwitch />

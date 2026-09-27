@@ -7609,6 +7609,64 @@ a.codex-machine:hover {
   color: var(--paper);
 }
 
+/*
+  The wordmark: FICSIT in heavy capitals the way the game letters its company, and PLANNER spaced out on a plate
+  with one corner cut like the game's labels, in the colour of the planner on screen. Set in Heebo whatever
+  typeface Settings picks, so the name always looks the same.
+*/
+.brand-name {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 4px;
+  font-family: 'Heebo', sans-serif;
+}
+
+.brand-word {
+  font-size: 25px;
+  font-weight: 800;
+  line-height: 0.82;
+  letter-spacing: 0.1em;
+  color: var(--paper);
+  text-shadow: 0 2px 0 rgb(0 0 0 / 0.45);
+}
+
+.brand-sub {
+  padding: 2px 9px 1px 6px;
+  font-size: 10px;
+  font-weight: 800;
+  line-height: 1.2;
+  letter-spacing: 0.42em;
+  text-transform: uppercase;
+  color: var(--mode-ink, #1d1206);
+  background: var(--mode, var(--ficsit));
+  clip-path: polygon(0 0, 100% 0, 100% 55%, calc(100% - 6px) 100%, 0 100%);
+}
+
+/*
+  Phones keep the top bar for the tabs: the logo alone stands for the name, and the tab row is swiped rather than
+  stepped with arrows, so the room goes to the tab names. Closing a tab is in the ⋯ menu there.
+*/
+@media (max-width: 900px) {
+  .brand-name,
+  .tabs-nudge,
+  .plan-tab-close {
+    display: none;
+  }
+
+  .plan-tab {
+    padding-right: 10px;
+  }
+
+  .plan-tabs-frame {
+    flex: 1 1 auto;
+  }
+
+  .plan-add {
+    width: 34px;
+  }
+}
+
 .topbar {
   background: var(--bg);
   border-bottom-color: #151515;

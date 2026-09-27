@@ -2,6 +2,19 @@
 
 All notable changes to FICSIT Planner. Dates are when the version was finished.
 
+## 0.11.3 — 2026-09-27
+
+### Changed
+
+- **A wordmark in the top-left corner:** FICSIT in heavy capitals over a PLANNER plate with one corner cut, the way
+  the game letters its labels. The plate takes the colour of the planner on screen: orange, yellow, cyan or green.
+  The link preview picture and the README screenshots show it.
+
+### Fixed
+
+- **Phones:** the tab row got its room back. The arrow buttons and the tab × stay on larger screens; on a phone the
+  row is swiped and a tab is closed from the ⋯ menu.
+
 ## 0.11.2 — 2026-09-27
 
 ### Changed
