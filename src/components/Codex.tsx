@@ -4,7 +4,6 @@ import {
   type Category,
   type CodexIndex,
   type Entry,
-  funFacts,
   GUIDE_ICON,
   GUIDES,
   loadCodex,
@@ -234,7 +233,6 @@ function categoryGroups(cat: Category, index: CodexIndex, t: ReturnType<typeof u
             page: { kind: 'guide', id } as Page,
             name: t(`guide_${id}`),
             icon: GUIDE_ICON[id],
-            note: t(`guideSub_${id}`),
           })),
         },
       ];
@@ -364,36 +362,18 @@ function Crumbs({ page, index }: { page: Page; index: CodexIndex }) {
 
 function Home({ index }: { index: CodexIndex }) {
   const { t } = useT();
-  const facts = useMemo(() => funFacts(index), [index]);
-  // A different pair of facts each day.
-  const day = Math.floor(Date.now() / 864e5);
-  const shown = [facts[day % facts.length], facts[(day + 1) % facts.length]];
   return (
     <>
-      <header className="codex-hero">
-        <h2 className="codex-title">{t('codexTitle')}</h2>
-        <p className="codex-lead">{t('codexLead')}</p>
-      </header>
+      <h2 className="codex-title">{t('codex')}</h2>
       <div className="codex-cat-grid">
         {CATEGORIES.map((c) => (
           <CodexLink key={c} page={{ kind: 'cat', id: c }} className="codex-cat-card">
             <Icon id={CATEGORY_ICON[c]} size={64} />
             <span className="codex-cat-card-name">{t(`cat_${c}`)}</span>
-            <span className="codex-cat-card-sub">{t(`catSub_${c}`)}</span>
             <span className="codex-cat-card-count">{countOf(c, index)}</span>
           </CodexLink>
         ))}
       </div>
-      <section className="codex-section">
-        <h3 className="codex-h">{t('didYouKnow')}</h3>
-        <div className="codex-facts">
-          {shown.map((f) => (
-            <CodexLink key={f.key} page={f.page} className="codex-fact">
-              {t(f.key as 'factSink', f.vars)}
-            </CodexLink>
-          ))}
-        </div>
-      </section>
     </>
   );
 }
@@ -410,10 +390,7 @@ function CategoryPage({ cat, index }: { cat: Category; index: CodexIndex }) {
     <>
       <header className="codex-cat-head">
         <Icon id={CATEGORY_ICON[cat]} size={72} />
-        <div>
-          <h2 className="codex-title">{t(`cat_${cat}`)}</h2>
-          <p className="codex-lead">{t(`catLead_${cat}`)}</p>
-        </div>
+        <h2 className="codex-title">{t(`cat_${cat}`)}</h2>
         {countOf(cat, index) > 20 && (
           <input
             className="search codex-filter"

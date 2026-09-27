@@ -112,7 +112,6 @@ export function MapNav() {
           {t('resetFilter')}
         </button>
       )}
-      <p className="hint">{t('mapSource')}</p>
     </div>
   );
 }

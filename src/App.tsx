@@ -190,7 +190,7 @@ export default function App() {
         <div className="topbar-controls">
           <InstallButton />
           {!bookMode && <ShareButton />}
-          <button type="button" className="tier-button" title={t('whereAreYou')} onClick={() => setTierOpen(true)}>
+          <button type="button" className="tier-button" title={t('unlockedTier')} onClick={() => setTierOpen(true)}>
             {t('tier')} <b>{s.tier}</b>
           </button>
           <button type="button" className="chrome-button settings" title={t('settings')} onClick={() => s.set({ dialog: 'settings' })}>
@@ -287,7 +287,6 @@ export default function App() {
               <div className="floor-message">
                 <div className="blocked">
                   <h2 className="quick-title">{t('listWhatYouHave')}</h2>
-                  <p className="hint">{t('listWhatYouHaveHint')}</p>
                   <button
                     type="button"
                     className="primary-button"

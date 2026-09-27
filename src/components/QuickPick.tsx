@@ -98,7 +98,6 @@ export function QuickPick() {
           )
         ) : (
           <>
-            <p className="hint">{t('quickPickHint')}</p>
             <h3 className="section-title">{t('projectParts')}</h3>
             {grid(projectParts, 5)}
             <h3 className="section-title">{t('commonParts')}</h3>

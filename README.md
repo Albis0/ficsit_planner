@@ -26,17 +26,12 @@
   <img src="public/icons/Desc_SpaceElevatorPart_12_C.webp" width="40" alt="AI Expansion Server">
 </p>
 
-Production planner for Satisfactory that runs in the browser and works offline. Pick what you want to make
-and how many per minute. A linear programming solver ([HiGHS](https://highs.dev), compiled to WebAssembly)
-picks the recipes, counts the machines, sets their clock speeds and draws the factory as belts and pipes.
-Switch to the power planner and plan power plants the same way: from the fuel you have, for the MW you want,
-or for the factories they run, fuel chain included. Or open the Codex and look up anything in the game: every
-part, building, vehicle, milestone, research and alternate recipe, with calculators for the mechanics. Or open
-the world map: the game's own map with every resource node, well and geyser on it.
+Production planner for Satisfactory that runs in the browser. Enter what you want per minute and it picks the
+recipes, counts the machines, sets their clock speeds and draws the factory with its belts and pipes. The maths is
+done by a linear programming solver ([HiGHS](https://highs.dev), compiled to WebAssembly).
 
-It's a static site you can install as an app (a PWA). Chrome, Edge and Android add a desktop or home-screen
-shortcut, and iPhone and iPad do the same through the Share menu. Once installed it opens in its own window
-and works without a network. There's nothing to download and run. It works on phones and tablets too.
+It also plans power plants and their fuel, has a Codex with the game's parts, buildings, milestones, research and
+alternate recipes, and a map of every resource node. It can be installed as an app (PWA) and then works offline.
 
 ![The factory graph for 10 motors per minute](docs/desktop-graph.webp)
 
@@ -44,7 +39,7 @@ and works without a network. There's nothing to download and run. It works on ph
 
 ![The Codex: the Motor's page, with every way to make it and what it goes into](docs/desktop-codex.webp)
 
-![The world map: the game's own map with every resource node, ringed by purity](docs/desktop-map.webp)
+![The world map with every resource node, coloured by purity](docs/desktop-map.webp)
 
 <p align="center">
   <img src="docs/phone-graph.webp" width="30%" alt="Phone: the factory runs top to bottom">
@@ -56,25 +51,24 @@ and works without a network. There's nothing to download and run. It works on ph
 
 | | |
 | :-: | --- |
-| <img src="public/icons/Desc_ModularFrame_C.webp" width="36" alt="Modular Frame"> | **Targets and factories.** Add as many products per factory as you want, each at its own rate. Factories live in tabs you can rename, duplicate and delete. Everything is saved in the browser. |
-| <img src="public/icons/Desc_IronPlate_C.webp" width="36" alt="Iron Plate"> | **On-hand items.** Parts that arrive from another factory or by train. The planner uses them instead of building them from scratch. |
-| <img src="public/icons/Build_AssemblerMk1_C.webp" width="36" alt="Assembler"> | **Recipe control.** Standard, alternate and converter recipes are grouped by product, and each one can be switched on or off. If something can't be made, the planner says why (the tier that unlocks it, or the recipe that's off) and offers the fix in one click, or to bring it in as on hand. |
-| <img src="public/icons/Desc_SpaceElevatorPart_2_C.webp" width="36" alt="Versatile Framework"> | **Knows your progress.** On first launch you pick the highest milestone tier you've unlocked. Recipes, buildings, belts, pipes and miners above that tier stay out of the plan until you raise it. |
-| <img src="public/icons/Desc_Battery_C.webp" width="36" alt="Battery"> | **Start anywhere.** The first screen is one question: what are we making? Search every item, or start from the Space Elevator parts and common parts. Items above your tier show the tier that unlocks them. |
-| <img src="public/icons/Desc_OreIron_C.webp" width="36" alt="Iron Ore"> | **Resource limits.** Set a per-minute cap for each raw resource. Leave it empty to use the whole world's supply. |
-| <img src="public/icons/Desc_Coal_C.webp" width="36" alt="Coal"> | **Pinned inputs.** Type what you actually have into a raw input in the summary strip (or step it up and down), or click the rate on an ore node in the graph. Every target scales to what that input can feed and keeps its ratio. |
-| <img src="public/icons/Desc_CrystalShard_C.webp" width="36" alt="Power Shard"> | **Machines and clock speed.** Select a machine and set how many to build, or the clock speed: the other follows, so the work is spread evenly and the clock you see is the clock they run at. Power follows the game's formula. Overclocked lines keep machines at 100% and push only as many past it as needed, so they use the fewest power shards. |
-| <img src="public/icons/Desc_WAT1_C.webp" width="36" alt="Somersloop"> | **Somersloops and auto place.** Set somersloops per machine, or enter how many somersloops and power shards you own and let the planner put them where they save the most, or **Use all** of them, miners and pumps included. |
-| <img src="public/icons/Build_MinerMk2_C.webp" width="36" alt="Miner Mk.2"> | **Extraction.** Choose the miner, node purity and extractor clock to see how many miners and pumps each resource needs, and their power. |
-| <img src="public/icons/Build_ConveyorBeltMk5_C.webp" width="36" alt="Conveyor Belt Mk.5"> | **Two views.** The factory graph lays itself out left to right or top to bottom, whichever fits your screen better (or pick one), routes belts around machines, colours them by tier and doubles up lanes when one belt can't carry the flow. The panel sits across the top and the graph gets the full width under it, or beside it if you prefer (Settings). Each machine card has the game's build-menu look: a coloured strip with the product and its power draw, the building underneath with its name, count and clock. Machines holding power shards get a blue edge, somersloops a pink one. Hover or tap a machine to follow its line. The table lists the total build cost of every machine and extractor. |
-| <img src="public/icons/Build_GeneratorNuclear_C.webp" width="36" alt="Nuclear Power Plant"> | **Power planner.** Flip the switch in the top bar from Factory to Power. Each power plant is a tab of its own, like a factory, and can mix generators: biomass, coal, fuel, nuclear, geothermal and the Alien Power Augmenter, each with its fuel. Size a plant three ways: **What I have** (list the fuel, or the ore and oil it's made from, and it makes all it can), **Power I want** (a set MW), or **My factories** (tick the factory tabs it runs, add trains and lights and some spare; it follows them as they change). Each factory is counted on one plant only. **Auto** generators are sized to fit, including the power the plant's own fuel chain uses, which the planner builds and draws like any factory: ore to fuel to generators to the grid to your factories. Generators can also be a set count or a set output, at any clock. Water, nuclear waste (and the plutonium chain that uses it), augmenter boost and backup Power Storage are all counted. |
-| <img src="public/icons/Desc_HardDrive_C.webp" width="36" alt="Hard Drive"> | **Codex.** The third stop on the switch. Every part, resource, building, vehicle, piece of equipment, HUB milestone, MAM research, alternate recipe and AWESOME Shop offer, with the game's own descriptions. A part's page shows every way to make it, what it goes into and builds, what it's delivered for and what burns it; a building's page its cost, unlock, power and recipes; an alternate is compared with the standard recipe. Game mechanics (clock speed, somersloops, nodes, fuel, belts, world resources, sink points) come with calculators. Search everything, follow any link, share a page by its address, and press **Build this factory** (or **Build with this recipe** on any recipe) to open a factory for it in a new tab. |
-| <img src="public/icons/Build_MinerMk3_C.webp" width="36" alt="Miner Mk.3"> | **World map.** The fourth stop on the switch: the game's own map picture with all 459 resource nodes, the 118 resource well nodes and the 31 geysers, read out of the game's level. Filter by resource and purity, and press a node for what each miner mark (or extractor, or geothermal generator) gets from it. A resource's Codex page opens the map on it. Works offline once you've looked around. |
-| <img src="public/icons/Desc_FreightWagon_C.webp" width="36" alt="Freight Wagon"> | **Factories that feed each other.** Take an item from another factory tab: that factory makes it on top of its own products, and both floors show where it goes and where it comes from. |
-| <img src="public/icons/Desc_ModularFrameLightweight_C.webp" width="36" alt="Radio Control Unit"> | **Share by link.** **Share** copies a link to the factory on screen with the power plants that run it (or to a plant with its factories). Whoever opens it gets a copy as a new tab. The factory rides inside the link, so nothing is uploaded and it opens offline too. |
-| <img src="public/icons/Desc_CircuitBoard_C.webp" width="36" alt="Circuit Board"> | **Settings.** Put the panel on top, left or right. Set the card size, text size and spacing on the factory floor, belt labels, moving belts and the foundation grid, the accent and recipe colours, the interface size, decimals and animations, all with a live preview. Save all your factories and settings to a file, and load them back. **Help** explains every term on screen. |
-| <img src="public/icons/Desc_CrystalOscillator_C.webp" width="36" alt="Crystal Oscillator"> | **Feedback.** Report a bug or suggest an idea from inside the app. It goes to the site's own database, optionally with the factory you're looking at, and nothing else is collected. |
-| <img src="public/icons/BP_ItemDescriptorPortableMiner_C.webp" width="36" alt="Portable Miner"> | **Anywhere.** Works offline, installs as an app, and fits phones: one pane at a time with a bottom bar, and the factory runs top to bottom. |
+| <img src="public/icons/Desc_ModularFrame_C.webp" width="36" alt="Modular Frame"> | **Targets and tabs.** Any number of products per factory, each at its own rate. Factories are tabs you can rename, duplicate and delete. Everything is saved in the browser. |
+| <img src="public/icons/Desc_IronPlate_C.webp" width="36" alt="Iron Plate"> | **On-hand items.** Parts that arrive from elsewhere (another factory, a train). The planner uses them instead of making them. |
+| <img src="public/icons/Build_AssemblerMk1_C.webp" width="36" alt="Assembler"> | **Recipes.** Standard, alternate and converter recipes, grouped by product, each one on or off. When something can't be made, the planner says why (the tier that unlocks it, or the recipe that's off) and offers the fix. |
+| <img src="public/icons/Desc_SpaceElevatorPart_2_C.webp" width="36" alt="Versatile Framework"> | **Tier.** You pick the highest tier you've unlocked. Recipes, buildings, belts and miners above it are left out. |
+| <img src="public/icons/Desc_OreIron_C.webp" width="36" alt="Iron Ore"> | **Resource limits.** A per-minute cap for each raw resource. Empty means the whole map's supply. |
+| <img src="public/icons/Desc_Coal_C.webp" width="36" alt="Coal"> | **Pinned inputs.** Type the amount of a raw resource you actually have into the totals strip, and the targets scale to it. |
+| <img src="public/icons/Desc_CrystalShard_C.webp" width="36" alt="Power Shard"> | **Machines and clocks.** Select a machine to set how many there are or their clock speed. Power uses the game's formula. Overclocked lines use as few power shards as possible. |
+| <img src="public/icons/Desc_WAT1_C.webp" width="36" alt="Somersloop"> | **Somersloops and shards.** Set them per machine, or enter how many you own and let the planner place them (**Auto place** or **Use all**). |
+| <img src="public/icons/Build_MinerMk2_C.webp" width="36" alt="Miner Mk.2"> | **Extraction.** Miner mark, node purity and extractor clock decide how many miners and pumps each resource needs, and their power. |
+| <img src="public/icons/Build_ConveyorBeltMk5_C.webp" width="36" alt="Conveyor Belt Mk.5"> | **Graph and list.** The graph runs left to right or top to bottom, colours belts by tier and splits a flow over more belts when one isn't enough. The list shows every recipe and the build cost. |
+| <img src="public/icons/Build_GeneratorNuclear_C.webp" width="36" alt="Nuclear Power Plant"> | **Power planner.** Power plants are tabs too and can mix generators. Size one by the fuel you have, the MW you want or the factories it runs. The fuel chain, water, nuclear waste, augmenters and Power Storage are counted. |
+| <img src="public/icons/Desc_HardDrive_C.webp" width="36" alt="Hard Drive"> | **Codex.** Parts, resources, buildings, vehicles, equipment, milestones, MAM research, alternate recipes and the AWESOME Shop, with the game's descriptions. Pages for game mechanics have small calculators. **Build this factory** opens a factory for any part. |
+| <img src="public/icons/Build_MinerMk3_C.webp" width="36" alt="Miner Mk.3"> | **World map.** All 459 resource nodes, 118 well nodes and 31 geysers on the game's map, filtered by resource and purity. Pressing a node shows what each miner or extractor gets from it. |
+| <img src="public/icons/Desc_FreightWagon_C.webp" width="36" alt="Freight Wagon"> | **Linked factories.** A factory can take an item from another factory tab, which then makes it on top of its own products. |
+| <img src="public/icons/Desc_ModularFrameLightweight_C.webp" width="36" alt="Radio Control Unit"> | **Share links.** The **Share** button copies a link that contains the factory (and the power plants that run it). Opening it adds a copy as a new tab. Nothing is uploaded. |
+| <img src="public/icons/Desc_CircuitBoard_C.webp" width="36" alt="Circuit Board"> | **Settings.** Panel position, card and text size, spacing, belt labels, colours, interface size, decimals and animations. Save all factories and settings to a file and load them back. **Help** explains the terms on screen. |
+| <img src="public/icons/Desc_CrystalOscillator_C.webp" width="36" alt="Crystal Oscillator"> | **Feedback.** Bug reports and ideas from inside the app, stored in the site's own database, optionally with the factory on screen. |
+| <img src="public/icons/BP_ItemDescriptorPortableMiner_C.webp" width="36" alt="Portable Miner"> | **Phones and offline.** Installs as an app and works offline. On phones there is one pane at a time and a bottom bar. |
 
 ## Install as an app
 

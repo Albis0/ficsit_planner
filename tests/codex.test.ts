@@ -1,7 +1,7 @@
 import { expect, test } from 'bun:test';
 import fs from 'node:fs';
 import path from 'node:path';
-import { type CodexData, funFacts, indexOf, pageKey, pageOf, parsePage, recipesFor, schematicIcon, search } from '../src/lib/codex';
+import { type CodexData, indexOf, pageKey, pageOf, parsePage, recipesFor, schematicIcon, search } from '../src/lib/codex';
 import codexJson from '../src/data/codex.json';
 
 const codex = codexJson as unknown as CodexData;
@@ -57,11 +57,4 @@ test('milestones, research, alternates and the shop are all there', () => {
   const tier1 = codex.schematics.find((s) => s.name === 'Base Building');
   expect(tier1?.tier).toBe(1);
   for (const s of codex.schematics) expect(schematicIcon(s, codex)).toBeDefined();
-});
-
-test('the home page facts come out of the data', () => {
-  const facts = funFacts(index);
-  expect(facts.length).toBeGreaterThanOrEqual(4);
-  const nuclear = facts.find((f) => f.key === 'factNuclear');
-  expect(nuclear?.vars.n).toBe(83);
 });

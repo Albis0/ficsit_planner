@@ -75,10 +75,7 @@ export function Summary({ result, extraction }: { result: SolveResult; extractio
           </div>
         )}
         <div className="readout wide">
-          <span className="readout-label">
-            {t('rawInput')}
-            <span className="readout-note">{t('rawEditHint')}</span>
-          </span>
+          <span className="readout-label">{t('rawInput')}</span>
           <RawInputs raw={result.raw} />
         </div>
         {result.surplus.length > 0 && (

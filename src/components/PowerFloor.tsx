@@ -281,15 +281,13 @@ export function PowerQuickStart({ load }: { load: PowerLoad }) {
     <div className="quick-pick power-start">
       <div className="quick-inner">
         <h2 className="quick-title">{t('howPower')}</h2>
-        <p className="hint">
-          {sizeBy !== 'factories'
-            ? t('pickGenerator')
-            : total > 0
-              ? counted.length === 1
-                ? t('factoryDraws', { mw: num(total), name: counted[0].name })
-                : t('factoriesDraw', { mw: num(total), n: counted.length })
-              : t('noFactoriesYet')}
-        </p>
+        {sizeBy === 'factories' && total > 0 && (
+          <p className="hint">
+            {counted.length === 1
+              ? t('factoryDraws', { mw: num(total), name: counted[0].name })
+              : t('factoriesDraw', { mw: num(total), n: counted.length })}
+          </p>
+        )}
         <div className="gen-grid">
           {data.generators.map((g) => {
             const locked = g.tier > tier;
@@ -304,7 +302,6 @@ export function PowerQuickStart({ load }: { load: PowerLoad }) {
                   </span>
                   {locked && <span className="tier-tag">{t('tierTag', { tier: g.tier })}</span>}
                 </span>
-                <span className="gen-card-note">{t(`genNote_${g.kind}` as 'genNote_fuel')}</span>
               </>
             );
             return g.kind === 'fuel' ? (

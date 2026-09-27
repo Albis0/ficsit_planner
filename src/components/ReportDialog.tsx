@@ -161,7 +161,6 @@ export function ReportDialog({ onClose }: { onClose: () => void }) {
               </span>
               <span className="report-kind-text">
                 <b>{k === 'bug' ? t('kindBug') : t('kindIdea')}</b>
-                <small>{k === 'bug' ? t('kindBugHint') : t('kindIdeaHint')}</small>
               </span>
             </button>
           ))}
@@ -274,7 +273,6 @@ export function ReportDialog({ onClose }: { onClose: () => void }) {
           />
           <span>
             <b>{t('attachPlan')}</b>
-            <small>{t('attachPlanHint')}</small>
           </span>
         </label>
 

@@ -24,7 +24,7 @@ const unlocksAt = (tier: number) => [
   ...data.pipes.filter((p) => p.tier === tier).map((p) => p.id),
 ];
 
-/** "Where are you in the game?" — asked once on first launch, reopened from the top bar. */
+/** The tier window: asked once on first launch, reopened from the top bar. */
 export function TierDialog({ onClose }: { onClose: () => void }) {
   const { t, name } = useT();
   const tier = useStore((s) => s.tier);
@@ -57,12 +57,11 @@ export function TierDialog({ onClose }: { onClose: () => void }) {
         onClose();
       }}
     >
-      <h2 className="quick-title">{t('whereAreYou')}</h2>
-      <p className="hint">{t('whereHint')}</p>
+      <h2 className="quick-title">{t('unlockedTier')}</h2>
       <div className="phase-list">
         {GROUPS.map((g) => (
           <section key={g.phase} className="phase">
-            <h3 className="section-title">{g.phase === 0 ? t('phaseStart') : `${t('phase')} ${g.phase} ✓`}</h3>
+            <h3 className="section-title">{g.phase === 0 ? t('phaseStart') : `${t('phase')} ${g.phase}`}</h3>
             <div className="phase-tiers">
               {g.tiers.map((step) => (
                 <button key={step} type="button" className={`tier-card ${tier === step ? 'current' : ''}`} onClick={() => pick(step)}>

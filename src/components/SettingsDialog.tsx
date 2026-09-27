@@ -520,7 +520,6 @@ function HelpSection() {
   })).filter((g) => g.terms.length);
   return (
     <div className="help">
-      <p className="hint">{t('helpLead')}</p>
       <input
         className="search"
         type="search"

@@ -27,7 +27,6 @@ export function ResourcesPanel({ result }: { result?: SolveResult }) {
     <div className="panel-body resources">
       <section className="stack extraction">
         <h3 className="section-title">{t('extraction')}</h3>
-        <p className="hint">{t('extractionHint')}</p>
         <div className="miner-picker" role="radiogroup" aria-label={t('miner')}>
           {MINERS.map((m) => (
             <button

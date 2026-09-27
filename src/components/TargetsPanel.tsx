@@ -67,7 +67,6 @@ export function TargetsPanel({ result }: { result?: SolveResult }) {
         {exports.length > 0 && (
           <>
             <h3 className="section-title exports-title">{t('exportsTitle')}</h3>
-            <p className="hint">{t('exportsHint')}</p>
             <ul className="exports-list">
               {exports.map((x) => (
                 <li key={`${x.to}-${x.item}`}>
@@ -91,7 +90,6 @@ export function TargetsPanel({ result }: { result?: SolveResult }) {
 
       <section className="stack">
         <h3 className="section-title">{t('suppliesTitle')}</h3>
-        <p className="hint">{t('suppliesHint')}</p>
         <Cards
           list={plan.supplies}
           size={52}

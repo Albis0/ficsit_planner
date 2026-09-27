@@ -102,7 +102,6 @@ export function InventoryPanel({ result }: { result?: SolveResult }) {
           </button>
         </div>
       </div>
-      <p className="hint">{t('inventoryHint')}</p>
       {row(SLOOP_ICON, t('sloops'), 'sloops', result?.sloops ?? 0)}
       {row(SHARD_ICON, t('shards'), 'shards', (result?.shards ?? 0) + extractorShards)}
       {tried && !busy && placed.length === 0 && overclocked.length === 0 && <p className="hint warn">{t('nothingPlaced')}</p>}

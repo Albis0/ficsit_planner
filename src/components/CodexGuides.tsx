@@ -19,7 +19,6 @@ export function GuidePage({ id }: { id: GuideId }) {
         <div>
           <span className="codex-tag">{t('cat_guides')}</span>
           <h2 className="codex-title">{t(`guide_${id}`)}</h2>
-          <p className="codex-lead">{t(`guideSub_${id}`)}</p>
         </div>
       </header>
       {id === 'overclock' && <Overclock />}

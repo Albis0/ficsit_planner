@@ -317,39 +317,3 @@ export function recipesFor(item: string): Recipe[] {
         Number(a.kind === 'alternate') - Number(b.kind === 'alternate') || recipeTier(a) - recipeTier(b) || a.name.localeCompare(b.name),
     );
 }
-
-/** Largest, most-used, most valuable: a few facts pulled from the data for the Codex home. */
-export function funFacts(index: CodexIndex): { key: string; vars: Record<string, string | number>; page: Page }[] {
-  const { data: codex, usedIn } = index;
-  const facts: { key: string; vars: Record<string, string | number>; page: Page }[] = [];
-  const parts = Object.entries(codex.items).filter(([, it]) => it.kind === 'part');
-  const [topSink, topSinkItem] = parts.reduce((best, cur) => (cur[1].sink > best[1].sink ? cur : best));
-  facts.push({ key: 'factSink', vars: { name: topSinkItem.name, points: topSinkItem.sink }, page: { kind: 'item', id: topSink } });
-  const [mostUsed, uses] = [...usedIn.entries()]
-    .filter(([id]) => !data.items[id]?.raw)
-    .reduce((best, cur) => (cur[1].length > best[1].length ? cur : best));
-  facts.push({
-    key: 'factMostUsed',
-    vars: { name: codex.items[mostUsed]?.name ?? mostUsed, n: uses.length },
-    page: { kind: 'item', id: mostUsed },
-  });
-  const nuclear = data.generators.find((g) => g.id === 'Build_GeneratorNuclear_C');
-  const biomass = data.generators.find((g) => g.id === 'Build_GeneratorBiomass_Automated_C');
-  if (nuclear && biomass)
-    facts.push({
-      key: 'factNuclear',
-      vars: { n: Math.round(nuclear.power / biomass.power) },
-      page: { kind: 'building', id: nuclear.id },
-    });
-  const alternates = codex.schematics.filter((s) => s.type === 'alternate').length;
-  facts.push({ key: 'factAlternates', vars: { n: alternates }, page: { kind: 'cat', id: 'alternates' } });
-  const [bigRecipe] = [...data.recipes].filter((r) => r.kind !== 'power').sort((a, b) => b.inputs.length - a.inputs.length);
-  facts.push({
-    key: 'factInputs',
-    vars: { name: bigRecipe.name, n: bigRecipe.inputs.length },
-    page: { kind: 'item', id: bigRecipe.outputs[0].item },
-  });
-  const research = codex.schematics.filter((s) => s.type === 'mam').length;
-  facts.push({ key: 'factResearch', vars: { n: research }, page: { kind: 'cat', id: 'research' } });
-  return facts;
-}

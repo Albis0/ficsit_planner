@@ -2,6 +2,19 @@
 
 All notable changes to FICSIT Planner. Dates are when the version was finished.
 
+## 0.10.1 — 2026-09-27
+
+### Changed
+
+- Shorter, plainer text across the app. Question headings ("What are we making?", "Where are you in the game?",
+  "How will you make power?") are now plain labels, and the explanation lines under panel and section titles are
+  gone. The Help page in Settings still explains every term.
+- The Codex home is just the category cards: no banner, no card subtitles and no "Did you know" facts. Category
+  and guide pages lost their intro lines.
+- The feedback window's bug and idea buttons lost their subtitles.
+- The link preview picture is a plain screenshot of the app, and the page descriptions are shorter.
+- The README describes the features in plain terms.
+
 ## 0.10.0 — 2026-09-27
 
 ### Added

@@ -16,12 +16,12 @@ It takes about 20 minutes on a desktop, plus 10 on a phone.
 
 ## 1. First run
 
-- [ ] **1.1** Open the site. *Expect:* a "Where are you in the game?" window with tier cards.
+- [ ] **1.1** Open the site. *Expect:* a "Highest tier unlocked" window with tier cards.
 - [ ] **1.2** Pick **Tier 3**. *Expect:* the window closes. The top bar says **Tier 3**. The page shows only
-  "What are we making?", a search box and item cards. There is no panel above it.
+  "Pick a product", a search box and item cards. There is no panel above it.
 - [ ] **1.3** Look at the cards. *Expect:* items you can't make at Tier 3 (for example Modular Engine, Magnetic
   Field Generator) are dimmed and carry a small **TIER N** tag. Smart Plating, Iron Plate and Rotor have no tag.
-- [ ] **1.4** Triple-click the "What are we making?" heading, then drag across a card. *Expect:* nothing gets
+- [ ] **1.4** Triple-click the "Pick a product" heading, then drag across a card. *Expect:* nothing gets
   highlighted as selected text.
 - [ ] **1.5** Type `motor` in the search box. *Expect:* only Motor and Turbo Motor are shown, both with their
   tier tag. Clear the box: the shortcuts come back.
@@ -142,7 +142,7 @@ Remove that target with the **×** on its card before going on. *Expect:* you're
   moves here: on the Coal plant tab it's now unticked and says "on Fuel plant".
 - [ ] **P.3c** Pick **Power I want** and type 5000. *Expect:* "The plant has to make" is 5,000 MW plus its own
   chain, and the graph ends in "Your target".
-- [ ] **P.3d** Pick **What I have**. *Expect:* the floor asks "What do you have to burn?", and the panel offers
+- [ ] **P.3d** Pick **What I have**. *Expect:* the floor says "Nothing listed yet", and the panel offers
   what the fuel is made from (Crude Oil). Tap it and set 300. *Expect:* about 2,500 MW made, the refineries' and
   pumps' draw taken off "For the grid", and the auto note says "Burns all you have".
 - [ ] **P.3e** Still there, uncheck **Also power its own refineries, miners and pumps**. *Expect:* For the grid
@@ -183,8 +183,8 @@ Remove that target with the **×** on its card before going on. *Expect:* you're
 
 ## 8d. Codex
 
-- [ ] **C.1** Click **Codex** on the switch in the top bar. *Expect:* the Codex home with ten categories and two
-  "Did you know" facts; the address ends in `#codex`.
+- [ ] **C.1** Click **Codex** on the switch in the top bar. *Expect:* the Codex home with ten category cards; the
+  address ends in `#codex`.
 - [ ] **C.2** Open **Parts**, type `frame` in **Filter this page**, open **Modular Frame**. *Expect:* its stats,
   the game's description, every recipe (the alternates marked), what it's used to make and build, and the
   milestones it's delivered for.
@@ -247,4 +247,4 @@ Use a real phone if you can. A desktop browser's device mode is close but isn't 
 - [ ] **11.1** Paste the site link in Discord or a Reddit post draft. *Expect:* a large card with the FICSIT
   Planner image, title and description.
 - [ ] **11.2** Open <https://ficsit-planner.pages.dev/robots.txt>, `/sitemap.xml` and a made-up page like
-  `/nope`. *Expect:* the first two show plain text or XML, and the last shows "Nothing built here".
+  `/nope`. *Expect:* the first two show plain text or XML, and the last shows "Page not found".
