@@ -7591,10 +7591,12 @@ a.codex-machine:hover {
   logo, not on every header.
 */
 
-/* The planner's own logo in place of the painted stripe block. */
+/* The planner's own logo in place of the painted stripe block, as tall as the wordmark beside it. */
 .brand-mark {
-  width: 38px;
-  margin: 12px 0 12px 16px;
+  align-self: center;
+  width: 44px;
+  height: 44px;
+  margin: 0 -2px 0 14px;
   clip-path: none;
   background: url('/logo.png') center / contain no-repeat;
 }

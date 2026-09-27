@@ -2,6 +2,12 @@
 
 All notable changes to FICSIT Planner. Dates are when the version was finished.
 
+## 0.11.4 — 2026-09-27
+
+### Changed
+
+- The logo in the top-left corner is as tall as the FICSIT / PLANNER wordmark beside it.
+
 ## 0.11.3 — 2026-09-27
 
 ### Changed
