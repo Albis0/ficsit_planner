@@ -70,6 +70,7 @@ export function ItemPicker({ items, label, onPick, exclude = [] }: Props) {
         ref={input}
         className="picker-search"
         placeholder={t('searchItems')}
+        aria-label={label}
         value={q}
         onChange={(e) => {
           setQ(e.target.value);

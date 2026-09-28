@@ -143,9 +143,20 @@ export default function WorldMap() {
       keepBuffer: 3,
     }).addTo(m);
     L.control.zoom({ position: 'bottomright', zoomInTitle: t('zoomIn'), zoomOutTitle: t('zoomOut') }).addTo(m);
-    const fit = m.getBoundsZoom(BOUNDS, false);
-    m.setMinZoom(fit - 0.5);
-    m.fitBounds(BOUNDS);
+    // The whole world in view to start with, and no further out than a little past it. A map opened while its
+    // pane is hidden (a phone showing the filter) has no size yet: it frames the world once it's shown.
+    // A view from the start, so Leaflet counts the map as loaded and measures it again once it's shown.
+    m.setView(BOUNDS.getCenter(), 0);
+    let framed = false;
+    const frame = () => {
+      const size = m.getSize();
+      if (!size.x || !size.y) return;
+      m.setMinZoom(m.getBoundsZoom(BOUNDS, false) - 0.5);
+      if (framed) return;
+      m.fitBounds(BOUNDS);
+      framed = true;
+    };
+    frame();
     // Pins grow with the picture on screen: coloured dots while the whole world is in view, icons closer in.
     const size = () => {
       pin.size = Math.round(Math.min(34, Math.max(6, (256 * 2 ** m.getZoom()) / 70)));
@@ -164,7 +175,10 @@ export default function WorldMap() {
     });
     layer.current = group;
     map.current = m;
-    const resize = new ResizeObserver(() => m.invalidateSize());
+    const resize = new ResizeObserver(() => {
+      m.invalidateSize();
+      frame();
+    });
     resize.observe(box.current);
     return () => {
       resize.disconnect();

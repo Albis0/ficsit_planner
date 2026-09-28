@@ -50,7 +50,8 @@ export function Splitter({ side }: { side: PanelSide }) {
       onPointerMove={(e) => {
         if (start.current) put(start.current.size + sign * ((across ? e.clientX : e.clientY) - start.current.at));
       }}
-      onPointerUp={() => {
+      // A drag ends on release, or when the browser takes the pointer away (a system gesture, a lost window).
+      onLostPointerCapture={() => {
         start.current = undefined;
         document.body.classList.remove('resizing', 'resizing-x');
       }}

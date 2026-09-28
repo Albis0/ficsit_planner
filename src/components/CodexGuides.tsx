@@ -134,26 +134,28 @@ function Overclock() {
         </div>
       </Box>
       <Box title={t('atAGlance')}>
-        <table className="codex-table">
-          <thead>
-            <tr>
-              <th>{t('clock')}</th>
-              <th>{t('calcOutput')}</th>
-              <th>{t('calcPowerMul')}</th>
-              <th>{t('calcShards')}</th>
-            </tr>
-          </thead>
-          <tbody>
-            {[0.5, 1, 1.5, 2, 2.5].map((c) => (
-              <tr key={c}>
-                <td>{num(c * 100)}%</td>
-                <td>× {num(c)}</td>
-                <td>× {num(c ** m.powerExp)}</td>
-                <td>{shardsFor(c)}</td>
+        <div className="codex-table-wrap">
+          <table className="codex-table">
+            <thead>
+              <tr>
+                <th>{t('clock')}</th>
+                <th>{t('calcOutput')}</th>
+                <th>{t('calcPowerMul')}</th>
+                <th>{t('calcShards')}</th>
               </tr>
-            ))}
-          </tbody>
-        </table>
+            </thead>
+            <tbody>
+              {[0.5, 1, 1.5, 2, 2.5].map((c) => (
+                <tr key={c}>
+                  <td>{num(c * 100)}%</td>
+                  <td>× {num(c)}</td>
+                  <td>× {num(c ** m.powerExp)}</td>
+                  <td>{shardsFor(c)}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
       </Box>
     </>
   );
@@ -203,33 +205,35 @@ function Sloops() {
         </div>
       </Box>
       <Box title={t('atAGlance')}>
-        <table className="codex-table">
-          <thead>
-            <tr>
-              <th>{t('building')}</th>
-              <th>{t('slotsCol')}</th>
-              <th>{t('calcPower')}</th>
-              <th>{t('fullSloops')}</th>
-            </tr>
-          </thead>
-          <tbody>
-            {Object.values(data.machines)
-              .filter((x) => x.somersloopSlots > 0)
-              .map((x) => (
-                <tr key={x.id}>
-                  <td>
-                    <CodexLink page={{ kind: 'building', id: x.id }} className="codex-machine">
-                      <Icon id={x.id} size={24} />
-                      {x.name}
-                    </CodexLink>
-                  </td>
-                  <td>{x.somersloopSlots}</td>
-                  <td>{x.variable ? t('varies') : `${num(x.power)} ${t('mw')}`}</td>
-                  <td>{x.variable ? t('timesFour') : `${num(x.power * 4)} ${t('mw')}`}</td>
-                </tr>
-              ))}
-          </tbody>
-        </table>
+        <div className="codex-table-wrap">
+          <table className="codex-table">
+            <thead>
+              <tr>
+                <th>{t('building')}</th>
+                <th>{t('slotsCol')}</th>
+                <th>{t('calcPower')}</th>
+                <th>{t('fullSloops')}</th>
+              </tr>
+            </thead>
+            <tbody>
+              {Object.values(data.machines)
+                .filter((x) => x.somersloopSlots > 0)
+                .map((x) => (
+                  <tr key={x.id}>
+                    <td>
+                      <CodexLink page={{ kind: 'building', id: x.id }} className="codex-machine">
+                        <Icon id={x.id} size={24} />
+                        {x.name}
+                      </CodexLink>
+                    </td>
+                    <td>{x.somersloopSlots}</td>
+                    <td>{x.variable ? t('varies') : `${num(x.power)} ${t('mw')}`}</td>
+                    <td>{x.variable ? t('timesFour') : `${num(x.power * 4)} ${t('mw')}`}</td>
+                  </tr>
+                ))}
+            </tbody>
+          </table>
+        </div>
       </Box>
     </>
   );
@@ -242,47 +246,54 @@ function Nodes() {
     <>
       <Text k="guideText_nodes" />
       <Box title={t('atAGlance')}>
-        <table className="codex-table">
-          <thead>
-            <tr>
-              <th>{t('extractor')}</th>
-              <th>{t('clock')}</th>
-              {PURITIES.map((p) => (
-                <th key={p}>{t(p)}</th>
-              ))}
-            </tr>
-          </thead>
-          <tbody>
-            {data.extractors
-              .filter((e) => e.purity)
-              .flatMap((e) =>
-                [1, 2.5].map((c) => (
-                  <tr key={`${e.id}${c}`}>
-                    <td>
-                      {c === 1 && (
-                        <CodexLink page={{ kind: 'building', id: e.id }} className="codex-machine">
-                          <Icon id={e.id} size={24} />
-                          {e.name}
-                        </CodexLink>
-                      )}
-                    </td>
-                    <td>{num(c * 100)}%</td>
-                    {PURITIES.map((p) => {
-                      const rate = e.rate * PURITY[p] * c;
-                      const fluid = e.resources.length > 0;
-                      const belt = fluid ? undefined : transportFor(solid, rate).transport;
-                      return (
-                        <td key={p}>
-                          {num(rate)}
-                          {belt && <small className="codex-belt">{belt.name}</small>}
-                        </td>
-                      );
-                    })}
-                  </tr>
-                )),
-              )}
-          </tbody>
-        </table>
+        <div className="codex-table-wrap">
+          <table className="codex-table">
+            <thead>
+              <tr>
+                <th>{t('extractor')}</th>
+                <th>{t('clock')}</th>
+                {PURITIES.map((p) => (
+                  <th key={p}>{t(p)}</th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {data.extractors
+                .filter((e) => e.purity)
+                // Miners by mark first, then the fluid extractors.
+                .sort(
+                  (a, b) =>
+                    a.resources.length - b.resources.length || (a.resources.length ? a.name.localeCompare(b.name) : a.rate - b.rate),
+                )
+                .flatMap((e) =>
+                  [1, 2.5].map((c) => (
+                    <tr key={`${e.id}${c}`}>
+                      <td>
+                        {c === 1 && (
+                          <CodexLink page={{ kind: 'building', id: e.id }} className="codex-machine">
+                            <Icon id={e.id} size={24} />
+                            {e.name}
+                          </CodexLink>
+                        )}
+                      </td>
+                      <td>{num(c * 100)}%</td>
+                      {PURITIES.map((p) => {
+                        const rate = e.rate * PURITY[p] * c;
+                        const fluid = e.resources.length > 0;
+                        const belt = fluid ? undefined : transportFor(solid, rate).transport;
+                        return (
+                          <td key={p}>
+                            {num(rate)}
+                            {belt && <small className="codex-belt">{belt.name}</small>}
+                          </td>
+                        );
+                      })}
+                    </tr>
+                  )),
+                )}
+            </tbody>
+          </table>
+        </div>
         <p className="hint">{t('nodesNote')}</p>
       </Box>
     </>
@@ -295,54 +306,56 @@ function Fuel() {
     <>
       <Text k="guideText_fuel" />
       <Box title={t('atAGlance')}>
-        <table className="codex-table">
-          <thead>
-            <tr>
-              <th>{t('generator')}</th>
-              <th>{t('fuel')}</th>
-              <th>{t('energyCol')}</th>
-              <th>{t('burns')}</th>
-              <th>{t('waterUse')}</th>
-            </tr>
-          </thead>
-          <tbody>
-            {data.generators
-              .filter((g) => g.kind === 'fuel')
-              .flatMap((g) =>
-                g.fuels.map((f, i) => {
-                  const item = data.items[f.item];
-                  const fluid = item.form !== 'solid';
-                  const water = g.supplement ? (g.power * 60 * g.supplementRatio) / 1000 : 0;
-                  return (
-                    <tr key={g.id + f.item}>
-                      <td>
-                        {i === 0 && (
-                          <CodexLink page={{ kind: 'building', id: g.id }} className="codex-machine">
-                            <Icon id={g.id} size={24} />
-                            {g.name} · {num(g.power)} {t('mw')}
+        <div className="codex-table-wrap">
+          <table className="codex-table">
+            <thead>
+              <tr>
+                <th>{t('generator')}</th>
+                <th>{t('fuel')}</th>
+                <th>{t('energyCol')}</th>
+                <th>{t('burns')}</th>
+                <th>{t('waterUse')}</th>
+              </tr>
+            </thead>
+            <tbody>
+              {data.generators
+                .filter((g) => g.kind === 'fuel')
+                .flatMap((g) =>
+                  g.fuels.map((f, i) => {
+                    const item = data.items[f.item];
+                    const fluid = item.form !== 'solid';
+                    const water = g.supplement ? (g.power * 60 * g.supplementRatio) / 1000 : 0;
+                    return (
+                      <tr key={g.id + f.item}>
+                        <td>
+                          {i === 0 && (
+                            <CodexLink page={{ kind: 'building', id: g.id }} className="codex-machine">
+                              <Icon id={g.id} size={24} />
+                              {g.name} · {num(g.power)} {t('mw')}
+                            </CodexLink>
+                          )}
+                        </td>
+                        <td>
+                          <CodexLink page={{ kind: 'item', id: f.item }} className="codex-machine">
+                            <Icon id={f.item} size={24} />
+                            {item.name}
                           </CodexLink>
-                        )}
-                      </td>
-                      <td>
-                        <CodexLink page={{ kind: 'item', id: f.item }} className="codex-machine">
-                          <Icon id={f.item} size={24} />
-                          {item.name}
-                        </CodexLink>
-                      </td>
-                      <td>
-                        {num(item.energy ?? 0)} MJ{fluid ? '/m³' : ''}
-                      </td>
-                      <td>
-                        {num(fuelRate(g, f.item))}
-                        {fluid ? t('m3PerMin') : t('perMin')}
-                      </td>
-                      <td>{water ? `${num(water)}${t('m3PerMin')}` : '–'}</td>
-                    </tr>
-                  );
-                }),
-              )}
-          </tbody>
-        </table>
+                        </td>
+                        <td>
+                          {num(item.energy ?? 0)} MJ{fluid ? '/m³' : ''}
+                        </td>
+                        <td>
+                          {num(fuelRate(g, f.item))}
+                          {fluid ? t('m3PerMin') : t('perMin')}
+                        </td>
+                        <td>{water ? `${num(water)}${t('m3PerMin')}` : '–'}</td>
+                      </tr>
+                    );
+                  }),
+                )}
+            </tbody>
+          </table>
+        </div>
         <p className="hint">{t('fuelGuideNote')}</p>
       </Box>
     </>
@@ -355,60 +368,64 @@ function Transport() {
     <>
       <Text k="guideText_transport" />
       <Box title={t('beltsTitle')}>
-        <table className="codex-table">
-          <thead>
-            <tr>
-              <th>{t('beltCol')}</th>
-              <th>{t('rate')}</th>
-              <th>{t('statTier')}</th>
-            </tr>
-          </thead>
-          <tbody>
-            {data.belts.map((b) => (
-              <tr key={b.id}>
-                <td>
-                  <CodexLink page={{ kind: 'building', id: b.id }} className="codex-machine">
-                    <Icon id={b.id} size={24} />
-                    {t('beltName', { mk: b.name })}
-                  </CodexLink>
-                </td>
-                <td>
-                  {num(b.rate)}
-                  {t('perMin')}
-                </td>
-                <td>{b.tier}</td>
+        <div className="codex-table-wrap">
+          <table className="codex-table">
+            <thead>
+              <tr>
+                <th>{t('beltCol')}</th>
+                <th>{t('rate')}</th>
+                <th>{t('statTier')}</th>
               </tr>
-            ))}
-          </tbody>
-        </table>
+            </thead>
+            <tbody>
+              {data.belts.map((b) => (
+                <tr key={b.id}>
+                  <td>
+                    <CodexLink page={{ kind: 'building', id: b.id }} className="codex-machine">
+                      <Icon id={b.id} size={24} />
+                      {t('beltName', { mk: b.name })}
+                    </CodexLink>
+                  </td>
+                  <td>
+                    {num(b.rate)}
+                    {t('perMin')}
+                  </td>
+                  <td>{b.tier}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
       </Box>
       <Box title={t('pipesTitle')}>
-        <table className="codex-table">
-          <thead>
-            <tr>
-              <th>{t('pipeCol')}</th>
-              <th>{t('rate')}</th>
-              <th>{t('statTier')}</th>
-            </tr>
-          </thead>
-          <tbody>
-            {data.pipes.map((p) => (
-              <tr key={p.id}>
-                <td>
-                  <CodexLink page={{ kind: 'building', id: p.id }} className="codex-machine">
-                    <Icon id={p.id} size={24} />
-                    {t('pipeName', { mk: p.name })}
-                  </CodexLink>
-                </td>
-                <td>
-                  {num(p.rate)}
-                  {t('m3PerMin')}
-                </td>
-                <td>{p.tier}</td>
+        <div className="codex-table-wrap">
+          <table className="codex-table">
+            <thead>
+              <tr>
+                <th>{t('pipeCol')}</th>
+                <th>{t('rate')}</th>
+                <th>{t('statTier')}</th>
               </tr>
-            ))}
-          </tbody>
-        </table>
+            </thead>
+            <tbody>
+              {data.pipes.map((p) => (
+                <tr key={p.id}>
+                  <td>
+                    <CodexLink page={{ kind: 'building', id: p.id }} className="codex-machine">
+                      <Icon id={p.id} size={24} />
+                      {t('pipeName', { mk: p.name })}
+                    </CodexLink>
+                  </td>
+                  <td>
+                    {num(p.rate)}
+                    {t('m3PerMin')}
+                  </td>
+                  <td>{p.tier}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
       </Box>
     </>
   );
@@ -469,33 +486,35 @@ function CrashSites() {
             </div>
           </Box>
           <Box title={t('crashPartsTitle')}>
-            <table className="codex-table">
-              <thead>
-                <tr>
-                  <th>{t('item')}</th>
-                  <th>{t('crashSites')}</th>
-                  <th>{t('crashAmounts')}</th>
-                </tr>
-              </thead>
-              <tbody>
-                {rows.map(([id, amounts]) => (
-                  <tr key={id}>
-                    <td>
-                      <CodexLink page={{ kind: 'item', id }} className="codex-machine">
-                        <Icon id={id} size={24} />
-                        {data.items[id]?.name ?? id}
-                      </CodexLink>
-                    </td>
-                    <td>{amounts.length}</td>
-                    <td>
-                      {Math.min(...amounts) === Math.max(...amounts)
-                        ? num(amounts[0])
-                        : `${num(Math.min(...amounts))}–${num(Math.max(...amounts))}`}
-                    </td>
+            <div className="codex-table-wrap">
+              <table className="codex-table">
+                <thead>
+                  <tr>
+                    <th>{t('item')}</th>
+                    <th>{t('crashSites')}</th>
+                    <th>{t('crashAmounts')}</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
+                </thead>
+                <tbody>
+                  {rows.map(([id, amounts]) => (
+                    <tr key={id}>
+                      <td>
+                        <CodexLink page={{ kind: 'item', id }} className="codex-machine">
+                          <Icon id={id} size={24} />
+                          {data.items[id]?.name ?? id}
+                        </CodexLink>
+                      </td>
+                      <td>{amounts.length}</td>
+                      <td>
+                        {Math.min(...amounts) === Math.max(...amounts)
+                          ? num(amounts[0])
+                          : `${num(Math.min(...amounts))}–${num(Math.max(...amounts))}`}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           </Box>
         </>
       )}

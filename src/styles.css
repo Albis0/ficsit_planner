@@ -162,7 +162,7 @@ button:disabled {
   display: grid;
   grid-template-columns: minmax(0, 1fr);
   /* A height saved on a taller window never pushes the floor under 300px here. */
-  --deck: min(var(--deck-h, calc(clamp(220px, 32vh, 400px) * var(--ui-scale, 1))), max(170px, 100dvh - var(--top-h) - 300px));
+  --deck: min(var(--deck-h, calc(clamp(250px, 36vh, 420px) * var(--ui-scale, 1))), max(170px, 100dvh - var(--top-h) - 300px));
   /* Until its edge is dragged, the panel is only as tall as what it holds, up to that height. */
   --deck-row: fit-content(var(--deck));
   grid-template-rows: var(--top-h) var(--deck-row) minmax(0, 1fr);
@@ -1514,6 +1514,8 @@ button.slot:hover {
   position: absolute;
   inset: 0;
   overflow-y: auto;
+  /* Room for the scrollbar either way, so the page doesn't shift sideways when a search makes it short. */
+  scrollbar-gutter: stable;
   padding: 48px 48px 60px;
   background:
     linear-gradient(#2c2c2c 1px, transparent 1px) 0 0 / 40px 40px,
@@ -1913,7 +1915,8 @@ button.slot:hover {
   zoom: var(--card-scale, 1);
   position: relative;
   width: calc(310px * (0.6 + 0.4 * var(--t)));
-  height: calc(130px * (0.3 + 0.7 * var(--t)));
+  /* Extra clock groups each add a line (RUN_LINE in the layout). */
+  height: calc((130px + var(--run-extra, 0) * 32px) * (0.3 + 0.7 * var(--t)));
   display: flex;
   flex-direction: column;
   background: var(--raised);
@@ -2052,12 +2055,11 @@ button.slot:hover {
   font-size: calc(19px * var(--t));
 }
 
-/* "3 × 88.89%": plain (not condensed) digits, the clock nearly as big as the count. */
+/* "3 × 88.89%": plain (not condensed) digits, the clock nearly as big as the count. Each group on its own line. */
 .machine-run {
   display: flex;
-  flex-wrap: wrap;
-  align-items: baseline;
-  gap: 0 8px;
+  flex-direction: column;
+  align-items: flex-start;
   font: 600 calc(20px * var(--t)) / 1.2 var(--font-body);
   color: var(--paper);
 }
@@ -2101,7 +2103,8 @@ button.slot:hover {
   font: 700 15px var(--font-display);
 }
 
-.placements .mod-badge {
+.placements .mod-badge,
+.plan-table .mod-badge {
   margin-left: 8px;
 }
 
@@ -3043,6 +3046,10 @@ button.slot:hover {
 /* A second message while the first is up sits above it. */
 .toast + .toast {
   translate: 0 calc(-100% - 10px);
+}
+
+.toast + .toast + .toast {
+  translate: 0 calc(-200% - 20px);
 }
 
 /* ---------- Interface size ---------- */
@@ -4910,7 +4917,7 @@ button.gen-count[aria-pressed='true'] {
 
 .report-privacy {
   margin: 0;
-  max-width: 44ch;
+  max-width: 62ch;
   font-size: 13px;
   color: var(--faint);
 }
@@ -5421,8 +5428,11 @@ button.gen-count[aria-pressed='true'] {
     border-bottom: 1px solid var(--line);
   }
 
+  /* Full height each, the panel scrolling as one page: shrunk to fit, a card would let its list spill out of it. */
+  .recipe-tools,
   .recipe-list,
   .panel-body.resources > .stack {
+    flex: none;
     overflow: visible;
   }
 
@@ -5774,6 +5784,10 @@ button.gen-count[aria-pressed='true'] {
   .toast + .toast {
     translate: 0 calc(100% + 10px);
   }
+
+  .toast + .toast + .toast {
+    translate: 0 calc(200% + 20px);
+  }
 }
 
 /*
@@ -5880,7 +5894,8 @@ button.gen-count[aria-pressed='true'] {
   }
 }
 
-@media (max-width: 1280px) {
+/* Under 1500 px Share, Settings and Feedback are their icons alone, so the plan tabs keep their room. */
+@media (max-width: 1500px) {
   .chrome-label {
     display: none;
   }
@@ -5888,7 +5903,9 @@ button.gen-count[aria-pressed='true'] {
   .chrome-button {
     padding: 0 9px;
   }
+}
 
+@media (max-width: 1280px) {
   .mode-switch button {
     padding: 0 9px;
   }
@@ -6358,6 +6375,7 @@ button.gen-count[aria-pressed='true'] {
   flex: 1;
   min-height: 0;
   overflow-y: auto;
+  scrollbar-gutter: stable;
   -webkit-user-select: text;
   user-select: text;
   background:
@@ -6785,9 +6803,13 @@ a.codex-amount:hover {
   gap: 10px;
 }
 
+/* The ingredients give way first (they wrap onto more rows); the results only wrap their names, and never spill out of the card. */
 .codex-recipe-flow > .codex-amounts {
-  flex: 0 1 auto;
-  min-width: 0;
+  flex: 0 10 auto;
+}
+
+.codex-recipe-flow > .codex-amounts:last-child {
+  flex-shrink: 1;
 }
 
 .codex-craft {
@@ -6874,7 +6896,11 @@ a.codex-machine:hover {
   color: var(--dim);
 }
 
-/* Tables: rates by purity, fuels, belts. */
+/* Tables: rates by purity, fuels, belts. Too wide for a phone, one scrolls sideways inside the page. */
+.codex-table-wrap {
+  overflow-x: auto;
+}
+
 .codex-table {
   width: 100%;
   border-collapse: collapse;
@@ -6896,6 +6922,11 @@ a.codex-machine:hover {
   padding: 7px 12px;
   border-bottom: 1px solid var(--line);
   font-variant-numeric: tabular-nums;
+}
+
+/* An icon and name in a cell sit on the row's middle line, like the numbers beside them. */
+.codex-table .codex-machine {
+  vertical-align: middle;
 }
 
 .codex-table tbody tr:hover td {
@@ -7115,9 +7146,22 @@ a.codex-machine:hover {
     display: none;
   }
 
-  .codex-table {
-    display: block;
-    overflow-x: auto;
+  /* The table keeps the page's width and wraps its names, rather than scrolling on its own. */
+  .codex-table :is(th, td) {
+    padding: 7px 8px;
+  }
+
+  /* A recipe reads top to bottom: what goes in, then what comes out. */
+  .codex-recipe-flow {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 6px;
+  }
+
+  .codex-recipe-flow .codex-arrow {
+    transform: rotate(90deg);
+    margin-left: 14px;
+    line-height: 1;
   }
 
   .help-term {
@@ -7656,8 +7700,13 @@ a.codex-machine:hover {
     display: none;
   }
 
+  /* Tight enough that a name like "Factory 12" still shows whole beside the four mode buttons. */
   .plan-tab {
-    padding-right: 10px;
+    padding-right: 4px;
+  }
+
+  .plan-tab-name {
+    padding-left: 10px;
   }
 
   .plan-tabs-frame {
@@ -7665,7 +7714,27 @@ a.codex-machine:hover {
   }
 
   .plan-add {
-    width: 34px;
+    width: 30px;
+  }
+
+  .mode-switch button {
+    min-width: 38px;
+    padding: 0 6px;
+  }
+
+  .menu-button {
+    width: 40px;
+  }
+}
+
+/* The narrowest phones: the tabs need the logo's room more than the logo does. */
+@media (max-width: 380px) {
+  .brand {
+    display: none;
+  }
+
+  .mode-switch {
+    margin-left: 6px;
   }
 }
 
@@ -7702,7 +7771,12 @@ a.codex-machine:hover {
 .codex-crumbs,
 .codex-readout span,
 .crash-title,
-.settings-preview figcaption {
+.settings-preview figcaption,
+.mobile-nav button,
+.plan-table td::before,
+.codex-hit-kind,
+.sent-title,
+.pin-badge {
   text-transform: none;
   letter-spacing: 0;
 }

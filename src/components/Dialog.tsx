@@ -3,8 +3,8 @@ import { useT } from '../lib/i18n';
 import { Glyph, type GlyphName } from './Glyph';
 
 /**
- * Modal panel in the game's style: a charcoal plate with a cut corner, a hazard-striped header
- * edge and the title in condensed caps. Opens with a short rise, closes the same way.
+ * Modal panel in the game's style: a metal casing with screws around a dark header and body.
+ * Opens with a short rise, closes the same way.
  */
 export function Dialog({
   title,

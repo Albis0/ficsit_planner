@@ -58,7 +58,7 @@ function saveDraft(d: Draft | undefined) {
   } catch {}
 }
 
-const AREAS = ['areaGraph', 'areaPower', 'areaRecipes', 'areaResources', 'areaLook', 'areaOther'] as const;
+const AREAS = ['areaGraph', 'areaPower', 'areaRecipes', 'areaResources', 'areaCodex', 'areaMap', 'areaLook', 'areaOther'] as const;
 
 /** Feedback in two halves: something broke, or something could be better. Sent straight to the developer. */
 export function ReportDialog({ onClose }: { onClose: () => void }) {

@@ -68,8 +68,15 @@ export function RecipesPanel() {
             ))}
           </div>
         </div>
-        <input className="search" placeholder={t('searchRecipes')} value={q} onChange={(e) => setQ(e.target.value)} />
-        <div className="segmented" role="radiogroup">
+        <input
+          className="search"
+          type="search"
+          placeholder={t('searchRecipes')}
+          aria-label={t('searchRecipes')}
+          value={q}
+          onChange={(e) => setQ(e.target.value)}
+        />
+        <div className="segmented" role="radiogroup" aria-label={t('recipes')}>
           {(['alternate', 'standard', 'converter', 'all'] as Filter[]).map((f) => (
             <button key={f} type="button" role="radio" aria-checked={filter === f} onClick={() => setFilter(f)}>
               {t(f)}

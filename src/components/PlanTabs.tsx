@@ -16,6 +16,12 @@ function useTabs() {
   const set = useStore((s) => s.set);
   const store = useStore.getState;
   // Closing a tab takes one click, like a browser's; the toast after it offers Undo instead of asking first.
+  // "Factory 3" for the third tab, or the next number that's free once some were closed or renamed.
+  const nextName = (base: string, names: string[]) => {
+    let n = names.length + 1;
+    while (names.includes(`${base} ${n}`)) n++;
+    return `${base} ${n}`;
+  };
   const closing = (remove: (id: string) => void) => (id: string) => {
     const s = store();
     const name = (power ? s.power : s.plans).find((p) => p.id === id)?.name ?? '';
@@ -29,7 +35,13 @@ function useTabs() {
         list: plants.map((p) => ({ id: p.id, name: p.name, icon: p.plants[0]?.generator })),
         active,
         select: (id: string) => set({ activePower: id, inspect: undefined }),
-        add: () => store().addPowerPlan(`${t('plantName')} ${plants.length + 1}`),
+        add: () =>
+          store().addPowerPlan(
+            nextName(
+              t('plantName'),
+              plants.map((p) => p.name),
+            ),
+          ),
         duplicate: (id: string) => store().duplicatePowerPlan(id),
         remove: closing((id) => store().removePowerPlan(id)),
         rename: (id: string, name: string) => store().renamePowerPlan(id, name),
@@ -41,7 +53,13 @@ function useTabs() {
         list: plans.map((p) => ({ id: p.id, name: p.name, icon: undefined as string | undefined })),
         active,
         select: (id: string) => set({ active: id, inspect: undefined }),
-        add: () => store().addPlan(`${t('planName')} ${plans.length + 1}`),
+        add: () =>
+          store().addPlan(
+            nextName(
+              t('planName'),
+              plans.map((p) => p.name),
+            ),
+          ),
         duplicate: (id: string) => store().duplicatePlan(id),
         remove: closing((id) => store().removePlan(id)),
         rename: (id: string, name: string) => store().renamePlan(id, name),
@@ -81,7 +99,7 @@ export function ShareButton({ className = 'chrome-button', onDone }: { className
   );
 }
 
-/** Rename, duplicate and delete for the tab on screen; delete asks once more before it goes. */
+/** Rename, duplicate and delete for the tab on screen; a deleted tab can be brought back from the toast. */
 export function PlanActions({ onDone }: { onDone?: () => void }) {
   const { t } = useT();
   const tabs = useTabs();

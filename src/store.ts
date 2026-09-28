@@ -239,6 +239,13 @@ export function exportsOf(plans: Plan[], id: string): { item: string; rate: numb
   );
 }
 
+/** "Motor (2)", or "Motor (3)" when that's taken too: the name a copy of a tab gets. */
+function copyName(name: string, taken: string[]): string {
+  let n = 2;
+  while (taken.includes(`${name} (${n})`)) n++;
+  return `${name} (${n})`;
+}
+
 /** "Coal plant", or "Coal plant 2" when that name is taken. */
 function freeName(base: string, taken: string[]): string {
   if (!taken.includes(base)) return base;
@@ -398,7 +405,14 @@ export const useStore = create<State>()(
         duplicatePlan: (id) => {
           const src = get().plans.find((p) => p.id === id);
           if (!src) return;
-          const copy = { ...structuredClone(src), id: uid(), name: `${src.name} (2)` };
+          const copy = {
+            ...structuredClone(src),
+            id: uid(),
+            name: copyName(
+              src.name,
+              get().plans.map((p) => p.name),
+            ),
+          };
           const i = get().plans.indexOf(src);
           const plans = [...get().plans];
           plans.splice(i + 1, 0, copy);

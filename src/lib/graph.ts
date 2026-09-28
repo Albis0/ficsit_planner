@@ -1,5 +1,6 @@
 import dagre from '@dagrejs/dagre';
 import { Position, type Edge, type Node, type NodeHandle } from '@xyflow/react';
+import { groupClocks } from './clocks';
 import { data, transportFor, type Transport } from './data';
 import { plantIdOf } from './power';
 import type { RecipeUse, SolveResult } from './solver';
@@ -99,6 +100,10 @@ export const SIZE = {
   consumer: { width: 260, height: 84 },
 };
 
+/** Each clock group past the first ("+ 1 × 126.19%") takes a line of its own under the count, and the card grows by it. */
+export const RUN_LINE = 32;
+export const runExtra = (u: RecipeUse) => Math.max(0, groupClocks(u.clocks).length - 1);
+
 type Box = { width: number; height: number };
 
 const scaled = (size: Box, k: number) => ({
@@ -186,7 +191,7 @@ export function buildGraph(result: SolveResult, tier: number, opts: GraphOptions
       type: 'machine',
       position: { x: 0, y: 0 },
       data: { use: u, generation: plant ? (result.grid?.plants[plant] ?? 0) : undefined } satisfies MachineNodeData,
-      ...box(SIZE.machine),
+      ...box({ ...SIZE.machine, height: SIZE.machine.height + RUN_LINE * runExtra(u) }),
       handles: [],
     });
     sides.set(id, { source: true, target: true });

@@ -2,6 +2,30 @@
 
 All notable changes to FICSIT Planner. Dates are when the version was finished.
 
+## 0.11.6 — 2026-09-28
+
+### Fixed
+
+- **Factory floor:** a machine line split across clock speeds ("1 × 148.81% + 27 × 100%") no longer runs out of its
+  card; the card grows a line for each group. Belts carrying a hundred lanes no longer draw as a wide orange slab.
+- **Phones:**
+  - The world map opened blank, or as a small picture, when the filter was on screen first.
+  - Recipe and resource lists no longer spill out of their card.
+  - Codex recipes read top to bottom, and wide tables scroll inside the page instead of pushing it sideways.
+  - The top bar shows a tab's whole name beside the four mode buttons.
+  - The bottom navigation reads in plain words instead of capitals.
+- **Codex:** results of a recipe stay inside its card, big numbers have their thousands separators, the table of
+  miners lists them Mk.1 to Mk.3, and icons in tables sit on the row's line.
+- **Power planner:** "Bring in" on a plant sized to what you have adds the fuel to that list, where it counts.
+- A new tab is named after the next free number, and a copy of a copied tab gets "(3)" instead of a second "(2)".
+- "1 power shard" instead of "1 Power shards".
+
+### Changed
+
+- Share, Settings and Feedback are icons only on screens under 1500 px wide, so the tabs keep their room.
+- The panel above the factory floor opens a little taller.
+- Feedback can name the Codex or the Map as the part it's about.
+
 ## 0.11.5 — 2026-09-27
 
 ### Fixed

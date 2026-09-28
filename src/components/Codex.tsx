@@ -135,7 +135,11 @@ const CATEGORY_ICON: Record<Category, string> = {
 const FAMILIES: Family[] = ['hog', 'spitter', 'stinger', 'hatcher', 'passive'];
 
 /** The Codex's own entries in a category, grouped under headings. */
-function categoryGroups(cat: Category, index: CodexIndex, t: ReturnType<typeof useT>['t']): { title: string; entries: Entry[] }[] {
+function categoryGroups(
+  cat: Category,
+  index: CodexIndex,
+  { t, num }: Pick<ReturnType<typeof useT>, 't' | 'num'>,
+): { title: string; entries: Entry[] }[] {
   const { data: codex } = index;
   const byName = (a: Entry, b: Entry) => a.name.localeCompare(b.name);
   const groupBy = (entries: Entry[], key: (e: Entry) => string, order?: string[]) => {
@@ -154,7 +158,7 @@ function categoryGroups(cat: Category, index: CodexIndex, t: ReturnType<typeof u
         page: { kind: 'item', id } as Page,
         name: it.name,
         icon: id,
-        note: it.sink ? `${it.sink} ${t('pointsShort')}` : undefined,
+        note: it.sink ? `${num(it.sink)} ${t('pointsShort')}` : undefined,
       }));
   const schematics = (type: Schematic['type'] | Schematic['type'][]) =>
     codex.schematics
@@ -239,7 +243,7 @@ function categoryGroups(cat: Category, index: CodexIndex, t: ReturnType<typeof u
           page: (l === 'pod' ? { kind: 'guide', id: 'crashsites' } : { kind: 'item', id: LAYER_ITEM[l] }) as Page,
           name: l === 'pod' ? t('guide_crashsites') : nameOf(LAYER_ITEM[l], codex),
           icon: LAYER_ITEM[l],
-          note: t('onMapN', { n: codex.counts[l] }),
+          note: t('onMapN', { n: num(codex.counts[l]) }),
         })),
       }));
     case 'creatures':
@@ -251,7 +255,7 @@ function categoryGroups(cat: Category, index: CodexIndex, t: ReturnType<typeof u
             page: { kind: 'creature', id: c.id } as Page,
             name: c.name,
             icon: c.id,
-            note: c.health ? t('healthN', { n: c.health }) : undefined,
+            note: c.health ? t('healthN', { n: num(c.health) }) : undefined,
           })),
       })).filter((g) => g.entries.length);
     case 'guides':
@@ -413,8 +417,8 @@ function Home({ index }: { index: CodexIndex }) {
 }
 
 function CategoryPage({ cat, index }: { cat: Category; index: CodexIndex }) {
-  const { t } = useT();
-  const groups = useMemo(() => categoryGroups(cat, index, t), [cat, index, t]);
+  const { t, num } = useT();
+  const groups = useMemo(() => categoryGroups(cat, index, { t, num }), [cat, index, t, num]);
   const [filter, setFilter] = useState('');
   const q = searchKey(filter.trim());
   const shown = q
@@ -712,31 +716,33 @@ function ItemPage({ id, index }: { id: string; index: CodexIndex }) {
       />
       {extractors.length > 0 && (
         <Section title={t('howToGet')}>
-          <table className="codex-table">
-            <thead>
-              <tr>
-                <th>{t('extractor')}</th>
-                {PURITIES.map((p) => (
-                  <th key={p}>{t(p)}</th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {extractors.map((e) => (
-                <tr key={e.id}>
-                  <td>
-                    <CodexLink page={{ kind: 'building', id: e.id }} className="codex-machine">
-                      <Icon id={e.id} size={24} />
-                      {e.name}
-                    </CodexLink>
-                  </td>
+          <div className="codex-table-wrap">
+            <table className="codex-table">
+              <thead>
+                <tr>
+                  <th>{t('extractor')}</th>
                   {PURITIES.map((p) => (
-                    <td key={p}>{e.purity ? num(e.rate * PURITY[p]) : p === 'normal' ? num(e.rate) : '–'}</td>
+                    <th key={p}>{t(p)}</th>
                   ))}
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                {extractors.map((e) => (
+                  <tr key={e.id}>
+                    <td>
+                      <CodexLink page={{ kind: 'building', id: e.id }} className="codex-machine">
+                        <Icon id={e.id} size={24} />
+                        {e.name}
+                      </CodexLink>
+                    </td>
+                    {PURITIES.map((p) => (
+                      <td key={p}>{e.purity ? num(e.rate * PURITY[p]) : p === 'normal' ? num(e.rate) : '–'}</td>
+                    ))}
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
           <p className="hint">{t('extractorNote', { unit: fluidUnit ? t('unitM3') : t('unitItems') })}</p>
         </Section>
       )}
@@ -765,38 +771,40 @@ function ItemPage({ id, index }: { id: string; index: CodexIndex }) {
       )}
       {burners.length > 0 && (
         <Section title={t('burnedIn')}>
-          <table className="codex-table">
-            <thead>
-              <tr>
-                <th>{t('generator')}</th>
-                <th>{t('mw')}</th>
-                <th>{t('burns')}</th>
-                <th>{t('waterUse')}</th>
-              </tr>
-            </thead>
-            <tbody>
-              {burners.map((g) => {
-                const rate = fuelRate(g, id);
-                const water = g.supplement ? (g.power * 60 * g.supplementRatio) / 1000 : 0;
-                return (
-                  <tr key={g.id}>
-                    <td>
-                      <CodexLink page={{ kind: 'building', id: g.id }} className="codex-machine">
-                        <Icon id={g.id} size={24} />
-                        {g.name}
-                      </CodexLink>
-                    </td>
-                    <td>{num(g.power)}</td>
-                    <td>
-                      {num(rate)}
-                      {fluidUnit ? t('m3PerMin') : t('perMin')}
-                    </td>
-                    <td>{water ? `${num(water)}${t('m3PerMin')}` : '–'}</td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
+          <div className="codex-table-wrap">
+            <table className="codex-table">
+              <thead>
+                <tr>
+                  <th>{t('generator')}</th>
+                  <th>{t('mw')}</th>
+                  <th>{t('burns')}</th>
+                  <th>{t('waterUse')}</th>
+                </tr>
+              </thead>
+              <tbody>
+                {burners.map((g) => {
+                  const rate = fuelRate(g, id);
+                  const water = g.supplement ? (g.power * 60 * g.supplementRatio) / 1000 : 0;
+                  return (
+                    <tr key={g.id}>
+                      <td>
+                        <CodexLink page={{ kind: 'building', id: g.id }} className="codex-machine">
+                          <Icon id={g.id} size={24} />
+                          {g.name}
+                        </CodexLink>
+                      </td>
+                      <td>{num(g.power)}</td>
+                      <td>
+                        {num(rate)}
+                        {fluidUnit ? t('m3PerMin') : t('perMin')}
+                      </td>
+                      <td>{water ? `${num(water)}${t('m3PerMin')}` : '–'}</td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
         </Section>
       )}
       {uses.length > 0 && (
@@ -977,26 +985,28 @@ function BuildingPage({ id, index }: { id: string; index: CodexIndex }) {
       )}
       {extractor && (
         <Section title={t('extractionRates')}>
-          <table className="codex-table">
-            <thead>
-              <tr>
-                <th>{t('clock')}</th>
-                {extractor.purity ? PURITIES.map((p) => <th key={p}>{t(p)}</th>) : <th>{t('rate')}</th>}
-              </tr>
-            </thead>
-            <tbody>
-              {[1, 1.5, 2, 2.5].map((c) => (
-                <tr key={c}>
-                  <td>{num(c * 100)}%</td>
-                  {extractor.purity ? (
-                    PURITIES.map((p) => <td key={p}>{num(extractor.rate * PURITY[p] * c)}</td>)
-                  ) : (
-                    <td>{num(extractor.rate * c)}</td>
-                  )}
+          <div className="codex-table-wrap">
+            <table className="codex-table">
+              <thead>
+                <tr>
+                  <th>{t('clock')}</th>
+                  {extractor.purity ? PURITIES.map((p) => <th key={p}>{t(p)}</th>) : <th>{t('rate')}</th>}
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                {[1, 1.5, 2, 2.5].map((c) => (
+                  <tr key={c}>
+                    <td>{num(c * 100)}%</td>
+                    {extractor.purity ? (
+                      PURITIES.map((p) => <td key={p}>{num(extractor.rate * PURITY[p] * c)}</td>)
+                    ) : (
+                      <td>{num(extractor.rate * c)}</td>
+                    )}
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
           <p className="hint">
             {extractor.resources.length
               ? t('extractsThese', { list: extractor.resources.map((r) => nameOf(r, index.data)).join(', ') })
@@ -1006,43 +1016,45 @@ function BuildingPage({ id, index }: { id: string; index: CodexIndex }) {
       )}
       {generator && generator.kind === 'fuel' && (
         <Section title={t('fuelsTitle')}>
-          <table className="codex-table">
-            <thead>
-              <tr>
-                <th>{t('fuel')}</th>
-                <th>{t('burns')}</th>
-                <th>{t('waterUse')}</th>
-                <th>{t('waste')}</th>
-              </tr>
-            </thead>
-            <tbody>
-              {generator.fuels.map((f) => {
-                const rate = fuelRate(generator, f.item);
-                const fluid = data.items[f.item]?.form !== 'solid';
-                const water = generator.supplement ? (generator.power * 60 * generator.supplementRatio) / 1000 : 0;
-                return (
-                  <tr key={f.item}>
-                    <td>
-                      <CodexLink page={{ kind: 'item', id: f.item }} className="codex-machine">
-                        <Icon id={f.item} size={24} />
-                        {nameOf(f.item, index.data)}
-                      </CodexLink>
-                    </td>
-                    <td>
-                      {num(rate)}
-                      {fluid ? t('m3PerMin') : t('perMin')}
-                    </td>
-                    <td>{water ? `${num(water)}${t('m3PerMin')}` : '–'}</td>
-                    <td>
-                      {f.byproduct && f.byproductAmount
-                        ? `${num(rate * f.byproductAmount)}${t('perMin')} ${nameOf(f.byproduct, index.data)}`
-                        : '–'}
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
+          <div className="codex-table-wrap">
+            <table className="codex-table">
+              <thead>
+                <tr>
+                  <th>{t('fuel')}</th>
+                  <th>{t('burns')}</th>
+                  <th>{t('waterUse')}</th>
+                  <th>{t('waste')}</th>
+                </tr>
+              </thead>
+              <tbody>
+                {generator.fuels.map((f) => {
+                  const rate = fuelRate(generator, f.item);
+                  const fluid = data.items[f.item]?.form !== 'solid';
+                  const water = generator.supplement ? (generator.power * 60 * generator.supplementRatio) / 1000 : 0;
+                  return (
+                    <tr key={f.item}>
+                      <td>
+                        <CodexLink page={{ kind: 'item', id: f.item }} className="codex-machine">
+                          <Icon id={f.item} size={24} />
+                          {nameOf(f.item, index.data)}
+                        </CodexLink>
+                      </td>
+                      <td>
+                        {num(rate)}
+                        {fluid ? t('m3PerMin') : t('perMin')}
+                      </td>
+                      <td>{water ? `${num(water)}${t('m3PerMin')}` : '–'}</td>
+                      <td>
+                        {f.byproduct && f.byproductAmount
+                          ? `${num(rate * f.byproductAmount)}${t('perMin')} ${nameOf(f.byproduct, index.data)}`
+                          : '–'}
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
           <p className="hint">{t('fuelsNote', { mw: num(generator.power) })}</p>
         </Section>
       )}

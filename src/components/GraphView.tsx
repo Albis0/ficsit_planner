@@ -32,6 +32,7 @@ import {
   type Point,
   type PowerEdgeData,
   type PowerNodeData,
+  runExtra,
 } from '../lib/graph';
 import { useT } from '../lib/i18n';
 import { generatorById } from '../lib/data';
@@ -128,7 +129,7 @@ function GeneratorNode({ id, data: d, selected }: NodeProps) {
   return (
     <div
       className={`machine-node power gen-${gen?.kind ?? 'fuel'} ${faded ? 'faded' : ''} ${selected ? 'selected' : ''}`}
-      style={use.shards > 0 ? { ['--mod-bar' as string]: 'var(--shard)' } : undefined}
+      style={{ ['--run-extra' as string]: runExtra(use), ...(use.shards > 0 ? { ['--mod-bar' as string]: 'var(--shard)' } : {}) }}
     >
       <Handle type="target" position={inSide(dir)} />
       <div className="machine-strip">
@@ -169,7 +170,7 @@ function MachineNode(props: NodeProps) {
   return (
     <div
       className={`machine-node ${recipe.kind} ${faded ? 'faded' : ''} ${selected ? 'selected' : ''}`}
-      style={bar ? { ['--mod-bar' as string]: bar } : undefined}
+      style={{ ['--run-extra' as string]: runExtra(use), ...(bar ? { ['--mod-bar' as string]: bar } : {}) }}
     >
       <Handle type="target" position={inSide(dir)} />
       {/* The in-game build menu look: a coloured strip naming what it makes, the building and its draw below. */}
@@ -427,6 +428,8 @@ function routePath(pts: Point[], dir: Direction): string {
 
 const moved = (a: Point | undefined, b: Point) => !a || Math.abs(a.x - b.x) > 0.5 || Math.abs(a.y - b.y) > 0.5;
 
+const MAX_DRAWN_LANES = 6;
+
 /** A conveyor belt (rails, bed, moving slats) or a pipe (casing, flowing fluid) along the edge. */
 function FlowEdge({ source, target, sourceX, sourceY, targetX, targetY, sourcePosition, targetPosition, data: d }: EdgeProps) {
   const { name, num, t } = useT();
@@ -452,6 +455,8 @@ function FlowEdge({ source, target, sourceX, sourceY, targetX, targetY, sourcePo
     [path, lx, ly] = getBezierPath({ sourceX, sourceY, targetX, targetY, sourcePosition, targetPosition });
   }
   const fluid = it.form !== 'solid';
+  // Side by side lines widen the belt, up to a point: past a few, the label's "123×" says how many.
+  const drawn = Math.min(lanes, MAX_DRAWN_LANES);
   const lit = focus.node !== undefined && (source === focus.node || target === focus.node);
   const faded = focus.node !== undefined && !lit;
   const showLabel = labels === 'always' || lit || (labels === 'auto' && zoom !== 'far');
@@ -465,14 +470,14 @@ function FlowEdge({ source, target, sourceX, sourceY, targetX, targetY, sourcePo
     tierColor = it.color ?? 'var(--fluid)';
     body = (
       <g className={`pipe-edge ${state}`}>
-        <path d={path} className="pipe-casing" style={{ strokeWidth: w + 4 * (lanes - 1) }} />
+        <path d={path} className="pipe-casing" style={{ strokeWidth: w + 4 * (drawn - 1) }} />
         <path d={path} className="pipe-fluid" style={{ stroke: tierColor, strokeWidth: w - 4 }} />
       </g>
     );
   } else {
     const mk = beltIndex(transport.id);
     tierColor = oneColor ? BELT_COLORS[0] : BELT_COLORS[Math.min(mk, BELT_COLORS.length - 1)];
-    const w = 12 + 5 * (lanes - 1);
+    const w = 12 + 5 * (drawn - 1);
     body = (
       <g
         className={`belt-edge ${state}`}

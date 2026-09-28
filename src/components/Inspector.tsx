@@ -109,9 +109,7 @@ export function Inspector({ result }: { result: SolveResult }) {
           {[0, 1, 2].map((i) => (
             <span key={i} className={`shard-slot ${i < shards ? 'filled' : ''}`} />
           ))}
-          <span className="slot-label">
-            {use.shards} {t('shards')}
-          </span>
+          <span className="slot-label">{use.shards === 1 ? t('shardOne') : t('shardsN', { n: use.shards })}</span>
         </div>
       </div>
 

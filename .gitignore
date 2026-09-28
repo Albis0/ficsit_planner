@@ -1,13 +1,54 @@
+# Dependencies and build output
 node_modules
 dist
+dev-dist
+*.tsbuildinfo
+.vite
+coverage
+
+# Logs
 *.log
-tools/icon-extractor/bin
-tools/icon-extractor/obj
-tools/map-extractor/bin
-tools/map-extractor/obj
-.claude/settings.local.json
+npm-debug.log*
+bun-debug.log*
+
+# .NET extractor builds
+tools/*/bin
+tools/*/obj
+*.user
+
+# Game files and dumps the extractors read or write; only the extracted JSON and icons belong in the repo.
+*.usmap
+*.pak
+*.utoc
+*.ucas
+tools/*/out
+tools/*/dump*
+
+# Cloudflare local state and secrets
 .wrangler
 .dev.vars*
 .env*
+!.env.example
+
+# Keys and certificates
+*.pem
+*.key
+*.p12
+*.pfx
+
+# Editors and operating systems
+.claude/settings.local.json
+.vscode/*
+!.vscode/extensions.json
+.idea
+*.swp
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Browser test output
+playwright-report
+test-results
+
 # Local work notes, not part of the project.
 reports/
