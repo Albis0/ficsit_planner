@@ -96,6 +96,7 @@ bun test           # solver, graph, saved state and string tests
 bun run check      # Biome lint + format check (bun run format to fix)
 bun run build      # type check + production bundle in dist/
 bun run preview    # serve dist/ with the service worker, as it will be deployed
+bun run sweep      # every screen at five window sizes, checked for layout problems (see CONTRIBUTING)
 ```
 
 CI (GitHub Actions) runs check, test and build on every push.

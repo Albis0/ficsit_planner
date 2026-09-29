@@ -18,9 +18,17 @@ bun run dev        # http://localhost:1420
 bun run check      # Biome: lint + formatting (bun run format fixes most of it)
 bun test           # solver, graph, saved state and string tests
 bun run build      # type check + production build
+bun run sweep      # opens every screen at five window sizes and reports layout problems (about 45 minutes)
 ```
 
-CI runs the same three on every push, and a pull request needs all of them green.
+CI runs the first three on every push, then a quick sweep (a sample of each kind of screen at a laptop and a
+phone size), and a pull request needs all of them green.
+
+The sweep (`e2e/sweep.mjs`, checks in `e2e/checks.js`) looks for text cut off or running out of its card, things
+off the window, text drawn over text, cards over cards, broken words like `undefined`, missing pictures, console
+errors and buttons too small for a finger. It needs Playwright's Chromium once:
+`node node_modules/playwright-core/cli.js install chromium`. Its report is `e2e/out/sweep.md`. Something left as it
+is on purpose goes in `e2e/known.json` with the reason; everything else fails the run.
 
 For UI changes, also try the change at phone width in the browser's device mode, and with `bun run preview`,
 which serves the built app with its service worker, the way users get it.

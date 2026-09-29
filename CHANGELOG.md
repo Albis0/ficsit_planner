@@ -2,6 +2,31 @@
 
 All notable changes to FICSIT Planner. Dates are when the version was finished.
 
+## 0.11.7 — 2026-09-29
+
+### Added
+
+- **An automatic check of every screen** (`bun run sweep`): it opens every product's factory, the list view and
+  machine panel, every generator and fuel in the power planner, every Codex page, typefaces and card sizes, the
+  dialogs, menus and the map, at five window sizes, and reports anything cut off, off the window, drawn over
+  something else or broken. A sample of it runs on every push.
+
+### Fixed
+
+- **Tablets and a panel beside the floor:** the raw inputs ran past the window's edge and made the whole page slide
+  sideways. The totals strip also takes at most half the floor, so a big plan no longer squeezes the factory
+  into a sliver.
+- **Product cards:** a long one-word name ("Supercomputer") hid behind its amount box in the panel across the top.
+- **A big interface size on a small screen:** the top bar had no room left for the tab's name, and the side panel's
+  third tab ran under the fold button.
+- **Power planner:** long generator and fuel names ("Coal-Powered Generator", "Packaged Liquid Biofuel") wrap
+  instead of losing their end.
+- **Codex:** the Hover Pack's description said "{PlayerMovement_Jump}" instead of the key, and an unnamed, empty MAM
+  node showed as a blank tile.
+- **Touch screens:** tab close buttons, generator remove buttons, Codex links and the tier buttons are big enough
+  for a finger.
+- Long tab and item names show whole in their tooltip.
+
 ## 0.11.6 — 2026-09-28
 
 ### Fixed

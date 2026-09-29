@@ -282,7 +282,9 @@ function EndpointNode({ id, data: d }: NodeProps) {
       <Slot id={item} size={60} tone={kind === 'target' ? 'target' : 'default'} />
       <span className="endpoint-text">
         <span className="endpoint-kind">{label}</span>
-        <span className={`endpoint-name ${name(it).length > 21 ? 'long' : ''}`}>{name(it)}</span>
+        <span className={`endpoint-name ${name(it).length > 21 ? 'long' : ''}`} title={name(it)}>
+          {name(it)}
+        </span>
         {/* The amount under the name, so a long name or a wide typeface keeps the whole width; its miners or
             where part of it goes beside it. */}
         <span className="endpoint-line">

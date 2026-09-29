@@ -1,0 +1,24 @@
+[
+  {
+    "kind": "text-shortened",
+    "what": "plan-tab-label",
+    "why": "Long tab names end in an ellipsis on purpose; the full name is in the tab's tooltip."
+  },
+  {
+    "kind": "text-shortened",
+    "what": "machine-product",
+    "where": "\"textScale\":1.5",
+    "why": "Only at the largest card text size; the full name is in the tooltip."
+  },
+  {
+    "kind": "text-shortened",
+    "what": "endpoint-name",
+    "where": "\"textScale\":1.5",
+    "why": "Only at the largest card text size; the full name is in the tooltip."
+  },
+  {
+    "kind": "small-to-tap",
+    "where": "\"uiScale\":0.85",
+    "why": "The player chose the smallest interface size, which shrinks every button with it."
+  }
+]

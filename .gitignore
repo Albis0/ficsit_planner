@@ -52,3 +52,4 @@ test-results
 
 # Local work notes, not part of the project.
 reports/
+e2e/out

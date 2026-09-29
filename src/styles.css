@@ -1468,7 +1468,7 @@ button.slot:hover {
 .floor-hint {
   pointer-events: none !important;
   padding: 4px 10px;
-  background: rgb(21 21 22 / 0.88);
+  background: rgb(21 21 22);
   font: 500 15px var(--font-body);
   color: var(--faint);
 }
@@ -1611,6 +1611,10 @@ button.slot:hover {
   flex-wrap: wrap;
   background: var(--panel);
   border-bottom: 1px solid var(--line);
+  /* A big plan's raw inputs and a warning under them never take more than about half the floor. */
+  max-height: 45%;
+  overflow-y: auto;
+  flex: none;
 }
 
 .readout {
@@ -1698,6 +1702,11 @@ button.slot:hover {
 
 .app[data-summary='compact'] .readout-sub {
   font-size: 12px;
+}
+
+/* Room for one raw input at least: with less, the readout moves to a line of its own instead of spilling out. */
+.app[data-summary='compact'] .readout.wide {
+  min-width: 190px;
 }
 
 .app[data-summary='compact'] .raw-inputs {
@@ -3456,12 +3465,11 @@ button.slot:hover {
   clip-path: polygon(0 0, calc(100% - 14px) 0, 100% 14px, 100% 100%, 0 100%);
 }
 
+/* "Coal-Powered Generator" wraps rather than losing its end beside the megawatts. */
 .gen-row-name {
   flex: 1;
   min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  line-height: 1.1;
 }
 
 .gen-row-mw {
@@ -8346,8 +8354,116 @@ a.codex-machine:hover {
   }
 }
 
+/* The same for a column of the panel across the top: a long one-word name ("Supercomputer") needs the whole width. */
+.panel-body.targets > .stack {
+  container: card-column / inline-size;
+}
+
+@container card-column (max-width: 440px) {
+  .item-card:not(.flat) {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    grid-template-areas:
+      'slot name remove'
+      'slot rate rate';
+    gap: 6px 12px;
+  }
+
+  .item-card:not(.flat) > .slot {
+    grid-area: slot;
+  }
+
+  .item-card:not(.flat) > .item-card-name {
+    grid-area: name;
+  }
+
+  .item-card:not(.flat) > .item-card-rate {
+    grid-area: rate;
+  }
+
+  .item-card:not(.flat) > .icon-button {
+    grid-area: remove;
+  }
+}
+
 @container side (max-width: 360px) {
   .add-button {
     font-size: 16px;
   }
+}
+
+/* A generator's strip names its fuel beside the megawatts: a long one ("Packaged Liquid Biofuel") takes two lines. */
+.machine-node.power .machine-product {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  white-space: normal;
+  font-size: calc(15px * var(--t));
+  line-height: 1.05;
+}
+
+/* Fingers: everything that's pressed gets at least a 32 px target. */
+@media (pointer: coarse) {
+  .plan-tab-close,
+  .gen-row-remove {
+    width: 32px;
+    height: 32px;
+  }
+
+  .codex-crumbs a,
+  .codex-home-link,
+  .codex-table .codex-machine,
+  .codex-recipe-foot .codex-machine,
+  .codex-recipe-foot .codex-unlock {
+    display: inline-flex;
+    align-items: center;
+    min-height: 32px;
+  }
+}
+
+/*
+  The top bar measured in its own size, so a big interface size on a small screen gets the same treatment as a small
+  screen: the wordmark goes first, then the mode names, so the tabs keep room for at least one name.
+*/
+.topbar {
+  container: topbar / inline-size;
+}
+
+@container topbar (max-width: 1000px) {
+  .topbar .brand-name {
+    display: none;
+  }
+}
+
+@container topbar (max-width: 1250px) {
+  .topbar .mode-label {
+    display: none;
+  }
+
+  .topbar .chrome-label {
+    display: none;
+  }
+}
+
+/* A narrow panel (or a big interface size): the three tabs close up so they and the fold button fit on one row. */
+.side .tabs button:not(.deck-toggle) {
+  flex: 0 1 auto;
+  min-width: 0;
+  white-space: nowrap;
+  padding-inline: clamp(8px, 2.6cqi, 30px);
+  font-size: clamp(14px, 4cqi, 18px);
+}
+
+/* Ten tier buttons are too thin for a finger in a narrow panel: two rows of five. */
+@media (pointer: coarse) {
+  .tier-steps {
+    grid-template-columns: repeat(5, 1fr);
+  }
+}
+
+/* An amount box and its unit may wrap under the name in the narrowest cards rather than run past the edge. */
+.item-card-rate {
+  flex-wrap: wrap;
+  min-width: 0;
 }

@@ -286,7 +286,7 @@ export function PlanTabs() {
                 <button
                   type="button"
                   className="plan-tab-name"
-                  title={t('renameHint')}
+                  title={`${p.name}\n${t('renameHint')}`}
                   onClick={() => tabs.select(p.id)}
                   onDoubleClick={() => set({ renaming: p.id })}
                   onAuxClick={(e) => e.button === 1 && tabs.remove(p.id)}

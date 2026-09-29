@@ -25,9 +25,12 @@ const num = (s) => Number.parseFloat(s);
 const round = (n, d = 2) => Math.round(n * 10 ** d) / 10 ** d;
 const classIds = (s) => [...(s ?? '').matchAll(/\.([A-Za-z0-9_-]+_C)\b/g)].map((m) => m[1]);
 const parseStacks = (s) => [...(s ?? '').matchAll(/([A-Za-z0-9_-]+_C)'",Amount=([\d.]+)/g)].map((m) => ({ item: m[1], amount: num(m[2]) }));
+// Key bindings the game fills in while it runs, written as their default keyboard key.
+const KEYS = { PlayerMovement_Jump: 'Space', PlayerMovement_Crouch: 'C' };
 // The game's descriptions use \r\n and sometimes trail spaces; keep paragraphs, drop the rest.
 const text = (s) =>
   (s ?? '')
+    .replace(/\{(\w+)\}/g, (m, k) => KEYS[k] ?? m)
     .replace(/\r\n/g, '\n')
     .split('\n')
     .map((l) => l.trim())
@@ -300,8 +303,9 @@ for (const s of schematics) {
     ),
   ].filter(Boolean);
 }
-// Keep only schematics that give something to show, or cost something (milestones always do).
-const kept = schematics.filter((s) => s.unlocks.length || s.extras || s.gives || s.type !== 'shop');
+// Keep only schematics that give something to show, or cost something (milestones always do). A node with no name
+// (an unused one left in the MAM's files) can't be shown at all.
+const kept = schematics.filter((s) => s.name.trim() && (s.unlocks.length || s.extras || s.gives || s.type !== 'shop'));
 const missing = new Set(kept.flatMap((s) => s.cost.map((c) => c.item)).filter((id) => !items[id]));
 console.log('schematic costs without an item page', [...missing]);
 kept.sort((a, b) => a.tier - b.tier || a.name.localeCompare(b.name));
