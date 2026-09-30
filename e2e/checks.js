@@ -142,7 +142,12 @@ export function inspectPage(opts) {
     const s = style(el);
     const clamps = s.webkitLineClamp && s.webkitLineClamp !== 'none';
     if (s.textOverflow === 'ellipsis' && el.scrollWidth > el.clientWidth + 1) add('text-shortened', el, el.textContent.trim().slice(0, 60));
-    else if (clamps && el.scrollHeight > el.clientHeight + 2) add('text-shortened', el, el.textContent.trim().slice(0, 60));
+    // A hidden line is a whole line: Firefox counts tall letters poking out of a tight line height as a few
+    // pixels of overflow, which isn't text cut short.
+    else if (clamps) {
+      const line = Number.parseFloat(s.lineHeight) || Number.parseFloat(s.fontSize) * 1.2;
+      if (el.scrollHeight > el.clientHeight + Math.max(2, line / 2)) add('text-shortened', el, el.textContent.trim().slice(0, 60));
+    }
   }
 
   // 5b. Text cut off at its own edge with no "…" to say there's more.

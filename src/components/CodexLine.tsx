@@ -124,6 +124,7 @@ export function ProductionLine({ id, insight, index }: { id: string; insight: It
 
 /** "−35%" or "+12%": the change against the standard recipe's line, green when it saves. */
 export function Delta({ share, lowerIsBetter = true }: { share: number; lowerIsBetter?: boolean }) {
+  if (!Number.isFinite(share)) return null;
   if (Math.abs(share) < 0.005) return <span className="codex-delta">±0%</span>;
   const good = lowerIsBetter ? share < 0 : share > 0;
   return (
@@ -165,7 +166,8 @@ export function RecipeCompare({ insight, index, only }: { insight: ItemInsight; 
         <tbody>
           {rows.map((c) => {
             const r = recipeById.get(c.recipe)!;
-            const vs = baseStandard && base && c !== base && c.missing.length === 0;
+            // A share needs a whole line on both sides: nothing brought in, and something to divide by.
+            const vs = baseStandard && base && c !== base && c.missing.length === 0 && base.missing.length === 0;
             const mark = (value: number, top: number | undefined) =>
               top !== undefined && c.missing.length === 0 && value <= top + 1e-6 ? 'best' : undefined;
             return (

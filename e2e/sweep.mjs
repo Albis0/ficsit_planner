@@ -68,7 +68,13 @@ async function run(size) {
   const phone = opts.viewport.width <= 900;
   // Firefox has no phone mode; a touch screen at phone width is the closest it gets.
   const { isMobile, ...rest } = opts;
-  const ctx = await browser.newContext({ ...(BROWSER === 'firefox' ? rest : opts), reducedMotion: 'reduce' });
+  // Outside Chromium the service worker stays off: leaving each page right after it opens cancels its downloads,
+  // which WebKit and Firefox report as errors that a player never sees.
+  const ctx = await browser.newContext({
+    ...(BROWSER === 'firefox' ? rest : opts),
+    reducedMotion: 'reduce',
+    serviceWorkers: BROWSER === 'chromium' ? 'allow' : 'block',
+  });
   const page = await ctx.newPage();
   let where = '';
   page.on('pageerror', (e) => found.push({ size, where, kind: 'page-error', what: '', detail: e.message.slice(0, 200) }));

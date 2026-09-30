@@ -8640,7 +8640,9 @@ a.codex-flow:hover {
   .codex-home-link,
   .codex-table .codex-machine,
   .codex-recipe-foot .codex-machine,
-  .codex-recipe-foot .codex-unlock {
+  .codex-recipe-foot .codex-unlock,
+  .codex-flow,
+  .codex-tier-label {
     display: inline-flex;
     align-items: center;
     min-height: 32px;

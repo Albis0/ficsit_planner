@@ -2,6 +2,17 @@
 
 All notable changes to FICSIT Planner. Dates are when the version was finished.
 
+## 0.12.1 — 2026-09-30
+
+### Fixed
+
+- **Codex, recipes compared:** a part whose standard line needs something picked by hand (Fabric needs mycelia)
+  showed "+Infinity%" next to its alternates.
+- **Codex on touch screens:** the raw resource links in the new tables and the tier labels in Getting started are
+  big enough for a finger.
+- **Checks:** the screen sweep no longer mistakes Firefox's taller letters for cut-off text, and leaves the
+  service worker off in WebKit and Firefox, where leaving a page early looked like an error.
+
 ## 0.12.0 — 2026-09-30
 
 ### Added

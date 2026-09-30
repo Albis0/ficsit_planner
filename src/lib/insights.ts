@@ -188,7 +188,7 @@ export function versusStandard(insight: ItemInsight | undefined, recipe: string)
   if (!insight) return undefined;
   const base = insight.compare.find((c) => c.recipe === insight.recipe);
   const alt = insight.compare.find((c) => c.recipe === recipe);
-  if (!base || !alt || alt === base || recipeById.get(insight.recipe)?.kind !== 'standard') return undefined;
+  if (!base || !alt || alt === base || base.missing.length > 0 || recipeById.get(insight.recipe)?.kind !== 'standard') return undefined;
   const share = (a: number, b: number) => (b > 0 ? a / b - 1 : 0);
   return {
     raw: share(alt.rawTotal, base.rawTotal),
