@@ -1,0 +1,94 @@
+{
+  "phases": [
+    {
+      "phase": 1,
+      "lastTier": 4,
+      "cost": [
+        {
+          "item": "Desc_SpaceElevatorPart_1_C",
+          "amount": 50
+        }
+      ]
+    },
+    {
+      "phase": 2,
+      "lastTier": 6,
+      "cost": [
+        {
+          "item": "Desc_SpaceElevatorPart_1_C",
+          "amount": 1000
+        },
+        {
+          "item": "Desc_SpaceElevatorPart_2_C",
+          "amount": 1000
+        },
+        {
+          "item": "Desc_SpaceElevatorPart_3_C",
+          "amount": 100
+        }
+      ]
+    },
+    {
+      "phase": 3,
+      "lastTier": 8,
+      "cost": [
+        {
+          "item": "Desc_SpaceElevatorPart_2_C",
+          "amount": 2500
+        },
+        {
+          "item": "Desc_SpaceElevatorPart_4_C",
+          "amount": 500
+        },
+        {
+          "item": "Desc_SpaceElevatorPart_5_C",
+          "amount": 100
+        }
+      ]
+    },
+    {
+      "phase": 4,
+      "lastTier": 9,
+      "cost": [
+        {
+          "item": "Desc_SpaceElevatorPart_7_C",
+          "amount": 500
+        },
+        {
+          "item": "Desc_SpaceElevatorPart_6_C",
+          "amount": 500
+        },
+        {
+          "item": "Desc_SpaceElevatorPart_8_C",
+          "amount": 250
+        },
+        {
+          "item": "Desc_SpaceElevatorPart_9_C",
+          "amount": 100
+        }
+      ]
+    },
+    {
+      "phase": 5,
+      "lastTier": 9,
+      "cost": [
+        {
+          "item": "Desc_SpaceElevatorPart_9_C",
+          "amount": 1000
+        },
+        {
+          "item": "Desc_SpaceElevatorPart_10_C",
+          "amount": 1000
+        },
+        {
+          "item": "Desc_SpaceElevatorPart_12_C",
+          "amount": 256
+        },
+        {
+          "item": "Desc_SpaceElevatorPart_11_C",
+          "amount": 200
+        }
+      ]
+    }
+  ]
+}

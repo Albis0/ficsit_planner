@@ -5,10 +5,12 @@ import {
   type CodexIndex,
   type Entry,
   GUIDE_ICON,
+  type GuideId,
   GUIDES,
   loadCodex,
   nameOf,
   type Page,
+  type Phase,
   pageKey,
   pageOf,
   parsePage,
@@ -26,7 +28,11 @@ import { useT } from '../lib/i18n';
 import { fuelRate } from '../lib/power';
 import { recipeLabel, searchKey } from '../lib/text';
 import { useStore } from '../store';
+import { BUILDING_NOTES, ITEM_NOTES } from '../locales/codex-notes.en';
+import { versusStandard } from '../lib/insights';
+import { shardsFor } from '../lib/solver';
 import { GuidePage } from './CodexGuides';
+import { ProductionLine, RecipeCompare } from './CodexLine';
 import { Glyph } from './Glyph';
 import { onMapAny, openMapOn } from './MapNav';
 import { Icon } from './Icon';
@@ -134,6 +140,9 @@ const CATEGORY_ICON: Record<Category, string> = {
 
 const FAMILIES: Family[] = ['hog', 'spitter', 'stinger', 'hatcher', 'passive'];
 
+/** A share as a signed percentage: −35%, +12%. */
+const pct = (share: number) => `${share > 0 ? '+' : share < 0 ? '−' : '±'}${Math.round(Math.abs(share) * 100)}%`;
+
 /** The Codex's own entries in a category, grouped under headings. */
 function categoryGroups(
   cat: Category,
@@ -219,13 +228,23 @@ function categoryGroups(
     case 'research':
       return groupBy(schematics('mam'), (e) => index.schematic.get((e.page as { id: string }).id)?.group ?? '');
     case 'alternates': {
-      // Grouped by the building the recipe runs in, the way you'd look for a better one.
+      // Grouped by the building the recipe runs in, the way you'd look for a better one. Each says how its whole
+      // line compares with the standard recipe's, and the ones that save the most come first, in a group of their own.
       const list = schematics('alternate').map((e) => {
         const recipe = e.s.unlocks.map((u) => data.recipes.find((r) => r.id === u)).find(Boolean);
-        return { ...e, machine: recipe ? nameOf(recipe.machine, codex) : t('groupOther') };
+        const vs = recipe && versusStandard(codex.insights.items[recipe.outputs[0].item], recipe.id);
+        const note = vs && !vs.needsMore ? t('altSaves', { raw: pct(vs.raw), power: pct(vs.power) }) : undefined;
+        return { ...e, note, vs, machine: recipe ? nameOf(recipe.machine, codex) : t('groupOther') };
       });
+      const top = list
+        .filter((e) => e.vs && !e.vs.needsMore && e.vs.raw < -0.1)
+        .sort((a, b) => a.vs!.raw - b.vs!.raw)
+        .slice(0, 12);
       const machines = [...new Set(list.map((e) => e.machine))].sort();
-      return machines.map((m) => ({ title: m, entries: list.filter((e) => e.machine === m).sort(byName) }));
+      return [
+        { title: t('altTop'), entries: top },
+        ...machines.map((m) => ({ title: m, entries: list.filter((e) => e.machine === m).sort(byName) })),
+      ];
     }
     case 'shop':
       return groupBy(
@@ -266,6 +285,7 @@ function categoryGroups(
             page: { kind: 'guide', id } as Page,
             name: t(`guide_${id}`),
             icon: GUIDE_ICON[id],
+            note: t(`guideLine_${id}`),
           })),
         },
       ];
@@ -310,7 +330,11 @@ export function CodexNav() {
   const index = useCodex();
   const page = parsePage(useStore((s) => s.codexPage));
   const [query, setQuery] = useState('');
-  const hits = useMemo(() => (index ? search(index, query) : []), [index, query]);
+  const guides = useMemo(
+    () => GUIDES.map((id) => ({ page: { kind: 'guide', id } as Page, name: t(`guide_${id}`), icon: GUIDE_ICON[id] })),
+    [t],
+  );
+  const hits = useMemo(() => (index ? search(index, query, guides) : []), [index, query, guides]);
   const current = categoryOf(page, index);
 
   return (
@@ -358,11 +382,34 @@ export function CodexNav() {
 }
 
 /** The page on the floor. */
+const RECENT = 'ficsit-codex-recent';
+
+/** Pages this viewer opened last, newest first; kept in this browser only. */
+function readRecent(): string[] {
+  try {
+    const list = JSON.parse(localStorage.getItem(RECENT) ?? '[]');
+    return Array.isArray(list) ? list.filter((k) => typeof k === 'string') : [];
+  } catch {
+    return [];
+  }
+}
+
+function remember(key: string) {
+  try {
+    localStorage.setItem(RECENT, JSON.stringify([key, ...readRecent().filter((k) => k !== key)].slice(0, 8)));
+  } catch {
+    // Private windows can refuse storage; the list is only a convenience.
+  }
+}
+
 export function CodexPage() {
   const { t } = useT();
   const index = useCodex();
   const key = useStore((s) => s.codexPage);
   const page = parsePage(key);
+  useEffect(() => {
+    if (key && page.kind !== 'cat') remember(key);
+  }, [key, page.kind]);
   if (!index) return <div className="floor-message">{t('codexLoading')}</div>;
   return (
     <div className="codex-scroll" key={key}>
@@ -398,8 +445,24 @@ function Crumbs({ page, index }: { page: Page; index: CodexIndex }) {
   );
 }
 
+/** A page as a tile: its name and icon, for the recently opened list. */
+function entryOf(key: string, index: CodexIndex, t: ReturnType<typeof useT>['t']): Entry | undefined {
+  const page = parsePage(key);
+  if (page.kind === 'home' || page.kind === 'cat') return undefined;
+  if (page.kind === 'guide') return { page, name: t(`guide_${page.id}`), icon: GUIDE_ICON[page.id] };
+  return index.entries.find((e) => pageKey(e.page) === key);
+}
+
+/** Guides that start a new player off, shown on the Codex's front page. */
+const FEATURED: GuideId[] = ['start', 'elevator', 'power', 'alternates', 'oil', 'nuclear'];
+
 function Home({ index }: { index: CodexIndex }) {
   const { t } = useT();
+  const [recent] = useState(() =>
+    readRecent()
+      .map((k) => entryOf(k, index, t))
+      .filter((e): e is Entry => !!e),
+  );
   return (
     <>
       <h2 className="codex-title">{t('codex')}</h2>
@@ -412,6 +475,32 @@ function Home({ index }: { index: CodexIndex }) {
           </CodexLink>
         ))}
       </div>
+      <section className="codex-section">
+        <h3 className="codex-h">{t('codexGuidesTitle')}</h3>
+        <div className="codex-guide-cards">
+          {FEATURED.map((id) => (
+            <CodexLink key={id} page={{ kind: 'guide', id }} className="codex-guide-card">
+              <span className="slot">
+                <Icon id={GUIDE_ICON[id]} size={44} />
+              </span>
+              <span className="codex-tile-text">
+                <span className="codex-tile-name">{t(`guide_${id}`)}</span>
+                <span className="codex-guide-card-line">{t(`guideLine_${id}`)}</span>
+              </span>
+            </CodexLink>
+          ))}
+        </div>
+      </section>
+      {recent.length > 0 && (
+        <section className="codex-section">
+          <h3 className="codex-h">{t('codexRecent')}</h3>
+          <div className="codex-tiles">
+            {recent.map((e) => (
+              <Tile key={pageKey(e.page)} entry={e} />
+            ))}
+          </div>
+        </section>
+      )}
     </>
   );
 }
@@ -520,6 +609,81 @@ function Section({ title, children, count }: { title: string; children: ReactNod
         {count !== undefined && <span className="codex-h-count">{count}</span>}
       </h3>
       {children}
+    </section>
+  );
+}
+
+/** What delivering a phase opens: the next tiers, or, for the last one, the end of the project. */
+export function phaseOpens(p: Phase, index: CodexIndex, t: ReturnType<typeof useT>['t']): string {
+  const i = index.data.phases.indexOf(p);
+  // The phase before the first (tiers 0 to 2) asks for nothing.
+  const from = i <= 0 ? 3 : index.data.phases[i - 1].lastTier + 1;
+  if (from > p.lastTier) return t('phaseLast');
+  return from === p.lastTier ? t('phaseTier', { tier: from }) : t('phaseTiers', { from, to: p.lastTier });
+}
+
+/** An alternate's whole line next to the standard recipe's: what it saves and what it costs. */
+function AltVerdict({ recipe, index }: { recipe: Recipe; index: CodexIndex }) {
+  const { t } = useT();
+  const item = recipe.outputs[0].item;
+  const insight = index.data.insights.items[item];
+  const vs = versusStandard(insight, recipe.id);
+  if (!insight || !vs) return null;
+  const change = (share: number, more: 'moreRaw' | 'morePower' | 'moreBuildings', less: 'lessRaw' | 'lessPower' | 'lessBuildings') =>
+    Math.abs(share) < 0.005 ? undefined : t(share > 0 ? more : less, { n: Math.round(Math.abs(share) * 100) });
+  const parts = [
+    change(vs.raw, 'moreRaw', 'lessRaw'),
+    change(vs.power, 'morePower', 'lessPower'),
+    change(vs.buildings, 'moreBuildings', 'lessBuildings'),
+  ].filter(Boolean);
+  return (
+    <Section title={t('verdictTitle')}>
+      <p className="codex-text">
+        {vs.needsMore
+          ? t('verdictNeedsMore')
+          : parts.length
+            ? t('verdictLine', { list: parts.join(', '), item: nameOf(item, index.data) })
+            : t('verdictSame')}
+      </p>
+      <RecipeCompare insight={insight} index={index} only={[insight.recipe, recipe.id]} />
+      <p className="hint">
+        {t('compareNote', { rate: `${insight.line.rate}${data.items[item]?.form !== 'solid' ? t('m3PerMin') : t('perMin')}` })}
+      </p>
+    </Section>
+  );
+}
+
+/** The Space Elevator's phases: what each asks for, and the tiers it opens. */
+export function PhaseList({ index }: { index: CodexIndex }) {
+  const { t } = useT();
+  return (
+    <div className="codex-phases">
+      {index.data.phases.map((p) => {
+        return (
+          <div key={p.phase} className="codex-phase">
+            <div className="codex-phase-head">
+              <b>{t('phaseN', { n: p.phase })}</b>
+              <span>{phaseOpens(p, index, t)}</span>
+            </div>
+            <Amounts list={p.cost} index={index} />
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+/** Tips the game doesn't give: what to watch for, what goes well with it. */
+function Notes({ text }: { text: string }) {
+  const { t } = useT();
+  return (
+    <section className="codex-section codex-notes">
+      <h3 className="codex-h">{t('goodToKnow')}</h3>
+      <div className="codex-text">
+        {text.split('\n\n').map((p) => (
+          <p key={p}>{p}</p>
+        ))}
+      </div>
     </section>
   );
 }
@@ -680,6 +844,13 @@ function ItemPage({ id, index }: { id: string; index: CodexIndex }) {
     stats.push([t('statWorld'), data.worldLimits[id] === null ? t('unlimited') : `${num(data.worldLimits[id]!)}${t('perMin')}`]);
   const tag = it.kind === 'part' ? (fluidUnit ? t(`form_${it.form}`) : t('kind_part')) : t(`kind_${it.kind}`);
   const canPlan = !!planned && !planned.raw && recipes.length > 0;
+  const insight = index.data.insights.items[id];
+  const line = insight?.line;
+  // Sink points for every raw resource the whole line takes: which parts are worth making just to sink.
+  if (it.sink && line && line.rawTotal > 0 && line.missing.length === 0)
+    stats.push([t('statPointsPerRaw'), num(Math.round(((it.sink * line.rate) / line.rawTotal) * 10) / 10)]);
+  const phases = index.data.phases.flatMap((p) => p.cost.filter((c) => c.item === id).map((c) => ({ phase: p, amount: c.amount })));
+  const note = ITEM_NOTES[id];
 
   return (
     <>
@@ -714,6 +885,21 @@ function ItemPage({ id, index }: { id: string; index: CodexIndex }) {
           ) : undefined
         }
       />
+      {note && <Notes text={note} />}
+      {phases.length > 0 && (
+        <Section title={t('elevatorTitle')}>
+          <div className="codex-uses">
+            {phases.map(({ phase, amount }) => (
+              <CodexLink key={phase.phase} page={{ kind: 'guide', id: 'elevator' }} className="codex-use">
+                <Icon id="Build_SpaceElevator_C" size={30} />
+                <span className="codex-use-name">{t('phaseN', { n: phase.phase })}</span>
+                <span className="codex-use-where">{phaseOpens(phase, index, t)}</span>
+                <span className="codex-use-rate">× {num(amount)}</span>
+              </CodexLink>
+            ))}
+          </div>
+        </Section>
+      )}
       {extractors.length > 0 && (
         <Section title={t('howToGet')}>
           <div className="codex-table-wrap">
@@ -753,6 +939,17 @@ function ItemPage({ id, index }: { id: string; index: CodexIndex }) {
               <RecipeCard key={r.id} recipe={r} index={index} build={canPlan ? id : undefined} />
             ))}
           </div>
+        </Section>
+      )}
+      {insight && line && (
+        <Section title={t('lineTitle')}>
+          <ProductionLine id={id} insight={insight} index={index} />
+        </Section>
+      )}
+      {insight && insight.compare.length > 1 && (
+        <Section title={t('compareTitle')} count={insight.compare.length}>
+          <RecipeCompare insight={insight} index={index} />
+          <p className="hint">{t('compareNote', { rate: `${num(insight.line.rate)}${fluidUnit ? t('m3PerMin') : t('perMin')}` })}</p>
         </Section>
       )}
       {crafts.length > 0 && (
@@ -974,9 +1171,20 @@ function BuildingPage({ id, index }: { id: string; index: CodexIndex }) {
     stats.push([t('stat_makes'), t('geyserRange', { impure: generator.power / 2, pure: generator.power * 2 })]);
   if (generator?.kind === 'augmenter') stats.push([t('stat_makes'), `${num(generator.power)}${t('statUnit_power')}`]);
 
+  // What a clock change does to a building with a fixed draw: production buildings and extractors.
+  const base = machine && !machine.variable && machine.power > 0 ? machine : extractor && extractor.power > 0 ? extractor : undefined;
+  const note = BUILDING_NOTES[id];
+  const elevator = id === 'Build_SpaceElevator_C';
+
   return (
     <>
       <Head icon={id} name={b.name} tag={t(`group_${b.group}`)} stats={stats} desc={b.desc} />
+      {note && <Notes text={note} />}
+      {elevator && (
+        <Section title={t('elevatorPhases')}>
+          <PhaseList index={index} />
+        </Section>
+      )}
       {(b.cost || b.unlock) && (
         <Section title={t('buildCost')}>
           {b.cost && <Amounts list={b.cost} index={index} />}
@@ -1070,9 +1278,40 @@ function BuildingPage({ id, index }: { id: string; index: CodexIndex }) {
           </p>
         </Section>
       )}
+      {base && (
+        <Section title={t('clockTitle')}>
+          <div className="codex-table-wrap">
+            <table className="codex-table">
+              <thead>
+                <tr>
+                  <th>{t('clock')}</th>
+                  <th className="num">{t('calcOutput')}</th>
+                  <th className="num">{t('calcPower')}</th>
+                  <th className="num">{t('calcShards')}</th>
+                </tr>
+              </thead>
+              <tbody>
+                {[0.5, 1, 1.5, 2, 2.5].map((c) => (
+                  <tr key={c}>
+                    <td>{num(c * 100)}%</td>
+                    <td className="num">× {num(c)}</td>
+                    <td className="num">
+                      {num(base.power * c ** base.powerExp)} {t('mw')}
+                    </td>
+                    <td className="num">{shardsFor(c)}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+          <CodexLink page={{ kind: 'guide', id: 'overclock' }} className="text-button">
+            {t('readOverclock')}
+          </CodexLink>
+        </Section>
+      )}
       {machine && machine.somersloopSlots > 0 && (
         <Section title={t('sloopTitle')}>
-          <p className="codex-text">{t('sloopText', { n: machine.somersloopSlots })}</p>
+          <p className="codex-text">{machine.somersloopSlots === 1 ? t('sloopTextOne') : t('sloopText', { n: machine.somersloopSlots })}</p>
           <CodexLink page={{ kind: 'guide', id: 'sloops' }} className="text-button">
             {t('readGuide')}
           </CodexLink>
@@ -1165,6 +1404,7 @@ function SchematicPage({ id, index }: { id: string; index: CodexIndex }) {
           </div>
         </Section>
       )}
+      {s.type === 'alternate' && recipes[0] && <AltVerdict recipe={recipes[0]} index={index} />}
       {standard.length > 0 && (
         <Section title={t('comparedTo')}>
           <div className="codex-recipes">

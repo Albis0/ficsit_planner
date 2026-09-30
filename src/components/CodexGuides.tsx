@@ -1,12 +1,15 @@
-import { type ReactNode, useState } from 'react';
-import { GUIDE_ICON, type GuideId } from '../lib/codex';
-import { data, transportFor } from '../lib/data';
+import { type ReactNode, useMemo, useState } from 'react';
+import { type CodexIndex, GUIDE_ICON, type GuideId, nameOf, useCodex } from '../lib/codex';
+import { data, generatorById, recipeById, transportFor } from '../lib/data';
+import { versusStandard } from '../lib/insights';
 import { PURITIES, PURITY } from '../lib/extraction';
 import { useWorld } from '../lib/finds';
 import { useT } from '../lib/i18n';
 import { fuelRate, MAX_CLOCK } from '../lib/power';
 import { shardsFor } from '../lib/solver';
-import { CodexLink } from './Codex';
+import { recipeLabel } from '../lib/text';
+import { CodexLink, PhaseList, phaseOpens } from './Codex';
+import { Delta, Flows, rawOrder } from './CodexLine';
 import { Glyph } from './Glyph';
 import { openMapOn } from './MapNav';
 import { Icon } from './Icon';
@@ -24,6 +27,12 @@ export function GuidePage({ id }: { id: GuideId }) {
           <h2 className="codex-title">{t(`guide_${id}`)}</h2>
         </div>
       </header>
+      {id === 'start' && <Start />}
+      {id === 'elevator' && <Elevator />}
+      {id === 'power' && <Power />}
+      {id === 'oil' && <Oil />}
+      {id === 'nuclear' && <Nuclear />}
+      {id === 'alternates' && <Alternates />}
       {id === 'overclock' && <Overclock />}
       {id === 'sloops' && <Sloops />}
       {id === 'nodes' && <Nodes />}
@@ -572,6 +581,387 @@ function Sink() {
           ))}
         </div>
       </Box>
+    </>
+  );
+}
+
+/** The first hours, and the buildings each milestone tier brings. */
+function Start() {
+  const { t } = useT();
+  const index = useCodex();
+  const tiers = useMemo(() => {
+    if (!index) return [];
+    return Array.from({ length: 10 }, (_, tier) => {
+      const ids = index.data.schematics
+        .filter((s) => (s.type === 'milestone' || s.type === 'hub') && s.tier === tier)
+        .flatMap((s) => s.unlocks.filter((u) => index.data.buildings[u] || index.data.vehicles[u]));
+      return { tier, ids: [...new Set(ids)] };
+    }).filter((x) => x.ids.length);
+  }, [index]);
+  return (
+    <>
+      <Text k="guideText_start" />
+      {index && tiers.length > 0 && (
+        <Box title={t('startTiers')}>
+          <div className="codex-tier-rows">
+            {tiers.map(({ tier, ids }) => (
+              <div key={tier} className="codex-tier-row">
+                <CodexLink page={{ kind: 'cat', id: 'milestones' }} className="codex-tier-label">
+                  {t('tierN', { tier })}
+                </CodexLink>
+                <div className="codex-tier-icons">
+                  {ids.map((id) => (
+                    <CodexLink
+                      key={id}
+                      page={{ kind: index.data.buildings[id] ? 'building' : 'vehicle', id }}
+                      className="slot"
+                      title={nameOf(id, index.data)}
+                    >
+                      <Icon id={id} size={36} />
+                    </CodexLink>
+                  ))}
+                </div>
+              </div>
+            ))}
+          </div>
+        </Box>
+      )}
+    </>
+  );
+}
+
+/** Raw resources behind a number of parts, from each part's worked-out line. Water left out. */
+function rawBehind(index: CodexIndex, cost: { item: string; amount: number }[]) {
+  const total = new Map<string, number>();
+  for (const c of cost) {
+    const line = index.data.insights.items[c.item]?.line;
+    if (!line) continue;
+    for (const r of line.raw) total.set(r.item, (total.get(r.item) ?? 0) + (r.rate / line.rate) * c.amount);
+  }
+  return [...total]
+    .filter(([id]) => id !== 'Desc_Water_C')
+    .map(([item, rate]) => ({ item, rate: Math.round(rate) }))
+    .sort((a, b) => b.rate - a.rate);
+}
+
+function Elevator() {
+  const { t, num } = useT();
+  const index = useCodex();
+  return (
+    <>
+      <Text k="guideText_elevator" />
+      {index && (
+        <>
+          <Box title={t('elevatorPhases')}>
+            <PhaseList index={index} />
+          </Box>
+          <Box title={t('elevatorRawTitle')}>
+            <div className="codex-table-wrap">
+              <table className="codex-table codex-compare">
+                <thead>
+                  <tr>
+                    <th>{t('phase')}</th>
+                    <th>{t('elevatorRawCol')}</th>
+                    <th className="num">{t('total')}</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {index.data.phases.map((p) => {
+                    const raw = rawBehind(index, p.cost);
+                    return (
+                      <tr key={p.phase}>
+                        <td>
+                          <b>{t('phaseN', { n: p.phase })}</b>
+                          <span className="codex-compare-note">{phaseOpens(p, index, t)}</span>
+                        </td>
+                        <td>
+                          <Flows list={raw} index={index} total />
+                        </td>
+                        <td className="num">{num(raw.reduce((n, r) => n + r.rate, 0))}</td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+            <p className="hint">{t('elevatorRawNote')}</p>
+          </Box>
+        </>
+      )}
+    </>
+  );
+}
+
+function Power() {
+  const { t, num } = useT();
+  const index = useCodex();
+  return (
+    <>
+      <Text k="guideText_power" />
+      {index && (
+        <Box title={t('powerCompare')}>
+          <div className="codex-table-wrap">
+            <table className="codex-table codex-compare">
+              <thead>
+                <tr>
+                  <th>{t('fuel')}</th>
+                  <th>{t('powerRawCol')}</th>
+                  <th className="num">{t('powerPerRaw')}</th>
+                  <th className="num">{t('powerChain')}</th>
+                </tr>
+              </thead>
+              {data.generators
+                .filter((g) => g.kind === 'fuel')
+                .map((g) => (
+                  <tbody key={g.id}>
+                    <tr className="codex-group-row">
+                      <td colSpan={4}>
+                        <CodexLink page={{ kind: 'building', id: g.id }} className="codex-machine">
+                          <Icon id={g.id} size={28} />
+                          {g.name} · {num(g.power)} {t('mw')}
+                        </CodexLink>
+                      </td>
+                    </tr>
+                    {index.data.insights.fuels
+                      .filter((f) => f.generator === g.id)
+                      .map((f) => {
+                        const byHand = f.missing.length > 0;
+                        return (
+                          <tr key={f.fuel}>
+                            <td>
+                              <CodexLink page={{ kind: 'item', id: f.fuel }} className="codex-machine">
+                                <Icon id={f.fuel} size={24} />
+                                {nameOf(f.fuel, index.data)}
+                              </CodexLink>
+                            </td>
+                            <td>
+                              {f.raw.length > 0 && <Flows list={rawOrder(f.raw)} index={index} />}
+                              {byHand && (
+                                <span className="codex-compare-note">
+                                  {t('needsBroughtIn', { list: f.missing.map((m) => nameOf(m.item, index.data)).join(', ') })}
+                                </span>
+                              )}
+                            </td>
+                            <td className="num">{f.rawTotal > 0 && !byHand ? num(Math.round((f.mw / f.rawTotal) * 10) / 10) : '–'}</td>
+                            <td className="num">{f.chainPower > 0.05 ? `${num(Math.round(f.chainPower * 10) / 10)} ${t('mw')}` : '–'}</td>
+                          </tr>
+                        );
+                      })}
+                  </tbody>
+                ))}
+            </table>
+          </div>
+          <p className="hint">{t('powerCompareNote')}</p>
+        </Box>
+      )}
+    </>
+  );
+}
+
+const OIL = 'Desc_LiquidOil_C';
+const OIL_LEFTOVERS = ['Desc_HeavyOilResidue_C', 'Desc_PolymerResin_C'];
+const plainName = (r: { name: string; kind: string }) => recipeLabel(r.name, r.kind);
+
+/** Crude oil and what it turns into: each refinery recipe, what it leaves, and where that goes. */
+function Oil() {
+  const { t, num } = useT();
+  const index = useCodex();
+  const oil = data.recipes
+    .filter((r) => r.inputs.some((i) => i.item === OIL) && r.kind !== 'converter')
+    .sort((a, b) => Number(a.kind === 'alternate') - Number(b.kind === 'alternate') || a.name.localeCompare(b.name));
+  const uses = (item: string) => data.recipes.filter((r) => r.inputs.some((i) => i.item === item) && r.kind !== 'power');
+  return (
+    <>
+      <Text k="guideText_oil" />
+      {index && (
+        <>
+          <Box title={t('oilRecipes')}>
+            <div className="codex-table-wrap">
+              <table className="codex-table codex-compare">
+                <thead>
+                  <tr>
+                    <th>{t('recipe')}</th>
+                    <th>{t('oilIn')}</th>
+                    <th>{t('oilOut')}</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {oil.map((r) => (
+                    <tr key={r.id}>
+                      <td>
+                        <span className="codex-compare-name">
+                          <CodexLink page={{ kind: 'item', id: r.outputs[0].item }} className="codex-machine">
+                            <Icon id={r.outputs[0].item} size={24} />
+                            {plainName(r)}
+                          </CodexLink>
+                          {r.kind === 'alternate' && <span className="codex-pill alt">{t('altShort')}</span>}
+                        </span>
+                      </td>
+                      <td>
+                        <Flows list={r.inputs} index={index} />
+                      </td>
+                      <td>
+                        <Flows list={r.outputs} index={index} />
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+            <p className="hint">{t('oilNote')}</p>
+          </Box>
+          {OIL_LEFTOVERS.map((b) => (
+            <Box key={b} title={t('oilWhereTo', { item: nameOf(b, index.data) })}>
+              <div className="codex-uses">
+                {uses(b).map((r) => (
+                  <CodexLink key={r.id} page={{ kind: 'item', id: r.outputs[0].item }} className="codex-use">
+                    <Icon id={r.outputs[0].item} size={30} />
+                    <span className="codex-use-name">{plainName(r)}</span>
+                    {r.kind === 'alternate' && <span className="codex-pill alt">{t('altShort')}</span>}
+                    <span className="codex-use-rate">
+                      {num(r.inputs.find((i) => i.item === b)?.rate ?? 0)}
+                      {t('m3PerMin')}
+                    </span>
+                  </CodexLink>
+                ))}
+              </div>
+            </Box>
+          ))}
+        </>
+      )}
+    </>
+  );
+}
+
+function Nuclear() {
+  const { t, num } = useT();
+  const index = useCodex();
+  const plant = generatorById.get('Build_GeneratorNuclear_C');
+  return (
+    <>
+      <Text k="guideText_nuclear" />
+      {index && plant && (
+        <Box title={t('atAGlance')}>
+          <div className="codex-table-wrap">
+            <table className="codex-table codex-compare">
+              <thead>
+                <tr>
+                  <th>{t('fuel')}</th>
+                  <th className="num">{t('mw')}</th>
+                  <th className="num">{t('burns')}</th>
+                  <th className="num">{t('rodLasts')}</th>
+                  <th>{t('waste')}</th>
+                </tr>
+              </thead>
+              <tbody>
+                {plant.fuels.map((f) => {
+                  const rate = fuelRate(plant, f.item);
+                  return (
+                    <tr key={f.item}>
+                      <td>
+                        <CodexLink page={{ kind: 'item', id: f.item }} className="codex-machine">
+                          <Icon id={f.item} size={24} />
+                          {nameOf(f.item, index.data)}
+                        </CodexLink>
+                      </td>
+                      <td className="num">{num(plant.power)}</td>
+                      <td className="num">
+                        {num(rate)}
+                        {t('perMin')}
+                      </td>
+                      <td className="num">{t('minutesShort', { n: num(1 / rate) })}</td>
+                      <td>
+                        {f.byproduct && f.byproductAmount ? (
+                          <Flows list={[{ item: f.byproduct, rate: rate * f.byproductAmount }]} index={index} />
+                        ) : (
+                          t('noWaste')
+                        )}
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+          <p className="hint">{t('nuclearNote', { water: num((plant.power * 60 * plant.supplementRatio) / 1000) })}</p>
+        </Box>
+      )}
+    </>
+  );
+}
+
+type AltSort = 'raw' | 'power' | 'buildings';
+
+/** Every alternate against the standard recipe for the same part, whole lines compared. */
+function Alternates() {
+  const { t } = useT();
+  const index = useCodex();
+  const [sort, setSort] = useState<AltSort>('raw');
+  const rows = useMemo(() => {
+    if (!index) return [];
+    return index.data.schematics
+      .filter((s) => s.type === 'alternate')
+      .flatMap((s) => {
+        const r = s.unlocks.map((u) => recipeById.get(u)).find(Boolean);
+        const vs = r && versusStandard(index.data.insights.items[r.outputs[0].item], r.id);
+        return r && vs && !vs.needsMore ? [{ s, r, vs }] : [];
+      });
+  }, [index]);
+  const sorted = [...rows].sort((a, b) => a.vs[sort] - b.vs[sort]);
+  return (
+    <>
+      <Text k="guideText_alternates" />
+      {index && (
+        <Box title={t('altAll', { n: rows.length })}>
+          <div className="segmented codex-sort" role="radiogroup" aria-label={t('sortBy')}>
+            {(['raw', 'power', 'buildings'] as const).map((k) => (
+              <button key={k} type="button" role="radio" aria-checked={sort === k} onClick={() => setSort(k)}>
+                {t(`sort_${k}`)}
+              </button>
+            ))}
+          </div>
+          <div className="codex-table-wrap">
+            <table className="codex-table codex-compare">
+              <thead>
+                <tr>
+                  <th>{t('alternate')}</th>
+                  <th>{t('item')}</th>
+                  <th className="num">{t('lineRaw')}</th>
+                  <th className="num">{t('linePower')}</th>
+                  <th className="num">{t('lineBuildings')}</th>
+                </tr>
+              </thead>
+              <tbody>
+                {sorted.map(({ s, r, vs }) => (
+                  <tr key={s.id}>
+                    <td>
+                      <CodexLink page={{ kind: 'schematic', id: s.id }} className="codex-machine">
+                        <Icon id={r.outputs[0].item} size={24} />
+                        {plainName({ name: s.name, kind: 'alternate' })}
+                      </CodexLink>
+                    </td>
+                    <td>
+                      <CodexLink page={{ kind: 'item', id: r.outputs[0].item }} className="codex-machine">
+                        {nameOf(r.outputs[0].item, index.data)}
+                      </CodexLink>
+                    </td>
+                    <td className="num">
+                      <Delta share={vs.raw} />
+                    </td>
+                    <td className="num">
+                      <Delta share={vs.power} />
+                    </td>
+                    <td className="num">
+                      <Delta share={vs.buildings} />
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+          <p className="hint">{t('altAllNote')}</p>
+        </Box>
+      )}
     </>
   );
 }

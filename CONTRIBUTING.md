@@ -16,18 +16,21 @@ bun run dev        # http://localhost:1420
 
 ```sh
 bun run check      # Biome: lint + formatting (bun run format fixes most of it)
-bun test           # solver, graph, saved state and string tests
+bun test           # solver, hand-checked numbers, 2,000 random plans, graph, saved state and strings
 bun run build      # type check + production build
 bun run sweep      # opens every screen at five window sizes and reports layout problems (about 45 minutes)
+bun run visual     # compares 28 screens with the pictures in e2e/baseline (add -- --update after a change on purpose)
 ```
 
 CI runs the first three on every push, then a quick sweep (a sample of each kind of screen at a laptop and a
-phone size), and a pull request needs all of them green.
+phone size) in Chromium, WebKit (Safari's engine) and Firefox, and a pull request needs all of them green. The
+screenshot comparison runs locally only: the baseline is taken on Windows, and Linux draws fonts differently.
 
 The sweep (`e2e/sweep.mjs`, checks in `e2e/checks.js`) looks for text cut off or running out of its card, things
 off the window, text drawn over text, cards over cards, broken words like `undefined`, missing pictures, console
-errors and buttons too small for a finger. It needs Playwright's Chromium once:
-`node node_modules/playwright-core/cli.js install chromium`. Its report is `e2e/out/sweep.md`. Something left as it
+errors and buttons too small for a finger. It needs Playwright's browsers once:
+`node node_modules/playwright-core/cli.js install chromium webkit firefox`. `--browser=webkit` or `--browser=firefox`
+sweeps in those engines (Firefox is several times slower). Its report is `e2e/out/sweep.md`. Something left as it
 is on purpose goes in `e2e/known.json` with the reason; everything else fails the run.
 
 For UI changes, also try the change at phone width in the browser's device mode, and with `bun run preview`,

@@ -62,7 +62,7 @@ alternate recipes, and a map of every resource node. It can be installed as an a
 | <img src="public/icons/Build_MinerMk2_C.webp" width="36" alt="Miner Mk.2"> | **Extraction.** Miner mark, node purity and extractor clock decide how many miners and pumps each resource needs, and their power. |
 | <img src="public/icons/Build_ConveyorBeltMk5_C.webp" width="36" alt="Conveyor Belt Mk.5"> | **Graph and list.** The graph runs left to right or top to bottom, colours belts by tier and splits a flow over more belts when one isn't enough. The list shows every recipe and the build cost. |
 | <img src="public/icons/Build_GeneratorNuclear_C.webp" width="36" alt="Nuclear Power Plant"> | **Power planner.** Power plants are tabs too and can mix generators. Size one by the fuel you have, the MW you want or the factories it runs. The fuel chain, water, nuclear waste, augmenters and Power Storage are counted. |
-| <img src="public/icons/Desc_HardDrive_C.webp" width="36" alt="Hard Drive"> | **Codex.** Parts, resources, buildings, vehicles, equipment, milestones, MAM research, alternate recipes and the AWESOME Shop, with the game's descriptions. Also the creatures (health, speed, what they leave behind, where they spawn), what can be found in the world, and what each crash site takes to open. Pages for game mechanics have small calculators. **Build this factory** opens a factory for any part. |
+| <img src="public/icons/Desc_HardDrive_C.webp" width="36" alt="Hard Drive"> | **Codex.** Parts, resources, buildings, vehicles, equipment, milestones, MAM research, alternate recipes and the AWESOME Shop, with the game's descriptions. Also the creatures (health, speed, what they leave behind, where they spawn), what can be found in the world, and what each crash site takes to open. Every part shows its whole production line (raw resources, buildings, power) and how each of its recipes compares once everything before it is made too; every alternate is ranked against the standard recipe. Guides cover getting started, the Space Elevator phases, power from biomass to nuclear, oil and nuclear waste, with small calculators. **Build this factory** opens a factory for any part. |
 | <img src="public/icons/Build_MinerMk3_C.webp" width="36" alt="Miner Mk.3"> | **World map.** All 459 resource nodes, 118 well nodes and 31 geysers on the game's map, filtered by resource and purity. Pressing a node shows what each miner or extractor gets from it. Somersloops, Mercer Spheres, power slugs, crash sites, berries, nuts, mushrooms and every creature's spawn points can be turned on too. |
 | <img src="public/icons/Desc_FreightWagon_C.webp" width="36" alt="Freight Wagon"> | **Linked factories.** A factory can take an item from another factory tab, which then makes it on top of its own products. |
 | <img src="public/icons/Desc_ModularFrameLightweight_C.webp" width="36" alt="Radio Control Unit"> | **Share links.** The **Share** button copies a link that contains the factory (and the power plants that run it). Opening it adds a copy as a new tab. Nothing is uploaded. |
@@ -92,14 +92,16 @@ Needs [Bun](https://bun.sh).
 ```sh
 bun install
 bun run dev        # http://localhost:1420
-bun test           # solver, graph, saved state and string tests
+bun test           # solver, hand-checked numbers, random plans, graph, saved state and strings
 bun run check      # Biome lint + format check (bun run format to fix)
 bun run build      # type check + production bundle in dist/
 bun run preview    # serve dist/ with the service worker, as it will be deployed
 bun run sweep      # every screen at five window sizes, checked for layout problems (see CONTRIBUTING)
+bun run visual     # screenshots of 28 screens compared with e2e/baseline
 ```
 
-CI (GitHub Actions) runs check, test and build on every push.
+CI (GitHub Actions) runs check, test and build on every push, then a sample of every screen in Chromium, WebKit
+and Firefox.
 
 The build is a static site. To serve it from a sub-folder, for example GitHub Pages at `/<repo>/`, set
 `BASE_PATH`:
@@ -190,7 +192,9 @@ the belt count low. dagre lays the graph out left to right, or top to bottom on 
 | `src/lib/power.ts`, `src/lib/solution.ts` | generators as solver recipes, and the hooks that solve factories and power plants |
 | `src/lib/settings.ts`, `src/lib/backup.ts` | settings and the CSS variables they set; save and load a copy |
 | `src/lib/feedback.ts`, `src/lib/feedback-schema.ts`, `functions/api/report.ts` | the feedback window's request, its checks, and the endpoint that stores it |
-| `src/lib/codex.ts`, `src/components/Codex.tsx`, `CodexGuides.tsx` | the Codex: its data, index and search, pages and addresses, and the game-mechanics guides |
+| `src/lib/codex.ts`, `src/components/Codex.tsx`, `CodexGuides.tsx`, `CodexLine.tsx` | the Codex: its data, index and search, pages and addresses, the guides, and the production lines and recipe comparisons |
+| `src/lib/insights.ts`, `scripts/codex-insights.ts` | works out each part's whole production line, its recipes compared and every fuel's cost, with the solver |
+| `src/locales/codex-notes.en.ts` | the Codex's Good to know notes on parts and buildings |
 | `src/lib/data.ts` | typed access to the game data, belt/pipe choice per flow, unlock tiers and why an item can't be made |
 | `src/locales/en.ts`, `src/lib/lang.ts`, `src/lib/i18n.ts` | UI strings, language registry, `useT()` |
 | `src/lib/install.ts`, `src/components/PwaStatus.tsx` | install button and offline status |
@@ -203,7 +207,8 @@ the belt count low. dagre lays the graph out left to right, or top to bottom on 
 | `tools/icon-extractor/` | .NET icon extractor |
 | `tools/map-extractor/`, `scripts/extract-map.mjs` | .NET world reader (resource nodes, the map picture) and the script that tiles the map |
 | `src/lib/world.ts`, `src/components/WorldMap.tsx`, `src/components/MapNav.tsx` | the world map: node data, the map (Leaflet), its filter |
-| `tests/` | solver, extraction, auto placement, graph layout, unlock tiers, saved state and string tests |
+| `tests/` | solver, hand-checked production lines (`golden`), random plans (`fuzz`), extraction, auto placement, graph layout, unlock tiers, Codex insights, saved state and string tests |
+| `e2e/` | the screen sweep (`sweep.mjs`, `checks.js`) and the screenshot comparison (`visual.mjs`, `baseline/`) |
 | `docs/manual-test.md` | a click-through checklist for testing the app by hand before a release |
 
 Saved state is versioned. After a game data refresh, recipes and items that no longer exist are dropped from
@@ -225,6 +230,8 @@ saved factories when they load.
 | `src/data/icon-manifest.json` | icon texture path per item/building | `bun run extract` |
 | `src/data/codex.json` | descriptions, stack sizes, every building, vehicles, equipment, milestones, MAM research, the AWESOME Shop (loaded when the Codex opens) | `bun run extract:codex` |
 | `src/data/codex-icons.json` | icon texture paths the Codex needs on top of the planner's | `bun run extract:codex` |
+| `src/data/elevator.json` | the Space Elevator's phases: what each asks for and the tiers it opens | `bun run extract:elevator` |
+| `src/data/insights.json` | each part's production line, its recipes compared, and every fuel's cost, worked out with the solver | `bun run insights` |
 | `public/icons/*.webp` | item and building icons | `bun run icons`, `bun run icons:codex` |
 | `src/data/world.json` | every resource node, well node and geyser: resource, purity, place on the map | `bun run extract:map` |
 | `public/map/{z}/{x}/{y}.webp` | the game's map picture (8192 px) as 256 px tiles, zoom 0 to 5 | `bun run extract:map` |
@@ -244,6 +251,8 @@ bun run icons                                              # needs the .NET 10 S
 bun run icons:codex
 bun run extract:map                                        # the world map: nodes and tiles, needs .NET too
 bun run extract:world                                      # after extract:map: finds, creatures and their icons
+bun run extract:elevator                                   # the Space Elevator's phases, needs .NET too
+bun run insights                                           # last: the Codex's worked-out lines (a test fails until it's run)
 dotnet run --project tools/icon-extractor -- "D:/SteamLibrary/steamapps/common/Satisfactory"
 ```
 

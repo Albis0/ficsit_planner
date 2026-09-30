@@ -1,7 +1,7 @@
 {
   "name": "ficsit-planner",
   "private": true,
-  "version": "0.11.7",
+  "version": "0.12.0",
   "description": "Offline production planner for Satisfactory, as an installable web app",
   "license": "GPL-3.0-or-later",
   "homepage": "https://ficsit-planner.pages.dev",
@@ -17,6 +17,8 @@
     "extract:codex": "bun scripts/extract-codex.mjs",
     "extract:map": "bun scripts/extract-map.mjs",
     "extract:world": "bun scripts/extract-world.mjs",
+    "extract:elevator": "dotnet run --project tools/map-extractor -c Release -- \"C:/Program Files/Epic Games/Satisfactory\" phases src/data/elevator.json",
+    "insights": "bun scripts/codex-insights.ts",
     "test": "bun test",
     "icons": "dotnet run --project tools/icon-extractor -c Release -- \"C:/Program Files/Epic Games/Satisfactory\" src/data/icon-manifest.json public/icons 96",
     "icons:codex": "dotnet run --project tools/icon-extractor -c Release -- \"C:/Program Files/Epic Games/Satisfactory\" src/data/codex-icons.json public/icons 96",
@@ -28,6 +30,7 @@
     "pwa-icons": "pwa-assets-generator",
     "check": "biome check . && tsc -p functions",
     "sweep": "bun run build && node e2e/sweep.mjs",
+    "visual": "bun run build && node e2e/visual.mjs",
     "format": "biome check --write ."
   },
   "dependencies": {

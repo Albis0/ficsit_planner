@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { type Cost, data, generatorById, producersOf, type Recipe, recipeById, recipeTier } from './data';
 import type { Creature, FindCounts } from './finds';
+import type { Insights } from './insights';
 import { searchKey } from './text';
 
 /**
@@ -90,6 +91,17 @@ export interface CodexData {
   /** From the world's level (scripts/extract-world.mjs): its creatures, and how many of each find it holds. */
   creatures: Creature[];
   counts: FindCounts;
+  /** Worked out with the solver (scripts/codex-insights.ts): production lines, recipe comparisons, fuel costs. */
+  insights: Insights;
+  /** The Space Elevator's phases, from the game's GamePhase assets. */
+  phases: Phase[];
+}
+
+export interface Phase {
+  phase: number;
+  /** Delivering it opens the tiers up to this one. */
+  lastTier: number;
+  cost: Cost[];
 }
 
 export type Category =
@@ -120,11 +132,46 @@ export const CATEGORIES: Category[] = [
   'guides',
 ];
 
-export type GuideId = 'overclock' | 'sloops' | 'nodes' | 'fuel' | 'transport' | 'world' | 'sink' | 'crashsites';
-export const GUIDES: GuideId[] = ['overclock', 'sloops', 'nodes', 'fuel', 'transport', 'world', 'sink', 'crashsites'];
+export type GuideId =
+  | 'start'
+  | 'elevator'
+  | 'power'
+  | 'overclock'
+  | 'sloops'
+  | 'nodes'
+  | 'fuel'
+  | 'oil'
+  | 'nuclear'
+  | 'transport'
+  | 'alternates'
+  | 'world'
+  | 'sink'
+  | 'crashsites';
+export const GUIDES: GuideId[] = [
+  'start',
+  'elevator',
+  'power',
+  'overclock',
+  'sloops',
+  'nodes',
+  'fuel',
+  'oil',
+  'nuclear',
+  'transport',
+  'alternates',
+  'world',
+  'sink',
+  'crashsites',
+];
 
 /** A game icon for each guide. */
 export const GUIDE_ICON: Record<GuideId, string> = {
+  start: 'Build_TradingPost_C',
+  elevator: 'Desc_SpaceElevatorPart_1_C',
+  power: 'Build_GeneratorCoal_C',
+  oil: 'Desc_LiquidOil_C',
+  nuclear: 'Desc_NuclearFuelRod_C',
+  alternates: 'Desc_HardDrive_C',
   overclock: 'Desc_CrystalShard_C',
   sloops: 'Desc_WAT1_C',
   nodes: 'Build_MinerMk3_C',
@@ -157,10 +204,17 @@ let loaded: CodexData | undefined;
 let loading: Promise<CodexData> | undefined;
 
 export function loadCodex(): Promise<CodexData> {
-  loading ??= Promise.all([import('../data/codex.json'), import('../data/creatures.json')]).then(([m, c]) => {
+  loading ??= Promise.all([
+    import('../data/codex.json'),
+    import('../data/creatures.json'),
+    import('../data/insights.json'),
+    import('../data/elevator.json'),
+  ]).then(([m, c, i, e]) => {
     loaded = {
-      ...(m.default as unknown as Omit<CodexData, 'creatures' | 'counts'>),
+      ...(m.default as unknown as Omit<CodexData, 'creatures' | 'counts' | 'insights' | 'phases'>),
       ...(c.default as Pick<CodexData, 'creatures' | 'counts'>),
+      insights: i.default as unknown as Insights,
+      phases: e.default.phases,
     };
     return loaded;
   });
@@ -313,11 +367,11 @@ export function nameOf(id: string, codex: CodexData): string {
   );
 }
 
-/** Search across every page; names that start with the text first. */
-export function search(index: CodexIndex, text: string, limit = 60): Entry[] {
+/** Search across every page, and the guides by their titles in the reader's language; names that start with the text first. */
+export function search(index: CodexIndex, text: string, guides: Entry[] = [], limit = 60): Entry[] {
   const q = searchKey(text.trim());
   if (!q) return [];
-  const hits = index.entries.filter((e) => searchKey(e.name).includes(q));
+  const hits = [...guides, ...index.entries].filter((e) => searchKey(e.name).includes(q));
   hits.sort((a, b) => Number(!searchKey(a.name).startsWith(q)) - Number(!searchKey(b.name).startsWith(q)) || a.name.localeCompare(b.name));
   return hits.slice(0, limit);
 }

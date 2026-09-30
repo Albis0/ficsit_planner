@@ -2,6 +2,36 @@
 
 All notable changes to FICSIT Planner. Dates are when the version was finished.
 
+## 0.12.0 — 2026-09-30
+
+### Added
+
+- **The Codex works things out, not just lists them.**
+  - Every part has **its whole production line**: the raw resources, buildings and power behind one building of
+    it, and each step with its building count.
+  - **Recipes compared:** every way to make a part, each with its whole line, so it's clear which one needs the
+    fewest raw resources, the least power or the fewest buildings.
+  - Every alternate says what it saves or costs against the standard recipe, on its own page and on the
+    alternates list, which starts with the ones that save the most.
+  - **Good to know** notes on parts and buildings: byproducts that stop a refinery, waste that can't be sunk,
+    which alternates go well with a part, what a building is for.
+  - Building pages show power and shards at each clock speed.
+  - The Space Elevator's phases, read from the game: what each one asks for and which tiers it opens.
+- **New guides:** getting started with the buildings each tier brings, the Space Elevator with the raw resources
+  behind each phase, power from biomass to nuclear with every fuel compared, oil and its byproducts, nuclear fuel
+  and waste, and every alternate ranked against the standard recipe.
+- The Codex's front page has the guides and the pages opened lately, and the search finds guides too.
+- **Tests:** production lines checked against numbers worked out by hand, 2,000 random plans on every push, the
+  screen sweep in Safari's engine and in Firefox, and a screenshot comparison of 28 screens.
+
+### Fixed
+
+- **Plans with no answer:** compacted coal, rocket fuel or ionized fuel at tiers where their only recipes loop back
+  on themselves, and a set-size plutonium plant leaving less waste than a ficsonium plant needs, showed an error.
+  Both now say what to bring in.
+- **Biomass** plans ask for leaves, wood or mycelia before creature remains.
+- The order of steps in the list view no longer changes with what was planned before.
+
 ## 0.11.7 — 2026-09-29
 
 ### Added

@@ -7062,6 +7062,231 @@ a.codex-machine:hover {
   font: 700 17px var(--font-display);
 }
 
+/* Worked-out lines: raw resources, buildings, power, and each step. */
+.codex-flows {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 4px 12px;
+}
+
+.codex-flow {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font: 700 16px var(--font-display);
+  color: var(--paper);
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.codex-flow small {
+  margin-left: 1px;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--faint);
+}
+
+a.codex-flow:hover {
+  color: var(--codex) !important;
+}
+
+.codex-line-row {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 6px 14px;
+}
+
+.codex-line-label {
+  min-width: 90px;
+  font: 600 13px var(--font-display);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--faint);
+}
+
+.codex-table th.num,
+.codex-table td.num {
+  text-align: right;
+  white-space: nowrap;
+}
+
+.codex-table td.best {
+  color: var(--codex);
+  font-weight: 700;
+}
+
+.codex-compare td {
+  vertical-align: middle;
+}
+
+.codex-compare td:first-child {
+  min-width: 160px;
+}
+
+/* A heading row inside a table: the generator the fuels below it burn in. */
+.codex-table .codex-group-row td {
+  padding-top: 14px;
+  background: var(--panel-2);
+  font: 700 17px var(--font-display);
+}
+
+/* Notes under tables read as a line of the page, not a narrow caption. */
+.codex-page .hint {
+  max-width: 78ch;
+}
+
+.codex-compare-name {
+  display: inline-flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px 8px;
+  font-weight: 600;
+}
+
+.codex-compare-note {
+  display: block;
+  margin-top: 2px;
+  font-size: 13px;
+  color: var(--faint);
+}
+
+.codex-delta {
+  display: block;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--faint);
+}
+
+.codex-delta.good {
+  color: var(--supply);
+}
+
+.codex-delta.bad {
+  color: var(--alert);
+}
+
+.codex-steps .codex-pill {
+  margin-left: 8px;
+}
+
+/* Good to know: the tips, set off from the game's own words. */
+.codex-notes .codex-text {
+  padding: 12px 16px;
+  background: var(--panel);
+  border-left: 3px solid var(--codex);
+}
+
+.codex-notes .codex-text p:last-child {
+  margin-bottom: 0;
+}
+
+/* The front page's guides: a card each, with a line on what it covers. */
+.codex-guide-cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 8px;
+}
+
+.codex-guide-card {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 12px 8px 8px;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  text-decoration: none;
+}
+
+.codex-guide-card:hover {
+  border-color: var(--codex);
+}
+
+.codex-guide-card .slot {
+  flex: none;
+  width: 56px;
+  height: 56px;
+}
+
+.codex-guide-card-line {
+  font-size: 14px;
+  color: var(--dim);
+}
+
+/* Space Elevator phases. */
+.codex-phases {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.codex-phase {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 10px 14px;
+  background: var(--panel);
+  border-left: 3px solid var(--codex);
+}
+
+.codex-phase-head {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 4px 14px;
+}
+
+.codex-phase-head b {
+  font: 700 18px var(--font-display);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.codex-phase-head span {
+  font-size: 14px;
+  color: var(--faint);
+}
+
+/* Getting started: the buildings each tier brings, as a row of slots. */
+.codex-tier-rows {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.codex-tier-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 6px 10px;
+  background: var(--panel);
+}
+
+.codex-tier-label {
+  flex: none;
+  width: 70px;
+  font: 700 17px var(--font-display);
+  text-transform: uppercase;
+  color: var(--paper);
+  text-decoration: none;
+}
+
+.codex-tier-icons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  min-width: 0;
+}
+
+.codex-tier-icons .slot {
+  width: 46px;
+  height: 46px;
+}
+
+.codex-sort {
+  align-self: flex-start;
+}
+
 /* ---------- Settings: help ---------- */
 
 .help {

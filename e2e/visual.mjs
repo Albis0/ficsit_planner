@@ -2,7 +2,7 @@
 // something by accident shows up even when nothing overlaps or runs out of its box.
 //
 //   node e2e/visual.mjs             compare (build first: bun run build)
-//   node e2e/visual.mjs --update    save the current pictures as the new baseline, after a change on purpose
+//   node e2e/visual.mjs --update    save the screens that changed as the new baseline, after a change on purpose
 //   node e2e/visual.mjs --only=codex
 //
 // Screens that changed are written to e2e/out/visual/ as <name>.before.png, <name>.after.png and <name>.diff.png
@@ -161,12 +161,19 @@ for (const [size, opts] of Object.entries(SIZES)) {
     const shot = await page.screenshot({ animations: 'disabled', caret: 'hide' });
     taken++;
     const file = path.join(BASE, `${name}.png`);
-    if (UPDATE || !fs.existsSync(file)) {
-      await sharp(shot).png({ compressionLevel: 9, palette: false }).toFile(file);
+    const save = () => sharp(shot).png({ compressionLevel: 9, palette: false }).toFile(file);
+    if (!fs.existsSync(file)) {
+      await save();
       continue;
     }
     const { share, diff } = await compare(file, shot);
     if (share <= SHARE) continue;
+    // Updating keeps the pictures that didn't change, so the commit shows only the screens that did.
+    if (UPDATE) {
+      await save();
+      changed.push({ name, share });
+      continue;
+    }
     changed.push({ name, share });
     fs.copyFileSync(file, path.join(OUT, `${name}.before.png`));
     fs.writeFileSync(path.join(OUT, `${name}.after.png`), shot);
@@ -177,10 +184,10 @@ for (const [size, opts] of Object.entries(SIZES)) {
 await browser.close();
 await server.close();
 
-if (UPDATE) console.log(`${taken} screens saved as the new baseline in e2e/baseline.`);
+if (UPDATE) console.log(`${changed.length} of ${taken} screens changed and saved as the new baseline in e2e/baseline.`);
 else if (changed.length === 0) console.log(`${taken} screens, none changed.`);
 else {
   for (const c of changed) console.log(`changed: ${c.name} (${(c.share * 100).toFixed(2)}% of pixels)`);
   console.log(`${changed.length} of ${taken} screens changed. Before, after and diff pictures are in e2e/out/visual.`);
 }
-process.exit(changed.length ? 1 : 0);
+process.exit(changed.length && !UPDATE ? 1 : 0);
