@@ -138,6 +138,14 @@ describe('augmenters and nuclear', () => {
     expect(rate(both.surplus, 'Desc_PlutoniumWaste_C')).toBeCloseTo(1);
   });
 
+  test('a set-size plant’s waste can run short: the rest is brought in instead of no answer', () => {
+    const all = new Set(data.recipes.map((r) => r.id));
+    const pu = plant({ id: 'pu', generator: NUCLEAR, fuel: 'Desc_PlutoniumFuelRod_C', by: 'count', amount: 1 });
+    const fics = plant({ id: 'f', generator: NUCLEAR, fuel: 'Desc_FicsoniumFuelRod_C', by: 'count', amount: 10 });
+    const r = grid([pu, fics], {}, { enabledRecipes: all });
+    expect(rate(r.missing, 'Desc_PlutoniumWaste_C')).toBeGreaterThan(0);
+  });
+
   test('fuel with no fuel set is ignored rather than free power', () => {
     const r = grid([plant({ generator: COAL, by: 'count', amount: 3 })]);
     expect(r.grid!.generation).toBe(0);

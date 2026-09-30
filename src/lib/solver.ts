@@ -119,6 +119,16 @@ export class SolverError extends Error {
 
 const EPS = 1e-6;
 const MISSING_PENALTY = 1e5;
+/**
+ * Creature remains are the last thing to bring in: hunting is slower than picking leaves and wood, so
+ * a line that can run on either (biomass, for one) asks for the plants.
+ */
+const MISSING_WEIGHT: Record<string, number> = {
+  Desc_HogParts_C: 20,
+  Desc_SpitterParts_C: 20,
+  Desc_StingerParts_C: 20,
+  Desc_HatcherParts_C: 20,
+};
 const MAX_SCALE = 1e4;
 /** Ceiling on the MW a maximised power plan reports, far past any real map. */
 const MAX_POWER = 1e8;
@@ -246,8 +256,27 @@ function buildModel(input: SolveInput, draw?: Map<string, number>): Model {
   for (const r of recipes) for (const s of [...r.inputs, ...r.outputs]) itemIds.add(s.item);
   for (const id of Object.keys(input.fixed ?? {})) itemIds.add(id);
 
+  // A plant with a set size makes a set amount of waste, so it can't be the whole supply of it: a ficsonium
+  // plant needing more plutonium waste than a fixed plutonium plant leaves has to bring the rest in.
   const enabledProducers = (id: string) =>
-    producersOf.get(id)?.some((r) => input.enabledRecipes.has(r.id)) || plantRecipes.some((r) => r.outputs.some((o) => o.item === id));
+    producersOf.get(id)?.some((r) => input.enabledRecipes.has(r.id)) ||
+    plantRecipes.some((r, i) => plantSize(plants[i]) === 'auto' && r.outputs.some((o) => o.item === id));
+  // An item whose only enabled recipes loop back to it can't be made either: before the blender, rocket
+  // fuel's one recipe is unpacking packaged rocket fuel, and compacted coal only comes off ionized fuel,
+  // which needs rocket fuel. Those have to be brought in like items nothing makes, or the plan has no answer.
+  const makeable = new Set<string>([...given.keys(), ...Object.keys(input.fixed ?? {})]);
+  for (const id of itemIds) if (data.items[id]?.raw || !enabledProducers(id)) makeable.add(id);
+  for (let grew = true; grew; ) {
+    grew = false;
+    for (const r of recipes) {
+      if (!r.inputs.every((i) => makeable.has(i.item))) continue;
+      for (const o of r.outputs) {
+        if (makeable.has(o.item)) continue;
+        makeable.add(o.item);
+        grew = true;
+      }
+    }
+  }
   const sv = new Map<string, string>();
   const costs: string[] = [];
   const bounds: string[] = [];
@@ -261,10 +290,10 @@ function buildModel(input: SolveInput, draw?: Map<string, number>): Model {
       costs.push(`${fmt(Math.max(w, 1e-5))} ${name}`);
       const cap = input.fixed?.[id] ?? input.resourceCaps[id] ?? data.worldLimits[id];
       bounds.push(cap == null ? `${name} >= 0` : `0 <= ${name} <= ${fmt(cap)}`);
-    } else if (!enabledProducers(id)) {
+    } else if (!enabledProducers(id) || !makeable.has(id)) {
       const name = `m${si++}`;
       sv.set(id, name);
-      costs.push(`${MISSING_PENALTY} ${name}`);
+      costs.push(`${MISSING_PENALTY * (MISSING_WEIGHT[id] ?? 1)} ${name}`);
       // When scaling to pinned inputs, conjuring missing items would make the scale unbounded.
       bounds.push(scaling ? `0 <= ${name} <= 0` : `${name} >= 0`);
     }
@@ -580,19 +609,39 @@ export function autoAssign(
 }
 
 // Rough production depth so tables read from ore to product.
-const depthCache = new Map<string, number>();
-function depthOf(r: Recipe, seen = new Set<string>()): number {
-  const hit = depthCache.get(r.id);
-  if (hit !== undefined) return hit;
-  if (seen.has(r.id)) return 0;
-  seen.add(r.id);
+const standardProducer = (item: string) => producersOf.get(item)?.find((x) => x.kind === 'standard') ?? producersOf.get(item)?.[0];
+
+// Worked out for every recipe at once, in the data's order, so a recipe's place in the table doesn't depend on
+// which plans were solved before (a loop in the recipes is cut wherever the walk first meets it).
+let depths: Map<string, number> | undefined;
+function depthOf(r: Recipe): number {
+  if (!depths) {
+    const memo = new Map<string, number>();
+    const walk = (x: Recipe, seen: Set<string>): number => {
+      const hit = memo.get(x.id);
+      if (hit !== undefined) return hit;
+      if (seen.has(x.id)) return 0;
+      seen.add(x.id);
+      let d = 0;
+      for (const i of x.inputs) {
+        if (data.items[i.item]?.raw) continue;
+        const p = standardProducer(i.item);
+        if (p) d = Math.max(d, walk(p, seen) + 1);
+      }
+      memo.set(x.id, d);
+      return d;
+    };
+    for (const x of data.recipes) walk(x, new Set());
+    depths = memo;
+  }
+  const known = depths.get(r.id);
+  if (known !== undefined) return known;
+  // Power plants aren't in the data: one step past whatever makes their fuel.
   let d = 0;
   for (const i of r.inputs) {
-    if (data.items[i.item]?.raw) continue;
-    const p = producersOf.get(i.item)?.find((x) => x.kind === 'standard') ?? producersOf.get(i.item)?.[0];
-    if (p) d = Math.max(d, depthOf(p, seen) + 1);
+    const p = data.items[i.item]?.raw ? undefined : standardProducer(i.item);
+    if (p) d = Math.max(d, (depths.get(p.id) ?? 0) + 1);
   }
-  depthCache.set(r.id, d);
   return d;
 }
 

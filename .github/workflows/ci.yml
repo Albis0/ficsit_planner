@@ -18,8 +18,11 @@ jobs:
       - run: bun run build
       # Opens a sample of every kind of screen at a laptop and a phone size and fails on anything new that's
       # cut off, off the window, drawn over something else or broken (see e2e/sweep.mjs).
-      - run: node node_modules/playwright-core/cli.js install --with-deps chromium
+      - run: node node_modules/playwright-core/cli.js install --with-deps chromium webkit firefox
       - run: node e2e/sweep.mjs --quick
+      # The same sample in Safari's engine (every browser on an iPhone uses it) and in Firefox.
+      - run: node e2e/sweep.mjs --quick --browser=webkit --name=webkit
+      - run: node e2e/sweep.mjs --quick --sizes=laptop --browser=firefox --name=firefox
       - if: failure()
         uses: actions/upload-artifact@v4
         with:

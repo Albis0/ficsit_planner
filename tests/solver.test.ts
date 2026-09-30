@@ -83,6 +83,16 @@ describe('inputs and limits', () => {
     expect(toFailure(pinned)).toEqual({ code: 'pinnedInfeasible', status: undefined });
   });
 
+  test('an item whose only recipes loop back to it is brought in, not a dead end', () => {
+    // At tier 5 rocket fuel only comes from unpacking packaged rocket fuel, and compacted coal only off ionized fuel.
+    const { recipeUnlocked } = require('../src/lib/data');
+    const tier5 = new Set(data.recipes.filter((r) => r.kind === 'standard' && recipeUnlocked(r, 5)).map((r) => r.id));
+    const coal = plan({ targets: [{ item: 'Desc_CompactedCoal_C', rate: 10 }], enabledRecipes: tier5 });
+    expect(rate(coal.missing, 'Desc_CompactedCoal_C')).toBeCloseTo(10);
+    const rocket = plan({ targets: [{ item: 'Desc_RocketFuel_C', rate: 10 }], enabledRecipes: tier5 });
+    expect(rocket.missing.length).toBeGreaterThan(0);
+  });
+
   test('unexpected errors become a generic stop', () => {
     expect(toFailure(new Error('wasm abort'))).toEqual({ code: 'stopped', status: 'wasm abort' });
   });

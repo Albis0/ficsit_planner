@@ -3,6 +3,7 @@
 //        dotnet run -- <game dir> tex <dir> <path>...  (textures at their own size, e.g. the map's four slices)
 //        dotnet run -- <game dir> list <text>          (every file path containing the text)
 //        dotnet run -- <game dir> exports <package>    (a package's exports as JSON)
+//        dotnet run -- <game dir> phases <out.json>    (the Space Elevator's phases and what each costs)
 using CUE4Parse.Compression;
 using CUE4Parse.FileProvider;
 using CUE4Parse.MappingsProvider.Usmap;
@@ -286,6 +287,30 @@ if (mode == "tex")
 
 // "nodes <out.json>": every resource node, resource well (core and satellites) and geyser in the world, where it is
 // and how pure. They're all always-loaded actors of the persistent level.
+// The Space Elevator's phases: what each one asks for, and the last tier it opens.
+if (mode == "phases")
+{
+    var phases = new List<object>();
+    for (var i = 1; ; i++)
+    {
+        var path = $"FactoryGame/Content/FactoryGame/GamePhases/GP_Project_Assembly_Phase_{i}.uasset";
+        if (!provider.Files.ContainsKey(path)) break;
+        var e = Newtonsoft.Json.Linq.JArray.Parse(JsonConvert.SerializeObject(provider.LoadPackage(path).GetExports()))[0]["Properties"]!;
+        var costs = (e["mCosts"] as Newtonsoft.Json.Linq.JArray ?? new Newtonsoft.Json.Linq.JArray())
+            .Select(c => new
+            {
+                item = System.Text.RegularExpressions.Regex.Match(c.ToString(), @"(Desc_\w+_C)").Groups[1].Value,
+                amount = (int)c.SelectTokens("$..Amount").First(),
+            })
+            .ToList();
+        if (costs.Count == 0) break;
+        phases.Add(new { phase = i, lastTier = (int)e["mLastTierOfPhase"]!, cost = costs });
+    }
+    File.WriteAllText(args[2], JsonConvert.SerializeObject(new { phases }, Formatting.Indented) + "\n");
+    Console.Error.WriteLine($"{phases.Count} phases");
+    return;
+}
+
 if (mode == "nodes")
 {
     var kinds = new Dictionary<string, string>

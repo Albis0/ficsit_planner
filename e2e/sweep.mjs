@@ -4,12 +4,14 @@
 //   bun run sweep                      everything, every size (builds first)
 //   bun run sweep -- --quick           a sample of each part, for CI
 //   bun run sweep -- --sizes=phone --only=codex
+//   node e2e/sweep.mjs --browser=webkit    Safari's engine (or firefox); install it first with
+//                                          node node_modules/playwright-core/cli.js install webkit firefox
 //
 // Writes e2e/out/sweep.json and e2e/out/sweep.md (or the --name given), and exits with 1 when it finds a problem that isn't listed in
 // e2e/known.json (the ones looked at and left on purpose, each with why).
 import fs from 'node:fs';
 import path from 'node:path';
-import { chromium } from 'playwright-core';
+import { chromium, firefox, webkit } from 'playwright-core';
 import { preview } from 'vite';
 import { inspectPage } from './checks.js';
 
@@ -45,11 +47,15 @@ const factory = (targets, extra = {}) =>
     ...extra,
   });
 
-const server = arg('url') ? undefined : await preview({ preview: { port: 4190, strictPort: true, host: '127.0.0.1' }, logLevel: 'error' });
-const URL = arg('url', 'http://127.0.0.1:4190/');
+// Not 4190: Safari refuses a few ports (ManageSieve's among them) as unsafe.
+const server = arg('url') ? undefined : await preview({ preview: { port: 4173, strictPort: true, host: '127.0.0.1' }, logLevel: 'error' });
+const URL = arg('url', 'http://127.0.0.1:4173/');
 // Playwright's own Chromium (`node node_modules/playwright-core/cli.js install chromium`), started fresh for each size.
 // Scrollbars stay on, since they take room from the layout like they do for a player.
-const launch = () => chromium.launch({ ignoreDefaultArgs: ['--hide-scrollbars'] });
+// WebKit and Firefox are there to catch what only Safari (every browser on an iPhone) or Firefox get wrong.
+const BROWSER = arg('browser', 'chromium');
+const engine = { chromium, webkit, firefox }[BROWSER];
+const launch = () => (BROWSER === 'chromium' ? chromium.launch({ ignoreDefaultArgs: ['--hide-scrollbars'] }) : engine.launch());
 let browser;
 
 const found = [];
@@ -60,7 +66,9 @@ async function run(size) {
   const touch = !!opts.hasTouch;
   // Phones have their own layout: one pane at a time, the bottom navigation and the menu under the three dots.
   const phone = opts.viewport.width <= 900;
-  const ctx = await browser.newContext({ ...opts, reducedMotion: 'reduce' });
+  // Firefox has no phone mode; a touch screen at phone width is the closest it gets.
+  const { isMobile, ...rest } = opts;
+  const ctx = await browser.newContext({ ...(BROWSER === 'firefox' ? rest : opts), reducedMotion: 'reduce' });
   const page = await ctx.newPage();
   let where = '';
   page.on('pageerror', (e) => found.push({ size, where, kind: 'page-error', what: '', detail: e.message.slice(0, 200) }));
@@ -77,6 +85,7 @@ async function run(size) {
   page.setDefaultNavigationTimeout(60000);
   // One screen that fails to open is itself a finding; the sweep carries on with the next.
   const step = async (name, fn) => {
+    if (process.env.SWEEP_LOG) console.log(`${size} · ${name}`);
     try {
       await fn();
     } catch (e) {
@@ -176,7 +185,22 @@ async function run(size) {
         'creatures',
         'guides',
       ].map((c) => `cat/${c}`),
-      ...['overclock', 'sloops', 'nodes', 'fuel', 'transport', 'world', 'sink', 'crashsites'].map((g) => `guide/${g}`),
+      ...[
+        'start',
+        'elevator',
+        'power',
+        'overclock',
+        'sloops',
+        'nodes',
+        'fuel',
+        'oil',
+        'nuclear',
+        'transport',
+        'alternates',
+        'world',
+        'sink',
+        'crashsites',
+      ].map((g) => `guide/${g}`),
       ...sample(Object.keys(codex.items), 12).map((id) => `item/${id}`),
       ...sample(Object.keys(codex.buildings), 8).map((id) => `building/${id}`),
       ...sample(Object.keys(codex.vehicles), 2).map((id) => `vehicle/${id}`),

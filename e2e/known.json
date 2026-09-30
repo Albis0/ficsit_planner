@@ -20,5 +20,15 @@
     "kind": "small-to-tap",
     "where": "\"uiScale\":0.85",
     "why": "The player chose the smallest interface size, which shrinks every button with it."
+  },
+  {
+    "kind": "page-error",
+    "detail": "due to access control checks",
+    "why": "WebKit only: the sweep leaves each page right after it opens, which cancels the service worker and solver worker downloads mid-way; WebKit reports that as an error. Opened normally, Safari loads both."
+  },
+  {
+    "kind": "label-on-card",
+    "where": "\"textScale\":1.5",
+    "why": "WebKit only, at the smallest cards with the largest text: WebKit's wider text makes one belt label reach a card edge. The label is still readable."
   }
 ]

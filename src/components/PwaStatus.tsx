@@ -29,7 +29,10 @@ export function PwaStatus() {
   const { t } = useT();
   const {
     offlineReady: [offlineReady, setOfflineReady],
-  } = useRegisterSW();
+  } = useRegisterSW({
+    // Private windows and some browsers refuse service workers; the app still works, just not offline.
+    onRegisterError: () => {},
+  });
   useEffect(() => {
     if (!offlineReady) return;
     const timer = setTimeout(() => setOfflineReady(false), 6000);
