@@ -661,7 +661,7 @@ export const en = {
     'The highest milestone tier you’ve reached in your save. Recipes and buildings above it are left out of every plan. Change it with the Tier button in the top bar.',
   helpSaved: 'Where your plans live',
   helpText_saved:
-    'Everything saves in this browser as you go, and the app works offline. Settings, Your data exports it all to a file, to move to another computer or keep safe.',
+    'Everything saves in this browser as you go, and the app works offline. Settings, Your data exports it all to a file, to move to another computer or keep safe. Your plans never leave your device; the site only counts visits and which parts of it get used, as totals with nothing that identifies you.',
   helpText_targets:
     'What you want out of the factory, per minute. The planner works back from these to every machine, belt and raw resource.',
   helpText_supplies:
