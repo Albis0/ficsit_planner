@@ -77,10 +77,13 @@ async function run(size) {
   });
   const page = await ctx.newPage();
   let where = '';
-  page.on('pageerror', (e) => found.push({ size, where, kind: 'page-error', what: '', detail: e.message.slice(0, 200) }));
+  // While a page is being left for the next one, downloads still on their way get cancelled, and WebKit reports
+  // that as an error from the page. A player leaving a page never sees it, so those don't count.
+  let leaving = false;
+  page.on('pageerror', (e) => !leaving && found.push({ size, where, kind: 'page-error', what: '', detail: e.message.slice(0, 200) }));
   page.on(
     'console',
-    (m) => m.type() === 'error' && found.push({ size, where, kind: 'console-error', what: '', detail: m.text().slice(0, 200) }),
+    (m) => !leaving && m.type() === 'error' && found.push({ size, where, kind: 'console-error', what: '', detail: m.text().slice(0, 200) }),
   );
   page.on(
     'response',
@@ -106,7 +109,9 @@ async function run(size) {
   };
   // Loads the app with this saved state and waits until the floor has settled.
   const open = async (state, hash = '') => {
+    leaving = true;
     await page.goto('about:blank');
+    leaving = false;
     await page.goto(URL);
     await page.evaluate((s) => {
       localStorage.clear();
@@ -255,7 +260,9 @@ async function run(size) {
   if (only.includes('screens')) {
     // The first-run tier question, the empty floors, dialogs, menus, many tabs with long names, the map.
     await step('first-run tier question', async () => {
+      leaving = true;
       await page.goto('about:blank');
+      leaving = false;
       await page.goto(URL);
       await page.evaluate(() => localStorage.clear());
       await page.goto(URL);
