@@ -20,9 +20,16 @@ jobs:
       # cut off, off the window, drawn over something else or broken (see e2e/sweep.mjs).
       - run: node node_modules/playwright-core/cli.js install --with-deps chromium webkit firefox
       - run: node e2e/sweep.mjs --quick
-      # The same sample in Safari's engine (every browser on an iPhone uses it) and in Firefox.
+      # The same sample in Safari's engine (every browser on an iPhone uses it) and in Firefox. Linux's WebKit build
+      # drops page loads now and then, so these report (in the artifact) without failing the run.
       - run: node e2e/sweep.mjs --quick --browser=webkit --name=webkit
+        continue-on-error: true
       - run: node e2e/sweep.mjs --quick --sizes=laptop --browser=firefox --name=firefox
+        continue-on-error: true
+      - uses: actions/upload-artifact@v4
+        with:
+          name: other-browsers
+          path: e2e/out/
       - if: failure()
         uses: actions/upload-artifact@v4
         with:

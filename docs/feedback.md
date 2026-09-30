@@ -70,7 +70,7 @@ Then load the file from **Settings → Your data → Load a copy**. Loaded files
 damaged or hostile plan can't break the app.
 
 ## Setup notes
-
+   
 - The database binding is `DB` in `wrangler.jsonc`. A new schema goes in a new file in `migrations/`, applied with
   `bun run db:migrate`.
 - `REPORT_SALT` is a secret on the Pages project (`bunx wrangler pages secret put REPORT_SALT`), at least 16

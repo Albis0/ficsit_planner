@@ -68,7 +68,7 @@ export default defineConfig({
         // Everything, icons and the 3.5 MB solver wasm included, so the app works with no network at all.
         globPatterns: ['**/*.{js,css,html,wasm,webp,woff2,png,ico}'],
         // The map's close-up tiles (5 MB) are kept as they're looked at instead; the overview works offline from the start.
-        globIgnores: ['404.html', 'map/4/**', 'map/5/**'],
+        globIgnores: ['404.html', '*.local.*', 'map/4/**', 'map/5/**'],
         maximumFileSizeToCacheInBytes: 8 * 1024 * 1024,
         runtimeCaching: [
           {
