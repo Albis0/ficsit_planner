@@ -2,7 +2,46 @@
 
 All notable changes to FICSIT Planner. Dates are when the version was finished.
 
-## 0.12.3 — 2026-10-01
+## 0.12.4 — 2026-10-01
+
+### Added
+
+- **Game settings** (Settings): the part cost, power use and Space Elevator multipliers a save was started with.
+  Solid recipe inputs are multiplied per craft and rounded half up to whole items, never below one; fluids are
+  multiplied as they are; recipes that take or make packaged fluids keep their numbers, Diluted Packaged Fuel
+  included. Power use multiplies what machines and extractors draw. The Space Elevator multiplier changes the phase
+  costs in the Codex. Thanks to u/pdavis41, u/TheThiefMaster and u/PhiladelphiaCollins8.
+- **Recipes from the floor:** the machine panel lists every recipe for the part it makes, each to tick or untick,
+  with how its line compares with the standard one. Thanks to u/Aeri73.
+- **Fewest buildings** (beta) next to By rarity and All equal on the Resources tab: the plan needs as few machines as it
+  can, then drops recipes that only run a sliver of a machine when that doesn't add machines. It can take more kinds of raw resources than By rarity. Thanks to u/a__gun.
+- **Your own nodes:** on the Resources tab, enter how many nodes of each purity you have for a resource; extractors
+  go on the best ones first, and the card says when they aren't enough.
+- **Belts say where they go:** clicking a belt's label lights that belt and the two machines it joins, and the label
+  names them.
+- **List view:** pointing at a line lights up where its inputs are made and where its outputs go; pointing at an item
+  lights it up everywhere.
+
+### Fixed
+
+- **Belt and pipe limits on machine groups:** when a line moves more than the best unlocked belt or pipe carries
+  (ten blenders making 1,000 m³/min of rocket fuel on 600 m³/min pipes), the machine card, the panel and the list
+  say how to build it in groups: 6 + 4.
+
+### Changed
+
+- Belts run straight across the floor and turn through rounded corners; where several share a machine's output or
+  input they fan out and merge smoothly, like a splitter and a merger.
+- Recipes tab: the list scrolls down instead of sideways, with as many columns as fit across, so no recipe hides off
+  the right edge. Thanks to u/Aeri73. A card never splits between two columns, a product's heading always stays with its first card, and
+  cards carried over to the top of the next column line up with the rest. The panel on top doesn't go shorter than
+  a heading and one card. Thanks to kozmo403 on GitHub.
+- A new version no longer loads on its own: a message says it's ready, with **Reload**. An open tab also looks for
+  one every half hour and when it comes back into view.
+- Feedback: the Send button stays grey until the title and description are long enough, and pressing it then
+  points at the field that's short. The thank-you no longer shows a report number.
+
+
 
 ### Changed
 

@@ -162,7 +162,11 @@ button:disabled {
   display: grid;
   grid-template-columns: minmax(0, 1fr);
   /* A height saved on a taller window never pushes the floor under 300px here. */
-  --deck: min(var(--deck-h, calc(clamp(250px, 36vh, 420px) * var(--ui-scale, 1))), max(170px, 100dvh - var(--top-h) - 300px));
+  /* At least a tab row, a recipe heading and one card tall, so the Recipes tab never cuts a card. */
+  --deck: min(
+    max(calc(300px * var(--ui-scale, 1)), var(--deck-h, calc(clamp(250px, 36vh, 420px) * var(--ui-scale, 1)))),
+    max(calc(300px * var(--ui-scale, 1)), 100dvh - var(--top-h) - 300px)
+  );
   /* Until its edge is dragged, the panel is only as tall as what it holds, up to that height. */
   --deck-row: fit-content(var(--deck));
   grid-template-rows: var(--top-h) var(--deck-row) minmax(0, 1fr);
@@ -1173,6 +1177,9 @@ button.slot:hover {
   min-height: 0;
   overflow-y: auto;
   padding: 16px 20px 12px;
+}
+
+.recipe-flow {
   column-width: 340px;
   column-gap: 24px;
 }
@@ -1180,6 +1187,17 @@ button.slot:hover {
 .recipe-group {
   break-inside: avoid;
   padding-bottom: 20px;
+}
+
+/* A product with more recipes than a column holds still breaks between columns, but only between whole cards,
+   and never right after its heading. */
+.recipe-lead,
+.recipe-cont {
+  break-inside: avoid;
+}
+
+.recipe-row {
+  break-inside: avoid;
 }
 
 .recipe-row {
@@ -1438,6 +1456,72 @@ button.slot:hover {
 
 .extract-count.chosen b {
   color: var(--ficsit);
+}
+
+.set-nodes {
+  align-self: flex-start;
+  font-size: 14px;
+}
+
+/* With your own nodes set, a box under each purity's count: how many of those nodes you have. */
+.node-count {
+  display: block;
+  width: 52px;
+  margin-top: 6px;
+}
+
+.node-count .rate-input {
+  width: 100%;
+  min-width: 0;
+  padding: 5px 4px;
+  text-align: center;
+}
+
+.nodes-line {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 4px 12px;
+  margin: 0;
+  font-size: 13px;
+  color: var(--dim);
+}
+
+.beta-tag {
+  margin-left: 6px;
+  padding: 0 4px;
+  border: 1px solid currentColor;
+  border-radius: 3px;
+  font: 600 10px / 14px var(--font-body);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  opacity: 0.75;
+  vertical-align: 2px;
+}
+
+.nodes-short {
+  color: var(--alert);
+}
+
+/* Settings › Game settings: "[ 1.25 ] ×" */
+.game-mult {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.game-mult .rate-input {
+  width: 84px;
+}
+
+.game-mult .unit {
+  font: 600 18px var(--font-display);
+  color: var(--dim);
+}
+
+.game-intro {
+  margin: 0 0 6px;
 }
 
 /* ---------- Factory floor ---------- */
@@ -2323,6 +2407,34 @@ button.slot:hover {
   z-index: 10;
 }
 
+/* A belt's label can be clicked to say which machines the belt joins. */
+.edge-anchor:has(.pickable) {
+  pointer-events: none;
+}
+
+.edge-label.pickable {
+  pointer-events: all;
+  cursor: pointer;
+  color: inherit;
+  font-family: inherit;
+  text-align: left;
+}
+
+.edge-label.picked {
+  flex-wrap: wrap;
+  max-width: 360px;
+  border-color: var(--ficsit);
+}
+
+.edge-route {
+  flex-basis: 100%;
+  padding: 2px 0 1px 3px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--paper);
+  white-space: normal;
+}
+
 .edge-label {
   zoom: var(--card-text, 1);
   display: flex;
@@ -2565,8 +2677,89 @@ button.slot:hover {
   color: var(--power);
 }
 
+/* "Build as 6 + 4 groups", with why under it. */
+.inspector-stats > .inspector-groups {
+  flex-wrap: wrap;
+  row-gap: 4px;
+}
+
+.inspector-stats dd.groups-why {
+  flex-basis: 100%;
+  font: 400 13px / 1.4 var(--font-body);
+  color: var(--dim);
+}
+
+.mod-badge.groups,
+.table-groups {
+  color: var(--fluid);
+  white-space: nowrap;
+}
+
+.table-groups {
+  display: block;
+  margin-top: 2px;
+  font: 600 12px var(--font-body);
+}
+
 .inspector .text-button {
   align-self: flex-start;
+}
+
+/* Recipes for the part on the machine: tick one to let the plan use it. */
+.recipe-choices ul {
+  margin: 8px 0 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  background: var(--line);
+}
+
+.recipe-choice {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 9px 12px;
+  background: var(--panel-2);
+  cursor: pointer;
+}
+
+.recipe-choice input {
+  flex: none;
+  width: 18px;
+  height: 18px;
+  margin: 2px 0 0;
+  accent-color: var(--ficsit);
+}
+
+.recipe-choice-text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.recipe-choice-name {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 4px 8px;
+  color: var(--dim);
+}
+
+.recipe-choice.on .recipe-choice-name {
+  color: var(--paper);
+}
+
+.recipe-choice small {
+  font-size: 13px;
+  color: var(--faint);
+}
+
+.recipe-choice-used {
+  font: 600 12px var(--font-body);
+  color: var(--supply);
 }
 
 /* ---------- Table view ---------- */
@@ -2641,6 +2834,44 @@ button.slot:hover {
   align-items: center;
   gap: 8px;
   min-height: 30px;
+}
+
+/* Following a line through the table: where its inputs are made (feeds), where its outputs go (takes). */
+.plan-table .flow {
+  margin: 0 -6px;
+  padding: 0 6px;
+  border-radius: 4px;
+  transition:
+    background-color 120ms,
+    box-shadow 120ms;
+}
+
+.plan-table .flow.link {
+  background: color-mix(in srgb, var(--ficsit) 16%, transparent);
+}
+
+.plan-table .flow.feeds {
+  background: color-mix(in srgb, var(--supply) 20%, transparent);
+  box-shadow: inset 3px 0 var(--supply);
+}
+
+.plan-table .flow.takes {
+  background: color-mix(in srgb, var(--fluid) 20%, transparent);
+  box-shadow: inset 3px 0 var(--fluid);
+}
+
+.plan-table tbody tr.feeds td:first-child {
+  box-shadow: inset 3px 0 var(--supply);
+}
+
+.plan-table tbody tr.takes td:first-child {
+  box-shadow: inset 3px 0 var(--fluid);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .plan-table .flow {
+    transition: none;
+  }
 }
 
 /* ---------- Conveyor belts and pipes ---------- */
@@ -3100,6 +3331,11 @@ button.slot:hover {
 
 .toast.bad {
   border-left-color: var(--alert);
+}
+
+.toast .text-button.quiet {
+  margin-left: -8px;
+  color: var(--dim);
 }
 
 /* A second message while the first is up sits above it. */
@@ -4865,6 +5101,16 @@ button.gen-count[aria-pressed='true'] {
   color: var(--faint);
 }
 
+.field-need {
+  font: 600 13px var(--font-body);
+  color: var(--alert);
+}
+
+.text-field[aria-invalid='true'],
+.text-field[aria-invalid='true']:focus {
+  border-color: var(--alert);
+}
+
 .text-field {
   width: 100%;
   padding: 10px 12px;
@@ -4985,6 +5231,14 @@ button.gen-count[aria-pressed='true'] {
   align-items: center;
   gap: 4px;
   color: var(--dim);
+}
+
+/* Grey until the title and the description are long enough, then the colour of the kind. Still clickable while
+   grey, so a click can point at the field that's short. */
+.send-button:not([data-ready]) {
+  background: var(--raised) !important;
+  color: var(--faint) !important;
+  filter: none !important;
 }
 
 .report-form[data-kind='bug'] .send-button {
@@ -5221,8 +5475,11 @@ button.gen-count[aria-pressed='true'] {
     overflow: visible;
   }
 
-  .app:is([data-panel='left'], [data-panel='right']) .recipe-list {
+  .app:is([data-panel='left'], [data-panel='right']) .recipe-flow {
     column-width: auto;
+  }
+
+  .app:is([data-panel='left'], [data-panel='right']) .recipe-list {
     padding-bottom: 24px;
   }
 
@@ -5497,8 +5754,11 @@ button.gen-count[aria-pressed='true'] {
   }
 
   .recipe-list {
-    column-width: auto;
     padding-bottom: 24px;
+  }
+
+  .recipe-flow {
+    column-width: auto;
   }
 
   .panel-body.resources > .stack {

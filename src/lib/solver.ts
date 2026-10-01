@@ -1,3 +1,4 @@
+import type { GameRules } from './game';
 import type { Highs } from 'highs';
 import { data, producersOf, recipeById, resourceWeights, type Recipe } from './data';
 import { gridBoost, type Plant, plantClock, plantRecipe, plantSize, plantValid, unitPower } from './power';
@@ -26,7 +27,10 @@ export interface SolveInput {
   enabledRecipes: Set<string>;
   /** Per raw resource cap, per minute. Missing = world limit. */
   resourceCaps: Record<string, number>;
-  objective: 'resources' | 'power';
+  /** The save's part cost and power multipliers; the worker puts them into the game data before solving. */
+  game?: GameRules;
+  /** What to keep down: rare raw resources, power, or the number of machines. */
+  objective: 'resources' | 'power' | 'buildings';
   mods?: Record<string, RecipeMod>;
   /**
    * Raw resources the player pinned to an exact amount. When set, targets keep their ratio but
@@ -295,7 +299,7 @@ function buildModel(input: SolveInput, draw?: Map<string, number>): Model {
       sv.set(id, name);
       const rarity = resourceWeights[id] ?? 1;
       const base = input.equalWeights && rarity > 0 ? 1 : rarity;
-      const w = input.objective === 'power' ? 1e-3 * base : base;
+      const w = input.objective === 'resources' ? base : 1e-3 * base;
       costs.push(`${fmt(Math.max(w, 1e-5))} ${name}`);
       const cap = input.fixed?.[id] ?? input.resourceCaps[id] ?? data.worldLimits[id];
       bounds.push(cap == null ? `${name} >= 0` : `0 <= ${name} <= ${fmt(cap)}`);
@@ -311,7 +315,7 @@ function buildModel(input: SolveInput, draw?: Map<string, number>): Model {
   for (const r of recipes) {
     // Tie-breaker keeps the plan from building machines it doesn't need.
     const p = machinePower(r, modOf(r));
-    const cost = input.objective === 'power' ? p : 1e-4 * p + 1e-4;
+    const cost = input.objective === 'power' ? p : input.objective === 'buildings' ? 1 + 1e-4 * p : 1e-4 * p + 1e-4;
     costs.push(`${fmt(cost)} ${rv.get(r.id)}`);
   }
 
@@ -511,6 +515,41 @@ function solveWith(solver: Highs, input: SolveInput, draw?: Map<string, number>)
  * the most from the pinned amount, so an alternate that needs more of it sits out. Checked by solving the
  * same output again without the pins: only alternates that plan would use are named.
  */
+const machinesOf = (r: SolveResult) => r.recipes.reduce((n, u) => n + u.built, 0);
+
+/**
+ * Fewest buildings, tidied: counting machines in fractions spreads a plan over many recipes each running a sliver
+ * of a machine. Starting from the smallest line, try the plan without that recipe; keep the change when it needs
+ * no more machines, fewer recipes, nothing brought in and makes as much. Each try is one quick solve.
+ */
+export function fewerLines(solver: Highs, input: SolveInput, result: SolveResult): SolveResult {
+  let best = result;
+  const enabled = new Set(input.enabledRecipes);
+  const tried = new Set<string>();
+  for (;;) {
+    const next = best.recipes.filter((u) => u.recipe.kind !== 'power' && !tried.has(u.recipe.id)).sort((a, b) => a.count - b.count)[0];
+    if (!next) return best;
+    tried.add(next.recipe.id);
+    const without = new Set(enabled);
+    without.delete(next.recipe.id);
+    let r: SolveResult;
+    try {
+      r = solve(solver, { ...input, enabledRecipes: without });
+    } catch {
+      continue;
+    }
+    if (
+      r.missing.length === 0 &&
+      Math.abs(r.scale - best.scale) < 1e-6 &&
+      r.recipes.length < best.recipes.length &&
+      machinesOf(r) <= machinesOf(best)
+    ) {
+      best = r;
+      enabled.delete(next.recipe.id);
+    }
+  }
+}
+
 export function heldByPins(solver: Highs, input: SolveInput, result: SolveResult): string[] {
   if (Object.keys(input.fixed ?? {}).length === 0) return [];
   const used = new Set(result.recipes.map((u) => u.recipe.id));

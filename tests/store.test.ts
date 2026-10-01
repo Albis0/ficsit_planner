@@ -45,6 +45,12 @@ describe('saved state', () => {
     expect(mergeState({ equalWeights: 'yes' } as never, current()).equalWeights).toBe(false);
   });
 
+  test('fewest buildings survives a reload; older saves plan for resources', () => {
+    expect(mergeState({ fewestBuildings: true }, current()).fewestBuildings).toBe(true);
+    expect(mergeState({}, current()).fewestBuildings).toBe(false);
+    expect(mergeState({ fewestBuildings: 1 } as never, current()).fewestBuildings).toBe(false);
+  });
+
   test('folded totals stay folded after a reload', () => {
     expect(mergeState({ summaryClosed: true }, current()).summaryClosed).toBe(true);
     expect(mergeState({}, current()).summaryClosed).toBe(false);

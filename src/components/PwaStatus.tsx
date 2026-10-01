@@ -24,12 +24,32 @@ export function InstallButton({ className = 'install-button' }: { className?: st
   );
 }
 
-/** Registers the service worker and says once when everything is cached for offline use. */
+/** How often an open tab asks the site whether there's a newer version. */
+const CHECK_EVERY = 30 * 60 * 1000;
+
+/**
+ * Registers the service worker, says once when everything is cached for offline use, and when a newer version
+ * has downloaded, offers to reload into it. An open tab looks for one every half hour and whenever it comes back
+ * into view, since browsers only look on their own when a page is opened.
+ */
 export function PwaStatus() {
   const { t } = useT();
+  const [later, setLater] = useState(false);
   const {
     offlineReady: [offlineReady, setOfflineReady],
+    needRefresh: [needRefresh],
+    updateServiceWorker,
   } = useRegisterSW({
+    onRegisteredSW(_url, reg) {
+      if (!reg) return;
+      const check = () => {
+        if (navigator.onLine && !reg.installing) reg.update().catch(() => {});
+      };
+      setInterval(check, CHECK_EVERY);
+      document.addEventListener('visibilitychange', () => {
+        if (document.visibilityState === 'visible') check();
+      });
+    },
     // Private windows and some browsers refuse service workers; the app still works, just not offline.
     onRegisterError: () => {},
   });
@@ -38,6 +58,19 @@ export function PwaStatus() {
     const timer = setTimeout(() => setOfflineReady(false), 6000);
     return () => clearTimeout(timer);
   }, [offlineReady, setOfflineReady]);
+  if (needRefresh && !later) {
+    return (
+      <div className="toast" role="status">
+        <span>{t('newVersion')}</span>
+        <button type="button" className="text-button" onClick={() => updateServiceWorker(true)}>
+          {t('reloadNow')}
+        </button>
+        <button type="button" className="text-button quiet" onClick={() => setLater(true)}>
+          {t('later')}
+        </button>
+      </div>
+    );
+  }
   if (!offlineReady) return null;
   return (
     <div className="toast" role="status">

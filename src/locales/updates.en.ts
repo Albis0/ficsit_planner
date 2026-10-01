@@ -6,6 +6,29 @@ export type UpdateKind = 'added' | 'fixed' | 'changed';
 
 export const UPDATES: { version: string; date: string; notes: [UpdateKind, string][] }[] = [
   {
+    version: '0.12.4',
+    date: '2026-10-01',
+    notes: [
+      [
+        'added',
+        'Settings › Game settings: part cost, power use and Space Elevator multipliers, for saves started with them. Thanks to u/pdavis41, u/TheThiefMaster and u/PhiladelphiaCollins8.',
+      ],
+      ['added', 'Select a machine to tick or untick the other recipes for what it makes. Thanks to u/Aeri73.'],
+      ['added', 'Resources: Fewest buildings (beta), a third way to optimize. Thanks to u/a__gun.'],
+      ['fixed', 'A line whose belts or pipes would overflow says how to build it in groups, like 6 + 4 blenders.'],
+      ['added', 'Resources: enter the nodes you have, like one pure and one impure, and extractors use the best first.'],
+      ['added', 'Click a belt’s label to see which machines it joins.'],
+      ['added', 'List view: point at a line to see where its inputs come from and where its outputs go.'],
+      [
+        'fixed',
+        'Recipes: the list scrolls down instead of sideways, and cards no longer split between columns. Thanks to u/Aeri73 and kozmo403.',
+      ],
+      ['changed', 'Belts turn through rounded corners and fan out smoothly from a machine.'],
+      ['changed', 'A new version waits for you to press Reload instead of loading on its own.'],
+      ['changed', 'Feedback: the Send button says what\u2019s still missing.'],
+    ],
+  },
+  {
     version: '0.12.2',
     date: '2026-10-01',
     notes: [

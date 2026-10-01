@@ -1,12 +1,20 @@
 import { useMemo, useState } from 'react';
 import { data, rawItems } from '../lib/data';
-import { effectiveExtraction, MINERS, PURITIES, planExtraction } from '../lib/extraction';
+import {
+  type ExtractionSettings,
+  type ExtractionUse,
+  effectiveExtraction,
+  MINERS,
+  PURITIES,
+  type Purity,
+  planExtraction,
+} from '../lib/extraction';
 import { useT } from '../lib/i18n';
 import { minerLabel } from '../lib/text';
 import { plantRecipe, plantValid } from '../lib/power';
 import { reachableRaw, useExports, usableRecipes } from '../lib/solution';
 import type { SolveResult } from '../lib/solver';
-import { activePowerPlan, usePlan, useStore } from '../store';
+import { activePowerPlan, aimOf, usePlan, useStore } from '../store';
 import { Icon } from './Icon';
 import { RateInput } from './RateInput';
 import { Slot } from './Slot';
@@ -19,7 +27,7 @@ export function ResourcesPanel({ result }: { result?: SolveResult }) {
   const setCap = useStore((s) => s.setCap);
   const updatePlan = useStore((s) => s.updatePlan);
   const tier = useStore((s) => s.tier);
-  const equal = useStore((s) => s.equalWeights);
+  const aim = useStore(aimOf);
   const set = useStore((s) => s.set);
   const ex = effectiveExtraction(plan.extraction, tier);
   const setEx = (patch: Partial<typeof ex>) => updatePlan({ extraction: { ...ex, ...patch } });
@@ -91,11 +99,25 @@ export function ResourcesPanel({ result }: { result?: SolveResult }) {
         <div className="field" title={t('resourceCostHint')}>
           <span className="control-label">{t('resourceCost')}</span>
           <div className="segmented wide" role="radiogroup" aria-label={t('resourceCost')}>
-            <button type="button" role="radio" aria-checked={!equal} onClick={() => set({ equalWeights: false })}>
+            <button
+              type="button"
+              role="radio"
+              aria-checked={aim === 'rarity'}
+              onClick={() => set({ equalWeights: false, fewestBuildings: false })}
+            >
               {t('byRarity')}
             </button>
-            <button type="button" role="radio" aria-checked={equal} onClick={() => set({ equalWeights: true })}>
+            <button
+              type="button"
+              role="radio"
+              aria-checked={aim === 'equal'}
+              onClick={() => set({ equalWeights: true, fewestBuildings: false })}
+            >
               {t('allEqual')}
+            </button>
+            <button type="button" role="radio" aria-checked={aim === 'buildings'} onClick={() => set({ fewestBuildings: true })}>
+              {t('fewestBuildings')}
+              <span className="beta-tag">{t('beta')}</span>
             </button>
           </div>
         </div>
@@ -126,27 +148,7 @@ export function ResourcesPanel({ result }: { result?: SolveResult }) {
                     <div className="meter" aria-hidden>
                       <span style={{ width: `${share * 100}%` }} className={share > 0.999 ? 'full' : undefined} />
                     </div>
-                    <div className="extract-row">
-                      <Icon id={use.extractor.id} size={28} />
-                      <span className="extract-name">{name(use.extractor)}</span>
-                      {use.extractor.purity ? (
-                        PURITIES.map((p) => (
-                          <span key={p} className={`extract-count ${p === ex.purity ? 'chosen' : ''}`} title={t(p)}>
-                            <b>{use.counts[p]}</b>
-                            <small>{t(p)}</small>
-                          </span>
-                        ))
-                      ) : (
-                        <span className="extract-count chosen">
-                          <b>{use.built}</b>
-                        </span>
-                      )}
-                      {use.shards > 0 && (
-                        <span className="mod-badge shard" title={`${Math.round(use.clock * 1000) / 10}%`}>
-                          {use.shards} ◆
-                        </span>
-                      )}
-                    </div>
+                    <ExtractRow item={item.id} use={use} ex={ex} setEx={setEx} />
                   </>
                 )}
               </div>
@@ -161,5 +163,104 @@ export function ResourcesPanel({ result }: { result?: SolveResult }) {
         {usesWell && <p className="hint">{t('wellNote')}</p>}
       </section>
     </div>
+  );
+}
+
+/** More than any map has of one purity (50 at most in the base game), with room for modded maps; three digits fit the box. */
+const MAX_NODES = 999;
+
+/**
+ * The extractors a resource needs: how many on each node purity, or, with the player's own nodes set, how many go on
+ * each. Setting them puts a box under each purity's count, so the numbers line up in any card width.
+ */
+function ExtractRow({
+  item,
+  use,
+  ex,
+  setEx,
+}: {
+  item: string;
+  use: ExtractionUse;
+  ex: ExtractionSettings;
+  setEx: (patch: Partial<ExtractionSettings>) => void;
+}) {
+  const { t, name } = useT();
+  const mine = ex.nodes?.[item];
+  const [open, setOpen] = useState(false);
+  const editing = use.extractor.purity && (open || !!mine);
+  const save = (next: Partial<Record<Purity, number>> | undefined) => {
+    const nodes = { ...ex.nodes };
+    if (next && Object.keys(next).length) nodes[item] = next;
+    else delete nodes[item];
+    setEx({ nodes: Object.keys(nodes).length ? nodes : undefined });
+  };
+  const put = (p: Purity, n: number | undefined) => {
+    const next = { ...mine, [p]: n && n >= 1 ? Math.min(MAX_NODES, Math.floor(n)) : undefined };
+    for (const k of PURITIES) if (!next[k]) delete next[k];
+    save(next);
+  };
+  return (
+    <>
+      <div className="extract-row">
+        <Icon id={use.extractor.id} size={28} />
+        <span className="extract-name">{name(use.extractor)}</span>
+        {use.extractor.purity ? (
+          PURITIES.map((p) => (
+            <span
+              key={p}
+              className={`extract-count ${(use.onNodes ? use.onNodes.placed[p] > 0 : p === ex.purity) ? 'chosen' : ''}`}
+              title={t(p)}
+            >
+              <b>{use.onNodes ? use.onNodes.placed[p] : use.counts[p]}</b>
+              <small>{t(p)}</small>
+              {editing && (
+                <span className="node-count">
+                  <RateInput
+                    value={mine?.[p] ?? Number.NaN}
+                    placeholder="0"
+                    label={`${t('yourNodes')}, ${t(p)}: ${name(data.items[item])}`}
+                    max={MAX_NODES}
+                    onChange={(v) => put(p, v)}
+                    onClear={() => put(p, undefined)}
+                  />
+                </span>
+              )}
+            </span>
+          ))
+        ) : (
+          <span className="extract-count chosen">
+            <b>{use.built}</b>
+          </span>
+        )}
+        {use.shards > 0 && (
+          <span className="mod-badge shard" title={`${Math.round(use.clock * 1000) / 10}%`}>
+            {use.shards} ◆
+          </span>
+        )}
+      </div>
+      {use.extractor.purity &&
+        (editing ? (
+          <p className="nodes-line">
+            <span>{t('nodesInBoxes')}</span>
+            <button
+              type="button"
+              className="text-button"
+              onClick={() => {
+                save(undefined);
+                setOpen(false);
+              }}
+            >
+              {t('clearNodes')}
+            </button>
+          </p>
+        ) : (
+          <button type="button" className="text-button set-nodes" onClick={() => setOpen(true)}>
+            {t('setNodes')}
+          </button>
+        ))}
+      {use.onNodes && use.onNodes.extra > 0 && (
+        <p className="hint nodes-short">{t('nodesShort', { n: use.onNodes.extra, purity: t(ex.purity).toLowerCase() })}</p>
+      )}
+    </>
   );
 }

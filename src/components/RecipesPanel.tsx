@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { data, recipeTier, recipeUnlocked, type Recipe, type RecipeKind, type Stack } from '../lib/data';
 import { useT } from '../lib/i18n';
 import { recipeLabel, searchKey } from '../lib/text';
@@ -63,6 +63,73 @@ export function RecipesPanel() {
   }, [on]);
 
   const stacks = (list: Stack[]) => list.map((s) => <Slot key={s.item} id={s.item} rate={s.rate} size={46} />);
+
+  // A card that a product's list carries over to the top of the next column lines up with the cards under the
+  // headings beside it, instead of sitting a heading higher.
+  const list = useRef<HTMLDivElement>(null);
+  useLayoutEffect(() => {
+    const box = list.current;
+    if (!box) return;
+    const align = () => {
+      const conts = [...box.querySelectorAll<HTMLElement>('.recipe-cont')];
+      for (const c of conts) c.style.paddingTop = '';
+      const lead = box.querySelector<HTMLElement>('.recipe-lead');
+      const card = lead?.querySelector<HTMLElement>('.recipe-row');
+      if (!lead || !card || getComputedStyle(box).columnWidth === 'auto') return;
+      const gap = Number.parseFloat(getComputedStyle(card).marginTop) || 0;
+      const drop = card.getBoundingClientRect().top - lead.getBoundingClientRect().top - gap;
+      const top = () => box.getBoundingClientRect().top;
+      // Pushing one card down can carry another to a column top; a few passes settle it.
+      for (let pass = 0; pass < 4; pass++) {
+        const t = top();
+        const fresh = conts.filter((c) => !c.style.paddingTop && Math.abs(c.getBoundingClientRect().top - t) < 2);
+        if (fresh.length === 0) break;
+        for (const c of fresh) c.style.paddingTop = `${drop}px`;
+      }
+    };
+    align();
+    const watch = new ResizeObserver(align);
+    watch.observe(box);
+    return () => watch.disconnect();
+  });
+
+  const row = (r: Recipe) => {
+    const locked = !recipeUnlocked(r, tier);
+    return (
+      <label
+        key={r.id}
+        className={`recipe-row ${on.has(r.id) ? 'on' : ''} ${locked ? 'locked' : ''}`}
+        title={locked ? t('needsTier', { tier: recipeTier(r) }) : undefined}
+      >
+        <input type="checkbox" checked={on.has(r.id)} disabled={locked} onChange={() => toggle(r.id)} />
+        <span className="recipe-main">
+          <span className="recipe-name">
+            {recipeLabel(name(r), r.kind)}
+            {r.kind !== 'standard' && <span className={`kind ${r.kind}`}>{t(r.kind)}</span>}
+            {(r.tier !== undefined || r.kind === 'alternate') && (
+              <span className="recipe-tier" title={locked ? t('aboveTier') : undefined}>
+                T{recipeTier(r)}
+              </span>
+            )}
+          </span>
+          <span className="recipe-io">
+            <span className="io-in">{stacks(r.inputs)}</span>
+            <span className="io-arrow" aria-hidden>
+              ›
+            </span>
+            <span className="io-out">{stacks(r.outputs)}</span>
+          </span>
+          <span className="recipe-machine">
+            <Icon id={r.machine} size={20} />
+            {name(data.machines[r.machine])}
+            <span className="recipe-duration">
+              {num(r.duration)} {t('seconds')}
+            </span>
+          </span>
+        </span>
+      </label>
+    );
+  };
 
   return (
     <div className="panel-body recipes">
@@ -133,51 +200,26 @@ export function RecipesPanel() {
             </button>
           </p>
         )}
-        {groups.map(([item, rs]) => (
-          <section key={item} className="recipe-group">
-            <h3 className="section-title with-icon">
-              <Icon id={item} size={22} />
-              {name(data.items[item])}
-            </h3>
-            {rs.map((r) => {
-              const locked = !recipeUnlocked(r, tier);
-              return (
-                <label
-                  key={r.id}
-                  className={`recipe-row ${on.has(r.id) ? 'on' : ''} ${locked ? 'locked' : ''}`}
-                  title={locked ? t('needsTier', { tier: recipeTier(r) }) : undefined}
-                >
-                  <input type="checkbox" checked={on.has(r.id)} disabled={locked} onChange={() => toggle(r.id)} />
-                  <span className="recipe-main">
-                    <span className="recipe-name">
-                      {recipeLabel(name(r), r.kind)}
-                      {r.kind !== 'standard' && <span className={`kind ${r.kind}`}>{t(r.kind)}</span>}
-                      {(r.tier !== undefined || r.kind === 'alternate') && (
-                        <span className="recipe-tier" title={locked ? t('aboveTier') : undefined}>
-                          T{recipeTier(r)}
-                        </span>
-                      )}
-                    </span>
-                    <span className="recipe-io">
-                      <span className="io-in">{stacks(r.inputs)}</span>
-                      <span className="io-arrow" aria-hidden>
-                        ›
-                      </span>
-                      <span className="io-out">{stacks(r.outputs)}</span>
-                    </span>
-                    <span className="recipe-machine">
-                      <Icon id={r.machine} size={20} />
-                      {name(data.machines[r.machine])}
-                      <span className="recipe-duration">
-                        {num(r.duration)} {t('seconds')}
-                      </span>
-                    </span>
-                  </span>
-                </label>
-              );
-            })}
-          </section>
-        ))}
+        {/* Columns as many as fit across, as tall as they need: the list scrolls down, never sideways. */}
+        <div className="recipe-flow" ref={list}>
+          {groups.map(([item, rs]) => (
+            <section key={item} className="recipe-group">
+              {/* The heading and the first card stay together, so a heading never ends a column on its own. */}
+              <div className="recipe-lead">
+                <h3 className="section-title with-icon">
+                  <Icon id={item} size={22} />
+                  {name(data.items[item])}
+                </h3>
+                {row(rs[0])}
+              </div>
+              {rs.slice(1).map((r) => (
+                <div key={r.id} className="recipe-cont">
+                  {row(r)}
+                </div>
+              ))}
+            </section>
+          ))}
+        </div>
         {(hidden > 0 || showLocked) && (
           <p className="hint locked-note">
             {!showLocked && `${t('lockedHidden', { n: hidden })} `}

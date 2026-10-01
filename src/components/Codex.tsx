@@ -29,6 +29,7 @@ import { fuelRate } from '../lib/power';
 import { recipeLabel, searchKey } from '../lib/text';
 import { useStore } from '../store';
 import { BUILDING_NOTES, ITEM_NOTES } from '../locales/codex-notes.en';
+import { elevatorAmount } from '../lib/game';
 import { versusStandard } from '../lib/insights';
 import { shardsFor } from '../lib/solver';
 import { GuidePage } from './CodexGuides';
@@ -625,6 +626,7 @@ export function phaseOpens(p: Phase, index: CodexIndex, t: ReturnType<typeof use
 /** An alternate's whole line next to the standard recipe's: what it saves and what it costs. */
 function AltVerdict({ recipe, index }: { recipe: Recipe; index: CodexIndex }) {
   const { t } = useT();
+  const partCost = useStore((s) => s.settings.game.parts);
   const item = recipe.outputs[0].item;
   const insight = index.data.insights.items[item];
   const vs = versusStandard(insight, recipe.id);
@@ -649,6 +651,7 @@ function AltVerdict({ recipe, index }: { recipe: Recipe; index: CodexIndex }) {
       <p className="hint">
         {t('compareNote', { rate: `${insight.line.rate}${data.items[item]?.form !== 'solid' ? t('m3PerMin') : t('perMin')}` })}
       </p>
+      {partCost !== 1 && <p className="hint">{t('comparePartsNote')}</p>}
     </Section>
   );
 }
@@ -656,6 +659,7 @@ function AltVerdict({ recipe, index }: { recipe: Recipe; index: CodexIndex }) {
 /** The Space Elevator's phases: what each asks for, and the tiers it opens. */
 export function PhaseList({ index }: { index: CodexIndex }) {
   const { t } = useT();
+  const game = useStore((s) => s.settings.game);
   return (
     <div className="codex-phases">
       {index.data.phases.map((p) => {
@@ -665,7 +669,7 @@ export function PhaseList({ index }: { index: CodexIndex }) {
               <b>{t('phaseN', { n: p.phase })}</b>
               <span>{phaseOpens(p, index, t)}</span>
             </div>
-            <Amounts list={p.cost} index={index} />
+            <Amounts list={p.cost.map((c) => ({ ...c, amount: elevatorAmount(c.amount, game) }))} index={index} />
           </div>
         );
       })}
@@ -817,6 +821,7 @@ function ItemPage({ id, index }: { id: string; index: CodexIndex }) {
   const { t, num } = useT();
   const buildFactory = useStore((s) => s.buildFactory);
   const buildPlant = useStore((s) => s.buildPlant);
+  const game = useStore((s) => s.settings.game);
   const it = index.data.items[id];
   if (!it) return <p className="hint">{t('codexMissing')}</p>;
   const planned = data.items[id];
@@ -849,7 +854,9 @@ function ItemPage({ id, index }: { id: string; index: CodexIndex }) {
   // Sink points for every raw resource the whole line takes: which parts are worth making just to sink.
   if (it.sink && line && line.rawTotal > 0 && line.missing.length === 0)
     stats.push([t('statPointsPerRaw'), num(Math.round(((it.sink * line.rate) / line.rawTotal) * 10) / 10)]);
-  const phases = index.data.phases.flatMap((p) => p.cost.filter((c) => c.item === id).map((c) => ({ phase: p, amount: c.amount })));
+  const phases = index.data.phases.flatMap((p) =>
+    p.cost.filter((c) => c.item === id).map((c) => ({ phase: p, amount: elevatorAmount(c.amount, game) })),
+  );
   const note = ITEM_NOTES[id];
 
   return (

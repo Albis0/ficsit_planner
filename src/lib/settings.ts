@@ -1,3 +1,4 @@
+import { DEFAULT_GAME, type GameRules } from './game';
 /** Where the panel (targets, recipes, resources) sits around the factory floor. */
 export type PanelSide = 'top' | 'left' | 'right';
 
@@ -36,6 +37,8 @@ export interface Settings {
   font: FontId;
   /** The strip of totals over the floor: compact, or large figures. */
   summary: 'compact' | 'full';
+  /** The save's own multipliers for part costs, power draw and the Space Elevator. */
+  game: GameRules;
 }
 
 export type FontId = 'satisfactory' | 'poppins' | 'inter' | 'rajdhani' | 'barlow';
@@ -80,6 +83,7 @@ export const DEFAULT_SETTINGS: Settings = {
   motion: 'system',
   font: 'satisfactory',
   summary: 'compact',
+  game: DEFAULT_GAME,
 };
 
 export const LIMITS = {
@@ -125,7 +129,11 @@ export function accentOnDark(hex: string): string {
 /** Whether two sets of settings are the same, colour by colour. */
 export function sameSettings(a: Settings, b: Settings): boolean {
   return (Object.keys(DEFAULT_SETTINGS) as (keyof Settings)[]).every((k) =>
-    k === 'colors' ? (Object.keys(DEFAULT_COLORS) as (keyof Colors)[]).every((c) => a.colors[c] === b.colors[c]) : a[k] === b[k],
+    k === 'colors'
+      ? (Object.keys(DEFAULT_COLORS) as (keyof Colors)[]).every((c) => a.colors[c] === b.colors[c])
+      : k === 'game'
+        ? (Object.keys(DEFAULT_GAME) as (keyof GameRules)[]).every((g) => a.game[g] === b.game[g])
+        : a[k] === b[k],
   );
 }
 

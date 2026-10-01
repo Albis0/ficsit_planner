@@ -53,20 +53,20 @@ Coded with AI. What changed lately is under **Settings › Updates** in the app,
 
 - <img src="public/icons/Desc_ModularFrame_C.webp" width="28" height="28" align="top" alt="Modular Frame"> **Targets and tabs.** Any number of products per factory, each at its own rate. Factories are tabs you can rename, duplicate and delete. Everything is saved in the browser.
 - <img src="public/icons/Desc_IronPlate_C.webp" width="28" height="28" align="top" alt="Iron Plate"> **On-hand items.** Parts that arrive from elsewhere (another factory, a train). The planner uses them instead of making them.
-- <img src="public/icons/Build_AssemblerMk1_C.webp" width="28" height="28" align="top" alt="Assembler"> **Recipes.** Standard, alternate and converter recipes, grouped by product, each one on or off, with a search at the top. When something can't be made, the planner says why (the tier that unlocks it, or the recipe that's off) and offers the fix.
+- <img src="public/icons/Build_AssemblerMk1_C.webp" width="28" height="28" align="top" alt="Assembler"> **Recipes.** Standard, alternate and converter recipes, grouped by product, each one on or off, with a search at the top. Selecting a machine lists the other recipes for what it makes, to tick from there. When something can't be made, the planner says why (the tier that unlocks it, or the recipe that's off) and offers the fix.
 - <img src="public/icons/Desc_SpaceElevatorPart_2_C.webp" width="28" height="28" align="top" alt="Versatile Framework"> **Tier.** You pick the highest tier you've unlocked. Recipes, buildings, belts and miners above it are left out and hidden from the recipe list. An alternate also waits for the tier that makes its parts.
-- <img src="public/icons/Desc_OreIron_C.webp" width="28" height="28" align="top" alt="Iron Ore"> **Resource limits and cost.** A per-minute cap for each raw resource; empty means the whole map's supply. The plan spares scarce resources first, or, with **All equal**, counts every resource the same (for mods that let you build nodes anywhere).
+- <img src="public/icons/Desc_OreIron_C.webp" width="28" height="28" align="top" alt="Iron Ore"> **Resource limits and what to optimize.** A per-minute cap for each raw resource; empty means the whole map's supply. The plan spares scarce resources first, or, with **All equal**, counts every resource the same (for mods that let you build nodes anywhere), or, with **Fewest buildings**, needs as few machines and recipes as it can.
 - <img src="public/icons/Desc_Coal_C.webp" width="28" height="28" align="top" alt="Coal"> **Pinned inputs.** Type the amount of a raw resource you actually have into the totals strip, and the targets scale to it. If that keeps a ticked alternate out of the plan, the planner names it.
 - <img src="public/icons/Desc_CrystalShard_C.webp" width="28" height="28" align="top" alt="Power Shard"> **Machines and clocks.** Select a machine to set how many there are or their clock speed. Power uses the game's formula. Overclocked lines use as few power shards as possible.
 - <img src="public/icons/Desc_WAT1_C.webp" width="28" height="28" align="top" alt="Somersloop"> **Somersloops and shards.** Set them per machine, or enter how many you own and let the planner place them (**Auto place** or **Use all**).
-- <img src="public/icons/Build_MinerMk2_C.webp" width="28" height="28" align="top" alt="Miner Mk.2"> **Extraction.** Miner mark, node purity and extractor clock decide how many miners and pumps each resource needs, and their power.
-- <img src="public/icons/Build_ConveyorBeltMk5_C.webp" width="28" height="28" align="top" alt="Conveyor Belt Mk.5"> **Graph and list.** The graph runs left to right or top to bottom, colours belts by tier and splits a flow over more belts when one isn't enough. **Fit to screen** shows even the biggest factory whole. The list shows every recipe and the build cost. The totals over the floor fold away to one line.
+- <img src="public/icons/Build_MinerMk2_C.webp" width="28" height="28" align="top" alt="Miner Mk.2"> **Extraction.** Miner mark, node purity and extractor clock decide how many miners and pumps each resource needs, and their power. Enter the nodes you actually have (say one pure and one impure) and extractors go on the best of them first.
+- <img src="public/icons/Build_ConveyorBeltMk5_C.webp" width="28" height="28" align="top" alt="Conveyor Belt Mk.5"> **Graph and list.** The graph runs left to right or top to bottom, colours belts by tier and splits a flow over more belts when one isn't enough. A line whose belts or pipes would overflow says how to build it in groups (6 + 4 blenders, say). **Fit to screen** shows even the biggest factory whole. The list shows every recipe and the build cost; pointing at a line lights up where its inputs come from and where its outputs go. The totals over the floor fold away to one line.
 - <img src="public/icons/Build_GeneratorNuclear_C.webp" width="28" height="28" align="top" alt="Nuclear Power Plant"> **Power planner.** Power plants are tabs too and can mix generators. Size one by the fuel you have, the MW you want or the factories it runs. The fuel chain, water, nuclear waste, augmenters and Power Storage are counted.
 - <img src="public/icons/Desc_HardDrive_C.webp" width="28" height="28" align="top" alt="Hard Drive"> **Codex.** Parts, resources, buildings, vehicles, equipment, milestones, MAM research, alternate recipes and the AWESOME Shop, with the game's descriptions, plus creatures, world finds and crash sites. Every part shows its whole production line and how each of its recipes compares; every alternate is ranked against the standard recipe. Guides cover getting started, the Space Elevator, power, oil and nuclear. **Build this factory** opens a factory for any part.
 - <img src="public/icons/Build_MinerMk3_C.webp" width="28" height="28" align="top" alt="Miner Mk.3"> **World map.** All 459 resource nodes, 118 well nodes and 31 geysers on the game's map, filtered by resource and purity. Pressing a node shows what each miner or extractor gets from it. Somersloops, Mercer Spheres, power slugs, crash sites, plants and creature spawns can be turned on too.
 - <img src="public/icons/Desc_FreightWagon_C.webp" width="28" height="28" align="top" alt="Freight Wagon"> **Linked factories.** A factory can take an item from another factory tab, which then makes it on top of its own products.
 - <img src="public/icons/Desc_ModularFrameLightweight_C.webp" width="28" height="28" align="top" alt="Radio Control Unit"> **Share links.** The **Share** button copies a link that contains the factory (and the power plants that run it). Opening it adds a copy as a new tab. Nothing is uploaded.
-- <img src="public/icons/Desc_CircuitBoard_C.webp" width="28" height="28" align="top" alt="Circuit Board"> **Settings.** Panel position, card and text size, spacing, belt labels, colours, interface size, decimals and animations. Save all factories and settings to a file and load them back. **Help** explains the terms on screen, **Updates** lists what changed.
+- <img src="public/icons/Desc_CircuitBoard_C.webp" width="28" height="28" align="top" alt="Circuit Board"> **Settings.** Panel position, card and text size, spacing, belt labels, colours, interface size, decimals and animations. **Game settings** take your save's part cost, power use and Space Elevator multipliers. Save all factories and settings to a file and load them back. **Help** explains the terms on screen, **Updates** lists what changed.
 - <img src="public/icons/Desc_CrystalOscillator_C.webp" width="28" height="28" align="top" alt="Crystal Oscillator"> **Feedback.** Bug reports and ideas from inside the app, optionally with the factory on screen.
 - <img src="public/icons/BP_ItemDescriptorPortableMiner_C.webp" width="28" height="28" align="top" alt="Portable Miner"> **Phones and offline.** Installs as an app and works offline. On phones there is one pane at a time and a bottom bar.
 
@@ -144,7 +144,9 @@ See [CONTRIBUTING.md](CONTRIBUTING.md) for code style and what to check before a
   player's limit, or by the world limit when there is none.
 - **Objective:** minimise raw use weighted by scarcity (iron's world limit ÷ the resource's limit; with **All
   equal** every resource but water weighs 1), plus a tiny
-  machine-power term so it never builds machines it doesn't need. Missing items cost 10⁵ each, so they only appear
+  machine-power term so it never builds machines it doesn't need. With **Fewest buildings** each machine costs 1
+  instead and raw use only breaks ties; a count in fractions spreads the plan over many recipes running a sliver
+  each, so the worker then drops recipes smallest line first, keeping each drop that needs no more machines. Missing items cost 10⁵ each, so they only appear
   when nothing else works. The solver can also minimise power instead; the app doesn't offer it, because with
   standard recipes both goals nearly always pick the same factory.
 - **Power plants** join the model as stand-in recipes: one "machine" is one generator at its clock, taking its
@@ -156,6 +158,10 @@ See [CONTRIBUTING.md](CONTRIBUTING.md) for code style and what to check before a
   output without the pins, finds the ticked alternates the pins keep out, so the app can name them.
 - **Shadow prices** of the item rows give the marginal raw cost of each item. Auto place uses them to send
   somersloops to the machines whose inputs are most expensive.
+- **Game settings** change the recipes before the model is built (`src/lib/game.ts`): solid inputs are multiplied
+  per craft and rounded half up to whole items (never below one), fluids are multiplied as they are, and recipes that
+  take or make packaged fluids keep their numbers. Power use multiplies what machines and extractors draw. The worker
+  applies the same multipliers to its own copy of the data with every request.
 - **Failures** come back as codes (`infeasible`, `pinnedInfeasible`, `stopped`), and the UI shows them as text in
   the current language.
 
@@ -170,7 +176,9 @@ the belt count low. dagre lays the graph out left to right, or top to bottom on 
 | `src/lib/solver.ts` | LP model, solve, somersloop/shard auto placement |
 | `src/lib/solver.worker.ts`, `solverClient.ts` | the solver in a Web Worker, and its promise API |
 | `src/lib/graph.ts` | solution → nodes and belts; layout tries both directions and three rankings, keeps the one that fits the screen with the fewest crossings, and routes belts through space kept for their labels |
-| `src/lib/extraction.ts` | miner and pump counts per node purity, and their MW per unit for the power planner |
+| `src/lib/extraction.ts` | miner and pump counts per node purity (or on the player's own nodes), and their MW per unit for the power planner |
+| `src/lib/groups.ts` | how to split a line into groups whose belts and pipes each fit |
+| `src/lib/game.ts` | the save's part cost, power and Space Elevator multipliers |
 | `src/lib/power.ts`, `src/lib/solution.ts` | generators as solver recipes, and the hooks that solve factories and power plants |
 | `src/lib/settings.ts`, `src/lib/backup.ts` | settings and the CSS variables they set; save and load a copy |
 | `src/lib/feedback.ts`, `src/lib/feedback-schema.ts`, `functions/api/report.ts` | the feedback window's request, its checks, and the endpoint that stores it |
@@ -192,7 +200,7 @@ the belt count low. dagre lays the graph out left to right, or top to bottom on 
 | `tools/icon-extractor/` | .NET icon extractor |
 | `tools/map-extractor/`, `scripts/extract-map.mjs` | .NET world reader (resource nodes, the map picture) and the script that tiles the map |
 | `src/lib/world.ts`, `src/components/WorldMap.tsx`, `src/components/MapNav.tsx` | the world map: node data, the map (Leaflet), its filter |
-| `tests/` | solver, hand-checked production lines (`golden`), random plans (`fuzz`), extraction, auto placement, graph layout, unlock tiers, Codex insights, saved state and string tests |
+| `tests/` | solver, hand-checked production lines (`golden`), random plans (`fuzz`), extraction and your own nodes, build groups, game multipliers, auto placement, graph layout, unlock tiers, Codex insights, saved state (with a 0.12 save that every later version must still load, `fixtures/`), feedback bans and string tests |
 | `e2e/` | the screen sweep (`sweep.mjs`, `checks.js`) and the screenshot comparison (`visual.mjs`, `baseline/`) |
 | `docs/manual-test.md` | a click-through checklist for testing the app by hand before a release |
 

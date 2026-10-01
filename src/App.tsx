@@ -22,6 +22,7 @@ import { TableView } from './components/TableView';
 import { TargetsPanel } from './components/TargetsPanel';
 import { TierDialog } from './components/TierPicker';
 import { effectiveExtraction, planExtraction } from './lib/extraction';
+import { applyGame } from './lib/game';
 import type { Consumer } from './lib/graph';
 import { useT } from './lib/i18n';
 import { plantIdOf, plantSize, plantUnlocked, plantValid } from './lib/power';
@@ -33,7 +34,7 @@ import { failureText } from './lib/solveFailure';
 import { fold } from './lib/fold';
 import { useMediaQuery } from './lib/useMediaQuery';
 import { LATEST_UPDATE } from './locales/updates.en';
-import { activePowerPlan, usePlan, useStore } from './store';
+import { activePowerPlan, aimOf, usePlan, useStore } from './store';
 
 // Folding the panel moves the app's grid tracks: above the floor a row, beside it a column.
 const GRID = ['gridTemplateRows', 'gridTemplateColumns'] as const;
@@ -48,7 +49,10 @@ const WorldMap = lazy(() => import('./components/WorldMap'));
 function useSolutions() {
   const mode = useStore((s) => s.mode);
   const tier = useStore((s) => s.tier);
-  const equal = useStore((s) => s.equalWeights);
+  const aim = useStore(aimOf);
+  const game = useStore((s) => s.settings.game);
+  // The floor, the table and the Codex read the same recipes the worker solves with.
+  applyGame(game);
   const plan = useStore((s) => s.plans.find((p) => p.id === s.active) ?? s.plans[0]);
   const pp = useStore(activePowerPlan);
   const draws = useFactoryDraws(mode === 'power');
@@ -58,21 +62,21 @@ function useSolutions() {
   const { targets, supplies, enabled, caps, mods, fixed } = plan;
   const exports = useExports(plan.id);
   const factoryIn = useMemo(
-    () => factoryInput({ targets, supplies, enabled, caps, mods, fixed }, tier, exports, equal),
-    [targets, supplies, enabled, caps, mods, fixed, tier, exports, equal],
+    () => factoryInput({ targets, supplies, enabled, caps, mods, fixed }, tier, exports, aim, game),
+    [targets, supplies, enabled, caps, mods, fixed, tier, exports, aim, game],
   );
   // Sized to what you have with nothing listed yet: nothing to solve, the floor asks for the list.
   const powerIn = useMemo(
     () =>
       sizeBy === 'have' && have.length === 0
         ? undefined
-        : powerInput({ plants, sizeBy, have, headroom, ownLoad, chain }, load.demand, tier, equal),
-    [plants, sizeBy, have, headroom, ownLoad, chain, load.demand, tier, equal],
+        : powerInput({ plants, sizeBy, have, headroom, ownLoad, chain }, load.demand, tier, aim, game),
+    [plants, sizeBy, have, headroom, ownLoad, chain, load.demand, tier, aim, game],
   );
   // Sized to what you have: the same plant making a set 1,000 MW shows what its fuel is made from.
   const probeIn = useMemo(
-    () => (sizeBy === 'have' ? powerInput({ plants, sizeBy: 'want', have, headroom, ownLoad, chain }, 1000, tier, equal) : undefined),
-    [plants, sizeBy, have, headroom, ownLoad, chain, tier, equal],
+    () => (sizeBy === 'have' ? powerInput({ plants, sizeBy: 'want', have, headroom, ownLoad, chain }, 1000, tier, aim, game) : undefined),
+    [plants, sizeBy, have, headroom, ownLoad, chain, tier, aim, game],
   );
   const factory = useSolve(factoryIn, mode === 'factory');
   const power = useSolve(powerIn, mode === 'power');

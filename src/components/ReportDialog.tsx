@@ -64,13 +64,15 @@ const AREAS = ['areaGraph', 'areaPower', 'areaRecipes', 'areaResources', 'areaCo
 export function ReportDialog({ onClose }: { onClose: () => void }) {
   const { t } = useT();
   const [draft, setDraft] = useState<Draft>(loadDraft);
-  const [state, setState] = useState<
-    { step: 'edit' } | { step: 'sending' } | { step: 'sent'; id: number } | { step: 'failed'; why: string }
-  >({
+  const [state, setState] = useState<{ step: 'edit' } | { step: 'sending' } | { step: 'sent' } | { step: 'failed'; why: string }>({
     step: 'edit',
   });
   const [honey, setHoney] = useState('');
   const [peek, setPeek] = useState(false);
+  // A field says what it still needs once it has been typed in and left, or after a send with it too short.
+  const [tried, setTried] = useState(false);
+  const [left, setLeft] = useState({ title: false, body: false });
+  const leave = (k: 'title' | 'body') => () => setLeft((l) => (l[k] ? l : { ...l, [k]: true }));
   const ids = { title: useId(), body: useId(), steps: useId(), contact: useId() };
 
   useEffect(() => {
@@ -79,7 +81,9 @@ export function ReportDialog({ onClose }: { onClose: () => void }) {
 
   const bug = draft.kind === 'bug';
   const put = (patch: Partial<Draft>) => setDraft((d) => ({ ...d, ...patch }));
-  const valid = draft.title.trim().length >= LIMITS.titleMin && draft.body.trim().length >= LIMITS.bodyMin;
+  const shortTitle = draft.title.trim().length < LIMITS.titleMin;
+  const shortBody = draft.body.trim().length < LIMITS.bodyMin;
+  const valid = !shortTitle && !shortBody;
 
   const payload = (): Feedback => {
     const s = useStore.getState();
@@ -97,12 +101,17 @@ export function ReportDialog({ onClose }: { onClose: () => void }) {
   };
 
   const send = async () => {
-    if (!valid || state.step === 'sending') return;
+    if (state.step === 'sending') return;
+    if (!valid) {
+      setTried(true);
+      document.getElementById(shortTitle ? ids.title : ids.body)?.focus();
+      return;
+    }
     setState({ step: 'sending' });
     const r = await sendFeedback(payload());
     if (r.ok) {
       saveDraft(undefined);
-      setState({ step: 'sent', id: r.id });
+      setState({ step: 'sent' });
     } else setState({ step: 'failed', why: r.reason });
   };
 
@@ -114,7 +123,7 @@ export function ReportDialog({ onClose }: { onClose: () => void }) {
             <Glyph name="check" size={44} />
           </span>
           <h3 className="sent-title">{bug ? t('sentBug') : t('sentIdea')}</h3>
-          <p className="hint">{t('sentHint', { id: state.id })}</p>
+          <p className="hint">{t('sentHint')}</p>
           <div className="report-actions">
             <button
               type="button"
@@ -169,9 +178,13 @@ export function ReportDialog({ onClose }: { onClose: () => void }) {
         <label className="field-block" htmlFor={ids.title}>
           <span className="field-label">
             {bug ? t('bugTitle') : t('ideaTitle')}
-            <span className="field-count">
-              {draft.title.length}/{LIMITS.title}
-            </span>
+            {(tried || left.title) && shortTitle ? (
+              <span className="field-need">{t('needChars', { n: LIMITS.titleMin })}</span>
+            ) : (
+              <span className="field-count">
+                {draft.title.length}/{LIMITS.title}
+              </span>
+            )}
           </span>
           <input
             id={ids.title}
@@ -180,16 +193,21 @@ export function ReportDialog({ onClose }: { onClose: () => void }) {
             placeholder={bug ? t('bugTitlePh') : t('ideaTitlePh')}
             value={draft.title}
             onChange={(e) => put({ title: e.target.value })}
-            required
+            onBlur={draft.title ? leave('title') : undefined}
+            aria-invalid={(tried || left.title) && shortTitle}
           />
         </label>
 
         <label className="field-block" htmlFor={ids.body}>
           <span className="field-label">
             {bug ? t('bugBody') : t('ideaBody')}
-            <span className="field-count">
-              {draft.body.length}/{LIMITS.body}
-            </span>
+            {(tried || left.body) && shortBody ? (
+              <span className="field-need">{t('needChars', { n: LIMITS.bodyMin })}</span>
+            ) : (
+              <span className="field-count">
+                {draft.body.length}/{LIMITS.body}
+              </span>
+            )}
           </span>
           <textarea
             id={ids.body}
@@ -199,7 +217,8 @@ export function ReportDialog({ onClose }: { onClose: () => void }) {
             placeholder={bug ? t('bugBodyPh') : t('ideaBodyPh')}
             value={draft.body}
             onChange={(e) => put({ body: e.target.value })}
-            required
+            onBlur={draft.body ? leave('body') : undefined}
+            aria-invalid={(tried || left.body) && shortBody}
           />
         </label>
 
@@ -307,7 +326,13 @@ export function ReportDialog({ onClose }: { onClose: () => void }) {
               <Glyph name="github" size={14} /> GitHub
             </a>
           </p>
-          <button type="submit" className={`primary-button send-button ${sending ? 'sending' : ''}`} disabled={!valid || sending}>
+          <button
+            type="submit"
+            className={`primary-button send-button ${sending ? 'sending' : ''}`}
+            data-ready={valid || undefined}
+            aria-disabled={!valid}
+            disabled={sending}
+          >
             <Glyph name="send" size={18} />
             {sending ? t('sending') : bug ? t('sendBug') : t('sendIdea')}
           </button>

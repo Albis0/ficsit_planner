@@ -10,6 +10,8 @@ interface Props {
   onClear?: () => void;
   /** Up and down buttons beside the field that move it one whole number at a time. */
   step?: boolean;
+  /** The most it takes; typing past it shows and commits this instead. */
+  max?: number;
 }
 
 /** One whole number up or down: 12.5 goes to 13 or 12, never below zero. */
@@ -17,7 +19,7 @@ const up = (v: number) => Math.floor(v + 1e-9) + 1;
 const down = (v: number) => Math.max(0, Math.ceil(v - 1e-9) - 1);
 
 /** Numeric field that accepts both "12,5" and "12.5" and only commits valid numbers. */
-export function RateInput({ value, onChange, label, placeholder, onClear, step }: Props) {
+export function RateInput({ value, onChange, label, placeholder, onClear, step, max }: Props) {
   const { t } = useT();
   const [text, setText] = useState(Number.isNaN(value) ? '' : String(value));
 
@@ -48,6 +50,10 @@ export function RateInput({ value, onChange, label, placeholder, onClear, step }
         setText(v);
         if (v.trim() === '' && onClear) return onClear();
         const n = Number.parseFloat(v.replace(',', '.'));
+        if (max !== undefined && n > max) {
+          setText(String(max));
+          return onChange(max);
+        }
         if (Number.isFinite(n) && n >= 0) onChange(n);
       }}
       onKeyDown={(e) => {

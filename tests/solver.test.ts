@@ -2,7 +2,7 @@ import { beforeAll, describe, expect, test } from 'bun:test';
 import loadHighs, { type Highs } from 'highs';
 import { data } from '../src/lib/data';
 import { toFailure } from '../src/lib/solveFailure';
-import { heldByPins, SolverError, type SolveInput, solve } from '../src/lib/solver';
+import { fewerLines, heldByPins, SolverError, type SolveInput, solve } from '../src/lib/solver';
 
 let highs: Highs;
 beforeAll(async () => {
@@ -377,5 +377,30 @@ describe('equal resource weights', () => {
   test('water stays free with equal weights', () => {
     const r = plan({ targets: [{ item: 'Desc_Water_C', rate: 120 }], equalWeights: true });
     expect(r.prices.get('Desc_Water_C') ?? 0).toBeLessThan(1e-3);
+  });
+});
+
+describe('fewest buildings', () => {
+  const all = () => new Set(data.recipes.filter((r) => r.kind !== 'power').map((r) => r.id));
+  const machines = (r: ReturnType<typeof plan>) => r.recipes.reduce((n, u) => n + u.built, 0);
+
+  test('picks the alternate that needs fewer machines even when it uses more of the rarer ore', () => {
+    const enabledRecipes = new Set([...standard(), 'Recipe_Alternate_AdheredIronPlate_C']);
+    const targets = [{ item: 'Desc_IronPlateReinforced_C', rate: 60 }];
+    const byOre = plan({ targets, enabledRecipes });
+    const byMachines = plan({ targets, enabledRecipes, objective: 'buildings' });
+    expect(count(byOre, 'Recipe_Alternate_AdheredIronPlate_C')).toBe(0);
+    expect(count(byMachines, 'Recipe_Alternate_AdheredIronPlate_C')).toBeGreaterThan(0);
+    expect(machines(byMachines)).toBeLessThan(machines(byOre));
+  });
+
+  test('with every alternate on, tidying keeps the machines down without a recipe for every sliver', () => {
+    const input = { targets: [{ item: 'Desc_Motor_C', rate: 10 }], enabledRecipes: all(), objective: 'buildings' as const };
+    const spread = plan(input);
+    const tidy = fewerLines(highs, { supplies: [], resourceCaps: {}, ...input }, spread);
+    expect(tidy.recipes.length).toBeLessThan(spread.recipes.length);
+    expect(machines(tidy)).toBeLessThanOrEqual(machines(spread));
+    expect(machines(tidy)).toBeLessThan(machines(plan({ ...input, objective: 'resources' })));
+    expect(rate(tidy.targets, 'Desc_Motor_C')).toBeCloseTo(10);
   });
 });

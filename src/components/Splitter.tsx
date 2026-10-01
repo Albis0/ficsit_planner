@@ -3,7 +3,7 @@ import { useT } from '../lib/i18n';
 import type { PanelSide } from '../lib/settings';
 import { useStore } from '../store';
 
-const MIN_H = 170;
+const MIN_H = 300;
 const MIN_W = 300;
 /** Room the factory floor keeps beside or under the panel, plus the top bar. */
 const FLOOR_MIN_H = 300;

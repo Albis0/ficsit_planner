@@ -73,9 +73,7 @@ export function Summary({ result, extraction }: { result: SolveResult; extractio
             <span className="readout-value">
               {num(result.power + extractionPower)} <small>MW</small>
             </span>
-            <span className="readout-sub">
-              {num(result.power)} {t('factoryPower')}, {num(extractionPower)} {t('extraction').toLocaleLowerCase()}
-            </span>
+            <span className="readout-sub">{t('powerSplit', { machines: num(result.power), extractors: num(extractionPower) })}</span>
           </div>
           <div className="readout">
             <span className="readout-label">{t('machines')}</span>

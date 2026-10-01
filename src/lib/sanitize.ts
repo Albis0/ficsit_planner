@@ -1,3 +1,4 @@
+import { DEFAULT_GAME, GAME_RANGE, type GameRules } from './game';
 import type { Plan, PowerPlan, Supply } from '../store';
 import { data, generatorById, recipeById } from './data';
 import { DEFAULT_EXTRACTION, type ExtractionSettings, MINERS, PURITIES, type Purity } from './extraction';
@@ -67,7 +68,23 @@ function extraction(x: unknown): ExtractionSettings {
           ) as Record<string, number>,
         }
       : {}),
+    ...(nodesOf(e.nodes) ? { nodes: nodesOf(e.nodes) } : {}),
   };
+}
+
+/** The player's own nodes per raw resource: whole counts per purity, empty resources dropped. */
+function nodesOf(x: unknown): ExtractionSettings['nodes'] {
+  const out: NonNullable<ExtractionSettings['nodes']> = {};
+  for (const [id, v] of Object.entries(obj(x))) {
+    if (!data.items[id]?.raw) continue;
+    const counts: Partial<Record<Purity, number>> = {};
+    for (const p of PURITIES) {
+      const n = obj(v)[p];
+      if (finite(n) && n >= 1) counts[p] = Math.min(999, Math.floor(n));
+    }
+    if (Object.keys(counts).length) out[id] = counts;
+  }
+  return Object.keys(out).length ? out : undefined;
 }
 
 /** A factory tab, cleaned against the current game data. */
@@ -166,6 +183,14 @@ export function gridToPower(saved: unknown, fallback: PowerPlan, factories: stri
 
 const COLOR = /^#[\da-f]{6}$/i;
 
+/** The save's multipliers, each within what the game allows; anything else is the game as shipped. */
+function gameOf(x: unknown): GameRules {
+  const g = obj(x);
+  const one = (k: keyof GameRules) =>
+    finite(g[k]) && (g[k] as number) >= GAME_RANGE.min && (g[k] as number) <= GAME_RANGE.max ? (g[k] as number) : DEFAULT_GAME[k];
+  return { parts: one('parts'), power: one('power'), elevator: one('elevator') };
+}
+
 export function cleanSettings(saved: unknown): Settings {
   const s = obj(saved);
   const c = obj(s.colors);
@@ -193,6 +218,7 @@ export function cleanSettings(saved: unknown): Settings {
       d.font,
     ),
     summary: oneOf(s.summary, ['compact', 'full'] as const, d.summary),
+    game: gameOf(s.game),
   };
 }
 

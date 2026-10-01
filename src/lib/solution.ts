@@ -1,5 +1,6 @@
+import { type GameRules, isDefaultGame } from './game';
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { exportsOf, type Plan, type PowerPlan, poweredBy, useStore } from '../store';
+import { aimOf, exportsOf, type Plan, poweredBy, type PowerPlan, useStore } from '../store';
 import { data, recipeById, recipeUnlocked } from './data';
 import { effectiveExtraction, extractionPowerPerUnit, planExtraction } from './extraction';
 import { plantUnlocked } from './power';
@@ -50,8 +51,22 @@ export function withExports(targets: Target[], exports: Export[] = []): Target[]
   return [...total].map(([item, rate]) => ({ item, rate }));
 }
 
+/** What a plan keeps down: rare resources first, all resources the same, or the number of machines. */
+export type Aim = 'rarity' | 'equal' | 'buildings';
+
+const aimInput = (aim: Aim) => ({
+  objective: aim === 'buildings' ? ('buildings' as const) : ('resources' as const),
+  equalWeights: aim === 'equal',
+});
+
 /** What the solver gets for a factory tab; nothing when it has nothing to make yet. */
-export function factoryInput(plan: SolvedPart, tier: number, exports: Export[] = [], equalWeights = false): SolveInput | undefined {
+export function factoryInput(
+  plan: SolvedPart,
+  tier: number,
+  exports: Export[] = [],
+  aim: Aim = 'rarity',
+  game?: GameRules,
+): SolveInput | undefined {
   const targets = withExports(plan.targets, exports);
   if (targets.length === 0) return undefined;
   return {
@@ -59,10 +74,10 @@ export function factoryInput(plan: SolvedPart, tier: number, exports: Export[] =
     supplies: plan.supplies,
     enabledRecipes: usableRecipes(plan, tier),
     resourceCaps: plan.caps,
-    objective: 'resources',
     mods: plan.mods,
     fixed: plan.fixed,
-    equalWeights,
+    ...aimInput(aim),
+    ...(isDefaultGame(game) ? {} : { game }),
   };
 }
 
@@ -78,7 +93,7 @@ type PowerPart = Pick<PowerPlan, 'plants' | 'sizeBy' | 'have' | 'headroom' | 'ow
  * Sized to what you have, the listed items are all there is: every other resource but water is
  * off, and the plant makes as much as those allow.
  */
-export function powerInput(pp: PowerPart, demand: number, tier: number, equalWeights = false): SolveInput | undefined {
+export function powerInput(pp: PowerPart, demand: number, tier: number, aim: Aim = 'rarity', game?: GameRules): SolveInput | undefined {
   if (pp.plants.length === 0) return undefined;
   const chain = pp.chain;
   const have = pp.sizeBy === 'have';
@@ -97,9 +112,9 @@ export function powerInput(pp: PowerPart, demand: number, tier: number, equalWei
     supplies,
     enabledRecipes: usableRecipes(chain, tier),
     resourceCaps: caps,
-    objective: 'resources',
     mods: chain.mods,
-    equalWeights,
+    ...aimInput(aim),
+    ...(isDefaultGame(game) ? {} : { game }),
     power: {
       plants: pp.plants.filter((p) => plantUnlocked(p, tier)),
       demand: have ? 0 : demand,
@@ -175,19 +190,20 @@ interface Entry {
   wait?: Promise<void>;
 }
 
-const drawKey = (tier: number, exports: Export[], equal: boolean) => `${tier}|${equal ? 'eq' : ''}|${JSON.stringify(exports)}`;
+const drawKey = (tier: number, exports: Export[], aim: Aim, game: GameRules) =>
+  `${tier}|${aim}|${game.parts}|${game.power}|${JSON.stringify(exports)}`;
 
 // Solved draws, kept per plan object and tier: an unchanged factory isn't solved again, and a late
 // answer for one tier can't overwrite another's.
 const cache = new WeakMap<Plan, Map<string, Entry>>();
 
-function entryFor(plan: Plan, tier: number, exports: Export[], equal: boolean): Entry {
+function entryFor(plan: Plan, tier: number, exports: Export[], aim: Aim, game: GameRules): Entry {
   const byTier = cache.get(plan) ?? new Map<string, Entry>();
   cache.set(plan, byTier);
-  const key = drawKey(tier, exports, equal);
+  const key = drawKey(tier, exports, aim, game);
   const hit = byTier.get(key);
   if (hit) return hit;
-  const input = factoryInput(plan, tier, exports, equal);
+  const input = factoryInput(plan, tier, exports, aim, game);
   const entry: Entry = input ? {} : { draw: { mw: 0 } };
   if (input) {
     entry.wait = solveAsync(input).then(
@@ -211,29 +227,30 @@ function entryFor(plan: Plan, tier: number, exports: Export[], equal: boolean): 
 export function useFactoryDraws(enabled: boolean): FactoryDraw[] {
   const plans = useStore((s) => s.plans);
   const tier = useStore((s) => s.tier);
-  const equal = useStore((s) => s.equalWeights);
+  const aim = useStore(aimOf);
+  const game = useStore((s) => s.settings.game);
   const [landed, bump] = useState(0);
 
   useEffect(() => {
     if (!enabled) return;
     let live = true;
     for (const plan of plans) {
-      const entry = entryFor(plan, tier, exportsOf(plans, plan.id), equal);
+      const entry = entryFor(plan, tier, exportsOf(plans, plan.id), aim, game);
       if (!entry.draw) entry.wait?.then(() => live && bump((n) => n + 1));
     }
     return () => {
       live = false;
     };
-  }, [enabled, plans, tier, equal]);
+  }, [enabled, plans, tier, aim, game]);
 
   // biome-ignore lint/correctness/useExhaustiveDependencies: `landed` re-reads the cache once a solve lands.
   return useMemo(
     () =>
       plans.map((plan) => {
-        const draw = cache.get(plan)?.get(drawKey(tier, exportsOf(plans, plan.id), equal))?.draw;
+        const draw = cache.get(plan)?.get(drawKey(tier, exportsOf(plans, plan.id), aim, game))?.draw;
         return { id: plan.id, name: plan.name, mw: draw?.mw, failed: draw?.failed };
       }),
-    [plans, tier, equal, landed],
+    [plans, tier, aim, game, landed],
   );
 }
 

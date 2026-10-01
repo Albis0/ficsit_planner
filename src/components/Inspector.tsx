@@ -1,8 +1,11 @@
-import { useState } from 'react';
-import { data } from '../lib/data';
+import { useEffect, useRef, useState } from 'react';
+import { data, producersOf, recipeUnlocked } from '../lib/data';
+import { useCodex } from '../lib/codex';
+import { versusStandard } from '../lib/insights';
 import { useT } from '../lib/i18n';
 import { recipeLabel } from '../lib/text';
 import { groupClocks } from '../lib/clocks';
+import { buildGroups, groupsLabel, isPipe } from '../lib/groups';
 import { amplification, NO_MOD, shardsFor, type SolveResult } from '../lib/solver';
 import { usePlan, useStore } from '../store';
 import { Icon } from './Icon';
@@ -15,6 +18,7 @@ const EPS = 1e-6;
 export function Inspector({ result }: { result: SolveResult }) {
   const { t, name, num } = useT();
   const inspect = useStore((s) => s.inspect);
+  const tier = useStore((s) => s.tier);
   const set = useStore((s) => s.set);
   const setMod = useStore((s) => s.setMod);
   const plan = usePlan();
@@ -22,6 +26,15 @@ export function Inspector({ result }: { result: SolveResult }) {
   // Tied to the machine and the clock it started from, so any new result shows the real clock again.
   const [draft, setDraft] = useState<{ value: number; id: string; from: number }>();
   const use = result.recipes.find((u) => u.recipe.id === inspect);
+  // Ticking another recipe for the part here can take this machine out of the plan; the panel then follows the
+  // part to whatever makes it now, instead of closing.
+  const part = useRef<string>(undefined);
+  if (use) part.current = use.recipe.outputs[0].item;
+  useEffect(() => {
+    if (use || !inspect || !part.current) return;
+    const now = result.recipes.find((u) => u.recipe.kind !== 'power' && u.recipe.outputs[0].item === part.current);
+    set({ inspect: now?.recipe.id });
+  }, [use, inspect, result, set]);
   if (!use) return null;
 
   const { recipe } = use;
@@ -52,6 +65,7 @@ export function Inspector({ result }: { result: SolveResult }) {
     setDraft({ value: units / n, id: recipe.id, from: use.clock });
     setMachines(n);
   };
+  const groups = buildGroups(use, tier);
   const clock = draft && draft.id === recipe.id && draft.from === use.clock ? draft.value : use.clock;
 
   return (
@@ -148,6 +162,19 @@ export function Inspector({ result }: { result: SolveResult }) {
               .join(', ')}
           </dd>
         </div>
+        {groups && (
+          <div className="inspector-groups">
+            <dt>{t('buildGroups')}</dt>
+            <dd>{t('groupsShort', { sizes: groupsLabel(groups.sizes) })}</dd>
+            <dd className="hint groups-why">
+              {t('groupsWhy', {
+                rate: num(groups.rate),
+                item: name(data.items[groups.item]),
+                transport: t(isPipe(groups.transport) ? 'pipeName' : 'beltName', { mk: groups.transport.name }),
+              })}
+            </dd>
+          </div>
+        )}
         <div>
           <dt>{t('power')}</dt>
           <dd className="power">{num(use.power)} MW</dd>
@@ -165,11 +192,64 @@ export function Inspector({ result }: { result: SolveResult }) {
         ))}
       </dl>
 
+      <RecipeChoices item={recipe.outputs[0].item} result={result} />
+
       {(mod.clock !== 1 || mod.sloops !== 0) && (
         <button type="button" className="text-button" onClick={() => setMod(recipe.id, undefined)}>
           {t('resetMod')}
         </button>
       )}
     </aside>
+  );
+}
+
+/**
+ * Every recipe for the part this machine makes, ticked or not, so an alternate can be tried from the floor instead
+ * of found in the Recipes tab. Each says how its whole line compares with the standard one, once the Codex is in.
+ */
+function RecipeChoices({ item, result }: { item: string; result: SolveResult }) {
+  const { t, name } = useT();
+  const plan = usePlan();
+  const tier = useStore((s) => s.tier);
+  const toggleRecipe = useStore((s) => s.toggleRecipe);
+  const codex = useCodex();
+  // The comparisons are worked out at the game's default part cost; under another one they'd mislead.
+  const parts = useStore((s) => s.settings.game.parts);
+  const recipes = (producersOf.get(item) ?? []).filter((r) => r.kind !== 'power' && recipeUnlocked(r, tier));
+  if (recipes.length < 2) return null;
+  const on = new Set(plan.enabled);
+  const used = new Set(result.recipes.map((u) => u.recipe.id));
+  const insight = parts === 1 ? codex?.data.insights.items[item] : undefined;
+  const change = (share: number, more: 'moreRaw' | 'morePower', less: 'lessRaw' | 'lessPower') =>
+    Math.abs(share) < 0.005 ? undefined : t(share > 0 ? more : less, { n: Math.round(Math.abs(share) * 100) });
+  return (
+    <section className="recipe-choices">
+      <h3 className="inspector-label">{t('recipesFor', { item: name(data.items[item]) })}</h3>
+      <ul>
+        {recipes.map((r) => {
+          const vs = r.kind === 'standard' ? undefined : versusStandard(insight, r.id);
+          const note = vs
+            ? vs.needsMore
+              ? t('needsOtherParts')
+              : [change(vs.raw, 'moreRaw', 'lessRaw'), change(vs.power, 'morePower', 'lessPower')].filter(Boolean).join(', ')
+            : '';
+          return (
+            <li key={r.id}>
+              <label className={`recipe-choice ${on.has(r.id) ? 'on' : ''}`}>
+                <input type="checkbox" checked={on.has(r.id)} onChange={(e) => toggleRecipe(r.id, e.target.checked)} />
+                <span className="recipe-choice-text">
+                  <span className="recipe-choice-name">
+                    {recipeLabel(name(r), r.kind)}
+                    {r.kind !== 'standard' && <span className={`kind ${r.kind}`}>{t(r.kind)}</span>}
+                    {used.has(r.id) && <span className="recipe-choice-used">{t('inUse')}</span>}
+                  </span>
+                  {note && <small>{note}</small>}
+                </span>
+              </label>
+            </li>
+          );
+        })}
+      </ul>
+    </section>
   );
 }

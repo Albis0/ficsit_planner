@@ -3,10 +3,11 @@ import { data, recipeById, recipeUnlocked } from '../lib/data';
 import { useT } from '../lib/i18n';
 import { recipeLabel } from '../lib/text';
 import { effectiveExtraction, overclockExtractors, planExtraction } from '../lib/extraction';
+import { isDefaultGame } from '../lib/game';
 import type { SolveInput, SolveResult } from '../lib/solver';
 import { useExports, withExports } from '../lib/solution';
 import { autoAssignAsync, solveAsync } from '../lib/solverClient';
-import { usePlan, useStore } from '../store';
+import { aimOf, usePlan, useStore } from '../store';
 import { Icon } from './Icon';
 import { RateInput } from './RateInput';
 
@@ -18,7 +19,8 @@ export function InventoryPanel({ result }: { result?: SolveResult }) {
   const { t, name } = useT();
   const inventory = useStore((s) => s.inventory);
   const tier = useStore((s) => s.tier);
-  const equalWeights = useStore((s) => s.equalWeights);
+  const aim = useStore(aimOf);
+  const game = useStore((s) => s.settings.game);
   const set = useStore((s) => s.set);
   const updatePlan = useStore((s) => s.updatePlan);
   const plan = usePlan();
@@ -43,7 +45,8 @@ export function InventoryPanel({ result }: { result?: SolveResult }) {
         resourceCaps: plan.caps,
         objective: 'resources',
         fixed: plan.fixed,
-        equalWeights,
+        equalWeights: aim === 'equal',
+        ...(isDefaultGame(game) ? {} : { game }),
       };
       const mods = await autoAssignAsync(input, inventory, all);
       let overclock: Record<string, number> | undefined;

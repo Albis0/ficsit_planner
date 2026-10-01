@@ -42,8 +42,10 @@ export default defineConfig({
     react(),
     seo(),
     VitePWA({
-      registerType: 'autoUpdate',
-      // Registered from src/components/PwaStatus.tsx so the app can say when it's ready offline.
+      // A new version waits until the player says Reload (src/components/PwaStatus.tsx), so nothing reloads mid-edit
+      // and a plain refresh can't leave them on the old one without knowing.
+      registerType: 'prompt',
+      // Registered from src/components/PwaStatus.tsx so the app can say when it's ready offline or updated.
       injectRegister: false,
       manifest: {
         id: './',

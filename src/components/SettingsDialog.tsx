@@ -1,3 +1,4 @@
+import { DEFAULT_GAME, GAME_RANGE, type GameRules } from '../lib/game';
 import { createContext, useContext, useEffect, useRef, useState } from 'react';
 import { data } from '../lib/data';
 import { useT } from '../lib/i18n';
@@ -18,17 +19,19 @@ import { exportAll, importFile, wipeLocal } from '../lib/backup';
 import meta from '../data/meta.json';
 import { LATEST_UPDATE, UPDATES } from '../locales/updates.en';
 import { useStore } from '../store';
+import { RateInput } from './RateInput';
 import { Dialog } from './Dialog';
 import { Glyph, type GlyphName } from './Glyph';
 import { Icon } from './Icon';
 
-type Section = 'layout' | 'floor' | 'colors' | 'interface' | 'data' | 'help' | 'updates';
+type Section = 'layout' | 'floor' | 'colors' | 'interface' | 'game' | 'data' | 'help' | 'updates';
 
 const SECTIONS: { id: Section; glyph: GlyphName }[] = [
   { id: 'layout', glyph: 'layout' },
   { id: 'floor', glyph: 'floor' },
   { id: 'colors', glyph: 'palette' },
   { id: 'interface', glyph: 'sliders' },
+  { id: 'game', glyph: 'factory' },
   { id: 'data', glyph: 'database' },
   { id: 'help', glyph: 'help' },
   { id: 'updates', glyph: 'news' },
@@ -90,6 +93,7 @@ export function SettingsDialog({ onClose }: { onClose: () => void }) {
     floor: t('setFloor'),
     colors: t('setColors'),
     interface: t('setInterface'),
+    game: t('setGame'),
     data: t('setData'),
     help: t('setHelp'),
     updates: t('setUpdates'),
@@ -126,6 +130,7 @@ export function SettingsDialog({ onClose }: { onClose: () => void }) {
               {section === 'floor' && <FloorSection />}
               {section === 'colors' && <ColorsSection />}
               {section === 'interface' && <InterfaceSection />}
+              {section === 'game' && <GameSection />}
               {section === 'data' && <DataSection />}
               {section === 'help' && <HelpSection />}
               {section === 'updates' && <UpdatesSection />}
@@ -350,6 +355,36 @@ function LayoutSection() {
           onChange={(v) => set({ summary: v })}
         />
       </Row>
+    </>
+  );
+}
+
+/** The multipliers the save was started with, so the numbers match the game. */
+function GameSection() {
+  const { t } = useT();
+  const [s, set] = useSettings();
+  const row = (k: keyof GameRules, label: string, hint: string) => (
+    <Row
+      label={label}
+      hint={hint}
+      onReset={s.game[k] !== DEFAULT_GAME[k] ? () => set({ game: { ...s.game, [k]: DEFAULT_GAME[k] } }) : null}
+    >
+      <span className="game-mult">
+        <RateInput
+          value={s.game[k]}
+          label={label}
+          onChange={(v) => v >= GAME_RANGE.min && v <= GAME_RANGE.max && set({ game: { ...s.game, [k]: Math.round(v * 1000) / 1000 } })}
+        />
+        <span className="unit">×</span>
+      </span>
+    </Row>
+  );
+  return (
+    <>
+      <p className="setting-hint game-intro">{t('gameIntro')}</p>
+      {row('parts', t('gameParts'), t('gamePartsHint'))}
+      {row('power', t('gamePower'), t('gamePowerHint'))}
+      {row('elevator', t('gameElevator'), t('gameElevatorHint'))}
     </>
   );
 }

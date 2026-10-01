@@ -1,7 +1,9 @@
 import { type ReactNode, useMemo, useState } from 'react';
 import { type CodexIndex, GUIDE_ICON, type GuideId, nameOf, useCodex } from '../lib/codex';
 import { data, generatorById, recipeById, transportFor } from '../lib/data';
+import { elevatorAmount } from '../lib/game';
 import { versusStandard } from '../lib/insights';
+import { useStore } from '../store';
 import { PURITIES, PURITY } from '../lib/extraction';
 import { useWorld } from '../lib/finds';
 import { useT } from '../lib/i18n';
@@ -647,6 +649,7 @@ function rawBehind(index: CodexIndex, cost: { item: string; amount: number }[]) 
 function Elevator() {
   const { t, num } = useT();
   const index = useCodex();
+  const game = useStore((s) => s.settings.game);
   return (
     <>
       <Text k="guideText_elevator" />
@@ -667,7 +670,10 @@ function Elevator() {
                 </thead>
                 <tbody>
                   {index.data.phases.map((p) => {
-                    const raw = rawBehind(index, p.cost);
+                    const raw = rawBehind(
+                      index,
+                      p.cost.map((c) => ({ ...c, amount: elevatorAmount(c.amount, game) })),
+                    );
                     return (
                       <tr key={p.phase}>
                         <td>
@@ -685,6 +691,7 @@ function Elevator() {
               </table>
             </div>
             <p className="hint">{t('elevatorRawNote')}</p>
+            {game.parts !== 1 && <p className="hint">{t('elevatorPartsNote')}</p>}
           </Box>
         </>
       )}

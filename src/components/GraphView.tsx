@@ -20,6 +20,7 @@ import '@xyflow/react/dist/base.css';
 import { createContext, type ReactNode, useContext, useEffect, useMemo, useState } from 'react';
 import { BELT_COLORS } from '../lib/belts';
 import { groupClocks } from '../lib/clocks';
+import { buildGroups, groupsLabel, isPipe } from '../lib/groups';
 import { data } from '../lib/data';
 import type { ExtractionUse } from '../lib/extraction';
 import {
@@ -45,7 +46,9 @@ import { Icon } from './Icon';
 import { Slot } from './Slot';
 
 /** Hovered node and its direct neighbours; everything else fades so one line can be followed. */
-const Focus = createContext<{ node?: string; near: Set<string> }>({ near: new Set() });
+const Focus = createContext<{ node?: string; near: Set<string>; edge?: string }>({ near: new Set() });
+/** The belt whose label was clicked, which then says where it comes from and goes to. */
+const PickEdge = createContext<(id?: string) => void>(() => {});
 
 /** Which way the line runs, so node handles sit on the matching sides. */
 const Flow = createContext<Direction>('LR');
@@ -118,6 +121,20 @@ function RunLine({ clocks }: { clocks: number[] }) {
   );
 }
 
+/** "6 + 4 groups" when the line's belts or pipes don't fit one of the best unlocked; the title says which. */
+function GroupsBadge({ use }: { use: MachineNodeData['use'] }) {
+  const { t, name, num } = useT();
+  const tier = useStore((s) => s.tier);
+  const g = buildGroups(use, tier);
+  if (!g) return null;
+  const transport = t(isPipe(g.transport) ? 'pipeName' : 'beltName', { mk: g.transport.name });
+  return (
+    <span className="mod-badge groups" title={t('groupsWhy', { rate: num(g.rate), item: name(data.items[g.item]), transport })}>
+      {t('groupsShort', { sizes: groupsLabel(g.sizes) })}
+    </span>
+  );
+}
+
 /** A row of generators: the strip names the fuel and what they put on the grid, the building below. */
 function GeneratorNode({ id, data: d, selected }: NodeProps) {
   const { name, num } = useT();
@@ -146,11 +163,10 @@ function GeneratorNode({ id, data: d, selected }: NodeProps) {
         <span className="machine-info">
           <span className="machine-type">{name(gen)}</span>
           <RunLine clocks={use.clocks} />
-          {use.shards > 0 && (
-            <span className="machine-mods">
-              <span className="mod-badge shard">{use.shards} ◆</span>
-            </span>
-          )}
+          <span className="machine-mods">
+            {use.shards > 0 && <span className="mod-badge shard">{use.shards} ◆</span>}
+            <GroupsBadge use={use} />
+          </span>
         </span>
       </div>
       <Handle type="source" position={outSide(dir)} />
@@ -193,6 +209,7 @@ function MachineNode(props: NodeProps) {
             </span>
             {use.shards > 0 && <span className="mod-badge shard">{use.shards} ◆</span>}
             {use.sloops > 0 && <span className="mod-badge sloop">{use.sloops} ●</span>}
+            <GroupsBadge use={use} />
           </span>
         </span>
       </div>
@@ -408,24 +425,91 @@ function PowerEdge({ source, target, sourceX, sourceY, targetX, targetY, sourceP
   );
 }
 
+/** Radius of a belt's turn where a run across the flow meets one along it. */
+const TURN = 36;
+
 /**
- * A belt through the route's bends. Each stretch leaves and arrives straight along the line's
- * direction, so it never overshoots or loops where several belts meet at one input.
+ * A belt through the route's bends. Stretches that mostly go along the flow leave and arrive straight along it, so
+ * belts never overshoot or loop where several meet at one input. Stretches that mostly go across it run straight,
+ * with a rounded turn wherever they meet an along stretch. At a machine's handle the belt leaves (or arrives) along
+ * the flow and eases into the run across, so belts sharing a handle fan out from it like a splitter.
  */
 function routePath(pts: Point[], dir: Direction): string {
-  let d = `M${pts[0].x},${pts[0].y}`;
-  for (let i = 1; i < pts.length; i++) {
-    const a = pts[i - 1];
-    const b = pts[i];
-    if (dir === 'LR') {
-      const mx = (a.x + b.x) / 2;
-      d += ` C${mx},${a.y} ${mx},${b.y} ${b.x},${b.y}`;
-    } else {
-      const my = (a.y + b.y) / 2;
-      d += ` C${a.x},${my} ${b.x},${my} ${b.x},${b.y}`;
+  // In (u, v): u along the flow, v across it, so one rule serves both directions.
+  type V = [number, number];
+  const uv = (p: Point): V => (dir === 'LR' ? [p.x, p.y] : [p.y, p.x]);
+  const xy = ([u, v]: V) => (dir === 'LR' ? `${u},${v}` : `${v},${u}`);
+  const add = (a: V, b: V, k = 1): V => [a[0] + b[0] * k, a[1] + b[1] * k];
+  const P = pts.map(uv);
+  const n = P.length - 1;
+  const delta = (i: number): V => [P[i + 1][0] - P[i][0], P[i + 1][1] - P[i][1]];
+  const len = (i: number) => Math.hypot(...delta(i));
+  // Too little room along the flow to curve: a run across it.
+  const across = Array.from({ length: n }, (_, i) => {
+    const [du, dv] = delta(i);
+    return Math.abs(du) < Math.min(2 * TURN, Math.abs(dv));
+  });
+  /** Which way stretch i heads where it starts and ends. */
+  const heading = (i: number): V => {
+    if (!across[i]) return [Math.sign(delta(i)[0]) || 1, 0];
+    const l = len(i) || 1;
+    return [delta(i)[0] / l, delta(i)[1] / l];
+  };
+  const room = (i: number) => (across[i] ? len(i) : Math.abs(delta(i)[0])) / 2;
+  // A rounded corner at each point inside the route where an along stretch meets an across one.
+  const turn = (k: number) => (k > 0 && k < n && across[k - 1] !== across[k] ? Math.min(TURN, room(k - 1), room(k)) : 0);
+  /** How far across the ease at a handle reaches: a little more than it goes along, within half the run. */
+  const ease = (i: number) => {
+    const [du, dv] = delta(i);
+    return Math.min(Math.abs(dv) / 2, Math.max(1.5 * Math.abs(du), TURN));
+  };
+
+  let d = `M${xy(P[0])}`;
+  let from = P[0];
+  for (let i = 0; i < n; i++) {
+    const k = i + 1;
+    const r = turn(k);
+    const [du, dv] = delta(i);
+    const side = Math.sign(dv) || 1;
+    if (across[i] && i === 0) {
+      // Leave the handle along the flow and ease into the run across: a quarter curve, then straight.
+      // A run that is both the first and the last keeps half its way along for easing into the far handle.
+      const go = i === n - 1 ? du / 2 : du;
+      const e = ease(i) / (i === n - 1 ? 2 : 1);
+      const to: V = [P[0][0] + go, P[0][1] + side * e];
+      d += ` C${xy([P[0][0] + 0.55 * go, P[0][1]])} ${xy([to[0], to[1] - side * 0.55 * e])} ${xy(to)}`;
+      from = to;
     }
+    const last = across[i] && i === n - 1;
+    const corner = P[k];
+    let to = r ? add(corner, heading(i), -r) : corner;
+    const easeIn = ease(i) / (i === 0 ? 2 : 1);
+    if (last) to = [from[0], P[n][1] - side * easeIn];
+    if (across[i]) d += ` L${xy(to)}`;
+    else {
+      const mid = (from[0] + to[0]) / 2;
+      d += ` C${xy([mid, from[1]])} ${xy([mid, to[1]])} ${xy(to)}`;
+    }
+    if (last) {
+      // Ease out of the run across into the handle, arriving along the flow.
+      const gap = P[n][0] - to[0];
+      d += ` C${xy([to[0], to[1] + side * 0.55 * easeIn])} ${xy([P[n][0] - 0.55 * gap, P[n][1]])} ${xy(P[n])}`;
+      from = P[n];
+    } else if (r) {
+      const out = add(corner, heading(k), r);
+      d += ` Q${xy(corner)} ${xy(out)}`;
+      from = out;
+    } else from = to;
   }
   return d;
+}
+
+/** What a node is called on a clicked belt's label: the part a machine makes, or the item at an endpoint. */
+function nodeName(node: unknown, name: (x: { name: string }) => string): string {
+  const d = (node ?? {}) as { use?: MachineNodeData['use']; item?: string; label?: string };
+  if (d.use) return recipeLabel(name(d.use.recipe), d.use.recipe.kind);
+  const item = d.item ? data.items[d.item] : undefined;
+  return item ? name(item) : (d.label ?? '');
 }
 
 const moved = (a: Point | undefined, b: Point) => !a || Math.abs(a.x - b.x) > 0.5 || Math.abs(a.y - b.y) > 0.5;
@@ -433,7 +517,7 @@ const moved = (a: Point | undefined, b: Point) => !a || Math.abs(a.x - b.x) > 0.
 const MAX_DRAWN_LANES = 6;
 
 /** A conveyor belt (rails, bed, moving slats) or a pipe (casing, flowing fluid) along the edge. */
-function FlowEdge({ source, target, sourceX, sourceY, targetX, targetY, sourcePosition, targetPosition, data: d }: EdgeProps) {
+function FlowEdge({ id, source, target, sourceX, sourceY, targetX, targetY, sourcePosition, targetPosition, data: d }: EdgeProps) {
   const { name, num, t } = useT();
   const focus = useContext(Focus);
   const zoom = useFlowStore(zoomSelector);
@@ -443,8 +527,12 @@ function FlowEdge({ source, target, sourceX, sourceY, targetX, targetY, sourcePo
   const { item, rate, transport, lanes, route } = d as FlowEdgeData;
   const it = data.items[item];
   const dir = useContext(Flow);
-  const from = useInternalNode(source)?.internals.positionAbsolute;
-  const to = useInternalNode(target)?.internals.positionAbsolute;
+  const fromNode = useInternalNode(source);
+  const toNode = useInternalNode(target);
+  const from = fromNode?.internals.positionAbsolute;
+  const to = toNode?.internals.positionAbsolute;
+  const pick = useContext(PickEdge);
+  const picked = focus.edge === id;
   let path: string;
   let lx: number;
   let ly: number;
@@ -459,8 +547,8 @@ function FlowEdge({ source, target, sourceX, sourceY, targetX, targetY, sourcePo
   const fluid = it.form !== 'solid';
   // Side by side lines widen the belt, up to a point: past a few, the label's "123×" says how many.
   const drawn = Math.min(lanes, MAX_DRAWN_LANES);
-  const lit = focus.node !== undefined && (source === focus.node || target === focus.node);
-  const faded = focus.node !== undefined && !lit;
+  const lit = focus.edge ? picked : focus.node !== undefined && (source === focus.node || target === focus.node);
+  const faded = (focus.node !== undefined || focus.edge !== undefined) && !lit;
   const showLabel = labels === 'always' || lit || (labels === 'auto' && zoom !== 'far');
   const state = `${faded ? 'faded' : ''} ${lit ? 'lit' : ''} ${still ? 'still' : ''}`;
 
@@ -498,7 +586,17 @@ function FlowEdge({ source, target, sourceX, sourceY, targetX, targetY, sourcePo
       {showLabel && (
         <EdgeLabelRenderer>
           <div className="edge-anchor" style={{ transform: `translate(-50%, -50%) translate(${lx}px, ${ly}px)` }}>
-            <div className={`edge-label ${state}`} title={name(it)}>
+            <button
+              type="button"
+              className={`edge-label pickable nopan ${state} ${picked ? 'picked' : ''}`}
+              title={name(it)}
+              tabIndex={-1}
+              aria-pressed={picked}
+              onClick={(e) => {
+                e.stopPropagation();
+                pick(picked ? undefined : id);
+              }}
+            >
               <Icon id={item} size={zoom === 'near' ? 30 : 24} />
               <span className="edge-text">
                 {zoom === 'near' && <span className="edge-item">{name(it)}</span>}
@@ -513,7 +611,12 @@ function FlowEdge({ source, target, sourceX, sourceY, targetX, targetY, sourcePo
                   </span>
                 </span>
               </span>
-            </div>
+              {picked && (
+                <span className="edge-route">
+                  {nodeName(fromNode?.data, name)} <span aria-hidden>→</span> {nodeName(toNode?.data, name)}
+                </span>
+              )}
+            </button>
           </div>
         </EdgeLabelRenderer>
       )}
@@ -627,6 +730,7 @@ function Canvas({ nodes, edges, sig, dir }: { nodes: Node[]; edges: Edge[]; sig:
   const set = useStore((s) => s.set);
   const gridLines = useStore((s) => s.settings.gridLines);
   const [hover, setHover] = useState<string>();
+  const [edge, setEdge] = useState<string>();
   const [restore] = useState(() => (camera.sig === sig ? camera.viewport : undefined));
   // A huge factory may need to zoom out past the usual floor to fit the screen whole.
   const [minZoom] = useState(() => {
@@ -673,49 +777,65 @@ function Canvas({ nodes, edges, sig, dir }: { nodes: Node[]; edges: Edge[]; sig:
     return () => window.removeEventListener('keydown', onKey);
   }, [inspect, set]);
 
-  const focusNode = hover ?? (inspect ? `recipe:${inspect}` : undefined);
+  // A machine that's gone from the plan (its recipe was just unticked) focuses nothing, so the floor doesn't dim.
+  const inspected = inspect && neighbours.has(`recipe:${inspect}`) ? `recipe:${inspect}` : undefined;
+  // A clicked belt lights itself and the two machines it joins; otherwise the machine under the pointer, or the
+  // selected one, lights its belts and neighbours.
+  const picked = edge ? edges.find((e) => e.id === edge) : undefined;
+  const focusNode = picked ? undefined : (hover ?? inspected);
   const focus = useMemo(
-    () => ({ node: focusNode, near: (focusNode && neighbours.get(focusNode)) || new Set(focusNode ? [focusNode] : []) }),
-    [focusNode, neighbours],
+    () =>
+      picked
+        ? { edge: picked.id, near: new Set([picked.source, picked.target]) }
+        : { node: focusNode, near: (focusNode && neighbours.get(focusNode)) || new Set(focusNode ? [focusNode] : []) },
+    [picked, focusNode, neighbours],
   );
 
   return (
     <Focus.Provider value={focus}>
-      <ReactFlow
-        defaultNodes={nodes}
-        defaultEdges={edges}
-        nodeTypes={nodeTypes}
-        edgeTypes={edgeTypes}
-        nodesConnectable={false}
-        nodesDraggable={!coarse}
-        edgesFocusable={false}
-        minZoom={minZoom}
-        maxZoom={2}
-        proOptions={{ hideAttribution: true }}
-        defaultViewport={restore}
-        onMoveStart={() => document.querySelector('.react-flow')?.classList.add('moving')}
-        onMoveEnd={(_, viewport) => {
-          document.querySelector('.react-flow')?.classList.remove('moving');
-          camera = { sig, viewport };
-        }}
-        onInit={(flow) => {
-          if (!restore) {
-            const box = document.querySelector('.floor-view')?.getBoundingClientRect();
-            if (box) flow.setViewport(openingViewport(nodes, box.width, box.height - BAR, dir));
-          }
-          camera = { sig, viewport: flow.getViewport() };
-        }}
-        // A finger has no hover: a tap would leave the whole floor faded around it until the next tap.
-        onNodeMouseEnter={coarse ? undefined : (_, n) => setHover(n.id)}
-        onNodeMouseLeave={coarse ? undefined : () => setHover(undefined)}
-        onNodeClick={(_, n) => n.type === 'machine' && set({ inspect: (n.data as MachineNodeData).use.recipe.id })}
-        onPaneClick={() => set({ inspect: undefined })}
-      >
-        {/* Foundation grid: minor lines every 8 m tile, a heavier seam every 4 tiles. */}
-        {gridLines && <Background id="minor" variant={BackgroundVariant.Lines} gap={40} lineWidth={1} color="#2f2f2f" />}
-        {gridLines && <Background id="major" variant={BackgroundVariant.Lines} gap={160} lineWidth={1} color="#3b3b3b" />}
-        <FloorControls />
-      </ReactFlow>
+      <PickEdge.Provider value={setEdge}>
+        <ReactFlow
+          defaultNodes={nodes}
+          defaultEdges={edges}
+          nodeTypes={nodeTypes}
+          edgeTypes={edgeTypes}
+          nodesConnectable={false}
+          nodesDraggable={!coarse}
+          edgesFocusable={false}
+          minZoom={minZoom}
+          maxZoom={2}
+          proOptions={{ hideAttribution: true }}
+          defaultViewport={restore}
+          onMoveStart={() => document.querySelector('.react-flow')?.classList.add('moving')}
+          onMoveEnd={(_, viewport) => {
+            document.querySelector('.react-flow')?.classList.remove('moving');
+            camera = { sig, viewport };
+          }}
+          onInit={(flow) => {
+            if (!restore) {
+              const box = document.querySelector('.floor-view')?.getBoundingClientRect();
+              if (box) flow.setViewport(openingViewport(nodes, box.width, box.height - BAR, dir));
+            }
+            camera = { sig, viewport: flow.getViewport() };
+          }}
+          // A finger has no hover: a tap would leave the whole floor faded around it until the next tap.
+          onNodeMouseEnter={coarse ? undefined : (_, n) => setHover(n.id)}
+          onNodeMouseLeave={coarse ? undefined : () => setHover(undefined)}
+          onNodeClick={(_, n) => {
+            setEdge(undefined);
+            if (n.type === 'machine') set({ inspect: (n.data as MachineNodeData).use.recipe.id });
+          }}
+          onPaneClick={() => {
+            setEdge(undefined);
+            set({ inspect: undefined });
+          }}
+        >
+          {/* Foundation grid: minor lines every 8 m tile, a heavier seam every 4 tiles. */}
+          {gridLines && <Background id="minor" variant={BackgroundVariant.Lines} gap={40} lineWidth={1} color="#2f2f2f" />}
+          {gridLines && <Background id="major" variant={BackgroundVariant.Lines} gap={160} lineWidth={1} color="#3b3b3b" />}
+          <FloorControls />
+        </ReactFlow>
+      </PickEdge.Provider>
     </Focus.Provider>
   );
 }

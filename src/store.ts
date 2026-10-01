@@ -3,6 +3,7 @@ import { persist } from 'zustand/middleware';
 import { data } from './lib/data';
 import { isLang, type Lang } from './lib/lang';
 import { DEFAULT_EXTRACTION, type ExtractionSettings } from './lib/extraction';
+import type { Aim } from './lib/solution';
 import { generatorById } from './lib/data';
 import { PLANT_NAMES, type Plant, type SizeBy, sizable } from './lib/power';
 import { cleanChoice, cleanNumber, cleanPlan, cleanPowerPlan, cleanSettings, gridToPower } from './lib/sanitize';
@@ -122,6 +123,8 @@ interface State {
   tier: number;
   /** Every raw resource costs the plan the same, for mods that let you build nodes anywhere. */
   equalWeights: boolean;
+  /** Plan for the fewest machines instead of the fewest resources. */
+  fewestBuildings: boolean;
   /** Newest version whose notes under Settings › Updates were opened. */
   seenUpdates?: string;
   /** Whether the first-run "where are you in the game" question was answered. */
@@ -165,6 +168,7 @@ interface State {
         | 'dialog'
         | 'tier'
         | 'equalWeights'
+        | 'fewestBuildings'
         | 'seenUpdates'
         | 'onboarded'
         | 'inventory'
@@ -263,6 +267,36 @@ function freeName(base: string, taken: string[]): string {
   return `${base} ${n}`;
 }
 
+/** What the plans keep down, from the choice on the Resources tab. */
+export const aimOf = (s: Pick<State, 'equalWeights' | 'fewestBuildings'>): Aim =>
+  s.fewestBuildings ? 'buildings' : s.equalWeights ? 'equal' : 'rarity';
+
+/** What a reload keeps: the part of the state written to the browser's storage. */
+export const persisted = (s: State): Persisted => ({
+  lang: s.lang,
+  mode: s.mode,
+  codexPage: s.codexPage,
+  mapFilter: s.mapFilter,
+  power: s.power,
+  activePower: s.activePower,
+  settings: s.settings,
+  sideWidth: s.sideWidth,
+  tier: s.tier,
+  equalWeights: s.equalWeights,
+  fewestBuildings: s.fewestBuildings,
+  seenUpdates: s.seenUpdates,
+  onboarded: s.onboarded,
+  inventory: s.inventory,
+  view: s.view,
+  tab: s.tab,
+  plans: s.plans,
+  active: s.active,
+  deckHeight: s.deckHeight,
+  deckClosed: s.deckClosed,
+  summaryClosed: s.summaryClosed,
+  graphDir: s.graphDir,
+});
+
 export const useStore = create<State>()(
   persist(
     (set, get) => {
@@ -288,6 +322,7 @@ export const useStore = create<State>()(
         settings: DEFAULT_SETTINGS,
         tier: MAX_TIER,
         equalWeights: false,
+        fewestBuildings: false,
         onboarded: false,
         inventory: { sloops: 0, shards: 0 },
         view: 'graph',
@@ -497,29 +532,7 @@ export const useStore = create<State>()(
     {
       name: 'ficsit-planner',
       version: 3,
-      partialize: (s) => ({
-        lang: s.lang,
-        mode: s.mode,
-        codexPage: s.codexPage,
-        mapFilter: s.mapFilter,
-        power: s.power,
-        activePower: s.activePower,
-        settings: s.settings,
-        sideWidth: s.sideWidth,
-        tier: s.tier,
-        equalWeights: s.equalWeights,
-        seenUpdates: s.seenUpdates,
-        onboarded: s.onboarded,
-        inventory: s.inventory,
-        view: s.view,
-        tab: s.tab,
-        plans: s.plans,
-        active: s.active,
-        deckHeight: s.deckHeight,
-        deckClosed: s.deckClosed,
-        summaryClosed: s.summaryClosed,
-        graphDir: s.graphDir,
-      }),
+      partialize: persisted,
       migrate: migrateState,
       merge: mergeState,
     },
@@ -538,6 +551,7 @@ type Persisted = Partial<
     | 'settings'
     | 'tier'
     | 'equalWeights'
+    | 'fewestBuildings'
     | 'seenUpdates'
     | 'onboarded'
     | 'inventory'
@@ -615,6 +629,7 @@ export function mergeState<S extends State>(persisted: unknown, current: S): S {
     settings: cleanSettings(p.settings),
     tier: Math.round(cleanNumber(p.tier, 0, MAX_TIER, current.tier)),
     equalWeights: p.equalWeights === true,
+    fewestBuildings: p.fewestBuildings === true,
     seenUpdates: typeof p.seenUpdates === 'string' ? p.seenUpdates.slice(0, 20) : undefined,
     onboarded: p.onboarded === true,
     inventory: {

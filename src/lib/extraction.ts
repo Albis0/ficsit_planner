@@ -14,6 +14,8 @@ export interface ExtractionSettings {
   clock: number;
   /** Per resource, a clock set by placing power shards in its extractors (Use all); beats `clock`. */
   overclock?: Record<string, number>;
+  /** Per resource, the nodes the player actually has, by purity. Extractors go on the best of them first. */
+  nodes?: Record<string, Partial<Record<Purity, number>>>;
 }
 
 export const DEFAULT_EXTRACTION: ExtractionSettings = { miner: 'Build_MinerMk2_C', purity: 'normal', clock: 1 };
@@ -31,7 +33,11 @@ export interface ExtractionUse {
   clock: number;
   /** Power shards in them: one per 50% over 100%, each. */
   shards: number;
+  /** With the player's own nodes set: buildings on each purity, and how many of those are past the nodes they have. */
+  onNodes?: { placed: Record<Purity, number>; extra: number };
 }
+
+const BEST_FIRST: Purity[] = ['pure', 'normal', 'impure'];
 
 /** Picks the extractor for a raw resource: the chosen miner for solids, the dedicated pump for fluids. */
 export function extractorFor(item: string, settings: ExtractionSettings): Extractor | undefined {
@@ -57,9 +63,29 @@ export function planExtraction(raw: Target[], settings: ExtractionSettings): Ext
     const set = settings.overclock?.[r.item] ?? settings.clock;
     const per = (p: Purity) => extractor.rate * (extractor.purity ? PURITY[p] : 1) * set;
     const counts = Object.fromEntries(PURITIES.map((p) => [p, Math.ceil(r.rate / per(p) - 1e-6)])) as Record<Purity, number>;
-    const built = counts[settings.purity];
+    const nodes = extractor.purity ? settings.nodes?.[r.item] : undefined;
+    let built = counts[settings.purity];
+    let full = built * per(settings.purity);
+    let onNodes: ExtractionUse['onNodes'];
+    if (nodes && PURITIES.some((p) => (nodes[p] ?? 0) > 0)) {
+      // One extractor per node, best nodes first; whatever they can't give goes on more nodes of the usual purity.
+      const placed = { impure: 0, normal: 0, pure: 0 };
+      let left = r.rate;
+      full = 0;
+      for (const p of BEST_FIRST) {
+        const n = Math.max(0, Math.min(nodes[p] ?? 0, Math.ceil(left / per(p) - 1e-6)));
+        placed[p] = n;
+        full += n * per(p);
+        left = Math.max(0, left - n * per(p));
+      }
+      const extra = Math.max(0, Math.ceil(left / per(settings.purity) - 1e-6));
+      placed[settings.purity] += extra;
+      full += extra * per(settings.purity);
+      built = placed.impure + placed.normal + placed.pure;
+      onNodes = { placed, extra };
+    }
     // Spread the load evenly: each building underclocks to exactly what's needed.
-    const clock = built > 0 ? (r.rate / (built * per(settings.purity))) * set : 0;
+    const clock = built > 0 ? (r.rate / full) * set : 0;
     uses.push({
       item: r.item,
       rate: r.rate,
@@ -69,6 +95,7 @@ export function planExtraction(raw: Target[], settings: ExtractionSettings): Ext
       power: built * extractor.power * clock ** extractor.powerExp,
       clock,
       shards: built * shardsFor(clock),
+      ...(onNodes ? { onNodes } : {}),
     });
   }
   return uses;
