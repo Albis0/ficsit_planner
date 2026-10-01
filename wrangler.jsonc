@@ -12,5 +12,19 @@
       "database_id": "aa0ca4ba-2ca1-4eed-994e-7b618545eb9e",
       "migrations_dir": "migrations"
     }
-  ]
+  ],
+  // Preview deployments (`bun run deploy:preview`) get their own database, so trying things out never
+  // touches real feedback.
+  "env": {
+    "preview": {
+      "d1_databases": [
+        {
+          "binding": "DB",
+          "database_name": "ficsit-reports-preview",
+          "database_id": "66e5a4f5-6660-4b20-a9bf-56b7106ce111",
+          "migrations_dir": "migrations"
+        }
+      ]
+    }
+  }
 }
