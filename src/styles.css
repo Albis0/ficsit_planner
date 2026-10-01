@@ -618,6 +618,15 @@ button:disabled {
   color: var(--ficsit-ink);
 }
 
+.segmented.wrap {
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+.segmented.wrap button {
+  padding: 6px 10px;
+}
+
 .text-button {
   border: 0;
   padding: 2px 0;
@@ -2165,6 +2174,17 @@ button.slot:hover {
   font-size: calc(12px * var(--t));
   font-weight: 600;
   color: var(--dim);
+}
+
+/* Which group of a line split to fit the belts: a dark tag like the power one, in plain paper. */
+.machine-group {
+  flex: none;
+  padding: 1px 7px 2px;
+  background: rgb(18 20 22 / 0.9);
+  color: var(--paper);
+  font: 700 calc(15px * var(--t)) / 1.25 var(--font-body);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0;
 }
 
 /* Shards and somersloops: a blue, pink or half-and-half edge along the bottom. */

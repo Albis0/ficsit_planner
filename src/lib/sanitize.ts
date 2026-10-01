@@ -228,6 +228,8 @@ export function cleanSettings(saved: unknown): Settings {
     gridLines: typeof s.gridLines === 'boolean' ? s.gridLines : d.gridLines,
     addWith: oneOf(s.addWith, ['right', 'double'] as const, d.addWith),
     beltColors: oneOf(s.beltColors, ['tier', 'one'] as const, d.beltColors),
+    beltSplit: oneOf(s.beltSplit, ['off', ...data.belts.map((b) => b.id)], d.beltSplit),
+    pipeSplit: oneOf(s.pipeSplit, ['off', ...data.pipes.map((p) => p.id)], d.pipeSplit),
     colors,
     decimals: finite(s.decimals) ? Math.round(clampSetting('decimals', s.decimals as number)) : d.decimals,
     motion: oneOf(s.motion, ['system', 'reduce', 'full'] as const, d.motion),

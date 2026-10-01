@@ -3,7 +3,7 @@ import { Position, type Edge, type Node, type NodeHandle } from '@xyflow/react';
 import { groupClocks } from './clocks';
 import { data, transportFor, type Transport } from './data';
 import { plantIdOf } from './power';
-import type { RecipeUse, SolveResult } from './solver';
+import { splitUse, type RecipeUse, type SolveResult } from './solver';
 import { matchFlows, type Split, type SplitGroup, splitByDestination } from './split';
 
 /** Left to right or top to bottom. The layout picks whichever fits the screen, unless the player chose. */
@@ -19,6 +19,8 @@ export interface MachineNodeData extends Record<string, unknown> {
   split?: Split;
   /** A card of its own for one of those groups: `use` is then just this group's machines. */
   part?: SplitGroup;
+  /** One of the groups a line was split into so each belt and pipe fits: group n of `of`. */
+  group?: { n: number; of: number };
 }
 
 /** Who draws from the grid: a factory, the fuel chain itself, what the player typed in, or the output sent on. */
@@ -152,9 +154,63 @@ export interface GraphOptions {
   consumers?: Consumer[];
   /** A line whose output goes to several places: one card with a note, or a card per place. */
   splitLines?: 'one' | 'each';
+  /**
+   * Most a single belt (solids) or pipe (fluids) may carry, per minute. Lines whose flows don't fit are split
+   * into groups of whole machines that do, each fed and emptied by its own belts.
+   */
+  split?: { belt?: number; pipe?: number };
 }
 
-/** Turns an LP solution into a factory graph, with a belt for each flow `matchFlows` finds. */
+/** Most groups a line is split into; past this it stays whole and its belts show as lanes side by side. */
+const MAX_GROUPS = 50;
+
+/**
+ * The line as groups of consecutive machines, each as big as it can be with every item it takes in or sends
+ * out fitting on one belt or pipe. A machine that overflows one on its own gets a group to itself. Lines that
+ * already fit, and lines that would need more than MAX_GROUPS groups, stay whole.
+ */
+export function machineGroups(u: RecipeUse, capOf: (item: string) => number | undefined): RecipeUse[] {
+  const add = (sum: Map<string, number>, m: RecipeUse) => {
+    const next = new Map(sum);
+    for (const f of m.inputs) next.set(`in:${f.item}`, (next.get(`in:${f.item}`) ?? 0) + f.rate);
+    for (const f of m.outputs) next.set(`out:${f.item}`, (next.get(`out:${f.item}`) ?? 0) + f.rate);
+    return next;
+  };
+  const fits = (sum: Map<string, number>) =>
+    [...sum].every(([key, rate]) => {
+      const cap = capOf(key.slice(key.indexOf(':') + 1));
+      return cap === undefined || rate <= cap + 1e-6;
+    });
+  if (u.built < 2 || fits(add(new Map(), u))) return [u];
+  const sizes: number[] = [];
+  let sum = new Map<string, number>();
+  for (const m of splitUse(
+    u,
+    u.clocks.map(() => 1),
+  )) {
+    const next = add(sum, m);
+    if (sizes.length && fits(next)) {
+      sum = next;
+      sizes[sizes.length - 1]++;
+    } else {
+      sum = add(new Map(), m);
+      sizes.push(1);
+    }
+  }
+  return sizes.length < 2 || sizes.length > MAX_GROUPS ? [u] : splitUse(u, sizes);
+}
+
+/** One of the cards a line is drawn as, its share of the line's machines, and the destination it was made for. */
+interface Card {
+  id: string;
+  share: number;
+  part?: SplitGroup;
+}
+
+/**
+ * Turns an LP solution into a factory graph, with a belt for each flow `matchFlows` finds. With `opts.split`, lines
+ * are first split into machine groups, so no belt or pipe between machines carries more than the chosen one can.
+ */
 export function buildGraph(result: SolveResult, tier: number, opts: GraphOptions = {}): { nodes: Node[]; edges: Edge[]; dir: Direction } {
   const k = opts.scale ?? 1;
   const box = (size: Box) => cardBox(size, k, opts.text ?? 1);
@@ -180,37 +236,56 @@ export function buildGraph(result: SolveResult, tier: number, opts: GraphOptions
   for (const m of result.missing) endpoint('missing', m.item, m.rate);
 
   const flows = matchFlows(result);
-  // Lines drawn as a card per destination: each group's node id, and its share of the line's machines.
-  const cards = new Map<string, { id: string; share: number; part: SplitGroup }[]>();
-  for (const u of result.recipes) {
-    const id = `recipe:${u.recipe.id}`;
-    const plant = plantIdOf(u.recipe.id);
-    const split = splitByDestination(u, flows, tier);
-    if (split && opts.splitLines === 'each') {
-      const list = split.groups.map((part, i) => ({ id: `${id}~${i}`, share: part.use.count / u.count, part }));
-      cards.set(id, list);
-      for (const c of list) {
-        nodes.push({
-          id: c.id,
-          type: 'machine',
-          position: { x: 0, y: 0 },
-          data: { use: c.part.use, part: c.part } satisfies MachineNodeData,
-          ...box({ ...SIZE.machine, height: SIZE.machine.height + RUN_LINE * cardExtra(c.part.use, c.part) }),
-          handles: [],
-        });
-        sides.set(c.id, { source: true, target: true });
-      }
-      continue;
-    }
+  const capOf = (item: string) => (data.items[item]?.form === 'solid' ? opts.split?.belt : opts.split?.pipe) || undefined;
+  const tiered = (u: RecipeUse) => (opts.split?.belt || opts.split?.pipe ? machineGroups(u, capOf) : [u]);
+  // Lines drawn as more than one card (a card per destination, or groups that fit the chosen belt): each card's
+  // node id, its share of the line's machines, and the destination it was made for.
+  const cards = new Map<string, Card[]>();
+  const plants: { id: string; mw: number }[] = [];
+  const card = (id: string, data: MachineNodeData, split?: Split | SplitGroup) => {
     nodes.push({
       id,
       type: 'machine',
       position: { x: 0, y: 0 },
-      data: { use: u, generation: plant ? (result.grid?.plants[plant] ?? 0) : undefined, split } satisfies MachineNodeData,
-      ...box({ ...SIZE.machine, height: SIZE.machine.height + RUN_LINE * cardExtra(u, split) }),
+      data,
+      ...box({ ...SIZE.machine, height: SIZE.machine.height + RUN_LINE * cardExtra(data.use, split) }),
       handles: [],
     });
     sides.set(id, { source: true, target: true });
+  };
+  for (const u of result.recipes) {
+    const id = `recipe:${u.recipe.id}`;
+    const plant = plantIdOf(u.recipe.id);
+    const generation = plant ? (result.grid?.plants[plant] ?? 0) : undefined;
+    const split = splitByDestination(u, flows, tier);
+    const list: Card[] = [];
+    if (split && opts.splitLines === 'each') {
+      split.groups.forEach((part, i) => {
+        const groups = tiered(part.use);
+        groups.forEach((g, j) => {
+          const gid = groups.length > 1 ? `${id}~${i}#${j + 1}` : `${id}~${i}`;
+          const group = groups.length > 1 ? { n: j + 1, of: groups.length } : undefined;
+          // Each group sends its own share of what the destination takes.
+          const own = { ...part, use: g, rate: part.use.count > 0 ? (part.rate * g.count) / part.use.count : part.rate / groups.length };
+          card(gid, { use: g, part: own, group }, own);
+          list.push({ id: gid, share: g.count / u.count, part });
+        });
+      });
+    } else {
+      const groups = tiered(u);
+      groups.forEach((g, i) => {
+        const gid = groups.length > 1 ? `${id}#${i + 1}` : id;
+        // A generator group puts its share of the plant's power on the grid, by how much fuel it burns.
+        const mw = generation === undefined ? undefined : u.count > 0 ? (generation * g.count) / u.count : generation / groups.length;
+        const group = groups.length > 1 ? { n: i + 1, of: groups.length } : undefined;
+        // One card with a "Split 3 + 2" note; split to fit the belts, the groups say which of them they are instead.
+        const note = groups.length > 1 ? undefined : split;
+        card(gid, { use: g, generation: mw, split: note, group }, note);
+        if (mw !== undefined) plants.push({ id: gid, mw });
+        list.push({ id: gid, share: u.count > 0 ? g.count / u.count : 1 / groups.length });
+      });
+    }
+    if (list.length > 1) cards.set(id, list);
   }
 
   for (const t of result.targets) endpoint('target', t.item, t.rate);
@@ -237,9 +312,10 @@ export function buildGraph(result: SolveResult, tier: number, opts: GraphOptions
     }
     // A split line's main output leaves from the group made for that destination; everything else (its inputs, its
     // byproducts) is shared out by each group's size, and matched largest first like the belts between lines.
-    const own = from?.find((c) => c.part.nodes.includes(f.to) && f.item === c.part.use.outputs[0].item);
-    const sources = own
-      ? [{ id: own.id, rate: f.rate }]
+    const own = from?.filter((c) => c.part?.nodes.includes(f.to) && f.item === c.part.use.outputs[0].item) ?? [];
+    const ownShare = own.reduce((s, c) => s + c.share, 0);
+    const sources = own.length
+      ? own.map((c) => ({ id: c.id, rate: (f.rate * c.share) / ownShare }))
       : from
         ? from.map((c) => ({ id: c.id, rate: f.rate * c.share }))
         : [{ id: f.from, rate: f.rate }];
@@ -247,7 +323,7 @@ export function buildGraph(result: SolveResult, tier: number, opts: GraphOptions
     for (const [a, b, rate] of pair(sources, targets)) belt(a, b, f.item, rate);
   }
 
-  if (result.grid) addGrid(result, nodes, edges, sides, opts.consumers ?? [], box);
+  if (result.grid) addGrid(result, plants, nodes, edges, sides, opts.consumers ?? [], box);
 
   const dir = layout(nodes, edges, opts);
   for (const n of nodes) n.handles = handlesFor({ width: n.width!, height: n.height! }, sides.get(n.id)!, dir);
@@ -278,6 +354,7 @@ function pair(sources: { id: string; rate: number }[], targets: { id: string; ra
  */
 function addGrid(
   result: SolveResult,
+  plants: { id: string; mw: number }[],
   nodes: Node[],
   edges: Edge[],
   sides: Map<string, { source: boolean; target: boolean }>,
@@ -295,17 +372,8 @@ function addGrid(
     handles: [],
   });
   sides.set('grid', { source: consumers.length > 0, target: true });
-  for (const u of result.recipes) {
-    const plant = plantIdOf(u.recipe.id);
-    if (!plant) continue;
-    const id = `recipe:${u.recipe.id}`;
-    edges.push({
-      id: `${id}>grid`,
-      source: id,
-      target: 'grid',
-      type: 'power',
-      data: { mw: grid.plants[plant] ?? 0 } satisfies PowerEdgeData,
-    });
+  for (const { id, mw } of plants) {
+    edges.push({ id: `${id}>grid`, source: id, target: 'grid', type: 'power', data: { mw } satisfies PowerEdgeData });
   }
   for (const c of consumers) {
     const id = `use:${c.id}`;

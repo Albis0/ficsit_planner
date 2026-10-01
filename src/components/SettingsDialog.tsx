@@ -234,14 +234,17 @@ function Choice<T extends string | number>({
   options,
   onChange,
   label,
+  wrap,
 }: {
   value: T;
   options: { id: T; label: string }[];
   onChange: (v: T) => void;
   label: string;
+  /** Many options: let them wrap onto a second row rather than push the dialog wider. */
+  wrap?: boolean;
 }) {
   return (
-    <div className="segmented" role="radiogroup" aria-label={label}>
+    <div className={`segmented ${wrap ? 'wrap' : ''}`} role="radiogroup" aria-label={label}>
       {options.map((o) => (
         <button key={String(o.id)} type="button" role="radio" aria-checked={value === o.id} onClick={() => onChange(o.id)}>
           {o.label}
@@ -438,6 +441,23 @@ function FloorSection() {
             { id: 'double', label: t('addWithDouble') },
           ]}
           onChange={(v) => set({ addWith: v })}
+        />
+      </Row>
+      <Row label={t('beltSplit')} hint={t('beltSplitHint')}>
+        <Choice
+          label={t('beltSplit')}
+          wrap
+          value={s.beltSplit}
+          options={[{ id: 'off', label: t('noSplit') }, ...data.belts.map((b) => ({ id: b.id, label: b.name }))]}
+          onChange={(v) => set({ beltSplit: v })}
+        />
+      </Row>
+      <Row label={t('pipeSplit')} hint={t('pipeSplitHint')}>
+        <Choice
+          label={t('pipeSplit')}
+          value={s.pipeSplit}
+          options={[{ id: 'off', label: t('noSplit') }, ...data.pipes.map((p) => ({ id: p.id, label: p.name }))]}
+          onChange={(v) => set({ pipeSplit: v })}
         />
       </Row>
     </>

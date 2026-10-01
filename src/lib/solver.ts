@@ -208,6 +208,45 @@ function machineClocks(built: number, units: number): number[] {
   });
 }
 
+/**
+ * Splits a line's placed machines into groups (consecutive runs of `sizes` machines), each described as a
+ * line of its own. Sloops go into the first machines, as placedPower puts them, so a group's outputs are
+ * what its own machines make; flows are shares of the line's, so the groups always add up to it.
+ */
+export function splitUse(u: RecipeUse, sizes: number[]): RecipeUse[] {
+  const slots = sloopSlots(u.recipe);
+  let left = u.sloops;
+  const sloops = u.clocks.map(() => {
+    const s = slots > 0 ? Math.min(slots, left) : 0;
+    left -= s;
+    return s;
+  });
+  const units = u.clocks.reduce((s, c) => s + c, 0);
+  const made = u.clocks.reduce((s, c, i) => s + c * (slots > 0 ? 1 + sloops[i] / slots : 1), 0);
+  let start = 0;
+  return sizes.map((size) => {
+    const clocks = u.clocks.slice(start, start + size);
+    const gSloops = sloops.slice(start, start + size).reduce((s, x) => s + x, 0);
+    const gUnits = clocks.reduce((s, c) => s + c, 0);
+    const gMade = clocks.reduce((s, c, i) => s + c * (slots > 0 ? 1 + sloops[start + i] / slots : 1), 0);
+    start += size;
+    const inShare = units > 0 ? gUnits / units : size / u.built;
+    const outShare = made > 0 ? gMade / made : inShare;
+    return {
+      ...u,
+      inputs: u.inputs.map((x) => ({ item: x.item, rate: x.rate * inShare })),
+      outputs: u.outputs.map((x) => ({ item: x.item, rate: x.rate * outShare })),
+      count: u.count * inShare,
+      built: size,
+      clock: gUnits / size,
+      clocks,
+      power: placedPower(u.recipe, clocks, gSloops),
+      shards: clocks.reduce((s, c) => s + shardsFor(c), 0),
+      sloops: gSloops,
+    };
+  });
+}
+
 export function describeUse(recipe: Recipe, mod: RecipeMod, count: number, asSet = false): RecipeUse {
   const built = Math.max(1, Math.ceil(count - EPS));
   const clock = (mod.clock * count) / built;

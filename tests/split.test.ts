@@ -176,6 +176,18 @@ describe('a card per destination on the graph', () => {
     expect(belt('recipe:Recipe_IngotIron_C~0', 'recipe:Recipe_IronPlate_C')).toBeUndefined();
   });
 
+  test('with a belt tier too, a destination too big for one belt is split again, still belting only to its own', async () => {
+    const { buildGraph } = await import('../src/lib/graph');
+    const { nodes, edges } = buildGraph(factory(), 9, { splitLines: 'each', split: { belt: 60 } });
+    const rods = nodes.filter((n) => n.id.startsWith('recipe:Recipe_IngotIron_C~0#')).map((n) => n.id);
+    expect(rods.length).toBeGreaterThan(1);
+    expect(nodes.map((n) => n.id)).toContain('recipe:Recipe_IngotIron_C~1');
+    const out = edges.filter((e) => rods.includes(e.source) && (e.data as { item: string }).item === 'Desc_IronIngot_C');
+    expect(out.every((e) => e.target.startsWith('recipe:Recipe_IronRod_C'))).toBe(true);
+    expect(out.every((e) => (e.data as { rate: number }).rate <= 60 + 1e-6)).toBe(true);
+    expect(sum(out.map((e) => (e.data as { rate: number }).rate))).toBeCloseTo(73.55, 4);
+  });
+
   test('one card keeps the line whole', async () => {
     const { buildGraph } = await import('../src/lib/graph');
     const { nodes } = buildGraph(factory(), 9, { splitLines: 'one' });
