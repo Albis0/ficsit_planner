@@ -173,8 +173,28 @@ export function transportFor(item: Item, rate: number, tier = 99): { transport: 
   return { transport: best, lanes: Math.ceil(rate / best.rate - 1e-6) };
 }
 
-/** Tier that makes a recipe usable: the later of its own unlock and its building's. */
-export const recipeTier = (r: Recipe) => Math.max(r.tier ?? 0, buildingById(r.machine)?.tier ?? 0);
+const ownTier = (r: Recipe) => Math.max(r.tier ?? 0, buildingById(r.machine)?.tier ?? 0);
+
+const tierCache = new Map<Recipe, number>();
+
+/**
+ * Tier that makes a recipe usable: the later of its own unlock and its building's. Alternates carry no
+ * unlock of their own (hard drives can turn up any time), but the game only offers one once its parts can
+ * be made, so they also wait for the tier where standard recipes make every item they take or give.
+ */
+export const recipeTier = (r: Recipe): number => {
+  let tier = tierCache.get(r);
+  if (tier === undefined) {
+    tier = ownTier(r);
+    if (r.kind === 'alternate')
+      for (const s of [...r.inputs, ...r.outputs]) {
+        const tiers = (producersOf.get(s.item) ?? []).filter((p) => p.kind === 'standard').map(ownTier);
+        if (tiers.length) tier = Math.max(tier, Math.min(...tiers));
+      }
+    tierCache.set(r, tier);
+  }
+  return tier;
+};
 
 /** Is the recipe usable at this tier: its own unlock and its building's. */
 export const recipeUnlocked = (r: Recipe, tier: number) => recipeTier(r) <= tier;
