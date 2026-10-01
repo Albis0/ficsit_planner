@@ -1260,13 +1260,13 @@ button.slot:hover {
   border: 1px solid color-mix(in srgb, var(--converter) 50%, transparent);
 }
 
-.tier-tag {
+.recipe-tier {
   margin-left: 10px;
   font: 600 14px var(--font-display);
   color: var(--faint);
 }
 
-.recipe-row.locked .tier-tag {
+.recipe-row.locked .recipe-tier {
   color: var(--alert);
 }
 

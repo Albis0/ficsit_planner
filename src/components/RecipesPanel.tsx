@@ -136,7 +136,7 @@ export function RecipesPanel() {
                       {recipeLabel(name(r), r.kind)}
                       {r.kind !== 'standard' && <span className={`kind ${r.kind}`}>{t(r.kind)}</span>}
                       {(r.tier !== undefined || r.kind === 'alternate') && (
-                        <span className="tier-tag" title={locked ? t('aboveTier') : undefined}>
+                        <span className="recipe-tier" title={locked ? t('aboveTier') : undefined}>
                           T{recipeTier(r)}
                         </span>
                       )}
