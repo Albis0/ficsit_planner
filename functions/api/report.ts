@@ -1,6 +1,6 @@
 // POST /api/report: feedback from the app's report dialog, stored in the site's own D1 database.
 // Read it with `bun run reports` (scripts/reports.mjs).
-import { checkFeedback, LIMITS } from '../../src/lib/feedback-schema';
+import { banHours, checkFeedback, LIMITS, looksAbusive } from '../../src/lib/feedback-schema';
 
 interface Env {
   DB: D1Database;
@@ -39,6 +39,17 @@ async function senderKeys(request: Request, salt: string, hour: string): Promise
       .join('');
   };
   return { near: await hash('near', v6 ? ipv6Prefix(ip, 4) : ip), site: await hash('site', v6 ? ipv6Prefix(ip, 3) : ip) };
+}
+
+/** Hash of the secret and the sender's address (IPv6 cut to its /64), the same every hour, for bans only. */
+export async function banKey(request: Request, salt: string): Promise<string> {
+  const ip = request.headers.get('cf-connecting-ip') ?? '';
+  const part = ip.includes(':') ? ipv6Prefix(ip, 4) : ip;
+  const digest = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(`ban|${salt}|${part}`));
+  return [...new Uint8Array(digest)]
+    .slice(0, 16)
+    .map((b) => b.toString(16).padStart(2, '0'))
+    .join('');
 }
 
 /** "2001:db8::1", 4 groups -> "2001:0db8:0000:0000", the first 64 bits. */
@@ -112,6 +123,31 @@ export const onRequest: PagesFunction<Env> = async ({ request, env }) => {
     return json({ ok: true, id: next?.id ?? 1 }, 201);
   }
 
+  const who = await banKey(request, salt);
+  const banned = await env.DB.prepare("SELECT 1 AS x FROM bans WHERE who = ? AND until > strftime('%Y-%m-%dT%H:%M:%SZ', 'now')")
+    .bind(who)
+    .first();
+  if (banned) return json({ error: 'rate' }, 429);
+
+  // Writing to whatever reads the reports, or wishing harm on the maintainer: keep it out of sight (it waits under
+  // Spam in the owner's list), answer like a stored report, and turn the sender away for longer each time.
+  if (looksAbusive(f)) {
+    const before = await env.DB.prepare('SELECT strikes FROM bans WHERE who = ?').bind(who).first<{ strikes: number }>();
+    const strikes = (before?.strikes ?? 0) + 1;
+    const until = `${new Date(Date.now() + banHours(strikes) * 3_600_000).toISOString().slice(0, 19)}Z`;
+    const [, spam] = await env.DB.batch([
+      env.DB.prepare(
+        `INSERT INTO bans (who, until, strikes, reason) VALUES (?1, ?2, ?3, 'auto')
+         ON CONFLICT (who) DO UPDATE SET until = ?2, strikes = ?3, reason = 'auto'`,
+      ).bind(who, until, strikes),
+      env.DB.prepare(
+        `INSERT INTO reports (kind, title, body, steps, area, contact, meta, status, who)
+         VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, 'spam', ?8) RETURNING id`,
+      ).bind(f.kind, f.title, f.body, f.steps, f.area, f.contact, JSON.stringify(f.meta), who),
+    ]);
+    return json({ ok: true, id: (spam.results[0] as { id: number } | undefined)?.id ?? 1 }, 201);
+  }
+
   const hour = new Date().toISOString().slice(0, 13);
   const { near, site } = await senderKeys(request, salt, hour);
   // A random tag for this request: each step only goes ahead if the one before it took a slot under it.
@@ -123,17 +159,20 @@ export const onRequest: PagesFunction<Env> = async ({ request, env }) => {
   // One batch is one transaction: forget other hours, take the sender's slot, then the site's (so a
   // sender over their own limit doesn't use up their neighbours'), then store the report only if both
   // were free and today's total allows it. Parallel requests can't slip past.
-  const [, nearSlot, siteSlot, stored] = await env.DB.batch([
+  const [, , , nearSlot, siteSlot, stored] = await env.DB.batch([
     env.DB.prepare('DELETE FROM hits WHERE hour <> ?1').bind(hour),
+    // Old bans go after a month, and a report forgets who sent it after a week.
+    env.DB.prepare("DELETE FROM bans WHERE until < strftime('%Y-%m-%dT%H:%M:%SZ', 'now', '-30 days')"),
+    env.DB.prepare("UPDATE reports SET who = '' WHERE who <> '' AND created < strftime('%Y-%m-%dT%H:%M:%SZ', 'now', '-7 days')"),
     env.DB.prepare(slot('?1', '?2')).bind(near, PER_HOUR, hour, tag),
     env.DB.prepare(slot('?1', '?2', '?5')).bind(site, PER_SITE, hour, tag, near),
     env.DB.prepare(
-      `INSERT INTO reports (kind, title, body, steps, area, contact, plan, meta)
-       SELECT ?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8
+      `INSERT INTO reports (kind, title, body, steps, area, contact, plan, meta, who)
+       SELECT ?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?12
        WHERE EXISTS (SELECT 1 FROM hits WHERE sender = ?9 AND last = ?10)
          AND (SELECT COUNT(*) FROM reports WHERE created > strftime('%Y-%m-%dT%H:%M:%SZ', 'now', '-1 day')) < ?11
        RETURNING id`,
-    ).bind(f.kind, f.title, f.body, f.steps, f.area, f.contact, f.plan ?? null, JSON.stringify(f.meta), site, tag, PER_DAY),
+    ).bind(f.kind, f.title, f.body, f.steps, f.area, f.contact, f.plan ?? null, JSON.stringify(f.meta), site, tag, PER_DAY, who),
   ]);
   if (siteSlot.results.length === 0 || nearSlot.results.length === 0) return json({ error: 'rate' }, 429);
   const id = (stored.results[0] as { id: number } | undefined)?.id;

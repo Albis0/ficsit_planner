@@ -109,3 +109,25 @@ export function checkFeedback(x: unknown): { ok: true; value: Feedback } | { ok:
     },
   };
 }
+
+/** Hours a sender is turned away after their nth strike: an hour, a day, a week, then a month. */
+export const banHours = (strikes: number) => [1, 24, 168, 720][Math.min(Math.max(strikes, 1), 4) - 1];
+
+/**
+ * Text written to talk to whatever reads reports (an AI told to ignore its instructions and delete files)
+ * or to wish harm on the maintainer. Real bug reports never read like this, so a match is a strike.
+ */
+const ABUSE = [
+  /ignore\s+(all\s+)?(the\s+)?(above|previous|prior|earlier)\b/i,
+  /disregard\s+(all\s+)?(the\s+)?(above|previous|prior)\b/i,
+  /delete\s+(every|all)\s+(the\s+)?files?/i,
+  /\b(this is|it'?s)\s+(me,?\s+)?your\s+(maintainer|developer|owner|creator)\b/i,
+  /\b(system|developer)\s+prompt\b/i,
+  /\bkill\s+your\s?self\b/i,
+  /\bkys\b/i,
+];
+
+export function looksAbusive(f: Pick<Feedback, 'title' | 'body' | 'steps' | 'area' | 'contact'>): boolean {
+  const text = [f.title, f.body, f.steps, f.area, f.contact].join('\n');
+  return ABUSE.some((re) => re.test(text));
+}

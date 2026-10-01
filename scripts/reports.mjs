@@ -78,7 +78,7 @@ const COLUMNS = 'id, created, kind, status, title, body, steps, area, contact, m
 
 if (cmd === 'list' || cmd === 'all') {
   const rows = query(
-    `SELECT id, created, kind, status, title, meta FROM reports ${cmd === 'all' ? '' : "WHERE status != 'done'"} ORDER BY id DESC LIMIT ${cmd === 'all' ? 500 : 30}`,
+    `SELECT id, created, kind, status, title, meta FROM reports ${cmd === 'all' ? '' : "WHERE status NOT IN ('done', 'spam')"} ORDER BY id DESC LIMIT ${cmd === 'all' ? 500 : 30}`,
   );
   console.log(rows.length ? rows.map(line).join('\n') : 'No reports.');
 } else if (cmd === 'show') {
@@ -98,7 +98,7 @@ if (cmd === 'list' || cmd === 'all') {
   query(`UPDATE reports SET status = 'done' WHERE id = ${id(arg)}`);
   console.log(`#${arg} marked done.`);
 } else if (cmd === 'md') {
-  const rows = query(`SELECT ${COLUMNS} FROM reports WHERE status != 'done' ORDER BY id DESC`);
+  const rows = query(`SELECT ${COLUMNS} FROM reports WHERE status NOT IN ('done', 'spam') ORDER BY id DESC`);
   const file = path.join(import.meta.dirname, '..', 'reports', 'feedback.md');
   fs.mkdirSync(path.dirname(file), { recursive: true });
   fs.writeFileSync(file, `# Feedback (${rows.length} open)\n\n${rows.map((r) => full(r, md)).join('\n\n---\n\n')}\n`);
