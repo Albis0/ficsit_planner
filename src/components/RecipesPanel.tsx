@@ -3,6 +3,7 @@ import { data, recipeTier, recipeUnlocked, type Recipe, type RecipeKind, type St
 import { useT } from '../lib/i18n';
 import { recipeLabel, searchKey } from '../lib/text';
 import { defaultEnabled, MAX_TIER, usePlan, useStore } from '../store';
+import { Glyph } from './Glyph';
 import { Icon } from './Icon';
 import { Slot } from './Slot';
 
@@ -43,9 +44,14 @@ export function RecipesPanel() {
       map.set(key, [...(map.get(key) ?? []), r]);
     }
     const sorted = [...map].sort(([a], [b]) => name(data.items[a]).localeCompare(name(data.items[b])));
-    return { groups: sorted, hidden };
+    // A search that finds nothing under this filter may still find standard or converter recipes.
+    const elsewhere =
+      f && filter !== 'all' && sorted.length === 0
+        ? data.recipes.filter((r) => match(r) && (showLocked || recipeUnlocked(r, tier))).length
+        : 0;
+    return { groups: sorted, hidden, elsewhere };
   }, [filter, q, name, showLocked, tier]);
-  const { groups, hidden } = listed;
+  const { groups, hidden, elsewhere } = listed;
 
   // Bulk buttons leave recipes above the tier alone; those can't be picked one by one either.
   const visibleIds = groups.flatMap(([, rs]) => rs.filter((r) => recipeUnlocked(r, tier)).map((r) => r.id));
@@ -61,6 +67,17 @@ export function RecipesPanel() {
   return (
     <div className="panel-body recipes">
       <div className="recipe-tools">
+        <label className="search-box">
+          <Glyph name="search" size={20} />
+          <input
+            className="search"
+            type="search"
+            placeholder={t('searchRecipes')}
+            aria-label={t('searchRecipes')}
+            value={q}
+            onChange={(e) => setQ(e.target.value)}
+          />
+        </label>
         <div className="tier-picker">
           <span className="control-label">{t('unlockedTier')}</span>
           <div className="tier-steps" role="radiogroup" aria-label={t('unlockedTier')}>
@@ -78,14 +95,6 @@ export function RecipesPanel() {
             ))}
           </div>
         </div>
-        <input
-          className="search"
-          type="search"
-          placeholder={t('searchRecipes')}
-          aria-label={t('searchRecipes')}
-          value={q}
-          onChange={(e) => setQ(e.target.value)}
-        />
         <div className="segmented" role="radiogroup" aria-label={t('recipes')}>
           {(['alternate', 'standard', 'converter', 'all'] as Filter[]).map((f) => (
             <button key={f} type="button" role="radio" aria-checked={filter === f} onClick={() => setFilter(f)}>
@@ -115,7 +124,15 @@ export function RecipesPanel() {
       </div>
 
       <div className="recipe-list">
-        {groups.length === 0 && hidden === 0 && <p className="hint">{t('noResults')}</p>}
+        {groups.length === 0 && hidden === 0 && elsewhere === 0 && <p className="hint">{t('noResults')}</p>}
+        {elsewhere > 0 && (
+          <p className="hint">
+            {t('noKindResults', { kind: t(filter).toLocaleLowerCase() })}{' '}
+            <button type="button" className="text-button" onClick={() => setFilter('all')}>
+              {t('showAllMatches', { n: elsewhere })}
+            </button>
+          </p>
+        )}
         {groups.map(([item, rs]) => (
           <section key={item} className="recipe-group">
             <h3 className="section-title with-icon">

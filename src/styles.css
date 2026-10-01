@@ -751,6 +751,31 @@ button:disabled {
   border-color: var(--ficsit);
 }
 
+/* The recipe search sits first in its column, with a magnifier, so it reads as the way in. */
+.search-box {
+  position: relative;
+  display: block;
+}
+
+.search-box .glyph {
+  position: absolute;
+  left: 12px;
+  top: 50%;
+  translate: 0 -50%;
+  color: var(--faint);
+  pointer-events: none;
+}
+
+.search-box .search {
+  padding-left: 42px;
+  background: var(--panel-2);
+  border-color: var(--line-2);
+}
+
+.search-box:focus-within .glyph {
+  color: var(--ficsit);
+}
+
 .form-mark {
   flex: none;
   width: 12px;
@@ -1612,6 +1637,7 @@ button.slot:hover {
 /* ---------- Summary readouts ---------- */
 
 .summary {
+  position: relative;
   display: flex;
   flex-wrap: wrap;
   background: var(--panel);
@@ -1712,6 +1738,11 @@ button.slot:hover {
 /* Room for one raw input at least: with less, the readout moves to a line of its own instead of spilling out. */
 .app[data-summary='compact'] .readout.wide {
   min-width: 190px;
+}
+
+.readout.wide[data-many] {
+  order: 1;
+  flex-basis: 100%;
 }
 
 .app[data-summary='compact'] .raw-inputs {
@@ -2738,6 +2769,20 @@ button.slot:hover {
 
 .scaled .chip {
   font: 700 18px var(--font-display);
+}
+
+.pin-held {
+  flex-basis: 100%;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 14px;
+  color: var(--dim);
+}
+
+.pin-held .chip {
+  font: 600 16px var(--font-body);
+  color: var(--paper);
 }
 
 .readout-value.over {
@@ -5093,8 +5138,10 @@ button.gen-count[aria-pressed='true'] {
     transform: rotate(180deg);
   }
 
+  /* Folded, the unfold button leads the strip, where the fold button was. */
   .app:is([data-panel='left'], [data-panel='right'])[data-deck='closed'] .tabs .deck-toggle {
-    margin: auto 0 0;
+    order: -1;
+    margin: 0 0 8px;
     padding: 18px 13px;
     transform: none;
   }
@@ -5590,6 +5637,13 @@ button.gen-count[aria-pressed='true'] {
     flex: none;
     min-width: 0;
     padding: 8px 14px;
+  }
+
+  /* The strip scrolls sideways here, so the raw inputs keep their own width. */
+  .app[data-summary] .readout.wide {
+    order: 0;
+    flex-basis: auto;
+    min-width: 0;
   }
 
   .readout-label {
@@ -7338,6 +7392,68 @@ a.codex-flow:hover {
   font-size: 15px;
 }
 
+/* Settings › Updates: a few plain lines per version. */
+.updates {
+  display: flex;
+  flex-direction: column;
+  gap: 22px;
+}
+
+.update-title {
+  margin: 0 0 6px;
+  font: 700 19px var(--font-display);
+  letter-spacing: 0.04em;
+}
+
+.update-title time {
+  margin-left: 10px;
+  color: var(--faint);
+  font: 500 15px var(--font-body);
+  letter-spacing: 0;
+}
+
+.update-notes {
+  margin: 0;
+  padding-left: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  color: var(--dim);
+  font-size: 15px;
+}
+
+.update-made {
+  margin: 0;
+  padding-top: 14px;
+  border-top: 1px solid var(--line);
+  color: var(--faint);
+  font-size: 14px;
+}
+
+/* Something new under Settings › Updates. */
+.new-dot {
+  flex: none;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--ficsit);
+}
+
+.settings-nav .new-dot {
+  margin-left: auto;
+}
+
+.menu-button {
+  position: relative;
+}
+
+.menu-button .new-dot {
+  position: absolute;
+  top: 12px;
+  right: 8px;
+}
+
 @media (max-width: 900px) {
   .codex-page {
     padding: 18px 14px 40px;
@@ -8206,7 +8322,7 @@ a.codex-flow:hover {
 
 /*
   The frame is built the way the game builds its machine windows (TXUI_Manufacturer_BG,
-  GeneratorBG): a grey metal casing with screws in the corners, and dark glass screens set into it
+  GeneratorBG): a grey metal casing, and dark glass screens set into it
   where the numbers are. Words painted on the metal are dark; on the glass they're light.
 */
 :root {
@@ -8214,10 +8330,6 @@ a.codex-flow:hover {
   --metal-edge: inset 0 1px 0 rgb(255 255 255 / 0.3), inset 0 -2px 0 rgb(0 0 0 / 0.28);
   --glass: linear-gradient(118deg, #1b1b1b 0 36%, #202020 36% 50%, #1b1b1b 50%);
   --glass-edge: inset 0 2px 6px rgb(0 0 0 / 0.7), 0 1px 0 rgb(255 255 255 / 0.25);
-  --screw: radial-gradient(circle, #b4b4b4 0 1.6px, #3b3b3b 2.2px 3.2px, rgb(0 0 0 / 0) 3.6px);
-  --screws:
-    var(--screw) left 5px top 5px / 12px 12px no-repeat, var(--screw) right 5px top 5px / 12px 12px no-repeat,
-    var(--screw) left 5px bottom 5px / 12px 12px no-repeat, var(--screw) right 5px bottom 5px / 12px 12px no-repeat;
   --painted: #242424;
 }
 
@@ -8229,7 +8341,7 @@ a.codex-flow:hover {
 
 /* The panel: metal with the tabs painted on it and glass for each column. */
 .side {
-  background: var(--screws), var(--metal);
+  background: var(--metal);
   box-shadow: var(--metal-edge);
   border-color: #2c2c2c;
 }
@@ -8326,7 +8438,7 @@ a.codex-flow:hover {
 .modal,
 .tier-dialog,
 .sheet {
-  background: var(--screws), var(--metal);
+  background: var(--metal);
   border-color: #2c2c2c;
   box-shadow:
     var(--metal-edge),
@@ -8380,7 +8492,7 @@ a.codex-flow:hover {
 /* The machine panel on the floor: the game's machine window in small. */
 .inspector {
   border: 1px solid #2c2c2c;
-  background: var(--screws), var(--metal);
+  background: var(--metal);
   box-shadow:
     var(--metal-edge),
     0 18px 44px rgb(0 0 0 / 0.55);
@@ -8480,7 +8592,8 @@ a.codex-flow:hover {
   }
 
   .app:is([data-panel='left'], [data-panel='right'])[data-deck='closed'] .side .tabs .deck-toggle {
-    margin: auto 0 0;
+    order: -1;
+    margin: 0 0 8px;
     width: 36px;
     height: 36px;
     padding: 0;
@@ -8698,4 +8811,202 @@ a.codex-flow:hover {
 .item-card-rate {
   flex-wrap: wrap;
   min-width: 0;
+}
+
+/* A pick's highlight gliding over to the next one in its row (lib/slide.ts). */
+.sliding {
+  isolation: isolate;
+}
+
+.slide-anchor {
+  position: relative;
+}
+
+.slide-ghost {
+  position: absolute;
+  z-index: -1;
+  transform-origin: 0 0;
+  pointer-events: none;
+}
+
+.slide-to {
+  background: transparent !important;
+  box-shadow: none !important;
+}
+
+/* The label's colour follows the highlight in instead of flipping ahead of it. */
+.segmented button,
+.side > .tabs [role='tab'],
+.settings-nav button {
+  transition: color 0.15s ease-out;
+}
+
+/* Folding the totals away: the folded strip as one line. */
+.summary.closed {
+  padding-block: 4px;
+}
+
+.summary-line {
+  flex: 1;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 4px 22px;
+  padding: 4px 12px;
+  border: 0;
+  background: transparent;
+  color: var(--faint);
+  font: 600 14px var(--font-display);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  text-align: left;
+}
+
+.summary-line b {
+  margin-left: 4px;
+  color: var(--paper);
+  font-size: 18px;
+  letter-spacing: 0;
+}
+
+.summary-line b.power {
+  color: var(--power);
+}
+
+.summary-line-more {
+  margin-left: auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.summary-line:hover .summary-line-more {
+  color: var(--ficsit);
+}
+
+.update-notes li {
+  display: flex;
+  align-items: baseline;
+}
+
+/* Settings › Updates: what kind of change each line is. */
+.update-tag {
+  display: inline-block;
+  min-width: 76px;
+  margin-right: 10px;
+  padding: 1px 6px;
+  border: 1px solid currentColor;
+  border-radius: var(--radius);
+  font: 700 12px / 1.4 var(--font-display);
+  letter-spacing: 0.06em;
+  text-align: center;
+  text-transform: uppercase;
+}
+
+.update-tag.added {
+  color: var(--alt);
+}
+
+.update-tag.fixed {
+  color: var(--ficsit);
+}
+
+.update-tag.changed {
+  color: var(--faint);
+}
+
+/* ---------- Folding: the buttons and the folded strips ---------- */
+
+/* The totals' fold handle: a small metal tab hanging from the middle of the strip, over the top of the floor. */
+.summary-handle {
+  position: absolute;
+  top: 0;
+  left: 50%;
+  z-index: 6;
+  translate: -50% 0;
+  display: grid;
+  place-items: center;
+  width: 54px;
+  height: 18px;
+  padding: 0;
+  border: 1px solid #2c2c2c;
+  border-top: 0;
+  border-radius: 0 0 6px 6px;
+  background: var(--metal);
+  box-shadow: 0 3px 6px rgb(0 0 0 / 0.35);
+  color: var(--painted);
+}
+
+.summary-handle:hover {
+  color: var(--ficsit);
+}
+
+/* Big enough for a finger on touch screens. */
+@media (pointer: coarse) {
+  .summary-handle {
+    width: 64px;
+    height: 28px;
+  }
+}
+
+/* Folded totals: one screen on the metal, like the readouts it stands for. */
+.summary.closed {
+  padding: 6px 10px;
+}
+
+.summary-line {
+  padding: 7px 14px;
+  border-radius: 6px;
+  background: var(--glass);
+  box-shadow: var(--glass-edge);
+}
+
+@media (min-width: 901px) {
+  /* The panel's fold button sits flat on the tab strip. */
+  .app:is([data-panel='left'], [data-panel='right']) .side .tabs .deck-toggle {
+    box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.12);
+  }
+
+  /* Folded beside the floor: the unfold button on top, then the three tabs evenly down the strip, all alike. */
+  .app:is([data-panel='left'], [data-panel='right'])[data-deck='closed'] .side .tabs {
+    gap: 0;
+    padding: 8px 0;
+  }
+
+  .app:is([data-panel='left'], [data-panel='right'])[data-deck='closed'] .side .tabs .deck-toggle {
+    margin: 0 0 6px;
+    width: 34px;
+    height: 34px;
+  }
+
+  .app:is([data-panel='left'], [data-panel='right'])[data-deck='closed'] .side .tabs button:not(.deck-toggle) {
+    width: 100%;
+    padding: 14px 0;
+    font-size: 15px;
+    letter-spacing: 0.06em;
+  }
+
+  .app:is([data-panel='left'], [data-panel='right'])[data-deck='closed'] .side .tabs button[aria-selected='true'] {
+    color: var(--painted);
+    text-shadow: 0 1px 0 rgb(255 255 255 / 0.28);
+  }
+
+  .app:is([data-panel='left'], [data-panel='right'])[data-deck='closed'] .side .tabs button:not(.deck-toggle):hover {
+    color: #000;
+  }
+}
+
+/* A long amount (20533.33) widens its own box where the browser can size a field to its text; short ones stay put. */
+@supports (field-sizing: content) {
+  .raw-chip .rate-input {
+    field-sizing: content;
+    min-width: 84px;
+    width: auto;
+    max-width: 130px;
+  }
+
+  .app[data-summary='compact'] .raw-chip .rate-input {
+    min-width: 72px;
+    width: auto;
+  }
 }

@@ -61,6 +61,7 @@ const DYNAMIC_PREFIXES = [
   'pageKind_',
   'stat_',
   'statUnit_',
+  'update_',
 ];
 
 test('every string the UI asks for exists', () => {

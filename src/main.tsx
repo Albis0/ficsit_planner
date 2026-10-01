@@ -6,6 +6,8 @@ import App from './App';
 import { ErrorBoundary } from './components/ErrorBoundary';
 // Catches the install prompt even if it fires before React mounts.
 import './lib/install';
+// Highlights glide between picks in a row of choices.
+import './lib/slide';
 
 // Additions kept on this machine only, if there are any.
 import.meta.glob('./lib/*.local.ts', { eager: true });

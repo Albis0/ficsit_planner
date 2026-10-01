@@ -1,9 +1,12 @@
-import { data } from '../lib/data';
+import { data, recipeById } from '../lib/data';
+import { fold } from '../lib/fold';
 import type { ExtractionUse } from '../lib/extraction';
 import { useT } from '../lib/i18n';
 import { showInPanel } from '../lib/panel';
 import type { SolveResult } from '../lib/solver';
+import { recipeLabel } from '../lib/text';
 import { usePlan, useStore } from '../store';
+import { Glyph } from './Glyph';
 import { Icon } from './Icon';
 import { MissingList } from './MissingList';
 import { RateInput } from './RateInput';
@@ -25,9 +28,11 @@ export function RateChips({ list, muted }: { list: { item: string; rate: number 
 }
 
 export function Summary({ result, extraction }: { result: SolveResult; extraction: ExtractionUse[] }) {
-  const { t, num } = useT();
+  const { t, num, name } = useT();
   const inventory = useStore((s) => s.inventory);
   const updatePlan = useStore((s) => s.updatePlan);
+  const closed = useStore((s) => s.summaryClosed);
+  const set = useStore((s) => s.set);
   const fixed = usePlan().fixed;
   const pinned = Object.keys(fixed).length > 0;
   const machines = result.recipes.reduce((s, u) => s + u.built, 0);
@@ -37,54 +42,80 @@ export function Summary({ result, extraction }: { result: SolveResult; extractio
   const shards = result.shards + extraction.reduce((s, u) => s + u.shards, 0);
 
   return (
-    <div className="summary">
-      <div className="readouts">
-        <div className="readout power">
-          <span className="readout-label">{t('power')}</span>
-          <span className="readout-value">
-            {num(result.power + extractionPower)} <small>MW</small>
+    <div className={`summary ${closed ? 'closed' : ''}`}>
+      {closed ? (
+        // Folded: the three headline numbers on one line, the whole line opens it again.
+        <button
+          type="button"
+          className="summary-line"
+          aria-expanded={false}
+          onClick={(e) => fold(e.currentTarget.closest<HTMLElement>('.summary'), ['height'], () => set({ summaryClosed: false }))}
+        >
+          <span>
+            {t('power')} <b className="power">{num(result.power + extractionPower)}</b> MW
           </span>
-          <span className="readout-sub">
-            {num(result.power)} {t('factoryPower')}, {num(extractionPower)} {t('extraction').toLocaleLowerCase()}
+          <span>
+            {t('machines')} <b>{machines}</b>
           </span>
-        </div>
-        <div className="readout">
-          <span className="readout-label">{t('machines')}</span>
-          <span className="readout-value">{machines}</span>
-        </div>
-        <button type="button" className="readout link" onClick={() => showInPanel('resources', '.panel-body.resources .extraction')}>
-          <span className="readout-label">{t('extractors')}</span>
-          <span className="readout-value">{extractors}</span>
+          <span>
+            {t('extractors')} <b>{extractors}</b>
+          </span>
+          <span className="summary-line-more">
+            {t('showTotals')}
+            <Glyph name="chevronDown" size={16} />
+          </span>
         </button>
-        {shards > 0 && (
-          <div className="readout">
-            <span className="readout-label">{t('shards')}</span>
-            <span className={`readout-value shard ${shards > inventory.shards ? 'over' : ''}`}>
-              {shards}
-              <small> / {inventory.shards}</small>
+      ) : null}
+      {!closed && (
+        <div className="readouts">
+          <div className="readout power">
+            <span className="readout-label">{t('power')}</span>
+            <span className="readout-value">
+              {num(result.power + extractionPower)} <small>MW</small>
+            </span>
+            <span className="readout-sub">
+              {num(result.power)} {t('factoryPower')}, {num(extractionPower)} {t('extraction').toLocaleLowerCase()}
             </span>
           </div>
-        )}
-        {result.sloops > 0 && (
           <div className="readout">
-            <span className="readout-label">{t('sloops')}</span>
-            <span className={`readout-value sloop ${result.sloops > inventory.sloops ? 'over' : ''}`}>
-              {result.sloops}
-              <small> / {inventory.sloops}</small>
-            </span>
+            <span className="readout-label">{t('machines')}</span>
+            <span className="readout-value">{machines}</span>
           </div>
-        )}
-        <div className="readout wide">
-          <span className="readout-label">{t('rawInput')}</span>
-          <RawInputs raw={result.raw} />
+          <button type="button" className="readout link" onClick={() => showInPanel('resources', '.panel-body.resources .extraction')}>
+            <span className="readout-label">{t('extractors')}</span>
+            <span className="readout-value">{extractors}</span>
+          </button>
+          {shards > 0 && (
+            <div className="readout">
+              <span className="readout-label">{t('shards')}</span>
+              <span className={`readout-value shard ${shards > inventory.shards ? 'over' : ''}`}>
+                {shards}
+                <small> / {inventory.shards}</small>
+              </span>
+            </div>
+          )}
+          {result.sloops > 0 && (
+            <div className="readout">
+              <span className="readout-label">{t('sloops')}</span>
+              <span className={`readout-value sloop ${result.sloops > inventory.sloops ? 'over' : ''}`}>
+                {result.sloops}
+                <small> / {inventory.sloops}</small>
+              </span>
+            </div>
+          )}
+          {/* Many raw inputs take a line of their own under the other readouts, never one tall column. */}
+          <div className="readout wide" data-many={result.raw.length > 4 || undefined}>
+            <span className="readout-label">{t('rawInput')}</span>
+            <RawInputs raw={result.raw} />
+          </div>
+          {result.surplus.length > 0 && (
+            <div className="readout">
+              <span className="readout-label">{t('surplus')}</span>
+              <RateChips list={result.surplus} muted />
+            </div>
+          )}
         </div>
-        {result.surplus.length > 0 && (
-          <div className="readout">
-            <span className="readout-label">{t('surplus')}</span>
-            <RateChips list={result.surplus} muted />
-          </div>
-        )}
-      </div>
+      )}
       {pinned && (
         <div className="scaled" role="status">
           <span>{t('scaledBanner')}</span>
@@ -99,6 +130,20 @@ export function Summary({ result, extraction }: { result: SolveResult; extractio
           <button type="button" className="text-button" onClick={() => updatePlan({ fixed: {} })}>
             {t('unpinAll')}
           </button>
+          {!!result.heldByPins?.length && (
+            <span className="pin-held">
+              {t('pinHeld')}
+              {result.heldByPins.map((id) => {
+                const r = recipeById.get(id);
+                return r ? (
+                  <span key={id} className="chip">
+                    <Icon id={r.outputs[0].item} size={24} />
+                    {recipeLabel(name(r), r.kind)}
+                  </span>
+                ) : null;
+              })}
+            </span>
+          )}
         </div>
       )}
       {result.missing.length > 0 && result.recipes.length > 0 && (
@@ -147,5 +192,27 @@ function RawInputs({ raw }: { raw: SolveResult['raw'] }) {
         );
       })}
     </span>
+  );
+}
+
+/**
+ * The totals' fold handle: a small tab hanging from the middle of the strip's lower edge, over the floor, so it takes
+ * no room from the readouts.
+ */
+export function SummaryHandle() {
+  const { t } = useT();
+  const closed = useStore((s) => s.summaryClosed);
+  const set = useStore((s) => s.set);
+  return (
+    <button
+      type="button"
+      className="summary-handle"
+      aria-expanded={!closed}
+      aria-label={closed ? t('showTotals') : t('hideTotals')}
+      title={closed ? t('showTotals') : t('hideTotals')}
+      onClick={() => fold(document.querySelector<HTMLElement>('.summary'), ['height'], () => set({ summaryClosed: !closed }))}
+    >
+      <Glyph name={closed ? 'chevronDown' : 'chevronUp'} size={16} />
+    </button>
   );
 }

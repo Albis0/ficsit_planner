@@ -1,6 +1,6 @@
 /// <reference lib="webworker" />
 import { getHighs, resetHighs } from './highs';
-import { autoAssign, SolverError, solve, type RecipeMod, type SolveInput, type SolveResult } from './solver';
+import { autoAssign, heldByPins, SolverError, solve, type RecipeMod, type SolveInput, type SolveResult } from './solver';
 import { toFailure, type SolveFailure } from './solveFailure';
 
 // Runs HiGHS off the main thread so solving (and auto placement's many re-solves) never freezes the UI.
@@ -19,7 +19,12 @@ self.onmessage = async ({ data: req }: MessageEvent<SolverRequest>) => {
   let reply: SolverResponse;
   try {
     const highs = await getHighs();
-    const value = req.kind === 'solve' ? solve(highs, req.input) : autoAssign(highs, req.input, req.stock, req.all);
+    let value: SolveResult | Record<string, RecipeMod>;
+    if (req.kind === 'solve') {
+      const result = solve(highs, req.input);
+      result.heldByPins = heldByPins(highs, req.input, result);
+      value = result;
+    } else value = autoAssign(highs, req.input, req.stock, req.all);
     reply = { id: req.id, ok: true, value };
   } catch (e) {
     if (!(e instanceof SolverError)) resetHighs();

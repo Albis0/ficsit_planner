@@ -19,6 +19,8 @@ export function ResourcesPanel({ result }: { result?: SolveResult }) {
   const setCap = useStore((s) => s.setCap);
   const updatePlan = useStore((s) => s.updatePlan);
   const tier = useStore((s) => s.tier);
+  const equal = useStore((s) => s.equalWeights);
+  const set = useStore((s) => s.set);
   const ex = effectiveExtraction(plan.extraction, tier);
   const setEx = (patch: Partial<typeof ex>) => updatePlan({ extraction: { ...ex, ...patch } });
 
@@ -86,6 +88,17 @@ export function ResourcesPanel({ result }: { result?: SolveResult }) {
       <section className="stack resource-list">
         <h3 className="section-title">{t('resources')}</h3>
         <p className="hint">{t('resourceHint')}</p>
+        <div className="field" title={t('resourceCostHint')}>
+          <span className="control-label">{t('resourceCost')}</span>
+          <div className="segmented wide" role="radiogroup" aria-label={t('resourceCost')}>
+            <button type="button" role="radio" aria-checked={!equal} onClick={() => set({ equalWeights: false })}>
+              {t('byRarity')}
+            </button>
+            <button type="button" role="radio" aria-checked={equal} onClick={() => set({ equalWeights: true })}>
+              {t('allEqual')}
+            </button>
+          </div>
+        </div>
         <div className="resource-cards">
           {(showAll ? sorted : shown).map((item) => {
             const world = data.worldLimits[item.id];

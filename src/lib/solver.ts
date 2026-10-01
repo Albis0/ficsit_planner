@@ -1,5 +1,5 @@
 import type { Highs } from 'highs';
-import { data, producersOf, resourceWeights, type Recipe } from './data';
+import { data, producersOf, recipeById, resourceWeights, type Recipe } from './data';
 import { gridBoost, type Plant, plantClock, plantRecipe, plantSize, plantValid, unitPower } from './power';
 
 export interface Target {
@@ -35,6 +35,11 @@ export interface SolveInput {
   fixed?: Record<string, number>;
   /** Power planning: generators to run and the load they have to carry. */
   power?: PowerInput;
+  /**
+   * Every raw resource costs the same, instead of scarcer ones costing more. For mods that let you build
+   * resource nodes anywhere. Water stays free either way.
+   */
+  equalWeights?: boolean;
 }
 
 export interface PowerInput {
@@ -102,6 +107,8 @@ export interface SolveResult {
   prices: Map<string, number>;
   /** Present when the input planned power plants. */
   grid?: GridResult;
+  /** Ticked alternates the plan leaves out only because of the pinned inputs (see heldByPins). */
+  heldByPins?: string[];
 }
 
 export type SolverErrorCode = 'infeasible' | 'pinnedInfeasible' | 'noPower' | 'stopped';
@@ -286,7 +293,9 @@ function buildModel(input: SolveInput, draw?: Map<string, number>): Model {
     if (item?.raw) {
       const name = `s${si++}`;
       sv.set(id, name);
-      const w = input.objective === 'power' ? 1e-3 * (resourceWeights[id] ?? 1) : (resourceWeights[id] ?? 1);
+      const rarity = resourceWeights[id] ?? 1;
+      const base = input.equalWeights && rarity > 0 ? 1 : rarity;
+      const w = input.objective === 'power' ? 1e-3 * base : base;
       costs.push(`${fmt(Math.max(w, 1e-5))} ${name}`);
       const cap = input.fixed?.[id] ?? input.resourceCaps[id] ?? data.worldLimits[id];
       bounds.push(cap == null ? `${name} >= 0` : `0 <= ${name} <= ${fmt(cap)}`);
@@ -495,6 +504,26 @@ function solveWith(solver: Highs, input: SolveInput, draw?: Map<string, number>)
     prices,
     grid,
   };
+}
+
+/**
+ * Ticked alternates that pinned inputs keep out of the plan. Scaling to a pin picks whatever recipes make
+ * the most from the pinned amount, so an alternate that needs more of it sits out. Checked by solving the
+ * same output again without the pins: only alternates that plan would use are named.
+ */
+export function heldByPins(solver: Highs, input: SolveInput, result: SolveResult): string[] {
+  if (Object.keys(input.fixed ?? {}).length === 0) return [];
+  const used = new Set(result.recipes.map((u) => u.recipe.id));
+  const idle = [...input.enabledRecipes].filter((id) => !used.has(id) && recipeById.get(id)?.kind === 'alternate');
+  if (idle.length === 0) return [];
+  let free: SolveResult;
+  try {
+    free = solve(solver, { ...input, fixed: undefined, targets: result.targets });
+  } catch {
+    return [];
+  }
+  const freeUsed = new Set(free.recipes.map((u) => u.recipe.id));
+  return idle.filter((id) => freeUsed.has(id));
 }
 
 /**

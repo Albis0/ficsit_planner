@@ -566,6 +566,18 @@ const BAR = 76;
 const readable = (width: number) => (width < 600 ? 0.5 : 0.72);
 /** Nor closer in than this: a small factory still opens at a comfortable size rather than blown up. */
 const MAX_OPEN = 1.05;
+/** How far out the floor zooms, unless the factory needs more to fit the screen whole. */
+const MIN_ZOOM = 0.15;
+
+/** Zoom that shows every machine in a box this size. */
+function wholeZoom(nodes: Node[], width: number, height: number): number {
+  if (nodes.length === 0) return MIN_ZOOM;
+  const minX = Math.min(...nodes.map((n) => n.position.x));
+  const minY = Math.min(...nodes.map((n) => n.position.y));
+  const maxX = Math.max(...nodes.map((n) => n.position.x + (n.width ?? 0)));
+  const maxY = Math.max(...nodes.map((n) => n.position.y + (n.height ?? 0)));
+  return Math.min(width / Math.max(1, maxX - minX), height / Math.max(1, maxY - minY));
+}
 
 /**
  * Opening camera: the whole factory when it fits at a readable zoom. Otherwise the whole height (or width, top to
@@ -616,6 +628,11 @@ function Canvas({ nodes, edges, sig, dir }: { nodes: Node[]; edges: Edge[]; sig:
   const gridLines = useStore((s) => s.settings.gridLines);
   const [hover, setHover] = useState<string>();
   const [restore] = useState(() => (camera.sig === sig ? camera.viewport : undefined));
+  // A huge factory may need to zoom out past the usual floor to fit the screen whole.
+  const [minZoom] = useState(() => {
+    const box = document.querySelector('.floor-view')?.getBoundingClientRect();
+    return box ? Math.min(MIN_ZOOM, wholeZoom(nodes, box.width, box.height - BAR) * 0.9) : MIN_ZOOM;
+  });
   // Dragging nodes with a finger fights panning; touch screens pan and pinch only.
   const coarse = useMediaQuery(COARSE);
 
@@ -672,7 +689,7 @@ function Canvas({ nodes, edges, sig, dir }: { nodes: Node[]; edges: Edge[]; sig:
         nodesConnectable={false}
         nodesDraggable={!coarse}
         edgesFocusable={false}
-        minZoom={0.15}
+        minZoom={minZoom}
         maxZoom={2}
         proOptions={{ hideAttribution: true }}
         defaultViewport={restore}

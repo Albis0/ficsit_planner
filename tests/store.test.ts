@@ -39,6 +39,17 @@ describe('saved state', () => {
     expect(mergeState({ lang: 'en' }, current()).lang).toBe('en');
   });
 
+  test('equal resource weights survive a reload; saves from before it start by rarity', () => {
+    expect(mergeState({ equalWeights: true }, current()).equalWeights).toBe(true);
+    expect(mergeState({}, current()).equalWeights).toBe(false);
+    expect(mergeState({ equalWeights: 'yes' } as never, current()).equalWeights).toBe(false);
+  });
+
+  test('folded totals stay folded after a reload', () => {
+    expect(mergeState({ summaryClosed: true }, current()).summaryClosed).toBe(true);
+    expect(mergeState({}, current()).summaryClosed).toBe(false);
+  });
+
   test('an active id that no longer exists points at the first factory', () => {
     const plan = newPlan('Factory 1');
     expect(mergeState({ plans: [plan], active: 'gone' }, current()).active).toBe(plan.id);

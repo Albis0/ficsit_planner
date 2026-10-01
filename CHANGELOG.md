@@ -2,6 +2,37 @@
 
 All notable changes to FICSIT Planner. Dates are when the version was finished.
 
+## 0.12.2 — 2026-10-01
+
+### Added
+
+- **Pinned inputs name what they keep out:** when a pinned raw resource makes the plan skip a ticked alternate
+  (Pure Aluminum Ingot with bauxite pinned, say), the strip under the totals names it. Thanks to u/TheUnitFoxhound6.
+- **Resource cost** on the Resources tab: **By rarity** spares scarce resources first, **All equal** counts every
+  resource the same, for mods that let you build nodes anywhere. Water stays free either way. Thanks to u/a__gun.
+- **Settings › Updates:** a few plain lines per version, each marked Added, Fixed or Changed. A dot on the gear
+  shows when there's something new.
+- **The totals over the floor fold away** to one line with power, machines and extractors, from a small handle
+  under the strip. With many raw inputs, they take a line of their own under the other readouts.
+- Highlights glide between picks in tabs and segmented buttons, and the panel and the totals fold and unfold
+  smoothly. Reduced motion turns both off.
+
+### Fixed
+
+- **Recipes above your tier** are hidden from the recipe list and can't be ticked; **Show them** brings them back.
+  An alternate now also waits for the tier whose standard recipes make its parts, so Pure Aluminum Ingot no longer
+  shows at tier 4. Thanks to u/Aeri73.
+- **Big factories:** Fit to screen zooms out as far as it takes to show the whole factory, and the raw inputs in
+  the totals spread over a few columns instead of one tall one.
+
+### Changed
+
+- The recipe search sits at the top of the Recipes tab with a magnifier, and when the filter hides every match it
+  offers the matches under All. Thanks to u/Aeri73.
+- A panel folded beside the floor has its unfold button at the top of the strip, where the fold button was.
+- The decorative screws in the corners of the panel, windows and machine panel are gone.
+- The README's feature list shows its icons again, and the maintainer-only commands moved to docs/feedback.md.
+
 ## 0.12.1 — 2026-09-30
 
 ### Fixed

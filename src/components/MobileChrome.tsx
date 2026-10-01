@@ -4,6 +4,7 @@ import { activePowerPlan, usePlan, useStore } from '../store';
 import { Glyph } from './Glyph';
 import { PlanActions, ShareButton } from './PlanTabs';
 import { InstallButton } from './PwaStatus';
+import { LATEST_UPDATE } from '../locales/updates.en';
 
 /** Phone navigation along the bottom edge: the three side panels, then the factory floor. */
 export function MobileNav() {
@@ -66,6 +67,7 @@ export function MobileMenu({ onClose, onTier }: { onClose: () => void; onTier: (
   const tier = useStore((s) => s.tier);
   const set = useStore((s) => s.set);
   const power = useStore((s) => s.mode === 'power');
+  const newUpdates = useStore((s) => s.onboarded && s.seenUpdates !== LATEST_UPDATE);
   // The Codex and the map have no tab of their own to share, rename or delete.
   const codex = useStore((s) => s.mode === 'codex' || s.mode === 'map');
   const dialog = useRef<HTMLDialogElement>(null);
@@ -118,6 +120,7 @@ export function MobileMenu({ onClose, onTier }: { onClose: () => void; onTier: (
           <button type="button" className="ghost-button" onClick={() => open('settings')}>
             <Glyph name="gear" size={18} />
             {t('settings')}
+            {newUpdates && <span className="new-dot" role="img" aria-label={t('newUpdates')} />}
           </button>
           <button type="button" className="ghost-button" onClick={() => open('report')}>
             <Glyph name="flag" size={18} />

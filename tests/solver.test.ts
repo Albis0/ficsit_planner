@@ -2,7 +2,7 @@ import { beforeAll, describe, expect, test } from 'bun:test';
 import loadHighs, { type Highs } from 'highs';
 import { data } from '../src/lib/data';
 import { toFailure } from '../src/lib/solveFailure';
-import { SolverError, type SolveInput, solve } from '../src/lib/solver';
+import { heldByPins, SolverError, type SolveInput, solve } from '../src/lib/solver';
 
 let highs: Highs;
 beforeAll(async () => {
@@ -310,5 +310,72 @@ describe('use all', () => {
     expect(ore(before)).toMatchObject({ built: 2, shards: 0 });
     expect(ore(after)).toMatchObject({ built: 1, shards: 1 });
     expect(after.reduce((n: number, u: { shards: number }) => n + u.shards, 0)).toBeLessThanOrEqual(6);
+  });
+});
+
+describe('pinned inputs and ticked alternates', () => {
+  const withPure = () => new Set([...standard(), 'Recipe_PureAluminumIngot_C']);
+  const ingots = [{ item: 'Desc_AluminumIngot_C', rate: 60 }];
+
+  test('unpinned, the plan takes Pure Aluminum Ingot and nothing is held back', () => {
+    const r = plan({ targets: ingots, enabledRecipes: withPure() });
+    expect(count(r, 'Recipe_PureAluminumIngot_C')).toBeGreaterThan(0);
+    expect(
+      heldByPins(highs, { targets: ingots, supplies: [], enabledRecipes: withPure(), resourceCaps: {}, objective: 'resources' }, r),
+    ).toEqual([]);
+  });
+
+  test('pinning bauxite keeps Pure Aluminum Ingot out, and says so', () => {
+    const input: SolveInput = {
+      targets: ingots,
+      supplies: [],
+      enabledRecipes: withPure(),
+      resourceCaps: {},
+      objective: 'resources',
+      fixed: { Desc_OreBauxite_C: 120 },
+    };
+    const r = solve(highs, input);
+    expect(count(r, 'Recipe_PureAluminumIngot_C')).toBe(0);
+    expect(heldByPins(highs, input, r)).toEqual(['Recipe_PureAluminumIngot_C']);
+  });
+
+  test('a pin that changes nothing names nothing', () => {
+    const input: SolveInput = {
+      targets: [{ item: 'Desc_IronPlate_C', rate: 60 }],
+      supplies: [],
+      enabledRecipes: withPure(),
+      resourceCaps: {},
+      objective: 'resources',
+      fixed: { Desc_OreIron_C: 90 },
+    };
+    expect(heldByPins(highs, input, solve(highs, input))).toEqual([]);
+  });
+});
+
+describe('equal resource weights', () => {
+  test('Silica: by rarity Cheap Silica spares quartz with limestone; all equal, the standard recipe needs less in all', () => {
+    const base = { targets: [{ item: 'Desc_Silica_C', rate: 60 }], enabledRecipes: new Set([...standard(), 'Recipe_Alternate_Silica_C']) };
+    const rarity = plan(base);
+    const equal = plan({ ...base, equalWeights: true });
+    expect(count(rarity, 'Recipe_Alternate_Silica_C')).toBeGreaterThan(0);
+    expect(rate(rarity.raw, 'Desc_Stone_C')).toBeGreaterThan(0);
+    expect(count(equal, 'Recipe_Alternate_Silica_C')).toBe(0);
+    expect(rate(equal.raw, 'Desc_Stone_C')).toBe(0);
+  });
+
+  test('uranium stops being avoided when every resource costs the same', () => {
+    const weigh = (equalWeights: boolean) =>
+      plan({ targets: [{ item: 'Desc_IronPlate_C', rate: 60 }], equalWeights }).prices.get('Desc_OreIron_C') ?? 0;
+    expect(weigh(true)).toBeCloseTo(1);
+    expect(weigh(false)).toBeCloseTo(1);
+    const uranium = (equalWeights: boolean) =>
+      plan({ targets: [{ item: 'Desc_OreUranium_C', rate: 1 }], equalWeights }).prices.get('Desc_OreUranium_C');
+    expect(uranium(true)).toBeCloseTo(1);
+    expect(uranium(false)).toBeGreaterThan(40);
+  });
+
+  test('water stays free with equal weights', () => {
+    const r = plan({ targets: [{ item: 'Desc_Water_C', rate: 120 }], equalWeights: true });
+    expect(r.prices.get('Desc_Water_C') ?? 0).toBeLessThan(1e-3);
   });
 });

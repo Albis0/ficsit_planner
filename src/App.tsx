@@ -17,7 +17,7 @@ import { ReportDialog } from './components/ReportDialog';
 import { ResourcesPanel } from './components/ResourcesPanel';
 import { SettingsDialog } from './components/SettingsDialog';
 import { Splitter } from './components/Splitter';
-import { Summary } from './components/Summary';
+import { Summary, SummaryHandle } from './components/Summary';
 import { TableView } from './components/TableView';
 import { TargetsPanel } from './components/TargetsPanel';
 import { TierDialog } from './components/TierPicker';
@@ -30,8 +30,13 @@ import { showInPanel } from './lib/panel';
 import { useSharedLinks } from './lib/share';
 import { factoryInput, powerInput, powerLoad, useExports, useFactoryDraws, useSolve } from './lib/solution';
 import { failureText } from './lib/solveFailure';
+import { fold } from './lib/fold';
 import { useMediaQuery } from './lib/useMediaQuery';
+import { LATEST_UPDATE } from './locales/updates.en';
 import { activePowerPlan, usePlan, useStore } from './store';
+
+// Folding the panel moves the app's grid tracks: above the floor a row, beside it a column.
+const GRID = ['gridTemplateRows', 'gridTemplateColumns'] as const;
 
 // The map pulls in Leaflet and its tiles, so it loads only when opened.
 const WorldMap = lazy(() => import('./components/WorldMap'));
@@ -43,6 +48,7 @@ const WorldMap = lazy(() => import('./components/WorldMap'));
 function useSolutions() {
   const mode = useStore((s) => s.mode);
   const tier = useStore((s) => s.tier);
+  const equal = useStore((s) => s.equalWeights);
   const plan = useStore((s) => s.plans.find((p) => p.id === s.active) ?? s.plans[0]);
   const pp = useStore(activePowerPlan);
   const draws = useFactoryDraws(mode === 'power');
@@ -52,21 +58,21 @@ function useSolutions() {
   const { targets, supplies, enabled, caps, mods, fixed } = plan;
   const exports = useExports(plan.id);
   const factoryIn = useMemo(
-    () => factoryInput({ targets, supplies, enabled, caps, mods, fixed }, tier, exports),
-    [targets, supplies, enabled, caps, mods, fixed, tier, exports],
+    () => factoryInput({ targets, supplies, enabled, caps, mods, fixed }, tier, exports, equal),
+    [targets, supplies, enabled, caps, mods, fixed, tier, exports, equal],
   );
   // Sized to what you have with nothing listed yet: nothing to solve, the floor asks for the list.
   const powerIn = useMemo(
     () =>
       sizeBy === 'have' && have.length === 0
         ? undefined
-        : powerInput({ plants, sizeBy, have, headroom, ownLoad, chain }, load.demand, tier),
-    [plants, sizeBy, have, headroom, ownLoad, chain, load.demand, tier],
+        : powerInput({ plants, sizeBy, have, headroom, ownLoad, chain }, load.demand, tier, equal),
+    [plants, sizeBy, have, headroom, ownLoad, chain, load.demand, tier, equal],
   );
   // Sized to what you have: the same plant making a set 1,000 MW shows what its fuel is made from.
   const probeIn = useMemo(
-    () => (sizeBy === 'have' ? powerInput({ plants, sizeBy: 'want', have, headroom, ownLoad, chain }, 1000, tier) : undefined),
-    [plants, sizeBy, have, headroom, ownLoad, chain, tier],
+    () => (sizeBy === 'have' ? powerInput({ plants, sizeBy: 'want', have, headroom, ownLoad, chain }, 1000, tier, equal) : undefined),
+    [plants, sizeBy, have, headroom, ownLoad, chain, tier, equal],
   );
   const factory = useSolve(factoryIn, mode === 'factory');
   const power = useSolve(powerIn, mode === 'power');
@@ -99,6 +105,8 @@ export default function App() {
   }, [lang]);
 
   const [tierOpen, setTierOpen] = useState(false);
+  // Someone who has used the app before sees a dot on the gear until they open the new notes.
+  const newUpdates = s.onboarded && s.seenUpdates !== LATEST_UPDATE;
   const [menuOpen, setMenuOpen] = useState(false);
 
   // Power planner: the chain's own draw (machines plus the miners and pumps feeding them), and who the plant feeds.
@@ -196,6 +204,7 @@ export default function App() {
           <button type="button" className="chrome-button settings" title={t('settings')} onClick={() => s.set({ dialog: 'settings' })}>
             <Glyph name="gear" size={20} />
             <span className="chrome-label">{t('settings')}</span>
+            {newUpdates && <span className="new-dot" role="img" aria-label={t('newUpdates')} />}
           </button>
           <button type="button" className="chrome-button" title={t('feedback')} onClick={() => s.set({ dialog: 'report' })}>
             <Glyph name="flag" size={20} />
@@ -203,7 +212,7 @@ export default function App() {
           </button>
         </div>
         <button type="button" className="menu-button" aria-label={t('menu')} onClick={() => setMenuOpen(true)}>
-          ⋯
+          ⋯{newUpdates && <span className="new-dot" role="img" aria-label={t('newUpdates')} />}
         </button>
       </header>
 
@@ -213,7 +222,17 @@ export default function App() {
         {!bookMode && (
           <div className="tabs" role="tablist">
             {tabs.map(([id, label, badge]) => (
-              <button key={id} type="button" role="tab" aria-selected={s.tab === id} onClick={() => s.set({ tab: id, deckClosed: false })}>
+              <button
+                key={id}
+                type="button"
+                role="tab"
+                aria-selected={s.tab === id}
+                onClick={(e) =>
+                  s.deckClosed
+                    ? fold(e.currentTarget.closest<HTMLElement>('.app'), GRID, () => s.set({ tab: id, deckClosed: false }))
+                    : s.set({ tab: id })
+                }
+              >
                 {label}
                 {badge != null && <span className="tab-badge">{badge}</span>}
               </button>
@@ -223,7 +242,7 @@ export default function App() {
               className="deck-toggle"
               aria-expanded={!s.deckClosed}
               title={s.deckClosed ? t('showPanel') : t('hidePanel')}
-              onClick={() => s.set({ deckClosed: !s.deckClosed })}
+              onClick={(e) => fold(e.currentTarget.closest<HTMLElement>('.app'), GRID, () => s.set({ deckClosed: !s.deckClosed }))}
             >
               <span aria-hidden className="deck-arrow" />
               <span className="deck-toggle-label">{s.deckClosed ? t('showPanel') : t('hidePanel')}</span>
@@ -258,6 +277,7 @@ export default function App() {
           ))}
         {!bookMode && (
           <div className="floor-view">
+            {shown && !powerMode && <SummaryHandle />}
             {error && (
               <div className="floor-message error">
                 <div className="failure">

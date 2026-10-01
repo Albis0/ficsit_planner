@@ -120,6 +120,10 @@ interface State {
   dialog?: 'settings' | 'report';
   /** Highest milestone tier the player has unlocked in their save. Recipes and buildings above it sit out. */
   tier: number;
+  /** Every raw resource costs the plan the same, for mods that let you build nodes anywhere. */
+  equalWeights: boolean;
+  /** Newest version whose notes under Settings › Updates were opened. */
+  seenUpdates?: string;
   /** Whether the first-run "where are you in the game" question was answered. */
   onboarded: boolean;
   /** Somersloops and power shards the player owns, for auto placement. */
@@ -140,6 +144,8 @@ interface State {
   sideWidth?: number;
   /** Panel above the floor folded down to its tabs, so the factory gets the whole screen. */
   deckClosed?: boolean;
+  /** The totals strip over the factory folded down to one line. */
+  summaryClosed?: boolean;
   /** Graph direction picked by the player; unset lets the layout choose what fits the screen. */
   graphDir?: 'LR' | 'TB';
   /** A short message at the foot of the screen (a shared link opened, or couldn't be read). Not persisted. */
@@ -158,6 +164,8 @@ interface State {
         | 'mapFocus'
         | 'dialog'
         | 'tier'
+        | 'equalWeights'
+        | 'seenUpdates'
         | 'onboarded'
         | 'inventory'
         | 'view'
@@ -170,6 +178,7 @@ interface State {
         | 'deckHeight'
         | 'sideWidth'
         | 'deckClosed'
+        | 'summaryClosed'
         | 'graphDir'
         | 'notice'
         | 'closed'
@@ -278,6 +287,7 @@ export const useStore = create<State>()(
         activePower: firstPower.id,
         settings: DEFAULT_SETTINGS,
         tier: MAX_TIER,
+        equalWeights: false,
         onboarded: false,
         inventory: { sloops: 0, shards: 0 },
         view: 'graph',
@@ -497,6 +507,8 @@ export const useStore = create<State>()(
         settings: s.settings,
         sideWidth: s.sideWidth,
         tier: s.tier,
+        equalWeights: s.equalWeights,
+        seenUpdates: s.seenUpdates,
         onboarded: s.onboarded,
         inventory: s.inventory,
         view: s.view,
@@ -505,6 +517,7 @@ export const useStore = create<State>()(
         active: s.active,
         deckHeight: s.deckHeight,
         deckClosed: s.deckClosed,
+        summaryClosed: s.summaryClosed,
         graphDir: s.graphDir,
       }),
       migrate: migrateState,
@@ -524,6 +537,8 @@ type Persisted = Partial<
     | 'activePower'
     | 'settings'
     | 'tier'
+    | 'equalWeights'
+    | 'seenUpdates'
     | 'onboarded'
     | 'inventory'
     | 'view'
@@ -533,6 +548,7 @@ type Persisted = Partial<
     | 'deckHeight'
     | 'sideWidth'
     | 'deckClosed'
+    | 'summaryClosed'
     | 'graphDir'
   >
 > & {
@@ -598,6 +614,8 @@ export function mergeState<S extends State>(persisted: unknown, current: S): S {
     activePower,
     settings: cleanSettings(p.settings),
     tier: Math.round(cleanNumber(p.tier, 0, MAX_TIER, current.tier)),
+    equalWeights: p.equalWeights === true,
+    seenUpdates: typeof p.seenUpdates === 'string' ? p.seenUpdates.slice(0, 20) : undefined,
     onboarded: p.onboarded === true,
     inventory: {
       sloops: Math.round(cleanNumber(p.inventory?.sloops, 0, 1e4, 0)),
@@ -608,6 +626,7 @@ export function mergeState<S extends State>(persisted: unknown, current: S): S {
     deckHeight: typeof p.deckHeight === 'number' ? cleanNumber(p.deckHeight, 100, 4000, 320) : undefined,
     sideWidth: typeof p.sideWidth === 'number' ? cleanNumber(p.sideWidth, 200, 4000, 460) : undefined,
     deckClosed: p.deckClosed === true,
+    summaryClosed: p.summaryClosed === true,
     graphDir: p.graphDir === 'LR' || p.graphDir === 'TB' ? p.graphDir : undefined,
     plans,
     active,

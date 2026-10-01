@@ -40,6 +40,11 @@ export const en = {
   graph: 'Factory',
   table: 'List',
   resourceHint: 'Your limit per minute. Empty means the whole world’s supply.',
+  resourceCost: 'Resource cost',
+  byRarity: 'By rarity',
+  allEqual: 'All equal',
+  resourceCostHint:
+    'By rarity, the plan spares scarce resources like uranium and bauxite first. All equal counts every resource the same, for mods that let you build nodes anywhere.',
   unlimited: 'unlimited',
   recipe: 'Recipe',
   building: 'Building',
@@ -50,6 +55,8 @@ export const en = {
   solving: 'Solving',
   remove: 'Remove',
   noResults: 'No matches',
+  noKindResults: 'No {kind} recipes match.',
+  showAllMatches: 'Show {n} in All',
   tier: 'Tier',
   output: 'Output',
   onHand: 'On hand',
@@ -105,6 +112,7 @@ export const en = {
   unpin: 'Unpin',
   scaledBanner: 'Targets scaled to your pinned inputs:',
   unpinAll: 'Unpin all',
+  pinHeld: 'Ticked, but left out to make the most of your pinned inputs:',
   inventory: 'Your inventory',
   autoPlace: 'Auto place',
   placing: 'Placing',
@@ -654,6 +662,14 @@ export const en = {
 
   // Settings: help
   setHelp: 'Help',
+  setUpdates: 'Updates',
+  newUpdates: 'New updates',
+  madeWith: 'Coded with AI',
+  update_added: 'Added',
+  update_fixed: 'Fixed',
+  update_changed: 'Changed',
+  hideTotals: 'Hide totals',
+  showTotals: 'Show totals',
   helpFilter: 'Search the help',
   helpBasics: 'The basics',
   helpFactory: 'Factory planner',
@@ -671,7 +687,7 @@ export const en = {
   helpText_supplies:
     'Parts arriving from elsewhere, like another factory or a train. The plan uses them before building anything to make them.',
   helpText_rawInput:
-    'The raw resources the plan needs. Type a new number into one to pin it, and the targets scale to what that much can make.',
+    'The raw resources the plan needs. Type a new number into one to pin it, and the targets scale to what that much can make. A pin can keep a ticked alternate out when it needs more of that resource; the plan names it.',
   helpText_inventory: 'How many somersloops and power shards you own. Auto place spends them where they save the most machines or power.',
   helpText_take:
     'An item one factory tab gets from another. The other tab makes it on top of its own products, and both floors show the link (From… and To…). Pick the source on the card; delete the source and the item is simply on hand.',
@@ -680,7 +696,8 @@ export const en = {
   helpText_share:
     'Copies a link to the tab on screen: a factory with the power plants that run it, or a plant with its factories. The link holds the whole plan, so nothing is uploaded; whoever opens it gets a copy as a new tab.',
   helpText_recipes: 'Standard recipes are on. Turn on the alternates you’ve found on hard drives, and the planner picks the best mix.',
-  helpText_resources: 'Caps on how much of each raw resource you can reach, and which miner and clock to count extractors with.',
+  helpText_resources:
+    'Caps on how much of each raw resource you can reach, and which miner and clock to count extractors with. Resource cost By rarity spares scarce resources first; All equal counts them all the same.',
   helpText_surplus:
     'Byproducts the plan makes but doesn’t use, like Polymer Resin from Fuel. Sink them, store them or plan something that uses them.',
   helpBelts: 'The Mk label on belts',

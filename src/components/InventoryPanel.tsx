@@ -18,6 +18,7 @@ export function InventoryPanel({ result }: { result?: SolveResult }) {
   const { t, name } = useT();
   const inventory = useStore((s) => s.inventory);
   const tier = useStore((s) => s.tier);
+  const equalWeights = useStore((s) => s.equalWeights);
   const set = useStore((s) => s.set);
   const updatePlan = useStore((s) => s.updatePlan);
   const plan = usePlan();
@@ -42,6 +43,7 @@ export function InventoryPanel({ result }: { result?: SolveResult }) {
         resourceCaps: plan.caps,
         objective: 'resources',
         fixed: plan.fixed,
+        equalWeights,
       };
       const mods = await autoAssignAsync(input, inventory, all);
       let overclock: Record<string, number> | undefined;

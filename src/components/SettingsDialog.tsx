@@ -16,12 +16,13 @@ import {
 import { BELT_COLORS } from '../lib/belts';
 import { exportAll, importFile, wipeLocal } from '../lib/backup';
 import meta from '../data/meta.json';
+import { LATEST_UPDATE, UPDATES } from '../locales/updates.en';
 import { useStore } from '../store';
 import { Dialog } from './Dialog';
 import { Glyph, type GlyphName } from './Glyph';
 import { Icon } from './Icon';
 
-type Section = 'layout' | 'floor' | 'colors' | 'interface' | 'data' | 'help';
+type Section = 'layout' | 'floor' | 'colors' | 'interface' | 'data' | 'help' | 'updates';
 
 const SECTIONS: { id: Section; glyph: GlyphName }[] = [
   { id: 'layout', glyph: 'layout' },
@@ -30,6 +31,7 @@ const SECTIONS: { id: Section; glyph: GlyphName }[] = [
   { id: 'interface', glyph: 'sliders' },
   { id: 'data', glyph: 'database' },
   { id: 'help', glyph: 'help' },
+  { id: 'updates', glyph: 'news' },
 ];
 
 type Dir = 'LR' | 'TB' | undefined;
@@ -46,7 +48,12 @@ const Draft = createContext<{ settings: Settings; set: (patch: Partial<Settings>
 /** Settings: where the panel goes, how the factory floor looks, colours, text size and your data. */
 export function SettingsDialog({ onClose }: { onClose: () => void }) {
   const { t } = useT();
-  const [section, setSection] = useState<Section>('layout');
+  const unseen = useStore((s) => s.seenUpdates !== LATEST_UPDATE);
+  // Opened from the dot on the gear: straight to what's new.
+  const [section, setSection] = useState<Section>(unseen ? 'updates' : 'layout');
+  // On a phone the sections scroll sideways; bring the one it opened on into view.
+  const nav = useRef<HTMLElement>(null);
+  useEffect(() => nav.current?.querySelector('[aria-current]')?.scrollIntoView({ block: 'nearest', inline: 'nearest' }), []);
   const saved = useStore((s) => s.settings);
   const savedDir = useStore((s) => s.graphDir);
   const setSettings = useStore((s) => s.setSettings);
@@ -85,6 +92,7 @@ export function SettingsDialog({ onClose }: { onClose: () => void }) {
     interface: t('setInterface'),
     data: t('setData'),
     help: t('setHelp'),
+    updates: t('setUpdates'),
   };
 
   return (
@@ -101,11 +109,12 @@ export function SettingsDialog({ onClose }: { onClose: () => void }) {
     >
       <Draft.Provider value={{ settings: draft, set: (patch) => setDraft((d) => ({ ...d, ...patch })), dir, setDir }}>
         <div className="settings-body">
-          <nav className="settings-nav" aria-label={t('settings')}>
+          <nav className="settings-nav" aria-label={t('settings')} ref={nav}>
             {SECTIONS.map((s) => (
               <button key={s.id} type="button" aria-current={section === s.id ? 'page' : undefined} onClick={() => setSection(s.id)}>
                 <Glyph name={s.glyph} size={20} />
                 <span>{titles[s.id]}</span>
+                {s.id === 'updates' && unseen && <span className="new-dot" role="img" aria-label={t('newUpdates')} />}
               </button>
             ))}
           </nav>
@@ -119,6 +128,7 @@ export function SettingsDialog({ onClose }: { onClose: () => void }) {
               {section === 'interface' && <InterfaceSection />}
               {section === 'data' && <DataSection />}
               {section === 'help' && <HelpSection />}
+              {section === 'updates' && <UpdatesSection />}
             </div>
           </div>
         </div>
@@ -542,6 +552,35 @@ function HelpSection() {
         </section>
       ))}
       {groups.length === 0 && <p className="hint">{t('codexNoHits')}</p>}
+    </div>
+  );
+}
+
+/** A few plain lines per version, newest first. Opening it clears the dot on the gear. */
+function UpdatesSection() {
+  const { t } = useT();
+  const set = useStore((s) => s.set);
+  useEffect(() => set({ seenUpdates: LATEST_UPDATE }), [set]);
+  return (
+    <div className="updates">
+      {UPDATES.map((u) => (
+        <section key={u.version} className="update">
+          <h4 className="update-title">
+            {u.version} <time dateTime={u.date}>{u.date}</time>
+          </h4>
+          <ul className="update-notes">
+            {u.notes.map(([kind, text]) => (
+              <li key={text}>
+                <span className={`update-tag ${kind}`}>{t(`update_${kind}`)}</span>
+                {text}
+              </li>
+            ))}
+          </ul>
+        </section>
+      ))}
+      <p className="update-made">
+        FICSIT Planner {LATEST_UPDATE} · {t('madeWith')}
+      </p>
     </div>
   );
 }

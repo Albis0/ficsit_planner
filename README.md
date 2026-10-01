@@ -33,6 +33,8 @@ done by a linear programming solver ([HiGHS](https://highs.dev), compiled to Web
 It also plans power plants and their fuel, has a Codex with the game's parts, buildings, milestones, research and
 alternate recipes, and a map of every resource node. It can be installed as an app (PWA) and then works offline.
 
+Coded with AI. What changed lately is under **Settings › Updates** in the app, and in [CHANGELOG.md](CHANGELOG.md).
+
 ![The factory graph for 10 motors per minute](docs/desktop-graph.webp)
 
 ![The power planner: a fuel plant sized to two factories, with crude oil refined into fuel for eight generators that feed both factories and its own refineries](docs/desktop-power.webp)
@@ -49,26 +51,24 @@ alternate recipes, and a map of every resource node. It can be installed as an a
 
 ## Features
 
-| | |
-| :-: | --- |
-| <img src="public/icons/Desc_ModularFrame_C.webp" width="36" alt="Modular Frame"> | **Targets and tabs.** Any number of products per factory, each at its own rate. Factories are tabs you can rename, duplicate and delete. Everything is saved in the browser. |
-| <img src="public/icons/Desc_IronPlate_C.webp" width="36" alt="Iron Plate"> | **On-hand items.** Parts that arrive from elsewhere (another factory, a train). The planner uses them instead of making them. |
-| <img src="public/icons/Build_AssemblerMk1_C.webp" width="36" alt="Assembler"> | **Recipes.** Standard, alternate and converter recipes, grouped by product, each one on or off. When something can't be made, the planner says why (the tier that unlocks it, or the recipe that's off) and offers the fix. |
-| <img src="public/icons/Desc_SpaceElevatorPart_2_C.webp" width="36" alt="Versatile Framework"> | **Tier.** You pick the highest tier you've unlocked. Recipes, buildings, belts and miners above it are left out. |
-| <img src="public/icons/Desc_OreIron_C.webp" width="36" alt="Iron Ore"> | **Resource limits.** A per-minute cap for each raw resource. Empty means the whole map's supply. The list shows only the resources the plan can use; the rest are one click away. |
-| <img src="public/icons/Desc_Coal_C.webp" width="36" alt="Coal"> | **Pinned inputs.** Type the amount of a raw resource you actually have into the totals strip, and the targets scale to it. |
-| <img src="public/icons/Desc_CrystalShard_C.webp" width="36" alt="Power Shard"> | **Machines and clocks.** Select a machine to set how many there are or their clock speed. Power uses the game's formula. Overclocked lines use as few power shards as possible. |
-| <img src="public/icons/Desc_WAT1_C.webp" width="36" alt="Somersloop"> | **Somersloops and shards.** Set them per machine, or enter how many you own and let the planner place them (**Auto place** or **Use all**). |
-| <img src="public/icons/Build_MinerMk2_C.webp" width="36" alt="Miner Mk.2"> | **Extraction.** Miner mark, node purity and extractor clock decide how many miners and pumps each resource needs, and their power. |
-| <img src="public/icons/Build_ConveyorBeltMk5_C.webp" width="36" alt="Conveyor Belt Mk.5"> | **Graph and list.** The graph runs left to right or top to bottom, colours belts by tier and splits a flow over more belts when one isn't enough. The list shows every recipe and the build cost. |
-| <img src="public/icons/Build_GeneratorNuclear_C.webp" width="36" alt="Nuclear Power Plant"> | **Power planner.** Power plants are tabs too and can mix generators. Size one by the fuel you have, the MW you want or the factories it runs. The fuel chain, water, nuclear waste, augmenters and Power Storage are counted. |
-| <img src="public/icons/Desc_HardDrive_C.webp" width="36" alt="Hard Drive"> | **Codex.** Parts, resources, buildings, vehicles, equipment, milestones, MAM research, alternate recipes and the AWESOME Shop, with the game's descriptions. Also the creatures (health, speed, what they leave behind, where they spawn), what can be found in the world, and what each crash site takes to open. Every part shows its whole production line (raw resources, buildings, power) and how each of its recipes compares once everything before it is made too; every alternate is ranked against the standard recipe. Guides cover getting started, the Space Elevator phases, power from biomass to nuclear, oil and nuclear waste, with small calculators. **Build this factory** opens a factory for any part. |
-| <img src="public/icons/Build_MinerMk3_C.webp" width="36" alt="Miner Mk.3"> | **World map.** All 459 resource nodes, 118 well nodes and 31 geysers on the game's map, filtered by resource and purity. Pressing a node shows what each miner or extractor gets from it. Somersloops, Mercer Spheres, power slugs, crash sites, berries, nuts, mushrooms and every creature's spawn points can be turned on too. |
-| <img src="public/icons/Desc_FreightWagon_C.webp" width="36" alt="Freight Wagon"> | **Linked factories.** A factory can take an item from another factory tab, which then makes it on top of its own products. |
-| <img src="public/icons/Desc_ModularFrameLightweight_C.webp" width="36" alt="Radio Control Unit"> | **Share links.** The **Share** button copies a link that contains the factory (and the power plants that run it). Opening it adds a copy as a new tab. Nothing is uploaded. |
-| <img src="public/icons/Desc_CircuitBoard_C.webp" width="36" alt="Circuit Board"> | **Settings.** Panel position, card and text size, spacing, belt labels, colours, interface size, decimals and animations. Save all factories and settings to a file and load them back. **Help** explains the terms on screen. |
-| <img src="public/icons/Desc_CrystalOscillator_C.webp" width="36" alt="Crystal Oscillator"> | **Feedback.** Bug reports and ideas from inside the app, stored in the site's own database, optionally with the factory on screen. |
-| <img src="public/icons/BP_ItemDescriptorPortableMiner_C.webp" width="36" alt="Portable Miner"> | **Phones and offline.** Installs as an app and works offline. On phones there is one pane at a time and a bottom bar. |
+- <img src="public/icons/Desc_ModularFrame_C.webp" width="28" height="28" align="top" alt="Modular Frame"> **Targets and tabs.** Any number of products per factory, each at its own rate. Factories are tabs you can rename, duplicate and delete. Everything is saved in the browser.
+- <img src="public/icons/Desc_IronPlate_C.webp" width="28" height="28" align="top" alt="Iron Plate"> **On-hand items.** Parts that arrive from elsewhere (another factory, a train). The planner uses them instead of making them.
+- <img src="public/icons/Build_AssemblerMk1_C.webp" width="28" height="28" align="top" alt="Assembler"> **Recipes.** Standard, alternate and converter recipes, grouped by product, each one on or off, with a search at the top. When something can't be made, the planner says why (the tier that unlocks it, or the recipe that's off) and offers the fix.
+- <img src="public/icons/Desc_SpaceElevatorPart_2_C.webp" width="28" height="28" align="top" alt="Versatile Framework"> **Tier.** You pick the highest tier you've unlocked. Recipes, buildings, belts and miners above it are left out and hidden from the recipe list. An alternate also waits for the tier that makes its parts.
+- <img src="public/icons/Desc_OreIron_C.webp" width="28" height="28" align="top" alt="Iron Ore"> **Resource limits and cost.** A per-minute cap for each raw resource; empty means the whole map's supply. The plan spares scarce resources first, or, with **All equal**, counts every resource the same (for mods that let you build nodes anywhere).
+- <img src="public/icons/Desc_Coal_C.webp" width="28" height="28" align="top" alt="Coal"> **Pinned inputs.** Type the amount of a raw resource you actually have into the totals strip, and the targets scale to it. If that keeps a ticked alternate out of the plan, the planner names it.
+- <img src="public/icons/Desc_CrystalShard_C.webp" width="28" height="28" align="top" alt="Power Shard"> **Machines and clocks.** Select a machine to set how many there are or their clock speed. Power uses the game's formula. Overclocked lines use as few power shards as possible.
+- <img src="public/icons/Desc_WAT1_C.webp" width="28" height="28" align="top" alt="Somersloop"> **Somersloops and shards.** Set them per machine, or enter how many you own and let the planner place them (**Auto place** or **Use all**).
+- <img src="public/icons/Build_MinerMk2_C.webp" width="28" height="28" align="top" alt="Miner Mk.2"> **Extraction.** Miner mark, node purity and extractor clock decide how many miners and pumps each resource needs, and their power.
+- <img src="public/icons/Build_ConveyorBeltMk5_C.webp" width="28" height="28" align="top" alt="Conveyor Belt Mk.5"> **Graph and list.** The graph runs left to right or top to bottom, colours belts by tier and splits a flow over more belts when one isn't enough. **Fit to screen** shows even the biggest factory whole. The list shows every recipe and the build cost. The totals over the floor fold away to one line.
+- <img src="public/icons/Build_GeneratorNuclear_C.webp" width="28" height="28" align="top" alt="Nuclear Power Plant"> **Power planner.** Power plants are tabs too and can mix generators. Size one by the fuel you have, the MW you want or the factories it runs. The fuel chain, water, nuclear waste, augmenters and Power Storage are counted.
+- <img src="public/icons/Desc_HardDrive_C.webp" width="28" height="28" align="top" alt="Hard Drive"> **Codex.** Parts, resources, buildings, vehicles, equipment, milestones, MAM research, alternate recipes and the AWESOME Shop, with the game's descriptions, plus creatures, world finds and crash sites. Every part shows its whole production line and how each of its recipes compares; every alternate is ranked against the standard recipe. Guides cover getting started, the Space Elevator, power, oil and nuclear. **Build this factory** opens a factory for any part.
+- <img src="public/icons/Build_MinerMk3_C.webp" width="28" height="28" align="top" alt="Miner Mk.3"> **World map.** All 459 resource nodes, 118 well nodes and 31 geysers on the game's map, filtered by resource and purity. Pressing a node shows what each miner or extractor gets from it. Somersloops, Mercer Spheres, power slugs, crash sites, plants and creature spawns can be turned on too.
+- <img src="public/icons/Desc_FreightWagon_C.webp" width="28" height="28" align="top" alt="Freight Wagon"> **Linked factories.** A factory can take an item from another factory tab, which then makes it on top of its own products.
+- <img src="public/icons/Desc_ModularFrameLightweight_C.webp" width="28" height="28" align="top" alt="Radio Control Unit"> **Share links.** The **Share** button copies a link that contains the factory (and the power plants that run it). Opening it adds a copy as a new tab. Nothing is uploaded.
+- <img src="public/icons/Desc_CircuitBoard_C.webp" width="28" height="28" align="top" alt="Circuit Board"> **Settings.** Panel position, card and text size, spacing, belt labels, colours, interface size, decimals and animations. Save all factories and settings to a file and load them back. **Help** explains the terms on screen, **Updates** lists what changed.
+- <img src="public/icons/Desc_CrystalOscillator_C.webp" width="28" height="28" align="top" alt="Crystal Oscillator"> **Feedback.** Bug reports and ideas from inside the app, optionally with the factory on screen.
+- <img src="public/icons/BP_ItemDescriptorPortableMiner_C.webp" width="28" height="28" align="top" alt="Portable Miner"> **Phones and offline.** Installs as an app and works offline. On phones there is one pane at a time and a bottom bar.
 
 ## Install as an app
 
@@ -114,33 +114,13 @@ On Windows, run that in PowerShell (`$env:BASE_PATH = '/ficsit_planner/'; bun ru
 arguments that look like Unix paths into Windows paths, so the base comes out as `/Program Files/Git/...`. Prefix
 the command with `MSYS_NO_PATHCONV=1` if you want to stay in Git Bash.
 
-### Deploying
+### Hosting your own copy
 
-The live site is on Cloudflare Pages. `wrangler.jsonc` names the project and its feedback database, and
-`public/_headers` sets the security headers and long caching for the hashed files in `assets/`.
-
-```sh
-bunx wrangler login   # once, opens the browser
-bun run deploy        # build, then upload dist/ and functions/ to https://ficsit-planner.pages.dev
-```
-
-### Feedback from players
-
-The in-app **Feedback** window posts to `functions/api/report.ts`, a Pages Function that stores each report in a
-D1 database (`ficsit-reports`, schema in `migrations/`). It checks the fields, turns away other sites, drops bots
-that fill a hidden field, strips control characters, and allows six reports an hour per sender. Senders are kept for
-an hour as a salted hash for that limit and never with a report. Read the reports from your machine:
-
-```sh
-bun run reports            # open reports, newest first
-bun run reports show 12    # one in full, with the factory it came with
-bun run reports done 12    # mark it handled
-bun run reports md         # write the open ones to reports/feedback.md
-bun run db:migrate         # apply a new schema file in migrations/ to the live database
-```
-
-Add `--local` to any of them to read the database `bunx wrangler pages dev dist` uses instead. The salt is the
-`REPORT_SALT` secret on the Pages project. See [docs/feedback.md](docs/feedback.md) for the details.
+The build in `dist/` is a static site and runs on any static host. Only the in-app **Feedback** form needs a server:
+on [ficsit-planner.pages.dev](https://ficsit-planner.pages.dev) it posts to a Cloudflare Pages Function with a D1
+database (`functions/api/report.ts`, schema in `migrations/`). Without it the form offers to post the report as a GitHub
+issue instead. [docs/feedback.md](docs/feedback.md) covers what a report holds, how it's checked and stored, and
+the setup on Cloudflare.
 
 `SITE_URL` (default `https://ficsit-planner.pages.dev`) goes into the canonical link, the social preview tags,
 `robots.txt` and `sitemap.xml`, which the build writes. Set it when you host the site somewhere else, including the
@@ -162,7 +142,8 @@ See [CONTRIBUTING.md](CONTRIBUTING.md) for code style and what to check before a
   raw resource used, and one "missing" variable for every item no enabled recipe can make.
 - **Constraints:** for every item, net production ≥ demand − on-hand supply. Raw resources are capped by the
   player's limit, or by the world limit when there is none.
-- **Objective:** minimise raw use weighted by scarcity (iron's world limit ÷ the resource's limit), plus a tiny
+- **Objective:** minimise raw use weighted by scarcity (iron's world limit ÷ the resource's limit; with **All
+  equal** every resource but water weighs 1), plus a tiny
   machine-power term so it never builds machines it doesn't need. Missing items cost 10⁵ each, so they only appear
   when nothing else works. The solver can also minimise power instead; the app doesn't offer it, because with
   standard recipes both goals nearly always pick the same factory.
@@ -171,7 +152,8 @@ See [CONTRIBUTING.md](CONTRIBUTING.md) for code style and what to check before a
   one more row says generation (times the augmenter boost) must cover the outside demand plus every machine and
   extractor in the plan, with the spare capacity on top. Fixed plants are pinned to their count or output.
 - **Pinned inputs** are solved in two passes. The first maximises a scale factor *k* on all targets, with the
-  pinned resources as hard limits. The second solves the normal objective at that *k*.
+  pinned resources as hard limits. The second solves the normal objective at that *k*. A third solve, the same
+  output without the pins, finds the ticked alternates the pins keep out, so the app can name them.
 - **Shadow prices** of the item rows give the marginal raw cost of each item. Auto place uses them to send
   somersloops to the machines whose inputs are most expensive.
 - **Failures** come back as codes (`infeasible`, `pinnedInfeasible`, `stopped`), and the UI shows them as text in
@@ -195,6 +177,7 @@ the belt count low. dagre lays the graph out left to right, or top to bottom on 
 | `src/lib/codex.ts`, `src/components/Codex.tsx`, `CodexGuides.tsx`, `CodexLine.tsx` | the Codex: its data, index and search, pages and addresses, the guides, and the production lines and recipe comparisons |
 | `src/lib/insights.ts`, `scripts/codex-insights.ts` | works out each part's whole production line, its recipes compared and every fuel's cost, with the solver |
 | `src/locales/codex-notes.en.ts` | the Codex's Good to know notes on parts and buildings |
+| `src/locales/updates.en.ts` | the short notes under Settings › Updates (the long version is `CHANGELOG.md`) |
 | `src/lib/data.ts` | typed access to the game data, belt/pipe choice per flow, unlock tiers and why an item can't be made |
 | `src/locales/en.ts`, `src/lib/lang.ts`, `src/lib/i18n.ts` | UI strings, language registry, `useT()` |
 | `src/lib/install.ts`, `src/components/PwaStatus.tsx` | install button and offline status |
@@ -202,6 +185,8 @@ the belt count low. dagre lays the graph out left to right, or top to bottom on 
 | `public/_headers`, `public/404.html`, `wrangler.jsonc` | Cloudflare Pages headers, not-found page, project config |
 | `src/store.ts` | app state (zustand), saved to `localStorage` |
 | `src/components/` | panels, graph view, table view, inspector, power panel and floor, mode switch, settings and feedback windows, phone navigation, panel splitter |
+| `src/lib/slide.ts` | the highlight gliding between picks in tabs and segmented buttons |
+| `scripts/deploy.mjs` | checks, tests and builds, then uploads to a preview address or the live site |
 | `migrations/`, `scripts/reports.mjs` | feedback database schema, and reading the reports |
 | `scripts/extract.mjs`, `scripts/extract-codex.mjs` | game data extractors: the planner's data, and the Codex's |
 | `tools/icon-extractor/` | .NET icon extractor |
