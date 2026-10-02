@@ -1,4 +1,5 @@
 import { recipeById } from './data';
+import type { CalcInput, CalcResult } from './model/calc/result';
 import type { RecipeMod, SolveInput, SolveResult } from './solver';
 import type { SolveFailure } from './solveFailure';
 import type { SolverRequest, SolverResponse } from './solver.worker';
@@ -47,6 +48,11 @@ export async function solveAsync(input: SolveInput): Promise<SolveResult> {
   // Recipes come back as structured-clone copies; point them at the shared objects again.
   for (const u of result.recipes) u.recipe = recipeById.get(u.recipe.id) ?? u.recipe;
   return result;
+}
+
+/** Works out a hand-built model in the worker. Rejects with a SolveFailure. */
+export async function calcAsync(input: CalcInput): Promise<CalcResult> {
+  return (await call({ kind: 'model', input })).value as CalcResult;
 }
 
 /** Places somersloops and power shards in the worker. Rejects with a SolveFailure. */

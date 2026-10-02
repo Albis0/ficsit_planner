@@ -11,6 +11,10 @@ import { PlanTabs, ShareButton } from './components/PlanTabs';
 import { PlantInspector, PowerQuickStart, PowerSummary } from './components/PowerFloor';
 import { PowerPanel } from './components/PowerPanel';
 import { InstallButton, ClosedTab, Notice, PwaStatus } from './components/PwaStatus';
+import { useFactoryHost, useModelCalc } from './components/modeler/hosts';
+import { ModelEditor } from './components/modeler/ModelEditor';
+import { ModelInspector } from './components/modeler/ModelInspector';
+import { ModelToolbar } from './components/modeler/Toolbar';
 import { QuickPick } from './components/QuickPick';
 import { RecipesPanel } from './components/RecipesPanel';
 import { ReportDialog } from './components/ReportDialog';
@@ -35,6 +39,9 @@ import { failureText } from './lib/solveFailure';
 import { fold } from './lib/fold';
 import { useMediaQuery } from './lib/useMediaQuery';
 import { LATEST_UPDATE } from './locales/updates.en';
+import { modelFromSolve } from './lib/model/fromAuto';
+import { emptyModel } from './lib/model/types';
+import { solveAsync } from './lib/solverClient';
 import { activePowerPlan, aimOf, usePlan, useStore } from './store';
 
 // Folding the panel moves the app's grid tracks: above the floor a row, beside it a column.
@@ -55,6 +62,8 @@ function useSolutions() {
   // The floor, the table and the Codex read the same recipes the worker solves with.
   applyGame(game);
   const plan = useStore((s) => s.plans.find((p) => p.id === s.active) ?? s.plans[0]);
+  // A hand-built factory isn't worked out from its targets; its model is worked out instead.
+  const manual = plan.floor === 'manual';
   const pp = useStore(activePowerPlan);
   const draws = useFactoryDraws(mode === 'power');
   const load = powerLoad(pp, draws);
@@ -79,10 +88,11 @@ function useSolutions() {
     () => (sizeBy === 'have' ? powerInput({ plants, sizeBy: 'want', have, headroom, ownLoad, chain }, 1000, tier, aim, game) : undefined),
     [plants, sizeBy, have, headroom, ownLoad, chain, tier, aim, game],
   );
-  const factory = useSolve(factoryIn, mode === 'factory');
+  const factory = useSolve(factoryIn, mode === 'factory' && !manual);
+  const hand = useModelCalc(manual ? (plan.model ?? emptyModel()) : undefined, tier, game, mode === 'factory' && manual);
   const power = useSolve(powerIn, mode === 'power');
   const probe = useSolve(probeIn, mode === 'power');
-  return { factory, power, probe: probe.result, draws, load };
+  return { factory, power, probe: probe.result, draws, load, hand, manual, factoryIn };
 }
 
 export default function App() {
@@ -90,8 +100,10 @@ export default function App() {
   const s = useStore();
   const plan = usePlan();
   const phone = useMediaQuery('(max-width: 900px)');
-  const { factory, power, probe, draws, load } = useSolutions();
+  const { factory, power, probe, draws, load, hand, manual: manualPlan, factoryIn } = useSolutions();
   const powerMode = s.mode === 'power';
+  const manual = manualPlan && !powerMode && s.mode === 'factory';
+  const host = useFactoryHost(plan.id);
   const codexMode = s.mode === 'codex';
   const mapMode = s.mode === 'map';
   // The Codex and the map aren't planners: no plan tabs, no targets panel, their own index on the left.
@@ -99,11 +111,30 @@ export default function App() {
   useCodexRoute();
   useSharedLinks();
   const pp = activePowerPlan(s);
-  const { result, error, busy } = powerMode ? power : factory;
-  const extraction = useMemo(
-    () => (result ? planExtraction(result.raw, effectiveExtraction(plan.extraction, s.tier)) : []),
-    [result, plan.extraction, s.tier],
+  const solved = powerMode ? power : factory;
+  const result = manual ? hand.adapted?.result : solved.result;
+  const error = manual ? hand.error : solved.error;
+  const busy = manual ? hand.busy : solved.busy;
+  const autoExtraction = useMemo(
+    () => (solved.result ? planExtraction(solved.result.raw, effectiveExtraction(plan.extraction, s.tier)) : []),
+    [solved.result, plan.extraction, s.tier],
   );
+  const extraction = manual ? (hand.adapted?.extraction ?? []) : autoExtraction;
+  /** Auto or Manual: the first switch to Manual starts from the factory as worked out, or an empty floor. */
+  const setFloor = (floor: 'auto' | 'manual') => {
+    if (floor === 'auto' || plan.model) return s.setFloor(plan.id, floor);
+    const model = factory.result ? modelFromSolve(factory.result, s.tier, effectiveExtraction(plan.extraction, s.tier)) : emptyModel();
+    s.setFloor(plan.id, 'manual', model);
+  };
+  const rebuild = async () => {
+    if (!factoryIn || !window.confirm(t('rebuildConfirm'))) return;
+    try {
+      const r = await solveAsync(factoryIn);
+      s.setFloor(plan.id, 'manual', modelFromSolve(r, s.tier, effectiveExtraction(plan.extraction, s.tier)));
+    } catch {
+      /* the Auto floor shows why it can't be solved */
+    }
+  };
 
   useEffect(() => {
     document.documentElement.lang = lang;
@@ -150,9 +181,9 @@ export default function App() {
     const from = new Map(plan.supplies.flatMap((x) => (x.from ? [[x.item, nameOf(x.from)] as const] : [])));
     return { to, from, own: new Set(plan.targets.map((x) => x.item)) };
   }, [powerMode, exports, plan.supplies, plan.targets, s.plans]);
-  const empty = bookMode ? false : powerMode ? pp.plants.length === 0 : plan.targets.length === 0 && exports.length === 0;
+  const empty = bookMode || manual ? false : powerMode ? pp.plants.length === 0 : plan.targets.length === 0 && exports.length === 0;
   // Every target is out of reach (e.g. above the unlocked tier): explain instead of drawing a lone "bring in".
-  const blocked = !powerMode && result && result.recipes.length === 0 && result.missing.length > 0;
+  const blocked = !powerMode && !manual && result && result.recipes.length === 0 && result.missing.length > 0;
   // Power planner with nothing that can run, or only auto plants and nothing to power: nothing gets
   // built, so say why instead of drawing an empty floor.
   const running = powerMode ? pp.plants.filter((p) => plantValid(p) && plantUnlocked(p, s.tier)) : [];
@@ -342,13 +373,35 @@ export default function App() {
                 <TableView result={result} extraction={extraction} />
               ) : s.view === 'transport' && !powerMode ? (
                 <TransportView result={result} links={links} />
+              ) : manual ? (
+                <>
+                  <ModelEditor host={host} calc={hand.calc} />
+                  <ModelToolbar host={host} onRebuild={factoryIn ? rebuild : undefined} unbounded={hand.calc?.unbounded} />
+                </>
               ) : (
                 <GraphView result={result} extraction={extraction} consumers={consumers} links={links} />
               ))}
-            {shown && (inspectPlant ? <PlantInspector key={inspectPlant} result={result} /> : <Inspector result={result} />)}
+            {shown &&
+              (manual ? (
+                <ModelInspector host={host} calc={hand.calc} />
+              ) : inspectPlant ? (
+                <PlantInspector key={inspectPlant} result={result} />
+              ) : (
+                <Inspector result={result} />
+              ))}
             {busy && <div className="busy">{t('solving')}</div>}
             {shown && (
               <div className="floor-bar">
+                {!powerMode && (
+                  <div className="segmented floor-kind" role="radiogroup" aria-label={t('floorKind')}>
+                    <button type="button" role="radio" aria-checked={!manual} title={t('autoHint')} onClick={() => setFloor('auto')}>
+                      {t('floorAuto')}
+                    </button>
+                    <button type="button" role="radio" aria-checked={manual} title={t('manualHint')} onClick={() => setFloor('manual')}>
+                      {t('floorManual')}
+                    </button>
+                  </div>
+                )}
                 <div className="segmented" role="radiogroup">
                   <button
                     type="button"
@@ -367,7 +420,7 @@ export default function App() {
                     </button>
                   )}
                 </div>
-                {!s.inspect && (
+                {!s.inspect && !manual && (
                   <span className="floor-hint-slot">
                     <span className="floor-hint">{powerMode ? t('inspectPowerHint') : t('inspectHint')}</span>
                   </span>

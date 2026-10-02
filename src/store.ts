@@ -10,6 +10,8 @@ import { cleanChoice, cleanNumber, cleanPlan, cleanPowerPlan, cleanSettings, gri
 import { DEFAULT_SETTINGS, type Settings } from './lib/settings';
 import type { RecipeMod, Target } from './lib/solver';
 import { cleanMapFilter, DEFAULT_MAP_FILTER, type MapFilter } from './lib/world';
+import { forget, record, redo, undo } from './lib/model/history';
+import type { Model } from './lib/model/types';
 import type { Carrier } from './lib/transport';
 
 export const MAX_TIER = Math.max(...data.recipes.map((r) => r.tier ?? 0));
@@ -37,6 +39,10 @@ export interface Plan {
   extraction: ExtractionSettings;
   /** How each input arrives and each output leaves ("in:<item>", "out:<item>"); belts or pipes when not set. */
   transport?: Record<string, Route>;
+  /** Built by hand on the floor instead of worked out from the targets. */
+  floor?: 'manual';
+  /** The hand-built factory; kept when switching back to Auto, so Manual comes back as it was. */
+  model?: Model;
 }
 
 /** A carrier chosen for one input or output, and how far it goes one way, in metres. */
@@ -236,6 +242,15 @@ interface State {
   setRecipes: (ids: string[], on: boolean) => void;
   setCap: (item: string, cap: number | undefined) => void;
   setMod: (recipe: string, mod: RecipeMod | undefined) => void;
+  /** Auto or Manual for a factory tab; a model to start Manual with, when there isn't one yet or it's rebuilt. */
+  setFloor: (plan: string, floor: 'auto' | 'manual', model?: Model) => void;
+  /**
+   * Changes a factory's hand-built model. The model before goes on the tab's undo list; edits sharing a merge key a
+   * moment apart (typing, a slider) undo as one.
+   */
+  editModel: (plan: string, fn: (m: Model) => Model, merge?: string) => void;
+  undoModel: (plan: string) => void;
+  redoModel: (plan: string) => void;
 }
 
 const first = newPlan('Factory 1');
@@ -536,6 +551,35 @@ export const useStore = create<State>()(
             else mods[recipe] = mod;
             return { mods };
           }),
+        setFloor: (id, floor, model) => {
+          if (model) forget(id);
+          set({
+            plans: get().plans.map((p) => {
+              if (p.id !== id) return p;
+              const { floor: _, ...rest } = p;
+              return { ...rest, ...(floor === 'manual' ? { floor } : {}), ...(model ? { model } : {}) };
+            }),
+            inspect: undefined,
+          });
+        },
+        editModel: (id, fn, merge) => {
+          const plan = get().plans.find((p) => p.id === id);
+          if (!plan?.model) return;
+          const next = fn(plan.model);
+          if (next === plan.model) return;
+          record(id, plan.model, merge);
+          set({ plans: get().plans.map((p) => (p.id === id ? { ...p, model: next } : p)) });
+        },
+        undoModel: (id) => {
+          const plan = get().plans.find((p) => p.id === id);
+          const prev = undo(id, plan?.model);
+          if (prev) set({ plans: get().plans.map((p) => (p.id === id ? { ...p, model: prev } : p)) });
+        },
+        redoModel: (id) => {
+          const plan = get().plans.find((p) => p.id === id);
+          const next = redo(id, plan?.model);
+          if (next) set({ plans: get().plans.map((p) => (p.id === id ? { ...p, model: next } : p)) });
+        },
       };
     },
     {

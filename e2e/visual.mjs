@@ -102,6 +102,23 @@ const SCREENS = [
     },
   },
   {
+    name: 'manual-motor',
+    state: factory([['Desc_Motor_C', 10]]),
+    act: async (page) => {
+      await page.click('.floor-kind button >> nth=1');
+      await page.waitForTimeout(1200);
+    },
+  },
+  {
+    name: 'manual-inspector',
+    state: factory([['Desc_Motor_C', 10]]),
+    act: async (page) => {
+      await page.click('.floor-kind button >> nth=1');
+      await page.waitForTimeout(1200);
+      await page.locator('.react-flow__node-part:has(.machine-node)').first().dispatchEvent('click');
+    },
+  },
+  {
     name: 'recipes-panel',
     state: factory([['Desc_Motor_C', 10]], { tab: 'recipes' }),
     act: async (page, phone) => phone && page.click('.mobile-nav button >> nth=1'),

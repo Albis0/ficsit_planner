@@ -14,6 +14,17 @@ interface Props {
   max?: number;
 }
 
+/** A typed amount: "12,5", "12.5" or a fraction like "100/3". NaN when it isn't one. */
+export function parseAmount(text: string): number {
+  const t = text.replace(',', '.').trim();
+  const frac = t.match(/^(\d*\.?\d+)\s*\/\s*(\d*\.?\d+)$/);
+  if (frac) {
+    const d = Number.parseFloat(frac[2]);
+    return d > 0 ? Number.parseFloat(frac[1]) / d : Number.NaN;
+  }
+  return Number.parseFloat(t);
+}
+
 /** One whole number up or down: 12.5 goes to 13 or 12, never below zero. */
 const up = (v: number) => Math.floor(v + 1e-9) + 1;
 const down = (v: number) => Math.max(0, Math.ceil(v - 1e-9) - 1);
@@ -46,7 +57,7 @@ function fitText(el: HTMLInputElement) {
   el.style.lineHeight = fits ? '' : line;
 }
 
-/** Numeric field that accepts both "12,5" and "12.5" and only commits valid numbers. */
+/** Numeric field that accepts "12,5", "12.5" and fractions ("100/3"), and only commits valid numbers. */
 export function RateInput({ value, onChange, label, placeholder, onClear, step, max }: Props) {
   const { t } = useT();
   const [text, setText] = useState(Number.isNaN(value) ? '' : String(value));
@@ -78,12 +89,12 @@ export function RateInput({ value, onChange, label, placeholder, onClear, step, 
 
   // biome-ignore lint/correctness/useExhaustiveDependencies: only sync when the outside value changes, not while typing.
   useEffect(() => {
-    const parsed = Number.parseFloat(text.replace(',', '.'));
+    const parsed = parseAmount(text);
     if (parsed !== value) setText(Number.isNaN(value) ? '' : String(value));
   }, [value]);
 
   const current = () => {
-    const n = Number.parseFloat(text.replace(',', '.'));
+    const n = parseAmount(text);
     return Number.isFinite(n) ? n : Number.isNaN(value) ? 0 : value;
   };
   const nudge = (next: number) => {
@@ -103,7 +114,7 @@ export function RateInput({ value, onChange, label, placeholder, onClear, step, 
         const v = e.target.value;
         setText(v);
         if (v.trim() === '' && onClear) return onClear();
-        const n = Number.parseFloat(v.replace(',', '.'));
+        const n = parseAmount(v);
         if (max !== undefined && n > max) {
           setText(String(max));
           return onChange(max);

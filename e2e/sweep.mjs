@@ -147,6 +147,21 @@ async function run(size) {
         await page.waitForTimeout(500);
         await check(`inspector ${item}`);
       });
+    // The hand-built floor, made from the Auto one, and a machine on it picked.
+    for (const item of sample(products, 4).slice(0, QUICK ? 4 : 40))
+      await step(`manual ${item}`, async () => {
+        await open(factory([item]));
+        const button = page.locator('.floor-kind button >> nth=1');
+        if (!(await button.count())) return;
+        await button.click();
+        await page.waitForTimeout(1200);
+        await check(`manual ${item}`);
+        const node = page.locator('.react-flow__node-part:has(.machine-node)').first();
+        if (!(await node.count())) return;
+        await node.dispatchEvent('click');
+        await page.waitForTimeout(500);
+        await check(`manual inspector ${item}`);
+      });
     // Every side panel tab, on the factory and next to it.
     for (const [tab, panel] of [
       ['targets', 'top'],

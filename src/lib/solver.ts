@@ -102,6 +102,8 @@ export interface RecipeUse {
   /** Total per-minute flows across all placed machines. */
   inputs: Target[];
   outputs: Target[];
+  /** On a hand-built floor: the node these machines are, as two nodes can share a recipe. */
+  node?: string;
 }
 
 export interface SolveResult {

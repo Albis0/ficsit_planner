@@ -39,7 +39,8 @@ export function Summary({ result, extraction }: { result: SolveResult; extractio
   const pinned = Object.keys(fixed).length > 0;
   // With a card per destination on the floor, the totals count those cards' machines.
   const tier = useStore((s) => s.tier);
-  const each = useStore((s) => s.settings.splitLines) === 'each';
+  // A hand-built floor's nodes are already the machines on the floor.
+  const each = useStore((s) => s.settings.splitLines) === 'each' && !('manual' in result);
   const split = useMemo(() => (each ? splitExtras(result, tier) : undefined), [each, result, tier]);
   const machines = result.recipes.reduce((s, u) => s + u.built, 0) + [...(split?.machines.values() ?? [])].reduce((a, b) => a + b, 0);
   const machinePower = result.power + (split?.power ?? 0);

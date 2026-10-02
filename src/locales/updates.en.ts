@@ -6,6 +6,16 @@ export type UpdateKind = 'added' | 'fixed' | 'changed';
 
 export const UPDATES: { version: string; date: string; notes: [UpdateKind, string][] }[] = [
   {
+    version: '0.12.10',
+    date: '2026-10-02',
+    notes: [
+      [
+        'added',
+        'Manual floor (preview): switch a factory to Manual to move machines, lay belts and set counts by hand, starting from the factory as worked out.',
+      ],
+    ],
+  },
+  {
     version: '0.12.9',
     date: '2026-10-02',
     notes: [['changed', 'The hint under the factory floor is shorter and steps aside when the window is narrow.']],

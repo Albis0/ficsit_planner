@@ -17,8 +17,7 @@ import {
   type Viewport,
 } from '@xyflow/react';
 import '@xyflow/react/dist/base.css';
-import { createContext, type ReactNode, useContext, useEffect, useMemo, useState } from 'react';
-import { BELT_COLORS } from '../lib/belts';
+import { createContext, useContext, useEffect, useMemo, useState } from 'react';
 import { groupClocks } from '../lib/clocks';
 import { buildGroups, groupsLabel, isPipe } from '../lib/groups';
 import { data } from '../lib/data';
@@ -42,6 +41,7 @@ import { minerLabel, recipeLabel } from '../lib/text';
 import { COARSE, useMediaQuery } from '../lib/useMediaQuery';
 import type { SolveResult } from '../lib/solver';
 import { usePlan, useStore } from '../store';
+import { beltStroke } from './floor/BeltStroke';
 import { Glyph } from './Glyph';
 import { Icon } from './Icon';
 import { Slot } from './Slot';
@@ -68,17 +68,6 @@ const outSide = (dir: Direction) => (dir === 'TB' ? Position.Bottom : Position.R
 /** Extractor counts per raw resource, shown on the ore/fluid source nodes. */
 const Extraction = createContext<Map<string, ExtractionUse>>(new Map());
 
-const beltIndex = (id: string) =>
-  Math.max(
-    0,
-    data.belts.findIndex((b) => b.id === id),
-  );
-const pipeIndex = (id: string) =>
-  Math.max(
-    0,
-    data.pipes.findIndex((p) => p.id === id),
-  );
-
 const useFaded = (id: string) => {
   const f = useContext(Focus);
   return f.node !== undefined && !f.near.has(id);
@@ -98,7 +87,7 @@ const STILL_ZOOM = 0.7;
 const stillSelector = (s: { transform: [number, number, number] }) => s.transform[2] < STILL_ZOOM;
 
 /** Bottom edge colour for machines holding power shards (blue), somersloops (pink) or both (half and half). */
-function modBar(shards: number, sloops: number): string | undefined {
+export function modBar(shards: number, sloops: number): string | undefined {
   if (shards > 0 && sloops > 0) return 'linear-gradient(90deg, var(--shard) 50%, var(--sloop) 50%)';
   if (shards > 0) return 'var(--shard)';
   if (sloops > 0) return 'var(--sloop)';
@@ -106,7 +95,7 @@ function modBar(shards: number, sloops: number): string | undefined {
 }
 
 /** The count-and-clock line: "3 × 83.33%", or "2 × 150% + 1 × 100%" when a line is partly overclocked. */
-function RunLine({ clocks }: { clocks: number[] }) {
+export function RunLine({ clocks }: { clocks: number[] }) {
   const { num } = useT();
   return (
     <span className="machine-run">
@@ -438,7 +427,7 @@ const TURN = 36;
  * with a rounded turn wherever they meet an along stretch. At a machine's handle the belt leaves (or arrives) along
  * the flow and eases into the run across, so belts sharing a handle fan out from it like a splitter.
  */
-function routePath(pts: Point[], dir: Direction): string {
+export function routePath(pts: Point[], dir: Direction): string {
   // In (u, v): u along the flow, v across it, so one rule serves both directions.
   type V = [number, number];
   const uv = (p: Point): V => (dir === 'LR' ? [p.x, p.y] : [p.y, p.x]);
@@ -548,41 +537,13 @@ function FlowEdge({ id, source, target, sourceX, sourceY, targetX, targetY, sour
   } else {
     [path, lx, ly] = getBezierPath({ sourceX, sourceY, targetX, targetY, sourcePosition, targetPosition });
   }
-  const fluid = it.form !== 'solid';
   // Side by side lines widen the belt, up to a point: past a few, the label's "123×" says how many.
   const drawn = Math.min(lanes, MAX_DRAWN_LANES);
   const lit = focus.edge ? picked : focus.node !== undefined && (source === focus.node || target === focus.node);
   const faded = (focus.node !== undefined || focus.edge !== undefined) && !lit;
   const showLabel = labels === 'always' || lit || (labels === 'auto' && zoom !== 'far');
   const state = `${faded ? 'faded' : ''} ${lit ? 'lit' : ''} ${still ? 'still' : ''}`;
-
-  let body: ReactNode;
-  let tierColor: string;
-  if (fluid) {
-    const mk = pipeIndex(transport.id);
-    const w = mk === 0 ? 9 : 12;
-    tierColor = it.color ?? 'var(--fluid)';
-    body = (
-      <g className={`pipe-edge ${state}`}>
-        <path d={path} className="pipe-casing" style={{ strokeWidth: w + 4 * (drawn - 1) }} />
-        <path d={path} className="pipe-fluid" style={{ stroke: tierColor, strokeWidth: w - 4 }} />
-      </g>
-    );
-  } else {
-    const mk = beltIndex(transport.id);
-    tierColor = oneColor ? BELT_COLORS[0] : BELT_COLORS[Math.min(mk, BELT_COLORS.length - 1)];
-    const w = 12 + 5 * (drawn - 1);
-    body = (
-      <g
-        className={`belt-edge ${state}`}
-        style={{ ['--belt' as string]: tierColor, ['--belt-speed' as string]: `${2 / Math.sqrt(mk + 1)}s` }}
-      >
-        <path d={path} className="belt-rails" style={{ strokeWidth: w }} />
-        <path d={path} className="belt-bed" style={{ strokeWidth: w - 5 }} />
-        <path d={path} className="belt-slats" style={{ strokeWidth: w - 5 }} />
-      </g>
-    );
-  }
+  const { body, color: tierColor } = beltStroke({ path, item, transport, lanes: drawn, state, oneColor });
 
   return (
     <>
@@ -690,7 +651,7 @@ function wholeZoom(nodes: Node[], width: number, height: number): number {
  * Opening camera: the whole factory when it fits at a readable zoom. Otherwise the whole height (or width, top to
  * bottom) if that's readable, starting from the ore end the way the line is built; a readable zoom failing that.
  */
-function openingViewport(nodes: Node[], width: number, height: number, dir: Direction): Viewport {
+export function openingViewport(nodes: Node[], width: number, height: number, dir: Direction): Viewport {
   const minX = Math.min(...nodes.map((n) => n.position.x));
   const minY = Math.min(...nodes.map((n) => n.position.y));
   const maxX = Math.max(...nodes.map((n) => n.position.x + (n.width ?? 0)));

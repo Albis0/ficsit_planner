@@ -6,6 +6,7 @@ import { PLANT_NAMES, type Plant, type PlantSize, type SizeBy } from './power';
 import { clampSetting, DEFAULT_COLORS, DEFAULT_SETTINGS, FONTS, type Settings } from './settings';
 import type { RecipeMod, Target } from './solver';
 import { CARRIERS, type Carrier } from './transport';
+import { cleanModel } from './model/sanitize';
 
 /*
   Saved state and loaded copies are data from outside the code: an older version, a hand-edited
@@ -103,6 +104,7 @@ function transportOf(x: unknown): Record<string, Route> | undefined {
 /** A factory tab, cleaned against the current game data. */
 export function cleanPlan(saved: unknown, fallback: Plan): Plan {
   const p = obj(saved);
+  const model = cleanModel(p.model);
   return {
     id: text(p.id, fallback.id, 40),
     name: text(p.name, fallback.name),
@@ -116,6 +118,8 @@ export function cleanPlan(saved: unknown, fallback: Plan): Plan {
     mods: mods(p.mods),
     extraction: extraction(p.extraction ?? fallback.extraction),
     ...(transportOf(p.transport) ? { transport: transportOf(p.transport) } : {}),
+    ...(p.floor === 'manual' ? { floor: 'manual' as const } : {}),
+    ...(model ? { model } : {}),
   };
 }
 

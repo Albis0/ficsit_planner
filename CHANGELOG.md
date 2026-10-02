@@ -2,6 +2,22 @@
 
 All notable changes to FICSIT Planner. Dates are when the version was finished.
 
+## 0.12.10 — 2026-10-02
+
+### Added
+
+- **Manual floor**: under the factory, Auto / Manual. Manual turns the factory as worked out into one you build by
+  hand: every machine a card where it stood, every belt a link, a splitter wherever one output feeds several machines
+  and a merger wherever several belts feed one input, a miner or pump per raw input belt. Cards can be moved and stay
+  where they're put; a belt can be drawn from an output to an input by dragging, or by clicking one end and then the
+  other. Picking a machine sets its count (fractions work: 2.5, 8/3) and clock; picking a miner its Mk, purity, count
+  and clock; picking a belt its Mk and a limit; inputs and outputs take a limit too. Each machine says whether it runs
+  at full speed, how far below, or what stops it: an input or output with no belt, a belt bringing the wrong item, or
+  a loop that waits on itself. Belts at their most turn red at the Mk badge. Double-click a card to pick its belts;
+  Delete takes off what's picked; Ctrl+Z and Ctrl+Y undo and redo. The numbers are the most every machine can run
+  within its count, clock and belts ("Max flow"); the totals, the list and the transport view read them. Switching
+  back to Auto keeps the hand-built floor for next time, and Rebuild from targets starts it again.
+
 ## 0.12.9 — 2026-10-02
 
 ### Changed

@@ -47,6 +47,8 @@ const used = new Set([...called, ...quoted]);
 // Families of keys built from an id, like t(`cat_${category}`).
 const DYNAMIC_PREFIXES = [
   'cat_',
+  'calc_',
+  'calcHint_',
   'guideLine_',
   'sort_',
   'extra_',

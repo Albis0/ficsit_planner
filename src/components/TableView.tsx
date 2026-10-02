@@ -39,21 +39,25 @@ export function TableView({ result, extraction }: { result: SolveResult; extract
   const tier = useStore((s) => s.tier);
   const set = useStore((s) => s.set);
   const generated = result.grid?.plants ?? {};
-  const each = useStore((s) => s.settings.splitLines) === 'each';
+  // On a hand-built floor each node is its own row, already split however the player built it.
+  const manual = 'manual' in result;
+  const each = useStore((s) => s.settings.splitLines) === 'each' && !manual;
+  const rowId = (u: RecipeUse) => u.node ?? u.recipe.id;
   const bill = useMemo(
     () => buildBill(result, extraction, each ? splitExtras(result, tier).machines : undefined),
     [result, extraction, each, tier],
   );
   const splits = useMemo(() => {
+    if (manual) return new Map<string, undefined>();
     const flows = matchFlows(result);
     return new Map(result.recipes.map((u) => [u.recipe.id, splitByDestination(u, flows, tier)]));
-  }, [result, tier]);
+  }, [result, tier, manual]);
   const words = useSplitText();
 
   // What the pointer is on, else the selected line: its inputs light up where other lines make them, and its
   // outputs where other lines take them. Pointing at one item lights that item everywhere.
   const [hover, setHover] = useState<{ row?: string; item?: string }>({});
-  const focus = result.recipes.find((u) => u.recipe.id === (hover.row ?? inspect));
+  const focus = result.recipes.find((u) => rowId(u) === (hover.row ?? inspect));
   const needs = new Set(focus?.inputs.map((x) => x.item));
   const gives = new Set(focus?.outputs.map((x) => x.item));
   const mark = (u: RecipeUse, item: string, side: 'in' | 'out') => {
@@ -102,11 +106,11 @@ export function TableView({ result, extraction }: { result: SolveResult; extract
           {result.recipes.map((u) => {
             const split = splits.get(u.recipe.id);
             return (
-              <Fragment key={u.recipe.id}>
+              <Fragment key={rowId(u)}>
                 <tr
-                  className={`${u.recipe.kind} ${inspect === u.recipe.id ? 'selected' : ''} ${rowMark(u)}`}
-                  onClick={() => set({ inspect: u.recipe.id })}
-                  onPointerEnter={(e) => e.pointerType === 'mouse' && setHover({ row: u.recipe.id })}
+                  className={`${u.recipe.kind} ${inspect === rowId(u) ? 'selected' : ''} ${rowMark(u)}`}
+                  onClick={() => set({ inspect: rowId(u) })}
+                  onPointerEnter={(e) => e.pointerType === 'mouse' && setHover({ row: rowId(u) })}
                   onPointerLeave={() => setHover({})}
                 >
                   <td className="recipe-cell">

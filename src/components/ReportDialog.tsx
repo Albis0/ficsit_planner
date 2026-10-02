@@ -61,6 +61,19 @@ function saveDraft(d: Draft | undefined) {
 const AREAS = ['areaGraph', 'areaPower', 'areaRecipes', 'areaResources', 'areaCodex', 'areaMap', 'areaLook', 'areaOther'] as const;
 
 /** Feedback in two halves: something broke, or something could be better. Sent straight to the developer. */
+/**
+ * The plan sent with a report. A big hand-built floor can run past what a report holds; then it goes without the
+ * floor rather than not at all.
+ */
+function attachedPlan(s: ReturnType<typeof useStore.getState>): string {
+  if (s.mode === 'power') return JSON.stringify({ power: activePowerPlan(s) });
+  const plan = currentPlan(s);
+  const whole = JSON.stringify({ plan });
+  if (whole.length <= LIMITS.plan || !plan.model) return whole;
+  const { model: _, ...rest } = plan;
+  return JSON.stringify({ plan: rest });
+}
+
 export function ReportDialog({ onClose }: { onClose: () => void }) {
   const { t } = useT();
   const [draft, setDraft] = useState<Draft>(loadDraft);
@@ -94,7 +107,7 @@ export function ReportDialog({ onClose }: { onClose: () => void }) {
       steps: bug ? draft.steps.trim() : '',
       area: bug ? '' : draft.area,
       contact: draft.contact.trim(),
-      plan: draft.attach ? JSON.stringify(s.mode === 'power' ? { power: activePowerPlan(s) } : { plan: currentPlan(s) }) : undefined,
+      plan: draft.attach ? attachedPlan(s) : undefined,
       meta: feedbackMeta(),
       website: honey,
     };

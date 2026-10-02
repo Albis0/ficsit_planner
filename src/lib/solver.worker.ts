@@ -1,6 +1,8 @@
 /// <reference lib="webworker" />
 import { applyGame } from './game';
 import { getHighs, resetHighs } from './highs';
+import { calcModel } from './model/calc';
+import type { CalcInput, CalcResult } from './model/calc/result';
 import { autoAssign, fewestBuildings, heldByPins, SolverError, solve, type RecipeMod, type SolveInput, type SolveResult } from './solver';
 import { toFailure, type SolveFailure } from './solveFailure';
 
@@ -8,10 +10,11 @@ import { toFailure, type SolveFailure } from './solveFailure';
 
 export type SolverRequest =
   | { id: number; kind: 'solve'; input: SolveInput }
-  | { id: number; kind: 'autoAssign'; input: SolveInput; stock: { sloops: number; shards: number }; all?: boolean };
+  | { id: number; kind: 'autoAssign'; input: SolveInput; stock: { sloops: number; shards: number }; all?: boolean }
+  | { id: number; kind: 'model'; input: CalcInput };
 
 export type SolverResponse =
-  | { id: number; ok: true; value: SolveResult | Record<string, RecipeMod> }
+  | { id: number; ok: true; value: SolveResult | Record<string, RecipeMod> | CalcResult }
   | { id: number; ok: false; failure: SolveFailure };
 
 declare const self: DedicatedWorkerGlobalScope;
@@ -21,8 +24,9 @@ self.onmessage = async ({ data: req }: MessageEvent<SolverRequest>) => {
   try {
     const highs = await getHighs();
     applyGame(req.input.game);
-    let value: SolveResult | Record<string, RecipeMod>;
-    if (req.kind === 'solve') {
+    let value: SolveResult | Record<string, RecipeMod> | CalcResult;
+    if (req.kind === 'model') value = calcModel(highs, req.input.model, req.input.tier);
+    else if (req.kind === 'solve') {
       const result = req.input.objective === 'buildings' ? fewestBuildings(highs, req.input) : solve(highs, req.input);
       result.heldByPins = heldByPins(highs, req.input, result);
       value = result;
