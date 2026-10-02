@@ -55,7 +55,7 @@ Coded with AI. What changed lately is under **Settings › Updates** in the app,
 - <img src="public/icons/Desc_IronPlate_C.webp" width="28" height="28" align="top" alt="Iron Plate"> **On-hand items.** Parts that arrive from elsewhere (another factory, a train). The planner uses them instead of making them.
 - <img src="public/icons/Build_AssemblerMk1_C.webp" width="28" height="28" align="top" alt="Assembler"> **Recipes.** Standard, alternate and converter recipes, grouped by product, each one on or off, with a search at the top. Selecting a machine lists the other recipes for what it makes, to tick from there. When something can't be made, the planner says why (the tier that unlocks it, or the recipe that's off) and offers the fix.
 - <img src="public/icons/Desc_SpaceElevatorPart_2_C.webp" width="28" height="28" align="top" alt="Versatile Framework"> **Tier.** You pick the highest tier you've unlocked. Recipes, buildings, belts and miners above it are left out and hidden from the recipe list. An alternate also waits for the tier that makes its parts.
-- <img src="public/icons/Desc_OreIron_C.webp" width="28" height="28" align="top" alt="Iron Ore"> **Resource limits and what to optimize.** A per-minute cap for each raw resource; empty means the whole map's supply. The plan spares scarce resources first, or, with **All equal**, counts every resource the same (for mods that let you build nodes anywhere), or, with **Fewest buildings**, needs as few machines and recipes as it can.
+- <img src="public/icons/Desc_OreIron_C.webp" width="28" height="28" align="top" alt="Iron Ore"> **Resource limits and what to optimize.** A per-minute cap for each raw resource; empty means the whole map's supply. The plan spares scarce resources first, or, with **All equal**, counts every resource the same (for mods that let you build nodes anywhere), or, with **Fewest buildings**, needs as few buildings as it can, miners and pumps included, without mining more kinds of raw resource than it has to.
 - <img src="public/icons/Desc_Coal_C.webp" width="28" height="28" align="top" alt="Coal"> **Pinned inputs.** Type the amount of a raw resource you actually have into the totals strip, and the targets scale to it. If that keeps a ticked alternate out of the plan, the planner names it.
 - <img src="public/icons/Desc_CrystalShard_C.webp" width="28" height="28" align="top" alt="Power Shard"> **Machines and clocks.** Select a machine to set how many there are or their clock speed. Power uses the game's formula. Overclocked lines use as few power shards as possible.
 - <img src="public/icons/Desc_WAT1_C.webp" width="28" height="28" align="top" alt="Somersloop"> **Somersloops and shards.** Set them per machine, or enter how many you own and let the planner place them (**Auto place** or **Use all**).
@@ -145,17 +145,24 @@ See [CONTRIBUTING.md](CONTRIBUTING.md) for code style and what to check before a
 - **Objective:** minimise raw use weighted by scarcity (iron's world limit ÷ the resource's limit; with **All
   equal** every resource but water weighs 1), plus a tiny
   machine-power term so it never builds machines it doesn't need. With **Fewest buildings** each machine costs 1
-  instead and raw use only breaks ties; a count in fractions spreads the plan over many recipes running a sliver
-  each, so the worker then drops recipes smallest line first, keeping each drop that needs no more machines. Missing items cost 10⁵ each, so they only appear
+  instead, and each unit of raw resource costs the miners or pumps it takes; a count in fractions spreads the plan
+  over many recipes running a sliver each, so the worker then drops recipes smallest line first, keeping each drop
+  that needs no more buildings. Counting buildings alone, a plan mines whatever saves half a machine, so a second
+  plan is weighed too: a small integer search with one yes/no per limited raw resource, each kind costing 2
+  buildings, picks the kinds worth mining (ore swaps in the converter left out, unless the plan can't do without
+  them), and the plan is solved and tidied again with only those. Whichever needs fewer buildings with the kinds
+  counted the same way wins. Missing items cost 10⁵ each, so they only appear
   when nothing else works. The solver can also minimise power instead; the app doesn't offer it, because with
   standard recipes both goals nearly always pick the same factory.
 - **Power plants** join the model as stand-in recipes: one "machine" is one generator at its clock, taking its
   fuel and water and leaving its waste, so the fuel chain is solved like any factory. When a plant is set to Auto,
   one more row says generation (times the augmenter boost) must cover the outside demand plus every machine and
   extractor in the plan, with the spare capacity on top. Fixed plants are pinned to their count or output.
-- **Pinned inputs** are solved in two passes. The first maximises a scale factor *k* on all targets, with the
-  pinned resources as hard limits. The second solves the normal objective at that *k*. A third solve, the same
-  output without the pins, finds the ticked alternates the pins keep out, so the app can name them.
+- **Pinned inputs** are solved in two passes, after one without the pins. The first maximises a scale factor *k*
+  on all targets, with the pinned resources as hard limits and every other raw resource held to *k* times what the
+  plan without pins uses of it, so a pin isn't swapped for a resource nobody pinned. The second solves the normal
+  objective at that *k*. A last solve, the same output without the pins, finds the ticked alternates the pins keep
+  out, so the app can name them.
 - **Shadow prices** of the item rows give the marginal raw cost of each item. Auto place uses them to send
   somersloops to the machines whose inputs are most expensive.
 - **Game settings** change the recipes before the model is built (`src/lib/game.ts`): solid inputs are multiplied

@@ -1,7 +1,7 @@
 /// <reference lib="webworker" />
 import { applyGame } from './game';
 import { getHighs, resetHighs } from './highs';
-import { autoAssign, fewerLines, heldByPins, SolverError, solve, type RecipeMod, type SolveInput, type SolveResult } from './solver';
+import { autoAssign, fewestBuildings, heldByPins, SolverError, solve, type RecipeMod, type SolveInput, type SolveResult } from './solver';
 import { toFailure, type SolveFailure } from './solveFailure';
 
 // Runs HiGHS off the main thread so solving (and auto placement's many re-solves) never freezes the UI.
@@ -23,8 +23,7 @@ self.onmessage = async ({ data: req }: MessageEvent<SolverRequest>) => {
     applyGame(req.input.game);
     let value: SolveResult | Record<string, RecipeMod>;
     if (req.kind === 'solve') {
-      let result = solve(highs, req.input);
-      if (req.input.objective === 'buildings') result = fewerLines(highs, req.input, result);
+      const result = req.input.objective === 'buildings' ? fewestBuildings(highs, req.input) : solve(highs, req.input);
       result.heldByPins = heldByPins(highs, req.input, result);
       value = result;
     } else value = autoAssign(highs, req.input, req.stock, req.all);

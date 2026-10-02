@@ -2,6 +2,22 @@
 
 All notable changes to FICSIT Planner. Dates are when the version was finished.
 
+## 0.12.6 — 2026-10-02
+
+### Changed
+
+- **Fewest buildings** (beta) counts miners and pumps as buildings, and no longer reaches for a new kind of raw
+  resource to save half a machine: each kind it mines weighs as two buildings, and a plan that mines fewer kinds is
+  tried next to the plain one, whichever needs fewer buildings winning. Ore swaps in the converter stay out unless
+  the plan can't do without them. Across twelve products with every alternate on, it now mines as few kinds as By
+  rarity (38 against 62 before) with fewer buildings than before (255 against 281). Thanks to u/a__gun.
+
+### Fixed
+
+- **Pinned inputs** no longer swap what you pinned for a resource you didn't: pinning 60 copper and 60 iron ore for
+  automated wiring scaled the plan 18 times over on 1,600 caterium ore a minute. Every other raw resource now stays
+  within what the plan without pins takes of it for the same output.
+
 ## 0.12.5 — 2026-10-02
 
 ### Fixed

@@ -46,7 +46,7 @@ export const en = {
   fewestBuildings: 'Fewest buildings',
   beta: 'beta',
   resourceCostHint:
-    'By rarity, the plan spares scarce resources like uranium and bauxite first. All equal counts every resource the same, for mods that let you build nodes anywhere. Fewest buildings (beta) needs the fewest machines and recipes, whatever they use up, so it can take more kinds of raw resources.',
+    'By rarity, the plan spares scarce resources like uranium and bauxite first. All equal counts every resource the same, for mods that let you build nodes anywhere. Fewest buildings (beta) needs the fewest buildings, miners and pumps included, and mines no more kinds of raw resource than it has to.',
   unlimited: 'unlimited',
   recipe: 'Recipe',
   building: 'Building',
@@ -723,7 +723,7 @@ export const en = {
     'Copies a link to the tab on screen: a factory with the power plants that run it, or a plant with its factories. The link holds the whole plan, so nothing is uploaded; whoever opens it gets a copy as a new tab.',
   helpText_recipes: 'Standard recipes are on. Turn on the alternates you’ve found on hard drives, and the planner picks the best mix.',
   helpText_resources:
-    'Caps on how much of each raw resource you can reach, and which miner and clock to count extractors with. Optimize By rarity spares scarce resources first; All equal counts them all the same; Fewest buildings keeps the machine count down.',
+    'Caps on how much of each raw resource you can reach, and which miner and clock to count extractors with. Optimize By rarity spares scarce resources first; All equal counts them all the same; Fewest buildings keeps the building count down.',
   helpText_surplus:
     'Byproducts the plan makes but doesn’t use, like Polymer Resin from Fuel. Sink them, store them or plan something that uses them.',
   helpBelts: 'The Mk label on belts',

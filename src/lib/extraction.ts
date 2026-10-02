@@ -107,6 +107,16 @@ export function extractorRate(item: string, settings: ExtractionSettings): numbe
   return e ? e.rate * (e.purity ? PURITY[settings.purity] : 1) : 0;
 }
 
+/** Miners or pumps one unit/min of each raw resource takes with these settings. */
+export function extractorCost(settings: ExtractionSettings): Record<string, number> {
+  const cost: Record<string, number> = {};
+  for (const item of Object.values(data.items)) {
+    const rate = item.raw ? extractorRate(item.id, settings) * (settings.overclock?.[item.id] ?? settings.clock) : 0;
+    if (rate > 0) cost[item.id] = 1 / rate;
+  }
+  return cost;
+}
+
 /**
  * Puts spare power shards into extractors, the resources with the most buildings first: each drops to
  * as few buildings as the shards allow (at most 250% each). Returns a clock per resource it changed.

@@ -2,7 +2,7 @@ import { type GameRules, isDefaultGame } from './game';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { aimOf, exportsOf, type Plan, poweredBy, type PowerPlan, useStore } from '../store';
 import { data, recipeById, recipeUnlocked } from './data';
-import { effectiveExtraction, extractionPowerPerUnit, planExtraction } from './extraction';
+import { effectiveExtraction, extractionPowerPerUnit, extractorCost, planExtraction } from './extraction';
 import { plantUnlocked } from './power';
 import type { SolveInput, SolveResult, Target } from './solver';
 import { solveAsync } from './solverClient';
@@ -40,7 +40,7 @@ export function reachableRaw(goals: Iterable<string>, recipes: Set<string>): Set
   return raw;
 }
 
-type SolvedPart = Pick<Plan, 'targets' | 'supplies' | 'enabled' | 'caps' | 'mods' | 'fixed'>;
+type SolvedPart = Pick<Plan, 'targets' | 'supplies' | 'enabled' | 'caps' | 'mods' | 'fixed' | 'extraction'>;
 
 export type Export = { item: string; rate: number; to: string };
 
@@ -77,6 +77,8 @@ export function factoryInput(
     mods: plan.mods,
     fixed: plan.fixed,
     ...aimInput(aim),
+    // Fewest buildings counts the miners and pumps too.
+    ...(aim === 'buildings' ? { extractorCost: extractorCost(effectiveExtraction(plan.extraction, tier)) } : {}),
     ...(isDefaultGame(game) ? {} : { game }),
   };
 }

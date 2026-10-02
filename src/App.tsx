@@ -59,11 +59,11 @@ function useSolutions() {
   const load = powerLoad(pp, draws);
   const { plants, sizeBy, have, headroom, ownLoad, chain } = pp;
 
-  const { targets, supplies, enabled, caps, mods, fixed } = plan;
+  const { targets, supplies, enabled, caps, mods, fixed, extraction } = plan;
   const exports = useExports(plan.id);
   const factoryIn = useMemo(
-    () => factoryInput({ targets, supplies, enabled, caps, mods, fixed }, tier, exports, aim, game),
-    [targets, supplies, enabled, caps, mods, fixed, tier, exports, aim, game],
+    () => factoryInput({ targets, supplies, enabled, caps, mods, fixed, extraction }, tier, exports, aim, game),
+    [targets, supplies, enabled, caps, mods, fixed, extraction, tier, exports, aim, game],
   );
   // Sized to what you have with nothing listed yet: nothing to solve, the floor asks for the list.
   const powerIn = useMemo(

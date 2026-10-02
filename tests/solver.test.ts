@@ -2,7 +2,8 @@ import { beforeAll, describe, expect, test } from 'bun:test';
 import loadHighs, { type Highs } from 'highs';
 import { data } from '../src/lib/data';
 import { toFailure } from '../src/lib/solveFailure';
-import { fewerLines, heldByPins, SolverError, type SolveInput, solve } from '../src/lib/solver';
+import { DEFAULT_EXTRACTION, extractorCost, planExtraction } from '../src/lib/extraction';
+import { fewerLines, fewestBuildings, heldByPins, SolverError, type SolveInput, solve } from '../src/lib/solver';
 
 let highs: Highs;
 beforeAll(async () => {
@@ -325,7 +326,7 @@ describe('pinned inputs and ticked alternates', () => {
     ).toEqual([]);
   });
 
-  test('pinning bauxite keeps Pure Aluminum Ingot out, and says so', () => {
+  test("pinning bauxite scales the plan's own recipe instead of pulling in quartz to stretch it", () => {
     const input: SolveInput = {
       targets: ingots,
       supplies: [],
@@ -335,8 +336,23 @@ describe('pinned inputs and ticked alternates', () => {
       fixed: { Desc_OreBauxite_C: 120 },
     };
     const r = solve(highs, input);
-    expect(count(r, 'Recipe_PureAluminumIngot_C')).toBe(0);
-    expect(heldByPins(highs, input, r)).toEqual(['Recipe_PureAluminumIngot_C']);
+    expect(count(r, 'Recipe_PureAluminumIngot_C')).toBeGreaterThan(0);
+    expect(rate(r.raw, 'Desc_RawQuartz_C')).toBe(0);
+    expect(heldByPins(highs, input, r)).toEqual([]);
+  });
+
+  test("a pin isn't swapped for an unpinned resource: copper and iron pinned for automated wiring", () => {
+    const ticked = new Set(data.recipes.filter((x) => x.kind === 'standard' || x.kind === 'alternate').map((x) => x.id));
+    const targets = [{ item: 'Desc_SpaceElevatorPart_3_C', rate: 5 }];
+    const free = plan({ targets, enabledRecipes: ticked });
+    const r = plan({ targets, enabledRecipes: ticked, fixed: { Desc_OreCopper_C: 60, Desc_OreIron_C: 60 } });
+    // Every other resource stays within what the unpinned plan takes per unit of wiring.
+    for (const x of r.raw) {
+      if (x.item === 'Desc_OreCopper_C' || x.item === 'Desc_OreIron_C' || x.item === 'Desc_Water_C') continue;
+      expect(x.rate).toBeLessThanOrEqual(rate(free.raw, x.item) * r.scale + 1e-4);
+    }
+    expect(r.scale).toBeLessThan(2);
+    expect(rate(r.raw, 'Desc_OreGold_C')).toBe(0);
   });
 
   test('a pin that changes nothing names nothing', () => {
@@ -402,5 +418,66 @@ describe('fewest buildings', () => {
     expect(machines(tidy)).toBeLessThanOrEqual(machines(spread));
     expect(machines(tidy)).toBeLessThan(machines(plan({ ...input, objective: 'resources' })));
     expect(rate(tidy.targets, 'Desc_Motor_C')).toBeCloseTo(10);
+  });
+
+  // The old way: machines only, tidied. The new one counts miners and pumps and weighs the kinds of raw resource.
+  const kinds = (r: ReturnType<typeof plan>) => r.raw.filter((x) => x.item !== 'Desc_Water_C').length;
+  const cost = extractorCost(DEFAULT_EXTRACTION);
+  const buildings = (r: ReturnType<typeof plan>) =>
+    machines(r) + planExtraction(r.raw, DEFAULT_EXTRACTION).reduce((n, u) => n + u.built, 0);
+  const both = (targets: { item: string; rate: number }[], patch: Partial<SolveInput> = {}) => {
+    const input: SolveInput = { targets, supplies: [], enabledRecipes: all(), resourceCaps: {}, objective: 'buildings', ...patch };
+    return {
+      byRarity: plan({ ...input, objective: 'resources' }),
+      old: fewerLines(highs, input, solve(highs, input)),
+      now: fewestBuildings(highs, { ...input, extractorCost: cost }),
+    };
+  };
+
+  test('5 computers: no more kinds of raw resource than by rarity, and no more buildings than before', () => {
+    const { byRarity, old, now } = both([{ item: 'Desc_Computer_C', rate: 5 }]);
+    expect(kinds(now)).toBeLessThanOrEqual(kinds(byRarity));
+    expect(kinds(now)).toBeLessThan(kinds(old));
+    expect(buildings(now)).toBeLessThanOrEqual(buildings(old));
+    expect(rate(now.targets, 'Desc_Computer_C')).toBeCloseTo(5);
+    expect(now.missing).toHaveLength(0);
+  });
+
+  test('stators, where fewer kinds would take more buildings, keep the plain plan', () => {
+    const { old, now } = both([{ item: 'Desc_Stator_C', rate: 10 }]);
+    expect(buildings(now)).toBeLessThanOrEqual(buildings(old));
+  });
+
+  test("ore isn't swapped in converters just to mine fewer kinds", () => {
+    const { now } = both([{ item: 'Desc_Motor_C', rate: 10 }]);
+    expect(now.recipes.some((u) => u.recipe.kind === 'converter')).toBe(false);
+  });
+
+  test('a pinned raw resource stays in the plan', () => {
+    const { now } = both([{ item: 'Desc_Computer_C', rate: 5 }], { fixed: { Desc_RawQuartz_C: 30 } });
+    expect(rate(now.raw, 'Desc_RawQuartz_C')).toBeGreaterThan(0);
+  });
+
+  test('when the kind search finds nothing, the plain plan comes back', () => {
+    const input: SolveInput = {
+      targets: [{ item: 'Desc_Computer_C', rate: 5 }],
+      supplies: [],
+      enabledRecipes: all(),
+      resourceCaps: {},
+      objective: 'buildings',
+      extractorCost: cost,
+    };
+    // A solver that runs out of time on the search without a plan, and solves everything else as usual.
+    const stuck = new Proxy(highs, {
+      get: (target, key) =>
+        key === 'solve'
+          ? (lp: string, options: object) =>
+              lp.includes('Binary') ? { Status: 'Time limit reached', Columns: {}, Rows: [] } : target.solve(lp, options)
+          : Reflect.get(target, key),
+    });
+    const plain = fewerLines(highs, input, solve(highs, input));
+    const now = fewestBuildings(stuck, input);
+    expect(now.recipes.map((u) => u.recipe.id)).toEqual(plain.recipes.map((u) => u.recipe.id));
+    expect(now.raw.map((x) => x.item)).toEqual(plain.raw.map((x) => x.item));
   });
 });

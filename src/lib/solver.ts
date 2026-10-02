@@ -31,12 +31,22 @@ export interface SolveInput {
   game?: GameRules;
   /** What to keep down: rare raw resources, power, or the number of machines. */
   objective: 'resources' | 'power' | 'buildings';
+  /**
+   * Fewest buildings: the miners or pumps one unit/min of each raw resource takes, so extractors count as
+   * buildings too. Missing ones cost nothing.
+   */
+  extractorCost?: Record<string, number>;
   mods?: Record<string, RecipeMod>;
   /**
    * Raw resources the player pinned to an exact amount. When set, targets keep their ratio but
    * scale up or down to whatever those inputs can feed.
    */
   fixed?: Record<string, number>;
+  /**
+   * With pinned inputs: what the plan uses of every other raw resource when nothing is pinned, per unit/min of its
+   * targets. Filled in by `solve`; scaling up may not lean on those any harder than that.
+   */
+  pinShare?: Record<string, number>;
   /** Power planning: generators to run and the load they have to carry. */
   power?: PowerInput;
   /**
@@ -129,6 +139,7 @@ export class SolverError extends Error {
 }
 
 const EPS = 1e-6;
+const WATER = 'Desc_Water_C';
 const MISSING_PENALTY = 1e5;
 /**
  * Creature remains are the last thing to bring in: hunting is slower than picking leaves and wood, so
@@ -221,7 +232,7 @@ interface Model {
   rv: Map<string, string>;
   sv: Map<string, string>;
   rowItem: string[];
-  lp: (phase: 'max-scale' | { scale: number }) => string;
+  lp: (phase: 'max-scale' | { scale: number }, kinds?: number) => string;
   /** Whether the first phase maximises a scale: pinned inputs, or a power plan making all it can. */
   scaling: boolean;
   demand: Map<string, number>;
@@ -291,6 +302,10 @@ function buildModel(input: SolveInput, draw?: Map<string, number>): Model {
   const sv = new Map<string, string>();
   const costs: string[] = [];
   const bounds: string[] = [];
+  // Raw resources a kind charge can apply to: limited ones, water aside (it's everywhere, and has no limit).
+  const kindable: { name: string; cap: number }[] = [];
+  // With pins, the other raw resources and what the unpinned plan uses of each per unit of scale.
+  const shared: { name: string; share: number }[] = [];
   let si = 0;
   for (const id of itemIds) {
     const item = data.items[id];
@@ -299,10 +314,17 @@ function buildModel(input: SolveInput, draw?: Map<string, number>): Model {
       sv.set(id, name);
       const rarity = resourceWeights[id] ?? 1;
       const base = input.equalWeights && rarity > 0 ? 1 : rarity;
-      const w = input.objective === 'resources' ? base : 1e-3 * base;
+      const w =
+        input.objective === 'resources'
+          ? base
+          : input.objective === 'buildings'
+            ? (input.extractorCost?.[id] ?? 0) + 1e-3 * base
+            : 1e-3 * base;
       costs.push(`${fmt(Math.max(w, 1e-5))} ${name}`);
       const cap = input.fixed?.[id] ?? input.resourceCaps[id] ?? data.worldLimits[id];
       bounds.push(cap == null ? `${name} >= 0` : `0 <= ${name} <= ${fmt(cap)}`);
+      if (cap != null && cap > EPS) kindable.push({ name, cap });
+      if (input.pinShare && input.fixed?.[id] == null && id !== WATER) shared.push({ name, share: input.pinShare[id] ?? 0 });
     } else if (!enabledProducers(id) || !makeable.has(id)) {
       const name = `m${si++}`;
       sv.set(id, name);
@@ -357,14 +379,21 @@ function buildModel(input: SolveInput, draw?: Map<string, number>): Model {
             : ` power: ${row} >= ${fmt(phase.scale)}`;
   }
 
+  // Each recipe's terms go to the items it touches, in recipe order, rather than every recipe asked about every item.
+  const termsOf = new Map<string, string[]>();
+  for (const r of recipes) {
+    for (const id of new Set([...r.outputs, ...r.inputs].map((s) => s.item))) {
+      const net = netRate(r, id);
+      if (Math.abs(net) <= EPS) continue;
+      const terms = termsOf.get(id) ?? [];
+      terms.push(`${net >= 0 ? '+' : '-'} ${fmt(Math.abs(net))} ${rv.get(r.id)}`);
+      termsOf.set(id, terms);
+    }
+  }
   const rowItem: string[] = [];
   const rowTerms: { terms: string[]; id: string }[] = [];
   for (const id of itemIds) {
-    const terms: string[] = [];
-    for (const r of recipes) {
-      const net = netRate(r, id);
-      if (Math.abs(net) > EPS) terms.push(`${net >= 0 ? '+' : '-'} ${fmt(Math.abs(net))} ${rv.get(r.id)}`);
-    }
+    const terms = termsOf.get(id) ?? [];
     const s = sv.get(id);
     if (s) terms.push(`+ ${s}`);
     if (terms.length === 0) continue;
@@ -372,7 +401,10 @@ function buildModel(input: SolveInput, draw?: Map<string, number>): Model {
     rowItem.push(id);
   }
 
-  const lp = (phase: 'max-scale' | { scale: number }) => {
+  const lp = (phase: 'max-scale' | { scale: number }, kinds?: number) => {
+    // Charging each kind of raw resource makes it a small search: one yes/no per limited resource, which may only
+    // flow when it's yes, and every yes costs `kinds`.
+    const charged = kinds != null && phase !== 'max-scale' ? kindable : [];
     const rows = rowTerms.map(({ terms, id }, i) => {
       const d = demand.get(id) ?? 0;
       const g = given.get(id) ?? 0;
@@ -381,17 +413,56 @@ function buildModel(input: SolveInput, draw?: Map<string, number>): Model {
       const k = phase === 'max-scale' ? 1 : phase.scale;
       return ` b${i}: ${terms.join(' ')} >= ${fmt(d * k - g)}`;
     });
-    const objective = phase === 'max-scale' ? ['Maximize', ' obj: k'] : ['Minimize', ` obj: ${costs.join(' + ') || '0'}`];
+    const kindCosts = charged.map((_, i) => `${fmt(kinds ?? 0)} y${i}`);
+    const objective =
+      phase === 'max-scale' ? ['Maximize', ' obj: k'] : ['Minimize', ` obj: ${[...costs, ...kindCosts].join(' + ') || '0'}`];
     const extra = phase === 'max-scale' ? [` 0 <= k <= ${maximize ? MAX_POWER : MAX_SCALE}`] : [];
     const rest = powerRow ? [powerRow(phase)] : [];
-    return [...objective, 'Subject To', ...rows, ...rest, 'Bounds', ...bounds.map((b) => ` ${b}`), ...extra, 'End'].join('\n');
+    for (const [i, { name, share }] of shared.entries()) {
+      rest.push(
+        phase === 'max-scale'
+          ? ` share${i}: ${name} - ${fmt(share)} k <= 0`
+          : ` share${i}: ${name} <= ${fmt(share * phase.scale * (1 + 1e-9) + 1e-7)}`,
+      );
+    }
+    const kindRows = charged.map((k, i) => ` kind${i}: ${k.name} - ${fmt(k.cap)} y${i} <= 0`);
+    const binary = charged.length > 0 ? ['Binary', ...charged.map((_, i) => ` y${i}`)] : [];
+    return [
+      ...objective,
+      'Subject To',
+      ...rows,
+      ...rest,
+      ...kindRows,
+      'Bounds',
+      ...bounds.map((b) => ` ${b}`),
+      ...extra,
+      ...binary,
+      'End',
+    ].join('\n');
   };
 
   // Maximising with no generator that can run leaves nothing to scale.
   return { recipes, plantOf, rv, sv, rowItem, lp, scaling: scaling && (!maximize || !!powerRow), demand, given, modOf };
 }
 
-export function solve(solver: Highs, input: SolveInput): SolveResult {
+/**
+ * Pinned inputs scale the plan you'd get anyway. Without a limit on the rest, making the most of a pin swaps it for
+ * whatever isn't pinned: 60 copper ore pinned for automated wiring became 18 times the wiring on 1,600 caterium ore.
+ * So every other raw resource is held to what the unpinned plan uses of it per unit of output, none if it uses none.
+ */
+function withPinShare(solver: Highs, input: SolveInput): SolveInput {
+  if (input.pinShare || input.power || Object.keys(input.fixed ?? {}).length === 0) return input;
+  let free: SolveResult;
+  try {
+    free = solveWith(solver, { ...input, fixed: undefined });
+  } catch {
+    return input;
+  }
+  return { ...input, pinShare: Object.fromEntries(free.raw.map((x) => [x.item, x.rate])) };
+}
+
+export function solve(solver: Highs, given: SolveInput): SolveResult {
+  const input = withPinShare(solver, given);
   let result = solveWith(solver, input);
   const power = input.power;
   if (!power || power.ownLoad === false || !power.plants.some((p) => plantValid(p) && plantSize(p) === 'auto')) return result;
@@ -510,17 +581,21 @@ function solveWith(solver: Highs, input: SolveInput, draw?: Map<string, number>)
   };
 }
 
-/**
- * Ticked alternates that pinned inputs keep out of the plan. Scaling to a pin picks whatever recipes make
- * the most from the pinned amount, so an alternate that needs more of it sits out. Checked by solving the
- * same output again without the pins: only alternates that plan would use are named.
- */
-const machinesOf = (r: SolveResult) => r.recipes.reduce((n, u) => n + u.built, 0);
+/** Each kind of raw resource a fewest-buildings plan draws on counts as this many buildings. */
+const KIND_COST = 2;
+
+/** Machines placed, plus the miners and pumps the raw resources take when the input says what those cost. */
+const buildingsOf = (r: SolveResult, input: SolveInput) =>
+  r.recipes.reduce((n, u) => n + u.built, 0) +
+  r.raw.reduce((n, x) => n + Math.ceil(x.rate * (input.extractorCost?.[x.item] ?? 0) - EPS), 0);
+
+/** Kinds of raw resource a plan draws on. Water is everywhere, so it isn't one. */
+const kindsOf = (r: SolveResult) => r.raw.filter((x) => x.item !== WATER).length;
 
 /**
  * Fewest buildings, tidied: counting machines in fractions spreads a plan over many recipes each running a sliver
  * of a machine. Starting from the smallest line, try the plan without that recipe; keep the change when it needs
- * no more machines, fewer recipes, nothing brought in and makes as much. Each try is one quick solve.
+ * no more buildings, fewer recipes, nothing brought in and makes as much. Each try is one quick solve.
  */
 export function fewerLines(solver: Highs, input: SolveInput, result: SolveResult): SolveResult {
   let best = result;
@@ -542,7 +617,7 @@ export function fewerLines(solver: Highs, input: SolveInput, result: SolveResult
       r.missing.length === 0 &&
       Math.abs(r.scale - best.scale) < 1e-6 &&
       r.recipes.length < best.recipes.length &&
-      machinesOf(r) <= machinesOf(best)
+      buildingsOf(r, input) <= buildingsOf(best, input)
     ) {
       best = r;
       enabled.delete(next.recipe.id);
@@ -550,6 +625,68 @@ export function fewerLines(solver: Highs, input: SolveInput, result: SolveResult
   }
 }
 
+/**
+ * The kinds of raw resource worth mining once each one counts as `charge` buildings, and the ones the plan can do
+ * without, found by a small search with one yes/no per limited resource. Undefined when it finds no plan in time.
+ */
+function pickKinds(solver: Highs, input: SolveInput, charge: number): { keep: string[]; spare: string[] } | undefined {
+  const model = buildModel(input);
+  const res = solver.solve(model.lp({ scale: 1 }, charge), { output_flag: false, time_limit: 1, mip_rel_gap: 0.01 });
+  // Out of time, the best plan found so far is still a plan; the solve that follows checks it holds up.
+  const found = res.Status === 'Optimal' || (res.Status === 'Time limit reached' && Object.keys(res.Columns ?? {}).length > 0);
+  if (!found) return undefined;
+  const keep: string[] = [];
+  const spare: string[] = [];
+  for (const [id, name] of model.sv) {
+    if (!name.startsWith('s') || id === WATER) continue;
+    ((res.Columns[name]?.Primal ?? 0) > EPS ? keep : spare).push(id);
+  }
+  return { keep, spare };
+}
+
+/**
+ * Fewest buildings. Counting machines alone, a plan reaches for whatever raw resource saves half a machine, so it
+ * ends up mining six kinds where three would do. Two plans are weighed: the plain one, and one that first picks the
+ * fewest kinds worth mining (each costs KIND_COST buildings) and plans with only those. Whichever needs fewer
+ * buildings, miners and pumps included, with each kind charged the same, wins. Scaled plans and power plans keep
+ * the plain one.
+ *
+ * Turning one ore into another in a converter looks cheap to that search, a sliver of a machine for a kind less,
+ * but every swap is a converter line of its own fed with SAM. So the narrowed plan does without them, unless the
+ * plain one can't.
+ */
+export function fewestBuildings(solver: Highs, input: SolveInput): SolveResult {
+  const plain = fewerLines(solver, input, solve(solver, input));
+  if (input.power || Object.keys(input.fixed ?? {}).length > 0) return plain;
+  let narrowed: SolveResult;
+  try {
+    const swaps = plain.recipes.some((u) => u.recipe.kind === 'converter');
+    const recipes = swaps
+      ? input.enabledRecipes
+      : new Set([...input.enabledRecipes].filter((id) => recipeById.get(id)?.kind !== 'converter'));
+    const kinds = pickKinds(solver, { ...input, enabledRecipes: recipes }, KIND_COST);
+    // Keeping just the kinds the plain plan mines already would only plan it again.
+    const mined = new Set(plain.raw.map((x) => x.item));
+    if (!kinds?.spare.length || (kinds.keep.length === kindsOf(plain) && kinds.keep.every((id) => mined.has(id)))) return plain;
+    const caps = { ...input.resourceCaps };
+    for (const id of kinds.spare) caps[id] = 0;
+    const only = { ...input, enabledRecipes: recipes, resourceCaps: caps };
+    narrowed = fewerLines(solver, only, solve(solver, only));
+  } catch {
+    return plain;
+  }
+  if (narrowed.missing.length > plain.missing.length || Math.abs(narrowed.scale - plain.scale) > 1e-6) return plain;
+  const score = (r: SolveResult) => buildingsOf(r, input) + KIND_COST * kindsOf(r);
+  const a = score(narrowed);
+  const b = score(plain);
+  return a < b || (a === b && kindsOf(narrowed) < kindsOf(plain)) ? narrowed : plain;
+}
+
+/**
+ * Ticked alternates that pinned inputs keep out of the plan. Scaling to a pin picks whatever recipes make
+ * the most from the pinned amount, so an alternate that needs more of it sits out. Checked by solving the
+ * same output again without the pins: only alternates that plan would use are named.
+ */
 export function heldByPins(solver: Highs, input: SolveInput, result: SolveResult): string[] {
   if (Object.keys(input.fixed ?? {}).length === 0) return [];
   const used = new Set(result.recipes.map((u) => u.recipe.id));

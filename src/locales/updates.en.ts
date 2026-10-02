@@ -6,6 +6,17 @@ export type UpdateKind = 'added' | 'fixed' | 'changed';
 
 export const UPDATES: { version: string; date: string; notes: [UpdateKind, string][] }[] = [
   {
+    version: '0.12.6',
+    date: '2026-10-02',
+    notes: [
+      [
+        'changed',
+        'Fewest buildings counts miners and pumps too, and mines about as few kinds of resource as By rarity. Thanks to u/a__gun.',
+      ],
+      ['fixed', 'Pinned inputs scale your plan instead of swapping what you pinned for a resource you didn’t.'],
+    ],
+  },
+  {
     version: '0.12.5',
     date: '2026-10-02',
     notes: [['fixed', 'Reload on "A new version is ready" works after a hard refresh too.']],
