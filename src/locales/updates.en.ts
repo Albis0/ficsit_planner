@@ -15,8 +15,6 @@ export const UPDATES: { version: string; date: string; notes: [UpdateKind, strin
       ],
       ['fixed', 'A target with many decimals no longer makes the plan count power shards it doesn’t need.'],
       ['fixed', 'Long numbers in amount fields shrink to fit before they scroll.'],
-      ['fixed', 'A target with many decimals no longer makes the plan count power shards it doesn’t need.'],
-      ['fixed', 'Long numbers in amount fields shrink to fit before they scroll.'],
     ],
   },
   {
