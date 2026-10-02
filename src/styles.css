@@ -5189,6 +5189,38 @@ button.gen-count[aria-pressed='true'] {
   align-items: center;
 }
 
+/* A card for each place the screws go: stacked, the belt leaves from the top one. */
+.preview-floor:has(.preview-stage.split) {
+  height: 230px;
+}
+
+.preview-stage.split {
+  --card-h: calc((130px + 32px) * (0.3 + 0.7 * var(--card-text, 1)));
+  align-items: flex-start;
+}
+
+.preview-split {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.preview-stage.split .preview-belt {
+  margin-top: calc(var(--card-h) / 2 - 10px);
+}
+
+.preview-stage.split .preview-label {
+  top: calc(var(--card-h) / 2);
+}
+
+.preview-stage.split .preview-card.b {
+  margin-top: calc(var(--card-h) / 2 - 65px * (0.3 + 0.7 * var(--card-text, 1)));
+}
+
+.preview-card .machine-node:has(.mod-badge.split) {
+  --run-extra: 1;
+}
+
 .preview-belt {
   width: 240px;
   height: 20px;

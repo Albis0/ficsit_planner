@@ -764,14 +764,17 @@ function DataSection() {
 
 const recipe = (id: string) => data.recipes.find((r) => r.id === id)!;
 
-/** A patch of factory floor drawn with the live settings: two machines and the belt between them. */
+/**
+ * A patch of factory floor drawn with the live settings: two machines and the belt between them. The screws also go
+ * out as a product, so the split setting shows too: a card for each place, or one card with a note.
+ */
 function Preview() {
   const { t, name, num } = useT();
   const [s] = useSettings();
   const screws = recipe('Recipe_Alternate_Screw_C');
   const plates = recipe('Recipe_IronPlateReinforced_C');
   const belt = s.beltColors === 'one' ? BELT_COLORS[0] : BELT_COLORS[1];
-  const card = (r: typeof screws, n: number, clock: number) => (
+  const card = (r: typeof screws, n: number, clock: number, note?: string) => (
     <div className={`machine-node ${r.kind}`}>
       <div className="machine-strip">
         <Icon id={r.outputs[0].item} size={30} className="strip-icon" />
@@ -794,6 +797,7 @@ function Preview() {
               <small>MW</small>
             </span>
           </span>
+          {note && <span className="mod-badge split">{note}</span>}
         </span>
       </div>
     </div>
@@ -807,8 +811,15 @@ function Preview() {
     >
       <figcaption>{t('preview')}</figcaption>
       <div className={`preview-floor ${s.gridLines ? 'lines' : ''}`}>
-        <div className="preview-stage">
-          <div className="preview-card a">{card(screws, 2, 1)}</div>
+        <div className={`preview-stage ${s.splitLines === 'each' ? 'split' : ''}`}>
+          {s.splitLines === 'each' ? (
+            <div className="preview-card a preview-split">
+              {card(screws, 1, 1, t('splitTo', { to: name(plates) }))}
+              {card(screws, 1, 1, t('splitTo', { to: t('productLabel') }))}
+            </div>
+          ) : (
+            <div className="preview-card a">{card(screws, 2, 1, t('splitShort', { sizes: '1 + 1' }))}</div>
+          )}
           <svg className="preview-belt" viewBox="0 0 240 20" aria-hidden>
             <g className="belt-edge" style={{ ['--belt' as string]: belt, ['--belt-speed' as string]: '1s' }}>
               <path d="M0,10 L240,10" className="belt-rails" style={{ strokeWidth: 12 }} />
@@ -824,7 +835,7 @@ function Preview() {
                   <span className="edge-item">{name(data.items.Desc_IronScrew_C)}</span>
                   <span className="edge-meta">
                     <span className="edge-rate">
-                      {num(100)}
+                      {num(s.splitLines === 'each' ? 50 : 100)}
                       {t('perMin')}
                     </span>
                     <span className="edge-tier" style={{ background: belt }}>
