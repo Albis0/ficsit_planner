@@ -106,6 +106,7 @@ const SCREENS = [
     state: factory([['Desc_Motor_C', 10]]),
     act: async (page) => {
       await page.click('.floor-kind button >> nth=1');
+      await page.waitForFunction(() => !document.querySelector('.busy'), null, { timeout: 30000 });
       await page.waitForTimeout(1200);
     },
   },
@@ -114,6 +115,7 @@ const SCREENS = [
     state: factory([['Desc_Motor_C', 10]]),
     act: async (page) => {
       await page.click('.floor-kind button >> nth=1');
+      await page.waitForFunction(() => !document.querySelector('.busy'), null, { timeout: 30000 });
       await page.waitForTimeout(1200);
       await page.locator('.react-flow__node-part:has(.machine-node)').first().dispatchEvent('click');
     },
@@ -131,6 +133,7 @@ const SCREENS = [
     state: factory([['Desc_Motor_C', 10]]),
     act: async (page) => {
       await page.click('.floor-kind button >> nth=1');
+      await page.waitForFunction(() => !document.querySelector('.busy'), null, { timeout: 30000 });
       await page.waitForTimeout(1200);
       await page.click('.add-part');
       await page.locator('.chooser input').fill('rotor');

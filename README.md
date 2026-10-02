@@ -292,6 +292,6 @@ These parts are not the project's own work, so the GPL doesn't cover them:
   fan tool can work, and all rights to them stay with Coffee Stain. Satisfactory is a trademark of Coffee Stain
   Studios. This project is not affiliated with or endorsed by them.
 - **Dependencies** keep their own licenses. HiGHS, React, React Flow, dagre, zustand and Workbox are MIT, Leaflet
-  is BSD-2-Clause. The Heebo, Poppins, Inter, Rajdhani and Barlow fonts are SIL Open Font License 1.1. CUE4Parse, which the icon extractor uses, is Apache-2.0. All of
+  is BSD-2-Clause, and elkjs (the Manual floor's layout) is EPL-2.0 with GPL-3.0 as a secondary license. The Heebo, Poppins, Inter, Rajdhani and Barlow fonts are SIL Open Font License 1.1. CUE4Parse, which the icon extractor uses, is Apache-2.0. All of
   them can be combined with GPLv3.
 - **World resource limits** come from [SatisfactoryTools](https://github.com/greeny/SatisfactoryTools), MIT.

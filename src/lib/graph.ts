@@ -322,7 +322,7 @@ function addGrid(
   }
 }
 
-export type Ranker = 'network-simplex' | 'tight-tree' | 'longest-path';
+type Ranker = 'network-simplex' | 'tight-tree' | 'longest-path';
 const RANKERS: Ranker[] = ['network-simplex', 'tight-tree', 'longest-path'];
 
 interface Placement {
@@ -405,23 +405,4 @@ function layout(nodes: Node[], edges: Edge[], opts: GraphOptions): Direction {
     (e.data as FlowEdgeData | PowerEdgeData).route = { ...r, from: pick.pos.get(e.source)!, to: pick.pos.get(e.target)! };
   }
   return pick.dir;
-}
-
-/**
- * Lays out any boxes and the links between them the way the Auto floor is laid out: each of the rankers tried, the
- * one with the fewest crossing belts kept. Gives each box's top left corner and each link's bends.
- */
-export function arrange(
-  boxes: { id: string; width: number; height: number }[],
-  links: { id: string; source: string; target: string }[],
-  dir: Direction = 'LR',
-  opts: GraphOptions & { rankers?: Ranker[] } = {},
-): { pos: Map<string, Point>; routes: Map<string, { points: Point[]; label: Point }>; crossings: number; length: number } {
-  const nodes = boxes.map((b) => ({ ...b, position: { x: 0, y: 0 }, data: {} })) as Node[];
-  const edges = links.map((l) => ({ ...l, data: {} })) as Edge[];
-  const length = (p: Placement) => edges.reduce((s, e) => s + Math.abs(p.pos.get(e.target)!.x - p.pos.get(e.source)!.x), 0);
-  // A belt across the whole floor reads worse than a crossing or two: every 400 units of belt counts as one crossing.
-  const score = (p: Placement) => p.crossings + length(p) / 400;
-  const best = (opts.rankers ?? RANKERS).map((r) => place(nodes, edges, dir, r, opts)).reduce((a, b) => (score(b) < score(a) ? b : a));
-  return { pos: best.pos, routes: best.routes, crossings: best.crossings, length: length(best) };
 }

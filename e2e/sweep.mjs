@@ -154,6 +154,7 @@ async function run(size) {
         const button = page.locator('.floor-kind button >> nth=1');
         if (!(await button.count())) return;
         await button.click();
+        await page.waitForFunction(() => !document.querySelector('.busy'), null, { timeout: 30000 });
         await page.waitForTimeout(1200);
         await check(`manual ${item}`);
         const node = page.locator('.react-flow__node-part:has(.machine-node)').first();

@@ -2,6 +2,34 @@
 
 All notable changes to FICSIT Planner. Dates are when the version was finished.
 
+## 0.13.1 — 2026-10-03
+
+### Added
+
+- **Hide what your tier can't make** (Settings › Interface, off unless turned on): products, buildings and
+  generators above the tier you picked stay out of the product list, the "Pick a product" screen, the build menu of
+  a Manual floor and the power plant lists, instead of showing with their tier. The Codex still shows everything.
+  Thanks to u/Suspicious_Fly_1838.
+- **Fill to 100%** on a picked machine card and in its panel: the same output from machines at 100% and one slower
+  machine for the rest, 7 × 95% becoming 6 × 100% + 1 × 65%. **Even out** goes back, every machine at one clock.
+- **Add parts with** (Settings › Factory floor): a right click on the empty floor opens the build menu, or a double
+  click; one or the other, right click unless changed. A double click on a machine always picks its belts.
+
+### Changed
+
+- **Manual floor layout**: converting a factory and Tidy up now lay belts out in straight runs with square turns,
+  the cards in each column ordered as the inputs they feed so belts don't cross (iron ore above coal for a foundry
+  taking iron ore first), and each belt's label on its own stretch of belt, clear of the cards. Moved cards keep
+  belts with square turns too.
+- Converting a factory, Rebuild from targets and Tidy up show the whole floor, instead of zooming in on one part.
+- The panel for a picked machine or belt slides in from the right (from the bottom on a phone); not with reduce
+  motion on.
+
+### Fixed
+
+- Closing Settings could crash the planner ("Something broke") in the newest Chrome.
+- The Manual floor's Undo, Redo and Tidy up buttons sat over the tab that folds the totals away.
+
 ## 0.13.0 — 2026-10-02
 
 ### Added
@@ -21,7 +49,7 @@ All notable changes to FICSIT Planner. Dates are when the version was finished.
   within its count, clock and belts ("Max flow"), or none ("Off"); the totals, the list and the transport view read
   them. Switching back to Auto keeps the hand-built floor for next time, and Rebuild from targets starts it again.
   Share links carry it.
-- **Adding to it**: double-click or right-click the empty floor, press **+ Add**, or let go of a belt on the empty
+- **Adding to it**: right-click the empty floor, press **+ Add**, or let go of a belt on the empty
   floor, and a build menu opens: Production, Resources, Logistics, In and out, with a search over recipe, building
   and item names. Let go of a belt and it lists only what fits that belt's end (what takes iron ingots, or the miner
   and the recipes that make iron ore for an input wanting it), and the new card comes in already joined to the belt.

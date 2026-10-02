@@ -229,6 +229,7 @@ export function cleanModel(saved: unknown): Model | undefined {
     linkIds.add(id);
     const lim = rate(l.lim);
     const pts = bends(l.pts);
+    const lbl = bends([l.lbl])?.[0];
     const line = oneOf<LineStyle | ''>(l.line, ['curve', 'straight', 'step', ''], '');
     links.push({
       id,
@@ -240,7 +241,8 @@ export function cleanModel(saved: unknown): Model | undefined {
       ...(finite(l.lanes) && Math.round(l.lanes) > 1 ? { lanes: Math.round(Math.min(99, l.lanes)) } : {}),
       ...(lim !== undefined ? { lim } : {}),
       ...(pts ? { pts } : {}),
-      ...(line && line !== 'curve' ? { line } : {}),
+      ...(lbl ? { lbl } : {}),
+      ...(line && line !== 'step' ? { line } : {}),
     });
   }
   if (nodes.length === 0) return undefined;

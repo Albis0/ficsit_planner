@@ -1,7 +1,7 @@
 {
   "name": "ficsit-planner",
   "private": true,
-  "version": "0.13.0",
+  "version": "0.13.1",
   "description": "Offline production planner for Satisfactory, as an installable web app",
   "license": "GPL-3.0-or-later",
   "homepage": "https://ficsit-planner.pages.dev",
@@ -43,6 +43,7 @@
     "@fontsource/poppins": "^5.3.0",
     "@fontsource/rajdhani": "^5.3.0",
     "@xyflow/react": "^12.11.6",
+    "elkjs": "0.12.0",
     "highs": "^1.15.3",
     "leaflet": "1.9.4",
     "react": "^19.3.0",

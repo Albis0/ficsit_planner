@@ -149,6 +149,9 @@ export interface MLink {
   lim?: number;
   /** Bends, in floor coordinates. */
   pts?: [number, number][];
+  /** Where its label sits, kept free for it when the floor was laid out. */
+  lbl?: [number, number];
+  /** Unset: straight runs with square turns. */
   line?: LineStyle;
 }
 

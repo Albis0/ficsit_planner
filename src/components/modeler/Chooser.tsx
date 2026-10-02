@@ -1,10 +1,11 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { data, recipeById, type Stack } from '../../lib/data';
+import { data, itemLocked, recipeById, type Stack } from '../../lib/data';
 import { useT } from '../../lib/i18n';
 import { LOGISTICS, SINK } from '../../lib/model/catalog';
 import { CHOICE_TABS, type Choice, type ChoiceTab, choicesFor, choiceWords, type Want } from '../../lib/model/choices';
 import { extractorById } from '../../lib/model/ports';
 import { recipeLabel, searchKey } from '../../lib/text';
+import { useStore } from '../../store';
 import { Icon } from '../Icon';
 
 /** Rows drawn at once; typing narrows the rest down. */
@@ -33,7 +34,15 @@ export function Chooser({
   onClose: () => void;
 }) {
   const { t, name, num } = useT();
-  const all = useMemo(() => choicesFor(want, tier, marked), [want, tier, marked]);
+  const hide = useStore((s) => s.settings.hideLocked);
+  // Set to hide what isn't unlocked yet: only what can be built at this tier, and no ends for parts it can't make.
+  const all = useMemo(
+    () =>
+      choicesFor(want, tier, marked).filter(
+        (c) => !hide || (c.tier <= tier && !('item' in c.init && c.init.item && c.tab === 'io' && itemLocked(c.init.item, tier))),
+      ),
+    [want, tier, marked, hide],
+  );
   // An input wanting ore or water starts on the miners and pumps.
   const order: ChoiceTab[] =
     want?.side === 'out' && want.item && data.items[want.item]?.raw ? ['raw', 'make', 'logistic', 'io'] : CHOICE_TABS;

@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react';
-import { craftableItems, data } from '../lib/data';
+import { craftableItems, data, itemLocked } from '../lib/data';
 import { useT } from '../lib/i18n';
 import type { SolveResult, Target } from '../lib/solver';
 import { useExports } from '../lib/solution';
@@ -63,7 +63,12 @@ export function TargetsPanel({ result }: { result?: SolveResult }) {
       <section className="stack">
         <h3 className="section-title">{t('productsTitle')}</h3>
         <Cards list={plan.targets} size={64} onRate={s.setTarget} onRemove={s.removeTarget} />
-        <ItemPicker items={craftableItems} label={t('addProduct')} onPick={s.addTarget} exclude={plan.targets.map((x) => x.item)} />
+        <ItemPicker
+          items={s.settings.hideLocked ? craftableItems.filter((i) => !itemLocked(i.id, s.tier)) : craftableItems}
+          label={t('addProduct')}
+          onPick={s.addTarget}
+          exclude={plan.targets.map((x) => x.item)}
+        />
         {exports.length > 0 && (
           <>
             <h3 className="section-title exports-title">{t('exportsTitle')}</h3>

@@ -14,7 +14,7 @@ import { useStore } from '../../store';
 import { Icon } from '../Icon';
 import { RateInput } from '../RateInput';
 import { linkKey, type ModelHost } from './ModelEditor';
-import { useStatusText } from './PartNode';
+import { SpeedButtons, useStatusText } from './PartNode';
 
 const MAX_CLOCK = 2.5;
 
@@ -101,6 +101,7 @@ function CountClock({ host, node }: { host: ModelHost; node: MNode & { n?: numbe
           />
           <span className="unit">%</span>
         </div>
+        {node.k !== 'extract' && <SpeedButtons n={n} clock={clock} onChange={(patch) => host.edit((m) => updateNode(m, node.id, patch))} />}
       </div>
     </>
   );

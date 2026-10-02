@@ -6,6 +6,7 @@ import { LOGISTICS, SINK, STORAGE, STORAGE_NAME } from '../../lib/model/catalog'
 import type { NodeCalc, NodeStatus } from '../../lib/model/calc/result';
 import type { OpenEnds } from '../../lib/model/checks';
 import { extractorById, type Port, portsOf, runnerRecipe } from '../../lib/model/ports';
+import { evenSpeed, fullSpeed } from '../../lib/model/ops';
 import type { MNode } from '../../lib/model/types';
 import { describeUse } from '../../lib/solver';
 import { minerLabel, recipeLabel } from '../../lib/text';
@@ -15,6 +16,41 @@ import { Slot } from '../Slot';
 
 /** The numbers for every node, by id; one context so a card re-renders only when its own numbers change. */
 export const CalcNodes = createContext<Record<string, NodeCalc> | undefined>(undefined);
+
+/** Changes a node from a button on its card. */
+export const EditCard = createContext<(id: string, patch: Record<string, unknown>) => void>(() => {});
+
+/** The same output another way: the machines at 100% with one slower, or every machine at one clock. */
+export function SpeedButtons({
+  n,
+  clock,
+  onChange,
+  small,
+}: {
+  n: number;
+  clock: number;
+  onChange: (patch: { n?: number; clock?: number }) => void;
+  small?: boolean;
+}) {
+  const { t } = useT();
+  const fill = Math.abs(clock - 1) > 1e-9;
+  const even = Math.abs(n - Math.round(n)) > 1e-6 && n > 1;
+  if (!fill && !even) return null;
+  return (
+    <div className={`speed-buttons ${small ? 'small nodrag nopan' : ''}`}>
+      {fill && (
+        <button type="button" className="floor-button" title={t('fullSpeedHint')} onClick={() => onChange(fullSpeed(n, clock))}>
+          {t('fullSpeed')}
+        </button>
+      )}
+      {even && (
+        <button type="button" className="floor-button" title={t('evenSpeedHint')} onClick={() => onChange(evenSpeed(n, clock))}>
+          {t('evenSpeed')}
+        </button>
+      )}
+    </div>
+  );
+}
 
 export interface PartData extends Record<string, unknown> {
   node: MNode;
@@ -94,6 +130,7 @@ function Machine({ data: d, selected }: { data: PartData; selected: boolean }) {
   const { name, num } = useT();
   const n = d.node;
   const calc = useContext(CalcNodes)?.[n.id];
+  const edit = useContext(EditCard);
   if (n.k !== 'machine' && n.k !== 'gen') return null;
   const recipe = runnerRecipe(n);
   if (!recipe) return null;
@@ -114,6 +151,7 @@ function Machine({ data: d, selected }: { data: PartData; selected: boolean }) {
         <span className="machine-product" title={recipeLabel(name(recipe), recipe.kind)}>
           {n.label ?? recipeLabel(name(recipe), recipe.kind)}
         </span>
+        {selected && <SpeedButtons n={n.n ?? 1} clock={n.clock ?? 1} onChange={(patch) => edit(n.id, patch)} small />}
       </div>
       <div className="machine-body">
         <Icon id={recipe.machine} size={60} className="machine-icon" />

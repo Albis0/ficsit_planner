@@ -1,23 +1,28 @@
-import { beforeAll, describe, expect, test } from 'bun:test';
+import { afterAll, beforeAll, describe, expect, test } from 'bun:test';
 import loadHighs, { type Highs } from 'highs';
 import { data } from '../src/lib/data';
 import { DEFAULT_EXTRACTION } from '../src/lib/extraction';
 import { adaptModel } from '../src/lib/model/calc/adapter';
 import { calcKey, calcModel } from '../src/lib/model/calc';
 import { modelFromSolve } from '../src/lib/model/fromAuto';
-import { arrangeModel } from '../src/lib/model/arrange';
+import { arrangeModel, portY } from '../src/lib/model/arrange';
 import { openCards, openEnds } from '../src/lib/model/checks';
 import { choicesFor, choiceWords, placeChoice, wantAt } from '../src/lib/model/choices';
 import { cardSize, freeSpot } from '../src/lib/model/layout';
-import { addNode, canConnect, connect, removeNodes } from '../src/lib/model/ops';
+import { addNode, canConnect, connect, evenSpeed, fullSpeed, moveNodes, removeNodes } from '../src/lib/model/ops';
+import { portsOf } from '../src/lib/model/ports';
 import { cleanModel } from '../src/lib/model/sanitize';
 import { type MLink, type MNode, type Model, MODEL_VERSION } from '../src/lib/model/types';
 import { solve } from '../src/lib/solver';
+import { layoutEngine } from './helpers/elk';
 
 let highs: Highs;
+let stopLayout: () => void;
 beforeAll(async () => {
   highs = await loadHighs();
+  stopLayout = layoutEngine();
 });
+afterAll(() => stopLayout());
 
 const ORE = 'Desc_OreIron_C';
 const INGOT = 'Desc_IronIngot_C';
@@ -139,7 +144,7 @@ describe('from an Auto plan', () => {
     ['Desc_ComputerSuper_C', 10],
     ['Desc_MotorLightweight_C', 5],
   ] as const) {
-    test(`${item}: the hand-built copy makes what the plan makes from what it mines`, () => {
+    test(`${item}: the hand-built copy makes what the plan makes from what it mines`, async () => {
       const auto = solve(highs, {
         targets: [{ item, rate }],
         supplies: [],
@@ -147,7 +152,7 @@ describe('from an Auto plan', () => {
         resourceCaps: {},
         objective: 'resources',
       });
-      const m = modelFromSolve(auto, 9, DEFAULT_EXTRACTION);
+      const m = await modelFromSolve(auto, 9, DEFAULT_EXTRACTION);
       expect(cleanModel(m)).toEqual(m);
       const r = run(m);
       const { result } = adaptModel(m, r);
@@ -389,7 +394,7 @@ describe('tidy up', () => {
     ['Desc_MotorLightweight_C', 2],
     ['Desc_SpaceElevatorPart_9_C', 2],
   ] as const)
-    test(`${item}: no card on another, every belt routed, left to right`, () => {
+    test(`${item}: no card on another, belts in square runs that meet their ends in order, left to right`, async () => {
       const auto = solve(highs, {
         targets: [{ item, rate }],
         supplies: [],
@@ -397,22 +402,117 @@ describe('tidy up', () => {
         resourceCaps: {},
         objective: 'resources',
       });
-      const m = modelFromSolve(auto, 9, DEFAULT_EXTRACTION);
+      const m = await modelFromSolve(auto, 9, DEFAULT_EXTRACTION);
       const box = (n: MNode) => ({ ...cardSize(n), x: n.x, y: n.y });
+      const hits = (a: { x: number; y: number; w: number; h: number }, b: { x: number; y: number; w: number; h: number }) =>
+        a.x < b.x + b.w && b.x < a.x + a.w && a.y < b.y + b.h && b.y < a.y + a.h;
       for (let i = 0; i < m.nodes.length; i++)
-        for (let j = i + 1; j < m.nodes.length; j++) {
-          const a = box(m.nodes[i]);
-          const b = box(m.nodes[j]);
-          expect(a.x < b.x + b.w && b.x < a.x + a.w && a.y < b.y + b.h && b.y < a.y + a.h).toBe(false);
-        }
-      expect(m.links.every((l) => (l.pts?.length ?? 0) > 0)).toBe(true);
+        for (let j = i + 1; j < m.nodes.length; j++) expect(hits(box(m.nodes[i]), box(m.nodes[j]))).toBe(false);
       const at = new Map(m.nodes.map((n) => [n.id, n]));
+      // Every belt has a spot for its label, on no card.
+      for (const l of m.links) {
+        expect(l.lbl).toBeDefined();
+        const [x, y] = l.lbl!;
+        for (const n of m.nodes) expect(hits({ x: x - 80, y: y - 18, w: 160, h: 36 }, box(n))).toBe(false);
+      }
+      // Each belt in straight runs with square turns, from its end on one card to its end on the other, over no card.
+      const runs = m.links.map((l) => {
+        const a = at.get(l.a)!;
+        const b = at.get(l.b)!;
+        const from = { x: a.x + cardSize(a).w, y: a.y + portY(cardSize(a).h, l.ap, portsOf(a).outs.length) };
+        const to = { x: b.x, y: b.y + portY(cardSize(b).h, l.bp, portsOf(b).ins.length) };
+        const pts = [from, ...(l.pts ?? []).map(([x, y]) => ({ x, y })), to];
+        return pts.slice(1).map((p, i) => [pts[i], p] as const);
+      });
+      for (const r of runs)
+        for (const [p, q] of r) {
+          expect(Math.abs(p.x - q.x) < 1 || Math.abs(p.y - q.y) < 1).toBe(true);
+          const seg = { x: Math.min(p.x, q.x), y: Math.min(p.y, q.y), w: Math.abs(p.x - q.x), h: Math.abs(p.y - q.y) };
+          for (const n of m.nodes) {
+            const b = box(n);
+            expect(hits(seg, { x: b.x + 2, y: b.y + 2, w: b.w - 4, h: b.h - 4 })).toBe(false);
+          }
+        }
+      // Few belts cross: the cards in each column are ordered as the ends they feed.
+      let cross = 0;
+      for (let i = 0; i < runs.length; i++)
+        for (let j = i + 1; j < runs.length; j++)
+          for (const [a, b] of runs[i])
+            for (const [c, d] of runs[j]) {
+              const [h, v] =
+                Math.abs(a.y - b.y) < 1 && Math.abs(c.x - d.x) < 1
+                  ? [
+                      [a, b],
+                      [c, d],
+                    ]
+                  : Math.abs(a.x - b.x) < 1 && Math.abs(c.y - d.y) < 1
+                    ? [
+                        [c, d],
+                        [a, b],
+                      ]
+                    : [];
+              if (!h || !v) continue;
+              if (
+                v[0].x > Math.min(h[0].x, h[1].x) &&
+                v[0].x < Math.max(h[0].x, h[1].x) &&
+                h[0].y > Math.min(v[0].y, v[1].y) &&
+                h[0].y < Math.max(v[0].y, v[1].y)
+              )
+                cross++;
+            }
+      expect(cross).toBeLessThanOrEqual(Math.ceil(m.links.length * 0.45));
       // Left to right, but for a belt that loops back (a byproduct fed back in).
       const back = m.links.filter((l) => at.get(l.a)!.x >= at.get(l.b)!.x);
       expect(back.length).toBeLessThanOrEqual(Math.ceil(m.links.length * 0.05));
       // Tidying again changes nothing; a moved card goes back.
-      expect(arrangeModel(m)).toEqual(m);
+      expect(await arrangeModel(m)).toEqual(m);
       const moved = { ...m, nodes: m.nodes.map((n, i) => (i === 0 ? { ...n, x: n.x + 999 } : n)) };
-      expect(arrangeModel(moved).nodes).toEqual(m.nodes);
+      expect((await arrangeModel(moved)).nodes).toEqual(m.nodes);
     });
+});
+
+describe('the same output another way', () => {
+  test('Fill to 100%: 7 × 95% become 6 × 100% and one at 65%', () => {
+    expect(fullSpeed(7, 0.95)).toEqual({ n: 6.65, clock: undefined });
+    // Overclocked: more machines at 100% instead of shards.
+    expect(fullSpeed(4, 1.5)).toEqual({ n: 6, clock: undefined });
+    expect(fullSpeed(2, 0.5)).toEqual({ n: undefined, clock: undefined });
+  });
+  test('Even out: 6 × 100% and one at 65% become 7 × 95%', () => {
+    expect(evenSpeed(6.65, 1)).toEqual({ n: 7, clock: 0.95 });
+    expect(evenSpeed(2.5, 1)).toEqual({ n: 3, clock: 0.833333 });
+    expect(evenSpeed(0.5, 1)).toEqual({ n: undefined, clock: 0.5 });
+  });
+  test('there and back gives the same output', () => {
+    for (const [n, c] of [
+      [7, 0.95],
+      [3, 0.888889],
+      [13, 0.961538],
+    ]) {
+      const f = fullSpeed(n, c);
+      const e = evenSpeed(f.n ?? 1, f.clock ?? 1);
+      expect((e.n ?? 1) * (e.clock ?? 1)).toBeCloseTo(n * c, 5);
+      expect(e.n ?? 1).toBe(n);
+    }
+  });
+});
+
+describe('belt label spots', () => {
+  test('kept when saved, dropped when a card on the belt moves', () => {
+    const m: Model = {
+      v: MODEL_VERSION,
+      calc: 'basic',
+      seq: 3,
+      nodes: [
+        { id: '1', k: 'in', item: 'Desc_OreIron_C', x: 0, y: 0 },
+        { id: '2', k: 'out', x: 500, y: 0 },
+      ],
+      links: [{ id: '3', a: '1', ap: 0, b: '2', bp: 0, pts: [[400, 50]], lbl: [420, 50] }],
+    };
+    expect(cleanModel(m)?.links[0].lbl).toEqual([420, 50]);
+    expect(cleanModel({ ...m, links: [{ ...m.links[0], lbl: ['x', 1] }] })?.links[0].lbl).toBeUndefined();
+    const moved = moveNodes(m, new Map([['2', { x: 600, y: 0 }]]));
+    expect(moved.links[0].lbl).toBeUndefined();
+    expect(moved.links[0].pts).toBeUndefined();
+  });
 });

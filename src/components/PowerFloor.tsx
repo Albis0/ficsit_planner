@@ -263,6 +263,7 @@ export function PlantInspector({ result }: { result: SolveResult }) {
 
 /** No generators yet: every way to make power, one tap to start. */
 export function PowerQuickStart({ load }: { load: PowerLoad }) {
+  const hide = useStore((s) => s.settings.hideLocked);
   const { t, name, num } = useT();
   const tier = useStore((s) => s.tier);
   const addPlant = useStore((s) => s.addPlant);
@@ -287,52 +288,54 @@ export function PowerQuickStart({ load }: { load: PowerLoad }) {
           </p>
         )}
         <div className="gen-grid">
-          {data.generators.map((g) => {
-            const locked = g.tier > tier;
-            const fuels = PLANT_OPTIONS.filter((o) => o.generator === g && o.fuel);
-            const body = (
-              <>
-                <span className="gen-card-head">
-                  <Icon id={g.id} size={72} />
-                  <span className="gen-card-name">
-                    {name(g)}
-                    <small>{g.kind === 'geothermal' ? t('geyserRange') : `${num(g.power)} MW`}</small>
+          {data.generators
+            .filter((g) => !hide || g.tier <= tier)
+            .map((g) => {
+              const locked = g.tier > tier;
+              const fuels = PLANT_OPTIONS.filter((o) => o.generator === g && o.fuel);
+              const body = (
+                <>
+                  <span className="gen-card-head">
+                    <Icon id={g.id} size={72} />
+                    <span className="gen-card-name">
+                      {name(g)}
+                      <small>{g.kind === 'geothermal' ? t('geyserRange') : `${num(g.power)} MW`}</small>
+                    </span>
+                    {locked && <span className="tier-tag">{t('tierTag', { tier: g.tier })}</span>}
                   </span>
-                  {locked && <span className="tier-tag">{t('tierTag', { tier: g.tier })}</span>}
-                </span>
-              </>
-            );
-            return g.kind === 'fuel' ? (
-              <div key={g.id} className={`gen-card ${locked ? 'locked' : ''}`} style={{ ['--gen' as string]: GENERATOR_COLORS[g.id] }}>
-                {body}
-                <span className="gen-fuels">
-                  {fuels.map((o) => (
-                    <button key={o.fuel} type="button" className="fuel-chip" onClick={() => add(g, o.fuel)}>
-                      <Icon id={o.fuel!} size={28} />
-                      <span>{name(data.items[o.fuel!])}</span>
-                      <small>
-                        {num(fuelRate(g, o.fuel!))}
-                        {t('perMin')}
-                      </small>
-                    </button>
-                  ))}
-                </span>
-              </div>
-            ) : (
-              <button
-                key={g.id}
-                type="button"
-                className={`gen-card button ${locked ? 'locked' : ''}`}
-                style={{ ['--gen' as string]: GENERATOR_COLORS[g.id] }}
-                onClick={() => add(g)}
-              >
-                {body}
-                <span className="gen-add">
-                  <Glyph name="plus" size={16} /> {t('add')}
-                </span>
-              </button>
-            );
-          })}
+                </>
+              );
+              return g.kind === 'fuel' ? (
+                <div key={g.id} className={`gen-card ${locked ? 'locked' : ''}`} style={{ ['--gen' as string]: GENERATOR_COLORS[g.id] }}>
+                  {body}
+                  <span className="gen-fuels">
+                    {fuels.map((o) => (
+                      <button key={o.fuel} type="button" className="fuel-chip" onClick={() => add(g, o.fuel)}>
+                        <Icon id={o.fuel!} size={28} />
+                        <span>{name(data.items[o.fuel!])}</span>
+                        <small>
+                          {num(fuelRate(g, o.fuel!))}
+                          {t('perMin')}
+                        </small>
+                      </button>
+                    ))}
+                  </span>
+                </div>
+              ) : (
+                <button
+                  key={g.id}
+                  type="button"
+                  className={`gen-card button ${locked ? 'locked' : ''}`}
+                  style={{ ['--gen' as string]: GENERATOR_COLORS[g.id] }}
+                  onClick={() => add(g)}
+                >
+                  {body}
+                  <span className="gen-add">
+                    <Glyph name="plus" size={16} /> {t('add')}
+                  </span>
+                </button>
+              );
+            })}
         </div>
       </div>
     </div>

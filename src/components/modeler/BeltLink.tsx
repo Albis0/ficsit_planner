@@ -14,7 +14,6 @@ import type { Transport } from '../../lib/data';
 import type { MLink } from '../../lib/model/types';
 import { useStore } from '../../store';
 import { beltStroke } from '../floor/BeltStroke';
-import { routePath } from '../GraphView';
 import { Icon } from '../Icon';
 
 export interface BeltData extends Record<string, unknown> {
@@ -31,6 +30,38 @@ export const PickLink = createContext<(id: string) => void>(() => {});
 /** Belts shorter than their label, in floor units, show none unless picked; a laid-out floor keeps room for it. */
 const SHORT = 180;
 
+/** How round a belt's square turns are, in floor units. */
+const TURN = 12;
+
+type Pt = { x: number; y: number };
+
+/**
+ * A belt in straight runs with rounded square turns, from one end through its bends to the other. The ends are where
+ * the cards draw them, so the first and last bends line up with them; with no bends it steps across half way.
+ */
+export function squarePath(from: Pt, bends: Pt[], to: Pt): { path: string; runs: [Pt, Pt][] } {
+  const mid = bends.map((p) => ({ ...p }));
+  if (mid.length >= 2) {
+    mid[0].y = from.y;
+    mid[mid.length - 1].y = to.y;
+  } else if (mid.length === 0 && Math.abs(from.y - to.y) > 0.5) {
+    const x = (from.x + to.x) / 2;
+    mid.push({ x, y: from.y }, { x, y: to.y });
+  }
+  const pts = [from, ...mid, to].filter((p, i, all) => i === 0 || Math.abs(p.x - all[i - 1].x) + Math.abs(p.y - all[i - 1].y) > 0.5);
+  let d = `M${pts[0].x},${pts[0].y}`;
+  for (let i = 1; i < pts.length - 1; i++) {
+    const [a, b, c] = [pts[i - 1], pts[i], pts[i + 1]];
+    const r = Math.min(TURN, Math.hypot(b.x - a.x, b.y - a.y) / 2, Math.hypot(c.x - b.x, c.y - b.y) / 2);
+    const k1 = r / (Math.hypot(b.x - a.x, b.y - a.y) || 1);
+    const k2 = r / (Math.hypot(c.x - b.x, c.y - b.y) || 1);
+    d += ` L${b.x - (b.x - a.x) * k1},${b.y - (b.y - a.y) * k1} Q${b.x},${b.y} ${b.x + (c.x - b.x) * k2},${b.y + (c.y - b.y) * k2}`;
+  }
+  const last = pts[pts.length - 1];
+  d += ` L${last.x},${last.y}`;
+  return { path: d, runs: pts.slice(1).map((p, i) => [pts[i], p]) };
+}
+
 /** Below this zoom belt labels hide, so the machines stay readable. */
 const FAR_ZOOM = 0.55;
 const farSelector = (s: { transform: [number, number, number] }) => s.transform[2] < FAR_ZOOM;
@@ -46,23 +77,30 @@ export function BeltLink({ sourceX, sourceY, targetX, targetY, sourcePosition, t
   const { link, item, transport, calc } = d as BeltData;
   const pick = useContext(PickLink);
   const geo = { sourceX, sourceY, targetX, targetY, sourcePosition, targetPosition };
-  let [path, lx, ly] =
-    link.line === 'straight'
-      ? getStraightPath(geo)
-      : link.line === 'step'
-        ? getSmoothStepPath({ ...geo, borderRadius: 16 })
-        : getBezierPath(geo);
-  if (link.pts?.length) {
-    // Through its bends, like the Auto floor's belts, with the label on the middle one.
-    const pts = link.pts.map(([x, y]) => ({ x, y }));
-    path = routePath([{ x: sourceX, y: sourceY }, ...pts, { x: targetX, y: targetY }], 'LR');
-    ({ x: lx, y: ly } = pts[Math.floor(pts.length / 2)]);
-  }
+  let path: string;
+  let lx: number;
+  let ly: number;
+  if (link.line === 'straight') [path, lx, ly] = getStraightPath(geo);
+  else if (link.line === 'curve') [path, lx, ly] = getBezierPath(geo);
+  else if (sourceX < targetX || link.pts?.length) {
+    // Straight runs with square turns, through the bends the floor was laid out with; the label on its longest run.
+    const square = squarePath(
+      { x: sourceX, y: sourceY },
+      (link.pts ?? []).map(([x, y]) => ({ x, y })),
+      { x: targetX, y: targetY },
+    );
+    path = square.path;
+    const [a, b] = square.runs.reduce((l, r) =>
+      Math.hypot(r[1].x - r[0].x, r[1].y - r[0].y) > Math.hypot(l[1].x - l[0].x, l[1].y - l[0].y) ? r : l,
+    );
+    [lx, ly] = [(a.x + b.x) / 2, (a.y + b.y) / 2];
+  } else [path, lx, ly] = getSmoothStepPath({ ...geo, borderRadius: TURN });
+  if (link.lbl) [lx, ly] = link.lbl;
   const state = `${selected ? 'lit' : ''} ${still ? 'still' : ''} ${calc && calc.rate < 1e-6 ? 'stopped' : ''}`;
   const lanes = link.lanes ?? 1;
   const { body, color } = beltStroke({ path, item: item ?? 'Desc_OreIron_C', transport, lanes: Math.min(lanes, 6), state, oneColor });
   // A belt too short for its label (a machine into the splitter beside it) goes without one; the splitter says it.
-  const short = Math.hypot(targetX - sourceX, targetY - sourceY) < SHORT;
+  const short = !link.lbl && Math.hypot(targetX - sourceX, targetY - sourceY) < SHORT;
   const shown = item && (selected || labels === 'always' || (labels === 'auto' && !far && !short));
   const bad = calc?.status === 'jam' || calc?.status === 'unbounded';
   // Full at the Mk, not at a limit the player set lower.

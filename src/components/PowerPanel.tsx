@@ -409,7 +409,10 @@ function AddPlant() {
     setOpen(false);
   };
 
-  const groups = data.generators.map((g) => ({ g, options: PLANT_OPTIONS.filter((o) => o.generator === g) }));
+  const hide = useStore((s) => s.settings.hideLocked);
+  const groups = data.generators
+    .filter((g) => !hide || g.tier <= tier)
+    .map((g) => ({ g, options: PLANT_OPTIONS.filter((o) => o.generator === g) }));
 
   return (
     <div className="add-plant" ref={root}>

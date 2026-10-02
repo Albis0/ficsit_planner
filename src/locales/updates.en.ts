@@ -6,6 +6,23 @@ export type UpdateKind = 'added' | 'fixed' | 'changed';
 
 export const UPDATES: { version: string; date: string; notes: [UpdateKind, string][] }[] = [
   {
+    version: '0.13.1',
+    date: '2026-10-03',
+    notes: [
+      [
+        'added',
+        'Settings › Interface › Hide what your tier can’t make: products, buildings and generators above your tier leave the lists. Thanks to u/Suspicious_Fly_1838.',
+      ],
+      ['added', 'Fill to 100% on a machine: 7 × 95% becomes 6 × 100% + 1 × 65%, same output. Even out goes back.'],
+      ['added', 'Settings › Factory floor: add parts with a right click or a double click.'],
+      [
+        'changed',
+        'Manual floor belts run straight with square turns, cards ordered so belts don’t cross, each label on its own belt; a new layout shows the whole floor.',
+      ],
+      ['fixed', 'Closing Settings could crash the planner in the newest Chrome.'],
+    ],
+  },
+  {
     version: '0.13.0',
     date: '2026-10-02',
     notes: [
@@ -15,7 +32,7 @@ export const UPDATES: { version: string; date: string; notes: [UpdateKind, strin
       ],
       [
         'added',
-        'Double-click or right-click the floor, press + Add, or let go of a belt on the floor to add a machine; a belt lists only what fits it and comes in already joined.',
+        'Right-click the floor, press + Add, or let go of a belt on the floor to add a machine; a belt lists only what fits it and comes in already joined.',
       ],
       ['added', 'Build by hand from an empty floor, Tidy up, and a button that goes to each card still missing a belt.'],
     ],

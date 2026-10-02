@@ -24,7 +24,7 @@ import { compile } from '../../lib/model/calc/compile';
 import { openCards, openEnds } from '../../lib/model/checks';
 import { type Choice, placeChoice, type Want, wantAt } from '../../lib/model/choices';
 import { cardSize } from '../../lib/model/layout';
-import { addNode, canConnect, connect, moveNodes, removeLinks, removeNodes } from '../../lib/model/ops';
+import { addNode, canConnect, connect, moveNodes, removeLinks, removeNodes, updateNode } from '../../lib/model/ops';
 import { portsOf } from '../../lib/model/ports';
 import { type Model, isPart } from '../../lib/model/types';
 import { COARSE, useMediaQuery } from '../../lib/useMediaQuery';
@@ -32,7 +32,7 @@ import { useStore } from '../../store';
 import { openingViewport } from '../GraphView';
 import { type BeltData, BeltLink, PickLink } from './BeltLink';
 import { Chooser } from './Chooser';
-import { CalcNodes, type PartData, PartNode } from './PartNode';
+import { CalcNodes, EditCard, type PartData, PartNode } from './PartNode';
 
 /**
  * Where a hand-built model lives and how it changes. The factory tab is one host today; the editor knows nothing else
@@ -54,8 +54,15 @@ const edgeTypes = { belt: BeltLink };
 
 /** Room kept along the floor's bottom edge for its buttons, so no card opens under them. */
 const BAR = 76;
-/** Room kept along the top for the toolbar. */
+/** Room kept along the top for the toolbar, at the least. */
 const TOP = 60;
+
+/** Room kept along the top: down to the toolbar's lower edge, which wraps onto a second row on a phone. */
+function topRoom() {
+  const floor = document.querySelector('.floor-view')?.getBoundingClientRect();
+  const bar = document.querySelector('.model-toolbar')?.getBoundingClientRect();
+  return floor && bar ? Math.max(TOP, Math.round(bar.bottom - floor.top + 12)) : TOP;
+}
 
 /** The chooser's size, for keeping it inside the floor. */
 const CHOOSER = { w: 440, h: 520 };
@@ -65,8 +72,26 @@ const SHEET = 600;
 /** Where the camera was on each model, so coming back from the list finds the floor as it was left. */
 const cameras = new Map<string, Viewport>();
 
-/** Forgets where the camera was on a model, so a model built afresh opens like a new one. */
-export const forgetCamera = (key: string) => cameras.delete(key);
+/** Models built afresh or tidied up: they open with the whole floor in view. */
+const showAll = new Set<string>();
+
+/** Forgets where the camera was on a model, so a model built afresh or tidied up opens with all of it in view. */
+export const forgetCamera = (key: string) => {
+  cameras.delete(key);
+  showAll.add(key);
+};
+
+/** The camera with every card in view, below the toolbar and above the buttons, no closer than the cards' own size. */
+function fitted(nodes: Node[], width: number, height: number, top: number): Viewport {
+  const x0 = Math.min(...nodes.map((n) => n.position.x));
+  const y0 = Math.min(...nodes.map((n) => n.position.y));
+  const x1 = Math.max(...nodes.map((n) => n.position.x + (n.width ?? 0)));
+  const y1 = Math.max(...nodes.map((n) => n.position.y + (n.height ?? 0)));
+  const w = width - 48;
+  const h = height - top - BAR;
+  const zoom = Math.max(0.1, Math.min(1, w / Math.max(1, x1 - x0), h / Math.max(1, y1 - y0)));
+  return { x: 24 + (w - (x1 - x0) * zoom) / 2 - x0 * zoom, y: top + (h - (y1 - y0) * zoom) / 2 - y0 * zoom, zoom };
+}
 
 /**
  * A big floor opens at the readable zoom on the stretch with the most cards in view, rather than on the first
@@ -123,6 +148,7 @@ function Canvas({ host, calc }: { host: ModelHost; calc?: CalcResult }) {
   const inspect = useStore((s) => s.inspect);
   const set = useStore((s) => s.set);
   const gridLines = useStore((s) => s.settings.gridLines);
+  const addWith = useStore((s) => s.settings.addWith);
   const coarse = useMediaQuery(COARSE);
   const flow = useReactFlow();
   const flowStore = useStoreApi();
@@ -240,6 +266,8 @@ function Canvas({ host, calc }: { host: ModelHost; calc?: CalcResult }) {
     return () => window.removeEventListener('keydown', onKey);
   }, [host, removeSelected, set, flowStore]);
 
+  const editCard = useCallback((id: string, patch: Record<string, unknown>) => host.edit((m) => updateNode(m, id, patch)), [host]);
+
   const pickLink = useCallback(
     (id: string) => {
       setPicked(new Set());
@@ -306,8 +334,13 @@ function Canvas({ host, calc }: { host: ModelHost; calc?: CalcResult }) {
   const [reveal, setReveal] = useState<string>();
   useEffect(() => {
     if (!reveal) return;
+    let gone = false;
     let frame = requestAnimationFrame(() => {
-      frame = requestAnimationFrame(() => {
+      frame = requestAnimationFrame(async () => {
+        // Where the panel ends up, once it has slid in.
+        const sliding = document.querySelector('.floor-view .inspector')?.getAnimations() ?? [];
+        await Promise.all(sliding.map((a) => a.finished.catch(() => {})));
+        if (gone) return;
         setReveal(undefined);
         const card = document.querySelector(`.react-flow__node[data-id="${CSS.escape(reveal)}"]`)?.getBoundingClientRect();
         const floor = document.querySelector('.floor-view')?.getBoundingClientRect();
@@ -318,7 +351,7 @@ function Canvas({ host, calc }: { host: ModelHost; calc?: CalcResult }) {
         const right = (side ? panel.left : floor.right) - 16;
         const bottom = (panel && !side ? panel.top : floor.bottom) - (panel && !side ? 16 : BAR);
         const left = floor.left + 16;
-        const top = floor.top + TOP;
+        const top = floor.top + topRoom();
         const dx = card.right > right ? Math.max(right - card.right, left - card.left) : card.left < left ? left - card.left : 0;
         const dy = card.bottom > bottom ? Math.max(bottom - card.bottom, top - card.top) : card.top < top ? top - card.top : 0;
         if (!dx && !dy) return;
@@ -326,7 +359,10 @@ function Canvas({ host, calc }: { host: ModelHost; calc?: CalcResult }) {
         flow.setViewport({ ...v, x: v.x + dx, y: v.y + dy }, { duration: 250 });
       });
     });
-    return () => cancelAnimationFrame(frame);
+    return () => {
+      gone = true;
+      cancelAnimationFrame(frame);
+    };
   }, [reveal, flow]);
 
   /** A belt let go: on a card, onto its first free end that fits; on the floor, the chooser for what goes there. */
@@ -387,148 +423,159 @@ function Canvas({ host, calc }: { host: ModelHost; calc?: CalcResult }) {
 
   return (
     <CalcNodes.Provider value={calc?.nodes}>
-      <PickLink.Provider value={pickLink}>
-        <ReactFlow
-          nodes={shown}
-          edges={edges}
-          nodeTypes={nodeTypes}
-          edgeTypes={edgeTypes}
-          onNodesChange={onNodesChange}
-          onNodeDragStop={(_, __, dragged) => host.edit((m) => moveNodes(m, new Map(dragged.map((n) => [n.id, n.position]))))}
-          onConnect={onConnect}
-          onConnectEnd={onConnectEnd}
-          isValidConnection={isValid}
-          onDoubleClick={(e) => {
-            // A double click on the empty floor puts something down there; so does a right click.
-            if ((e.target as HTMLElement).classList.contains('react-flow__pane')) choose({ x: e.clientX, y: e.clientY });
-          }}
-          onPaneContextMenu={(e) => {
-            e.preventDefault();
-            choose({ x: e.clientX, y: e.clientY });
-          }}
-          connectOnClick
-          nodesDraggable
-          elementsSelectable
-          selectNodesOnDrag={false}
-          deleteKeyCode={null}
-          multiSelectionKeyCode={['Control', 'Meta']}
-          selectionKeyCode="Shift"
-          selectionMode={SelectionMode.Partial}
-          minZoom={0.1}
-          maxZoom={2}
-          snapToGrid
-          snapGrid={[20, 20]}
-          proOptions={{ hideAttribution: true }}
-          defaultViewport={cameras.get(host.key)}
-          onInit={(f) => {
-            if (cameras.has(host.key) || model.nodes.length === 0) return;
-            const box = document.querySelector('.floor-view')?.getBoundingClientRect();
-            const sized = nodes.map((n) => {
-              const { w, h } = cardSize((n.data as PartData).node);
-              return { ...n, width: w, height: h };
-            });
-            if (!box) return;
-            // Below the toolbar along the top, above the buttons along the bottom.
-            const h = box.height - BAR - TOP;
-            const v = openingViewport(sized, box.width, h, 'LR');
-            const d = densest(sized, v, box.width, h);
-            f.setViewport({ ...d, y: d.y + TOP });
-          }}
-          onMoveEnd={(_, v) => cameras.set(host.key, v)}
-          onNodeClick={(e, n) => {
-            // A tap on an end lays a belt; it doesn't open the card.
-            if ((e.target as HTMLElement).closest('.react-flow__handle')) return;
-            setPicked(new Set());
-            set({ inspect: n.id });
-          }}
-          onNodeDoubleClick={(_, n) => {
-            // A double click picks the belts on that card, not the cards at their other ends.
-            setPicked(new Set(model.links.filter((l) => l.a === n.id || l.b === n.id).map((l) => l.id)));
-            setNodes((cur) => cur.map((x) => (x.selected ? { ...x, selected: false } : x)));
-            set({ inspect: undefined });
-          }}
-          onEdgeClick={(_, e) => pickLink(e.id)}
-          onPaneClick={(e) => {
-            // Half way through laying a belt by taps: the floor tapped is where the next card goes.
-            const start = flowStore.getState().connectionClickStartHandle;
-            if (start) {
-              flowStore.setState({ connectionClickStartHandle: null });
-              const port = Number(start.id?.slice(1));
-              if (Number.isInteger(port)) {
-                choose({ x: e.clientX, y: e.clientY }, wantAt(model, tier, start.nodeId, start.type === 'source' ? 'out' : 'in', port));
-                return;
+      <EditCard.Provider value={editCard}>
+        <PickLink.Provider value={pickLink}>
+          <ReactFlow
+            nodes={shown}
+            edges={edges}
+            nodeTypes={nodeTypes}
+            edgeTypes={edgeTypes}
+            onNodesChange={onNodesChange}
+            onNodeDragStop={(_, __, dragged) => host.edit((m) => moveNodes(m, new Map(dragged.map((n) => [n.id, n.position]))))}
+            onConnect={onConnect}
+            onConnectEnd={onConnectEnd}
+            isValidConnection={isValid}
+            onDoubleClick={(e) => {
+              // A double click on the empty floor puts something down there, when the settings say so; a right click
+              // otherwise. Never both, so the one that isn't for adding stays free.
+              if (addWith === 'double' && (e.target as HTMLElement).classList.contains('react-flow__pane'))
+                choose({ x: e.clientX, y: e.clientY });
+            }}
+            onPaneContextMenu={(e) => {
+              e.preventDefault();
+              if (addWith === 'right') choose({ x: e.clientX, y: e.clientY });
+            }}
+            connectOnClick
+            nodesDraggable
+            elementsSelectable
+            selectNodesOnDrag={false}
+            deleteKeyCode={null}
+            multiSelectionKeyCode={['Control', 'Meta']}
+            selectionKeyCode="Shift"
+            selectionMode={SelectionMode.Partial}
+            minZoom={0.1}
+            maxZoom={2}
+            snapToGrid
+            snapGrid={[20, 20]}
+            proOptions={{ hideAttribution: true }}
+            defaultViewport={cameras.get(host.key)}
+            onInit={(f) => {
+              if (cameras.has(host.key) || model.nodes.length === 0) return;
+              const box = document.querySelector('.floor-view')?.getBoundingClientRect();
+              const sized = nodes.map((n) => {
+                const { w, h } = cardSize((n.data as PartData).node);
+                return { ...n, width: w, height: h };
+              });
+              if (!box) return;
+              const top = topRoom();
+              // Built afresh or tidied up: all of it, to see what came out.
+              if (showAll.delete(host.key)) return f.setViewport(fitted(sized, box.width, box.height, top));
+              // Below the toolbar along the top, above the buttons along the bottom.
+              const h = box.height - BAR - top;
+              const v = openingViewport(sized, box.width, h, 'LR');
+              const d = densest(sized, v, box.width, h);
+              f.setViewport({ ...d, y: d.y + top });
+            }}
+            onMoveEnd={(_, v) => cameras.set(host.key, v)}
+            onNodeClick={(e, n) => {
+              // A tap on an end lays a belt; it doesn't open the card.
+              if ((e.target as HTMLElement).closest('.react-flow__handle')) return;
+              setPicked(new Set());
+              set({ inspect: n.id });
+            }}
+            onNodeDoubleClick={(_, n) => {
+              // A double click picks the belts on that card, not the cards at their other ends.
+              setPicked(new Set(model.links.filter((l) => l.a === n.id || l.b === n.id).map((l) => l.id)));
+              setNodes((cur) => cur.map((x) => (x.selected ? { ...x, selected: false } : x)));
+              set({ inspect: undefined });
+            }}
+            onEdgeClick={(_, e) => pickLink(e.id)}
+            onPaneClick={(e) => {
+              // Half way through laying a belt by taps: the floor tapped is where the next card goes.
+              const start = flowStore.getState().connectionClickStartHandle;
+              if (start) {
+                flowStore.setState({ connectionClickStartHandle: null });
+                const port = Number(start.id?.slice(1));
+                if (Number.isInteger(port)) {
+                  choose({ x: e.clientX, y: e.clientY }, wantAt(model, tier, start.nodeId, start.type === 'source' ? 'out' : 'in', port));
+                  return;
+                }
               }
-            }
-            setPicked(new Set());
-            set({ inspect: undefined });
-          }}
-          zoomOnDoubleClick={false}
-        >
-          {gridLines && <Background id="minor" variant={BackgroundVariant.Lines} gap={40} lineWidth={1} color="#2f2f2f" />}
-          {gridLines && <Background id="major" variant={BackgroundVariant.Lines} gap={160} lineWidth={1} color="#3b3b3b" />}
-          {parts === 0 && !choosing && (
-            <div className="floor-empty">
-              <button type="button" className="primary-button" onClick={() => choose(undefined)}>
-                {t('addFirst')}
-              </button>
-            </div>
-          )}
-          {clickStart && (
-            <div className="connect-strip" role="status">
-              <span>{clickStart.type === 'source' ? t('tapInput') : t('tapOutput')}</span>
-              <button type="button" className="text-button" onClick={() => flowStore.setState({ connectionClickStartHandle: null })}>
-                {t('cancel')}
-              </button>
-            </div>
-          )}
-          <div className="floor-controls">
-            {open.length > 0 && (
+              setPicked(new Set());
+              set({ inspect: undefined });
+            }}
+            zoomOnDoubleClick={false}
+          >
+            {gridLines && <Background id="minor" variant={BackgroundVariant.Lines} gap={40} lineWidth={1} color="#2f2f2f" />}
+            {gridLines && <Background id="major" variant={BackgroundVariant.Lines} gap={160} lineWidth={1} color="#3b3b3b" />}
+            {parts === 0 && !choosing && (
+              <div className="floor-empty">
+                <button type="button" className="primary-button" onClick={() => choose(undefined)}>
+                  {t('addFirst')}
+                </button>
+              </div>
+            )}
+            {clickStart && (
+              <div className="connect-strip" role="status">
+                <span>{clickStart.type === 'source' ? t('tapInput') : t('tapOutput')}</span>
+                <button type="button" className="text-button" onClick={() => flowStore.setState({ connectionClickStartHandle: null })}>
+                  {t('cancel')}
+                </button>
+              </div>
+            )}
+            <div className="floor-controls">
+              {open.length > 0 && (
+                <button
+                  type="button"
+                  className="floor-button open-ends"
+                  title={t('openEndsHint')}
+                  aria-label={t('openEnds', { n: open.length })}
+                  onClick={nextOpen}
+                >
+                  <span className="fit-label">{t('openEnds', { n: open.length })}</span>
+                  <span className="fit-icon" aria-hidden>
+                    ⚠︎ {open.length}
+                  </span>
+                </button>
+              )}
               <button
                 type="button"
-                className="floor-button open-ends"
-                title={t('openEndsHint')}
-                aria-label={t('openEnds', { n: open.length })}
-                onClick={nextOpen}
+                className="floor-button add-part"
+                title={t('addPart')}
+                aria-label={t('addPart')}
+                onClick={() => choose(undefined)}
               >
-                <span className="fit-label">{t('openEnds', { n: open.length })}</span>
-                <span className="fit-icon" aria-hidden>
-                  ⚠︎ {open.length}
+                <span aria-hidden className="add-plus">
+                  +
                 </span>
+                <span className="fit-label">{t('add')}</span>
               </button>
-            )}
-            <button
-              type="button"
-              className="floor-button add-part"
-              title={t('addPart')}
-              aria-label={t('addPart')}
-              onClick={() => choose(undefined)}
-            >
-              <span aria-hidden className="add-plus">
-                +
-              </span>
-              <span className="fit-label">{t('add')}</span>
-            </button>
-            <button
-              type="button"
-              className="floor-button"
-              title={t('fit')}
-              onClick={() =>
-                flow.fitView({ padding: { top: `${TOP}px`, left: '24px', right: '24px', bottom: `${BAR}px` }, maxZoom: 1, duration: 250 })
-              }
-            >
-              <span className="fit-icon" aria-hidden>
-                ⤢
-              </span>
-              <span className="fit-label">{t('fit')}</span>
-            </button>
-          </div>
-          {choosing &&
-            createPortal(
-              <Chooser want={choosing.want} tier={tier} marked={host.marked} at={choosing.at} onPick={onPick} onClose={closeChooser} />,
-              choosing.over,
-            )}
-        </ReactFlow>
-      </PickLink.Provider>
+              <button
+                type="button"
+                className="floor-button"
+                title={t('fit')}
+                onClick={() =>
+                  flow.fitView({
+                    padding: { top: `${topRoom()}px`, left: '24px', right: '24px', bottom: `${BAR}px` },
+                    maxZoom: 1,
+                    duration: 250,
+                  })
+                }
+              >
+                <span className="fit-icon" aria-hidden>
+                  ⤢
+                </span>
+                <span className="fit-label">{t('fit')}</span>
+              </button>
+            </div>
+            {choosing &&
+              createPortal(
+                <Chooser want={choosing.want} tier={tier} marked={host.marked} at={choosing.at} onPick={onPick} onClose={closeChooser} />,
+                choosing.over,
+              )}
+          </ReactFlow>
+        </PickLink.Provider>
+      </EditCard.Provider>
     </CalcNodes.Provider>
   );
 }

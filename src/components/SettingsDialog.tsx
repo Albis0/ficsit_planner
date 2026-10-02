@@ -56,7 +56,10 @@ export function SettingsDialog({ onClose }: { onClose: () => void }) {
   const [section, setSection] = useState<Section>(unseen ? 'updates' : 'layout');
   // On a phone the sections scroll sideways; bring the one it opened on into view.
   const nav = useRef<HTMLElement>(null);
-  useEffect(() => nav.current?.querySelector('[aria-current]')?.scrollIntoView({ block: 'nearest', inline: 'nearest' }), []);
+  // In braces: newer browsers return a promise from scrolling, and an effect may only return its clean-up.
+  useEffect(() => {
+    nav.current?.querySelector('[aria-current]')?.scrollIntoView({ block: 'nearest', inline: 'nearest' });
+  }, []);
   const saved = useStore((s) => s.settings);
   const savedDir = useStore((s) => s.graphDir);
   const setSettings = useStore((s) => s.setSettings);
@@ -426,6 +429,17 @@ function FloorSection() {
       <Row label={t('gridLines')} hint={t('gridLinesHint')}>
         <Toggle label={t('gridLines')} on={s.gridLines} onChange={(v) => set({ gridLines: v })} />
       </Row>
+      <Row label={t('addWith')} hint={t('addWithHint')}>
+        <Choice
+          label={t('addWith')}
+          value={s.addWith}
+          options={[
+            { id: 'right', label: t('addWithRight') },
+            { id: 'double', label: t('addWithDouble') },
+          ]}
+          onChange={(v) => set({ addWith: v })}
+        />
+      </Row>
     </>
   );
 }
@@ -606,7 +620,9 @@ function HelpSection() {
 function UpdatesSection() {
   const { t } = useT();
   const set = useStore((s) => s.set);
-  useEffect(() => set({ seenUpdates: LATEST_UPDATE }), [set]);
+  useEffect(() => {
+    set({ seenUpdates: LATEST_UPDATE });
+  }, [set]);
   return (
     <div className="updates">
       {UPDATES.map((u) => (
@@ -659,6 +675,9 @@ function InterfaceSection() {
         </div>
       </div>
       <Percent k="uiScale" label={t('uiSize')} hint={t('uiSizeHint')} />
+      <Row label={t('hideLockedSetting')} hint={t('hideLockedSettingHint')}>
+        <Toggle label={t('hideLockedSetting')} on={s.hideLocked} onChange={(v) => set({ hideLocked: v })} />
+      </Row>
       <Row label={t('decimals')} hint={t('decimalsHint', { example: (100 / 3).toFixed(s.decimals) })}>
         <Choice
           label={t('decimals')}

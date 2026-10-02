@@ -114,6 +114,29 @@ const overlaps = () =>
     return hits;
   });
 
+/** Every card inside the floor, nothing cut off at an edge. */
+const allInView = () =>
+  page.evaluate(() => {
+    const f = document.querySelector('.react-flow').getBoundingClientRect();
+    return [...document.querySelectorAll('.react-flow__node')].every((n) => {
+      const r = n.getBoundingClientRect();
+      return r.left >= f.left - 1 && r.right <= f.right + 1 && r.top >= f.top - 1 && r.bottom <= f.bottom + 1;
+    });
+  });
+
+/** Toolbar buttons drawn over the totals' fold tab. */
+const onTab = () =>
+  page.evaluate(() => {
+    const tab = document.querySelector('.summary-handle')?.getBoundingClientRect();
+    if (!tab) return [];
+    return [...document.querySelectorAll('.model-toolbar button, .model-toolbar label')]
+      .filter((b) => {
+        const r = b.getBoundingClientRect();
+        return r.width > 0 && r.left < tab.right && tab.left < r.right && r.top < tab.bottom && tab.top < r.bottom;
+      })
+      .map((b) => b.textContent);
+  });
+
 /** Two boxes on screen drawn over each other. */
 const clash = (a, b) => a && b && a.x < b.x + b.width && b.x < a.x + a.width && a.y < b.y + b.height && b.y < a.y + a.height;
 
@@ -138,9 +161,9 @@ const clash = (a, b) => a && b && a.x < b.x + b.width && b.x < a.x + a.width && 
   let m = await model();
   ok('model made', m && m.nodes.length > 10, `${m?.nodes.length} cards, ${m?.links.length} belts`);
   ok(
-    'every belt has a route',
-    m.links.every((l) => l.pts?.length),
-    `${m.links.filter((l) => !l.pts?.length).length} without`,
+    'every belt laid out with a spot for its label',
+    m.links.every((l) => l.lbl),
+    `${m.links.filter((l) => !l.lbl).length} without`,
   );
   ok(
     'whole machine counts',
@@ -156,6 +179,34 @@ const clash = (a, b) => a && b && a.x < b.x + b.width && b.x < a.x + a.width && 
   const states = await page.$$eval('.react-flow__node .machine-node .run-state', (l) => l.map((x) => x.textContent));
   ok('every machine at full speed', states.length > 0 && states.every((s) => s === 'Full speed'), [...new Set(states)].join(', '));
   ok('no cards on top of each other', (await overlaps()).length === 0, (await overlaps()).join(' '));
+  ok('opens with the whole floor in view', await allInView());
+  ok('the toolbar clear of the totals tab', (await onTab()).length === 0, (await onTab()).join(', '));
+  // The cards feeding a machine stand in the order of its inputs, so their belts don't cross: iron ore above coal.
+  const steel = m.nodes.find((n) => n.recipe === 'Recipe_IngotSteel_C');
+  const feeds = [0, 1].map((p) => m.nodes.find((n) => n.id === m.links.find((l) => l.b === steel?.id && l.bp === p)?.a));
+  ok(
+    'the foundry fed in the order of its inputs',
+    feeds[0] && feeds[1] && feeds[0].y < feeds[1].y,
+    feeds.map((n) => `${n?.item}@${n?.y}`).join(' / '),
+  );
+  // Belts run straight with square turns: every stretch of every belt drawn level or upright.
+  const bent = await page.$$eval(
+    '.react-flow__edge path.belt-hit',
+    (l) =>
+      l.filter((p) => {
+        // M x,y, then L x,y for a straight stretch and Q cx,cy x,y for a turn; each stretch must be level or upright.
+        let at;
+        let bad = false;
+        for (const [, op, args] of p.getAttribute('d').matchAll(/([MLQ])\s*([^MLQ]+)/g)) {
+          const nums = args.match(/-?[\d.]+(e-?\d+)?/g).map(Number);
+          const end = nums.slice(-2);
+          if (op === 'L' && at && Math.abs(end[0] - at[0]) > 1 && Math.abs(end[1] - at[1]) > 1) bad = true;
+          at = end;
+        }
+        return bad;
+      }).length,
+  );
+  ok('belts in straight runs', bent === 0, `${bent} bent`);
   await page.click('.floor-controls .floor-button >> nth=-1');
   await wait(600);
   await shot('a1-fit');
@@ -501,6 +552,53 @@ const clash = (a, b) => a && b && a.x < b.x + b.width && b.x < a.x + a.width && 
     await p2.close();
   }
 
+  // ── A10: the same output another way ──
+  section = 'A10';
+  await open(factory([['Desc_Motor_C', 10]]));
+  await page.click('.floor-kind button >> nth=1');
+  await settle();
+  m = await model();
+  const slow = m.nodes.find((n) => n.k === 'machine' && (n.clock ?? 1) < 1 && (n.n ?? 1) > 2);
+  ok('a line below 100%', !!slow, slow && `${slow.n} × ${slow.clock}`);
+  const output = (await model()).nodes.length;
+  await fit();
+  await card(slow.id).locator('.machine-strip').click();
+  await wait();
+  ok('the picked card offers Fill to 100%', await card(slow.id).locator('.speed-buttons button:has-text("Fill to 100%")').isVisible());
+  await shot('a10-card');
+  await card(slow.id).locator('.speed-buttons button:has-text("Fill to 100%")').click();
+  await settle();
+  m = await model();
+  let filled = m.nodes.find((n) => n.id === slow.id);
+  ok(
+    'Fill to 100%: count times clock machines at 100%',
+    Math.abs(filled.n - slow.n * slow.clock) < 1e-5 && filled.clock === undefined,
+    `${slow.n} × ${slow.clock} → ${filled.n} × ${filled.clock ?? 1}`,
+  );
+  const runLine = (await card(slow.id).locator('.machine-body').innerText()).replace(/\s+/g, ' ');
+  ok('the card says whole machines and one slower', /100%/.test(runLine) && /\+ 1 ×/.test(runLine), runLine.replace(/\s+/g, ' '));
+  const st = await page.$$eval('.react-flow__node .machine-node .run-state', (l) => l.map((x) => x.textContent));
+  ok(
+    'everything still at full speed',
+    st.every((x) => x === 'Full speed'),
+    [...new Set(st)].join(', '),
+  );
+  ok('no Fill to 100% once there', !(await card(slow.id).locator('.speed-buttons button:has-text("Fill to 100%")').count()));
+  await page.locator('aside.inspector .speed-buttons button:has-text("Even out")').click();
+  await settle();
+  filled = (await model()).nodes.find((n) => n.id === slow.id);
+  ok(
+    'Even out puts them back at one clock',
+    filled.n === slow.n && Math.abs(filled.clock - slow.clock) < 1e-5,
+    `${filled.n} × ${filled.clock}`,
+  );
+  ok('nothing else changed', (await model()).nodes.length === output);
+  ok(
+    'reduce motion: the panel opens without sliding',
+    (await page.$eval('aside.inspector', (a) => getComputedStyle(a).animationDuration)) === '0.001s',
+  );
+  await page.keyboard.press('Escape');
+
   // ── B: building by hand ──
   section = 'B1';
   await open(blank);
@@ -538,7 +636,11 @@ const clash = (a, b) => a && b && a.x < b.x + b.width && b.x < a.x + a.width && 
   let at = await emptySpot('left');
   await page.mouse.dblclick(at.x, at.y);
   await wait(300);
-  ok('double click on the floor opens the menu', await page.locator('.chooser').isVisible());
+  ok('double click on the floor adds nothing, as set', !(await page.locator('.chooser').count()));
+  at = await emptySpot('left');
+  await page.mouse.click(at.x, at.y, { button: 'right' });
+  await wait(300);
+  ok('right click on the floor opens the menu', await page.locator('.chooser').isVisible());
   const near = await page.locator('.chooser').boundingBox();
   ok(
     'beside where it was clicked',
@@ -551,11 +653,36 @@ const clash = (a, b) => a && b && a.x < b.x + b.width && b.x < a.x + a.width && 
   at = await emptySpot('left');
   await page.mouse.click(at.x, at.y, { button: 'right' });
   await wait(300);
-  ok('right click on the floor opens the menu', await page.locator('.chooser').isVisible());
   const menu = await page.locator('.chooser').boundingBox();
   await page.mouse.click(menu.x > 400 ? menu.x - 100 : menu.x + menu.width + 100, menu.y + 40);
   await wait(300);
   ok('a click outside closes it', !(await page.locator('.chooser').count()));
+  // Settings › Factory floor: add with a double click instead; then a right click adds nothing.
+  const addWith = async (label) => {
+    await page.click('.chrome-button.settings');
+    await page.locator('.settings-nav button:has-text("Factory floor")').click();
+    await page.locator(`[role="radiogroup"][aria-label="Add parts with"] button:has-text("${label}")`).click();
+    await page.keyboard.press('Control+s');
+    await wait(200);
+    await page.keyboard.press('Escape');
+    await wait(300);
+  };
+  await addWith('Double click');
+  ok(
+    'the setting is saved',
+    (await page.evaluate(() => JSON.parse(localStorage.getItem('ficsit-planner')).state.settings.addWith)) === 'double',
+  );
+  at = await emptySpot('left');
+  await page.mouse.dblclick(at.x, at.y);
+  await wait(300);
+  ok('set to double click: a double click opens the menu', await page.locator('.chooser').isVisible());
+  await page.keyboard.press('Escape');
+  await wait(200);
+  at = await emptySpot('left');
+  await page.mouse.click(at.x, at.y, { button: 'right' });
+  await wait(300);
+  ok('set to double click: a right click adds nothing', !(await page.locator('.chooser').count()));
+  await addWith('Right click');
   await page.locator('.add-part').click();
   await wait(300);
   ok('+ Add opens it', await page.locator('.chooser').isVisible());
@@ -699,6 +826,7 @@ const clash = (a, b) => a && b && a.x < b.x + b.width && b.x < a.x + a.width && 
   await wait(500);
   ok('Tidy up lays it out afresh', JSON.stringify((await model()).nodes.map((n) => [n.x, n.y])) !== was);
   ok('no cards on top of each other', (await overlaps()).length === 0);
+  ok('after Tidy up the whole floor in view', await allInView());
   await shot('b5-tidy');
   await page.keyboard.press('Control+z');
   await settle();
@@ -731,8 +859,8 @@ const clash = (a, b) => a && b && a.x < b.x + b.width && b.x < a.x + a.width && 
       )) >= 4,
     );
     ok(
-      `${tag}: every belt routed`,
-      mm.links.every((l) => l.pts?.length),
+      `${tag}: every belt laid out with a spot for its label`,
+      mm.links.every((l) => l.lbl),
     );
     const states2 = await page.$$eval('.react-flow__node .machine-node .run-state', (l) => l.map((x) => x.textContent));
     ok(
@@ -745,6 +873,100 @@ const clash = (a, b) => a && b && a.x < b.x + b.width && b.x < a.x + a.width && 
     await shot(`big-${tag}-fit`);
     ok(`${tag}: no cards on top of each other`, (await overlaps()).length === 0, (await overlaps()).slice(0, 5).join(' '));
   }
+  await ctx.close();
+}
+
+// ───────────────────────────── Hiding what the tier can't make ─────────────────────────────
+{
+  section = 'H';
+  const ctx = await browser.newContext({ viewport: { width: 1366, height: 768 }, reducedMotion: 'reduce', serviceWorkers: 'block' });
+  page = await ctx.newPage();
+  page.on('pageerror', (e) => errors.push(e.message));
+  const low = (extra) => saved({ tier: 2, mode: 'factory', plans: [{ id: 'f1', name: 'Factory 1', targets: [] }], active: 'f1', ...extra });
+  await open(low());
+  await page.locator('.quick-search').fill('motor');
+  await wait(200);
+  ok('off by default: Motor shows with its tier', (await page.locator('.quick-item.locked').count()) > 0);
+  await page.locator('.quick-search').fill('');
+  ok('off by default: the shortcuts show locked parts', (await page.locator('.quick-item.locked').count()) > 0);
+  await page.click('.chrome-button.settings');
+  await page.locator('.settings-nav button:has-text("Interface")').click();
+  const sw = page.locator('[role="switch"][aria-label="Hide what your tier can’t make"]');
+  ok('the setting is off at first', (await sw.getAttribute('aria-checked')) === 'false');
+  await sw.click();
+  await page.keyboard.press('Control+s');
+  await wait(200);
+  await page.keyboard.press('Escape');
+  await wait(300);
+  ok(
+    'turned on and saved',
+    (await page.evaluate(() => JSON.parse(localStorage.getItem('ficsit-planner')).state.settings.hideLocked)) === true,
+  );
+  ok(
+    'the shortcuts keep only what this tier makes',
+    (await page.locator('.quick-item').count()) > 0 && (await page.locator('.quick-item.locked').count()) === 0,
+  );
+  await page.locator('.quick-search').fill('motor');
+  await wait(200);
+  ok(
+    'Motor is left out of the search',
+    !(await page.locator('.quick-item').count()),
+    await page
+      .locator('.quick-pick')
+      .innerText()
+      .then((x) => x.slice(0, 80)),
+  );
+  await page.locator('.quick-search').fill('');
+  // The build menu on a hand-built floor.
+  await page.locator('.quick-head .text-button').click();
+  await wait(400);
+  await page.locator('.floor-empty .primary-button').click();
+  await wait(300);
+  ok(
+    'the build menu lists nothing locked',
+    (await page.locator('.chooser-list li').count()) > 0 && !(await page.locator('.chooser-list li.locked').count()),
+  );
+  await page.keyboard.type('motor');
+  await wait(200);
+  ok('Motor is not in the build menu', !(await page.locator('.chooser-list li:has-text("Motor")').count()));
+  await page.keyboard.press('Escape');
+  // The product list in the panel.
+  await open(
+    low({ settings: { hideLocked: true }, plans: [{ id: 'f1', name: 'Factory 1', targets: [{ item: 'Desc_IronPlate_C', rate: 10 }] }] }),
+  );
+  await page.locator('.side .add-button').first().click();
+  await page.locator('.picker-search').fill('motor');
+  await wait(200);
+  ok('Motor is not in Add product', (await page.locator('.picker-list li:has-text("Motor")').count()) === 0);
+  await page.locator('.picker-search').fill('rotor');
+  await wait(200);
+  ok('what this tier makes still is', (await page.locator('.picker-list li:has-text("Rotor")').count()) === 1);
+  await page.keyboard.press('Escape');
+  // Power: generators not unlocked yet.
+  await open(low({ settings: { hideLocked: true }, mode: 'power' }));
+  ok('no locked generators to pick', (await page.locator('.gen-card').count()) > 0 && !(await page.locator('.gen-card.locked').count()));
+  await open(low({ mode: 'power' }));
+  ok('with the setting off they show', (await page.locator('.gen-card.locked').count()) > 0);
+  await ctx.close();
+}
+
+// ───────────────────────────── Motion on ─────────────────────────────
+{
+  section = 'M';
+  const ctx = await browser.newContext({ viewport: { width: 1366, height: 768 }, reducedMotion: 'no-preference', serviceWorkers: 'block' });
+  page = await ctx.newPage();
+  page.on('pageerror', (e) => errors.push(e.message));
+  await open(
+    saved({ mode: 'factory', plans: [{ id: 'f1', name: 'Factory 1', targets: [] }], active: 'f1', settings: { motion: 'system' } }),
+  );
+  await page.locator('.quick-head .text-button').click();
+  await wait(400);
+  await page.locator('.floor-empty .primary-button').click();
+  await page.keyboard.type('iron ingot');
+  await page.keyboard.press('Enter');
+  await page.waitForSelector('aside.inspector');
+  const anim = await page.$eval('aside.inspector', (a) => [getComputedStyle(a).animationName, getComputedStyle(a).animationDuration]);
+  ok('the panel slides in from the right', anim[0] === 'inspector-in' && anim[1] === '0.18s', anim.join(' '));
   await ctx.close();
 }
 
@@ -801,7 +1023,7 @@ const clash = (a, b) => a && b && a.x < b.x + b.width && b.x < a.x + a.width && 
   // A finger on a card not picked pans the floor.
   const v0 = await viewport();
   const c1 = await centre(card(sm.id).locator('.machine-body'));
-  await touchDrag(c1, { x: c1.x - 80, y: c1.y + 120 });
+  await touchDrag(c1, { x: c1.x - 80, y: c1.y + 10 });
   m = await model();
   ok('a finger on a card not picked pans', (await viewport()) !== v0 && m.nodes[0].x === sm.x && m.nodes[0].y === sm.y);
   await card(sm.id).locator('.machine-strip').tap();
@@ -863,6 +1085,7 @@ const clash = (a, b) => a && b && a.x < b.x + b.width && b.x < a.x + a.width && 
     JSON.stringify({ bar, controls }),
   );
   const toolbar = await page.locator('.model-toolbar').boundingBox();
+  ok('the toolbar clear of the totals tab', (await onTab()).length === 0, (await onTab()).join(', '));
   ok('toolbar fits across', toolbar.width <= 412, `${toolbar.width}`);
   await ctx.close();
 }

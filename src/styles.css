@@ -5793,6 +5793,31 @@ button.gen-count[aria-pressed='true'] {
 
 /* ---------- Motion ---------- */
 
+/* The panel for what's picked slides in from the side it sits on: the right, or the bottom on a phone. */
+.inspector {
+  animation: inspector-in 180ms ease-out;
+}
+
+@keyframes inspector-in {
+  from {
+    opacity: 0;
+    translate: 28px 0;
+  }
+}
+
+@media (max-width: 900px) {
+  .inspector {
+    animation-name: inspector-up;
+  }
+}
+
+@keyframes inspector-up {
+  from {
+    opacity: 0;
+    translate: 0 40px;
+  }
+}
+
 .app[data-motion='reduce'] *,
 .app[data-motion='reduce'] *::before,
 .app[data-motion='reduce'] *::after {
@@ -9760,7 +9785,8 @@ a.codex-flow:hover {
 /* Over the hand-built floor's top edge: how it's worked out, open outputs, undo, start again. */
 .model-toolbar {
   position: absolute;
-  top: 14px;
+  /* Below the totals' fold tab, which hangs over the middle of the floor's top edge. */
+  top: 28px;
   left: 18px;
   right: 440px;
   z-index: 6;
@@ -9817,7 +9843,7 @@ a.codex-flow:hover {
 
 @media (max-width: 900px) {
   .model-toolbar {
-    top: 8px;
+    top: 36px;
     left: 8px;
     right: 8px;
     gap: 6px;
@@ -9833,6 +9859,28 @@ a.codex-flow:hover {
   opacity: 1;
   color: var(--line-2);
   cursor: default;
+}
+
+/* The same output another way: the machines at 100% with one slower, or all at one clock. */
+.speed-buttons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+/* On a picked card, in its strip: small, so the card keeps its size. */
+.speed-buttons.small {
+  flex-wrap: nowrap;
+  gap: 4px;
+  margin: 0 0 0 auto;
+}
+
+.speed-buttons.small .floor-button {
+  min-height: 0;
+  padding: 1px 7px;
+  font: 600 13px / 1.4 var(--font-body);
+  white-space: nowrap;
 }
 
 /* An end that's free and doesn't need a belt: a splitter's spare output. */

@@ -27,6 +27,8 @@ export interface Settings {
   beltMotion: boolean;
   /** Foundation grid lines on the floor. */
   gridLines: boolean;
+  /** On the hand-built floor, what opens the build menu on an empty spot: a right click or a double click. */
+  addWith: 'right' | 'double';
   /** Belts coloured by tier, or all in one colour. */
   beltColors: 'tier' | 'one';
   colors: Colors;
@@ -35,6 +37,8 @@ export interface Settings {
   motion: 'system' | 'reduce' | 'full';
   /** Typeface for the whole interface. */
   font: FontId;
+  /** Lists leave out products, buildings and generators above the unlocked tier, instead of showing them marked. */
+  hideLocked: boolean;
   /** The strip of totals over the floor: compact, or large figures. */
   summary: 'compact' | 'full';
   /** A line whose output goes to several places, on the graph: a card per place, or one card that says how to split it. */
@@ -79,11 +83,13 @@ export const DEFAULT_SETTINGS: Settings = {
   beltLabels: 'auto',
   beltMotion: true,
   gridLines: true,
+  addWith: 'right',
   beltColors: 'tier',
   colors: DEFAULT_COLORS,
   decimals: 2,
   motion: 'system',
   font: 'satisfactory',
+  hideLocked: false,
   summary: 'compact',
   splitLines: 'each',
   game: DEFAULT_GAME,

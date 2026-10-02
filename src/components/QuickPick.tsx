@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { craftableItems, data, itemTier } from '../lib/data';
+import { craftableItems, data, itemLocked, itemTier } from '../lib/data';
 import { useT } from '../lib/i18n';
 import { searchKey } from '../lib/text';
 import { useStore } from '../store';
@@ -34,6 +34,9 @@ const RESULTS = 30;
 export function QuickPick() {
   const { t, name } = useT();
   const tier = useStore((s) => s.tier);
+  // Set to hide what isn't unlocked yet: those leave the shortcuts and the search.
+  const hide = useStore((s) => s.settings.hideLocked);
+  const shown = (ids: string[]) => (hide ? ids.filter((id) => !itemLocked(id, tier)) : ids);
   const set = useStore((s) => s.set);
   const updatePlan = useStore((s) => s.updatePlan);
   const setFloor = useStore((s) => s.setFloor);
@@ -44,12 +47,12 @@ export function QuickPick() {
     const f = searchKey(q.trim());
     if (!f) return [];
     return craftableItems
-      .filter((i) => searchKey(name(i)).includes(f))
+      .filter((i) => searchKey(name(i)).includes(f) && !(hide && itemLocked(i.id, tier)))
       .sort(
         (a, b) => Number(!searchKey(name(a)).startsWith(f)) - Number(!searchKey(name(b)).startsWith(f)) || name(a).localeCompare(name(b)),
       )
       .slice(0, RESULTS);
-  }, [q, name]);
+  }, [q, name, hide, tier]);
 
   const add = (item: string, rate: number) => {
     updatePlan((p) => (p.targets.some((x) => x.item === item) ? {} : { targets: [...p.targets, { item, rate }] }));
@@ -58,7 +61,7 @@ export function QuickPick() {
 
   const grid = (ids: string[], rate: number) => (
     <div className="quick-grid">
-      {ids.map((id) => {
+      {shown(ids).map((id) => {
         // Above the unlocked tier: still pickable, but say when it opens up.
         const needs = itemTier(id);
         const locked = needs !== undefined && needs > tier;

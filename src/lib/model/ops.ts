@@ -37,7 +37,7 @@ export function removeLinks(m: Model, ids: Iterable<string>): Model {
   return gone.size ? { ...m, links: m.links.filter((l) => !gone.has(l.id)) } : m;
 }
 
-/** New top left corners, rounded to whole units. Belts on a moved card lose their bends and take the short way. */
+/** New top left corners, rounded to whole units. Belts on a moved card lose their bends and label spot and take the short way. */
 export function moveNodes(m: Model, to: Map<string, { x: number; y: number }>): Model {
   const moved = new Set(
     [...to].filter(([id, p]) => m.nodes.some((n) => n.id === id && (n.x !== Math.round(p.x) || n.y !== Math.round(p.y)))).map(([id]) => id),
@@ -50,8 +50,8 @@ export function moveNodes(m: Model, to: Map<string, { x: number; y: number }>): 
       return p && moved.has(n.id) ? { ...n, x: Math.round(p.x), y: Math.round(p.y) } : n;
     }),
     links: m.links.map((l) => {
-      if (!l.pts || (!moved.has(l.a) && !moved.has(l.b))) return l;
-      const { pts: _, ...rest } = l;
+      if ((!l.pts && !l.lbl) || (!moved.has(l.a) && !moved.has(l.b))) return l;
+      const { pts: _, lbl: __, ...rest } = l;
       return rest;
     }),
   };
@@ -104,4 +104,22 @@ export function connect(m: Model, a: string, ap: number, b: string, bp: number, 
   const { ids, seq } = nextIds(m, 1);
   const links = m.links.filter((l) => !(l.a === a && l.ap === ap) && !(l.b === b && l.bp === bp));
   return { model: { ...m, seq, links: [...links, { ...extra, id: ids[0], a, ap, b, bp }] }, id: ids[0] };
+}
+
+const tidyNumber = (x: number) => Math.round(x * 1e6) / 1e6;
+
+/**
+ * The same output with the machines at 100%: 7 at 95% become 6 at 100% and one at 65% (a count of 6.65). A count and
+ * clock as the panel keeps them, with the defaults left off.
+ */
+export function fullSpeed(n: number, clock: number): { n?: number; clock?: number } {
+  const count = tidyNumber(n * clock);
+  return { n: count === 1 ? undefined : count, clock: undefined };
+}
+
+/** The same output with every machine at one clock: 6 at 100% and one at 65% become 7 at 95%. */
+export function evenSpeed(n: number, clock: number): { n?: number; clock?: number } {
+  const count = Math.max(1, Math.ceil(n - 1e-6));
+  const each = tidyNumber((n * clock) / count);
+  return { n: count === 1 ? undefined : count, clock: each === 1 ? undefined : each };
 }

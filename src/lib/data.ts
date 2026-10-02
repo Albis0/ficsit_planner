@@ -239,6 +239,12 @@ export function itemTier(id: string): number | undefined {
   return tiers.length ? Math.min(...tiers) : undefined;
 }
 
+/** Not makeable yet at this tier: its first standard recipe opens up later. Items nothing standard makes never are. */
+export function itemLocked(id: string, tier: number): boolean {
+  const needs = itemTier(id);
+  return needs !== undefined && needs > tier;
+}
+
 /** Why an item the plan needs has no working recipe, so the UI can offer the matching fix. */
 export type MissingReason = { kind: 'tier'; tier: number } | { kind: 'off'; recipe: string } | { kind: 'none' };
 

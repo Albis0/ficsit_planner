@@ -115,7 +115,17 @@ export default function App() {
   const solved = powerMode ? power : factory;
   const result = manual ? hand.adapted?.result : solved.result;
   const error = manual ? hand.error : solved.error;
-  const busy = manual ? hand.busy : solved.busy;
+  // Laying a floor out takes a moment the first time, while the layout engine loads.
+  const [laying, setLaying] = useState(false);
+  const busy = laying || (manual ? hand.busy : solved.busy);
+  const lay = async <T,>(work: () => Promise<T>) => {
+    setLaying(true);
+    try {
+      return await work();
+    } finally {
+      setLaying(false);
+    }
+  };
   const autoExtraction = useMemo(
     () => (solved.result ? planExtraction(solved.result.raw, effectiveExtraction(plan.extraction, s.tier)) : []),
     [solved.result, plan.extraction, s.tier],
@@ -124,9 +134,10 @@ export default function App() {
   /** Auto or Manual: the first switch to Manual starts from the factory as worked out, or an empty floor. */
   // A model built afresh opens with a fresh camera.
   const [built, setBuilt] = useState(0);
-  const setFloor = (floor: 'auto' | 'manual') => {
+  const setFloor = async (floor: 'auto' | 'manual') => {
     if (floor === 'auto' || plan.model) return s.setFloor(plan.id, floor);
-    const model = factory.result ? modelFromSolve(factory.result, s.tier, effectiveExtraction(plan.extraction, s.tier)) : emptyModel();
+    const solved = factory.result;
+    const model = solved ? await lay(() => modelFromSolve(solved, s.tier, effectiveExtraction(plan.extraction, s.tier))) : emptyModel();
     forgetCamera(plan.id);
     setBuilt((n) => n + 1);
     s.setFloor(plan.id, 'manual', model);
@@ -135,9 +146,10 @@ export default function App() {
     if (!factoryIn || !window.confirm(t('rebuildConfirm'))) return;
     try {
       const r = await solveAsync(factoryIn);
+      const model = await lay(() => modelFromSolve(r, s.tier, effectiveExtraction(plan.extraction, s.tier)));
       forgetCamera(plan.id);
       setBuilt((n) => n + 1);
-      s.setFloor(plan.id, 'manual', modelFromSolve(r, s.tier, effectiveExtraction(plan.extraction, s.tier)));
+      s.setFloor(plan.id, 'manual', model);
     } catch {
       /* the Auto floor shows why it can't be solved */
     }
@@ -385,8 +397,9 @@ export default function App() {
                   <ModelEditor key={built} host={host} calc={hand.calc} />
                   <ModelToolbar
                     host={host}
-                    onTidy={() => {
-                      host.edit(arrangeModel);
+                    onTidy={async () => {
+                      const tidy = await lay(() => arrangeModel(host.model));
+                      host.edit(() => tidy);
                       forgetCamera(plan.id);
                       setBuilt((n) => n + 1);
                     }}
