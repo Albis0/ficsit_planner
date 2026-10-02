@@ -116,7 +116,7 @@ export const en = {
   outputBoost: 'output',
   resetMod: 'Reset',
   close: 'Close',
-  inspectHint: 'Select a machine to set clock speed and somersloops',
+  inspectHint: 'Click a machine to customize it',
   extraction: 'Extraction',
   extractors: 'Extractors',
   miner: 'Miner',
@@ -184,7 +184,7 @@ export const en = {
   powerMode: 'Power',
   powerTab: 'Power',
   powerGrid: 'Power grid',
-  inspectPowerHint: 'Select a generator to change its count or clock',
+  inspectPowerHint: 'Click a generator to customize it',
 
   // Power: plant tabs and sizing
   plantName: 'Plant',

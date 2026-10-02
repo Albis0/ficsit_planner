@@ -367,7 +367,11 @@ export default function App() {
                     </button>
                   )}
                 </div>
-                {!s.inspect && <span className="floor-hint">{powerMode ? t('inspectPowerHint') : t('inspectHint')}</span>}
+                {!s.inspect && (
+                  <span className="floor-hint-slot">
+                    <span className="floor-hint">{powerMode ? t('inspectPowerHint') : t('inspectHint')}</span>
+                  </span>
+                )}
               </div>
             )}
           </div>

@@ -1563,9 +1563,11 @@ button.slot:hover {
   color: var(--ficsit);
 }
 
+/* Ends short of the direction and Fit buttons on the right (not zoomed, so the gap is undone from the bar's zoom). */
 .floor-bar {
   position: absolute;
   left: 18px;
+  right: calc(300px / var(--ui-scale, 1));
   bottom: 18px;
   z-index: 5;
   display: flex;
@@ -1578,13 +1580,29 @@ button.slot:hover {
   pointer-events: auto;
 }
 
+/* Whatever room is left beside the view switch; the hint goes away when it no longer fits whole. */
+.floor-hint-slot {
+  flex: 1;
+  min-width: 0;
+  container-type: inline-size;
+  pointer-events: none !important;
+}
+
 /* A line of text on a dark wash, no border: it tells, it isn't something to press. */
 .floor-hint {
+  display: inline-block;
   pointer-events: none !important;
   padding: 4px 10px;
   background: rgb(21 21 22);
   font: 500 15px var(--font-body);
   color: var(--faint);
+  white-space: nowrap;
+}
+
+@container (width < 250px) {
+  .floor-hint {
+    display: none;
+  }
 }
 
 .floor-controls {

@@ -2,6 +2,13 @@
 
 All notable changes to FICSIT Planner. Dates are when the version was finished.
 
+## 0.12.9 — 2026-10-02
+
+### Changed
+
+- The hint under the factory floor is shorter ("Click a machine to customize it") and goes away when there's no room
+  for it beside the view switch, instead of running under the direction and Fit buttons.
+
 ## 0.12.8 — 2026-10-02
 
 ### Added
