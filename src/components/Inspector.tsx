@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { data, producersOf, recipeUnlocked } from '../lib/data';
 import { useCodex } from '../lib/codex';
 import { versusStandard } from '../lib/insights';
@@ -7,9 +7,11 @@ import { recipeLabel } from '../lib/text';
 import { groupClocks } from '../lib/clocks';
 import { buildGroups, groupsLabel, isPipe } from '../lib/groups';
 import { amplification, NO_MOD, shardsFor, type SolveResult } from '../lib/solver';
+import { matchFlows, splitByDestination } from '../lib/split';
 import { usePlan, useStore } from '../store';
 import { Icon } from './Icon';
 import { RateInput } from './RateInput';
+import { useSplitText } from './SplitText';
 
 const MAX_CLOCK = 2.5;
 const EPS = 1e-6;
@@ -25,6 +27,8 @@ export function Inspector({ result }: { result: SolveResult }) {
   // Slider position while it's dragged, and until the solve comes back with the clock it asked for.
   // Tied to the machine and the clock it started from, so any new result shows the real clock again.
   const [draft, setDraft] = useState<{ value: number; id: string; from: number }>();
+  const flows = useMemo(() => matchFlows(result), [result]);
+  const words = useSplitText();
   const use = result.recipes.find((u) => u.recipe.id === inspect);
   // Ticking another recipe for the part here can take this machine out of the plan; the panel then follows the
   // part to whatever makes it now, instead of closing.
@@ -66,6 +70,7 @@ export function Inspector({ result }: { result: SolveResult }) {
     setMachines(n);
   };
   const groups = buildGroups(use, tier);
+  const split = splitByDestination(use, flows, tier);
   const clock = draft && draft.id === recipe.id && draft.from === use.clock ? draft.value : use.clock;
 
   return (
@@ -173,6 +178,23 @@ export function Inspector({ result }: { result: SolveResult }) {
                 transport: t(isPipe(groups.transport) ? 'pipeName' : 'beltName', { mk: groups.transport.name }),
               })}
             </dd>
+          </div>
+        )}
+        {split && (
+          <div className="inspector-split">
+            <dt>{t('splitTitle')}</dt>
+            {split.groups.map((g) => (
+              <dd key={g.to.map((d) => (d.kind === 'recipe' ? d.recipe.id : d.kind)).join()} className="split-line">
+                <span className="split-run">{words.run(g.use)}</span>
+                <span className="split-to">{t('splitTo', { to: words.where(g.to) })}</span>
+                <span className="split-rate">
+                  {num(g.rate)}
+                  {t('perMin')}
+                </span>
+                {g.groups && <span className="split-groups">{t('groupsShort', { sizes: groupsLabel(g.groups.sizes) })}</span>}
+              </dd>
+            ))}
+            <dd className="hint groups-why">{words.extra(split)}</dd>
           </div>
         )}
         <div>

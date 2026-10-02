@@ -2,6 +2,17 @@
 
 All notable changes to FICSIT Planner. Dates are when the version was finished.
 
+## 0.12.8 — 2026-10-02
+
+### Added
+
+- **By destination**: a line whose output goes to more than one place is also shown as one group of machines per
+  place, each at its own clock, so there's no splitter ratio to work out. Four smelters sending 73.55/min to rods and
+  46.45/min to plates read as 3 × 81.72% → Iron Rod and 2 × 77.42% → Iron Plate. Each group rounds up on its own,
+  so a split can take up to one machine more per extra group; the machine panel says how many. Byproducts go with
+  each group in proportion, and a group whose belts still overflow says how to build it in groups too. Shown in the
+  machine panel, under the line in the list, and as a short badge on the graph's machine card.
+
 ## 0.12.7 — 2026-10-02
 
 ### Added

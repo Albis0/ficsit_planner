@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { Fragment, useMemo, useState } from 'react';
 import { buildingById, data } from '../lib/data';
 import type { ExtractionUse } from '../lib/extraction';
 import { useT } from '../lib/i18n';
@@ -8,8 +8,10 @@ import type { RecipeUse, SolveResult } from '../lib/solver';
 import { useStore } from '../store';
 import { groupClocks } from '../lib/clocks';
 import { buildGroups, groupsLabel, isPipe } from '../lib/groups';
+import { matchFlows, splitByDestination } from '../lib/split';
 import { Icon } from './Icon';
 import { Slot } from './Slot';
+import { useSplitText } from './SplitText';
 
 /** Buildings to place and the parts they cost, summed across the whole plan. */
 function buildBill(result: SolveResult, extraction: ExtractionUse[]) {
@@ -36,6 +38,11 @@ export function TableView({ result, extraction }: { result: SolveResult; extract
   const set = useStore((s) => s.set);
   const generated = result.grid?.plants ?? {};
   const bill = useMemo(() => buildBill(result, extraction), [result, extraction]);
+  const splits = useMemo(() => {
+    const flows = matchFlows(result);
+    return new Map(result.recipes.map((u) => [u.recipe.id, splitByDestination(u, flows, tier)]));
+  }, [result, tier]);
+  const words = useSplitText();
 
   // What the pointer is on, else the selected line: its inputs light up where other lines make them, and its
   // outputs where other lines take them. Pointing at one item lights that item everywhere.
@@ -86,42 +93,72 @@ export function TableView({ result, extraction }: { result: SolveResult; extract
           </tr>
         </thead>
         <tbody>
-          {result.recipes.map((u) => (
-            <tr
-              key={u.recipe.id}
-              className={`${u.recipe.kind} ${inspect === u.recipe.id ? 'selected' : ''} ${rowMark(u)}`}
-              onClick={() => set({ inspect: u.recipe.id })}
-              onPointerEnter={(e) => e.pointerType === 'mouse' && setHover({ row: u.recipe.id })}
-              onPointerLeave={() => setHover({})}
-            >
-              <td className="recipe-cell">
-                {recipeLabel(name(u.recipe), u.recipe.kind)}
-                {u.recipe.kind !== 'standard' && <span className={`kind ${u.recipe.kind}`}>{t(u.recipe.kind)}</span>}
-              </td>
-              <td className="dim" data-label={t('building')}>
-                <span className="flow">
-                  <Icon id={u.recipe.machine} size={34} />
-                  {name(buildingById(u.recipe.machine))}
-                </span>
-              </td>
-              <td className="n strong" data-label={t('count')}>
-                {u.built}
-                <TableGroups use={u} tier={tier} />
-              </td>
-              <td className="n clocks" data-label={t('clock')}>
-                {groupClocks(u.clocks)
-                  .map((g) => `${groupClocks(u.clocks).length > 1 ? `${g.n}× ` : ''}${num(g.clock * 100)}%`)
-                  .join(', ')}
-                {u.shards > 0 && <span className="mod-badge shard">{u.shards} ◆</span>}
-                {u.sloops > 0 && <span className="mod-badge sloop">{u.sloops} ●</span>}
-              </td>
-              <td className={`n ${u.recipe.kind === 'power' ? 'made' : ''}`} data-label={t('power')}>
-                {u.recipe.kind === 'power' ? `+${num(generated[plantIdOf(u.recipe.id) ?? ''] ?? 0)}` : num(u.power)} MW
-              </td>
-              <td data-label={t('inputs')}>{flows(u, 'in')}</td>
-              <td data-label={t('outputs')}>{flows(u, 'out')}</td>
-            </tr>
-          ))}
+          {result.recipes.map((u) => {
+            const split = splits.get(u.recipe.id);
+            return (
+              <Fragment key={u.recipe.id}>
+                <tr
+                  className={`${u.recipe.kind} ${inspect === u.recipe.id ? 'selected' : ''} ${rowMark(u)}`}
+                  onClick={() => set({ inspect: u.recipe.id })}
+                  onPointerEnter={(e) => e.pointerType === 'mouse' && setHover({ row: u.recipe.id })}
+                  onPointerLeave={() => setHover({})}
+                >
+                  <td className="recipe-cell">
+                    {recipeLabel(name(u.recipe), u.recipe.kind)}
+                    {u.recipe.kind !== 'standard' && <span className={`kind ${u.recipe.kind}`}>{t(u.recipe.kind)}</span>}
+                  </td>
+                  <td className="dim" data-label={t('building')}>
+                    <span className="flow">
+                      <Icon id={u.recipe.machine} size={34} />
+                      {name(buildingById(u.recipe.machine))}
+                    </span>
+                  </td>
+                  <td className="n strong" data-label={t('count')}>
+                    {u.built}
+                    <TableGroups use={u} tier={tier} />
+                    {split && split.extra > 0 && <span className="table-groups">{t('splitExtraShort', { n: split.extra })}</span>}
+                  </td>
+                  <td className="n clocks" data-label={t('clock')}>
+                    {groupClocks(u.clocks)
+                      .map((g) => `${groupClocks(u.clocks).length > 1 ? `${g.n}× ` : ''}${num(g.clock * 100)}%`)
+                      .join(', ')}
+                    {u.shards > 0 && <span className="mod-badge shard">{u.shards} ◆</span>}
+                    {u.sloops > 0 && <span className="mod-badge sloop">{u.sloops} ●</span>}
+                  </td>
+                  <td className={`n ${u.recipe.kind === 'power' ? 'made' : ''}`} data-label={t('power')}>
+                    {u.recipe.kind === 'power' ? `+${num(generated[plantIdOf(u.recipe.id) ?? ''] ?? 0)}` : num(u.power)} MW
+                  </td>
+                  <td data-label={t('inputs')}>{flows(u, 'in')}</td>
+                  <td data-label={t('outputs')}>{flows(u, 'out')}</td>
+                </tr>
+                {split?.groups.map((g) => (
+                  <tr
+                    key={g.to.map((d) => (d.kind === 'recipe' ? d.recipe.id : d.kind)).join()}
+                    className={`split-row ${inspect === u.recipe.id ? 'selected' : ''}`}
+                    title={words.extra(split)}
+                    onClick={() => set({ inspect: u.recipe.id })}
+                  >
+                    <td className="recipe-cell">{t('splitTo', { to: words.where(g.to) })}</td>
+                    <td className="dim" data-label={t('building')} />
+                    <td className="n" data-label={t('count')}>
+                      {g.use.built}
+                      {g.groups && <span className="table-groups">{t('groupsShort', { sizes: groupsLabel(g.groups.sizes) })}</span>}
+                    </td>
+                    <td className="n clocks" data-label={t('clock')}>
+                      {groupClocks(g.use.clocks)
+                        .map((c) => `${groupClocks(g.use.clocks).length > 1 ? `${c.n}× ` : ''}${num(c.clock * 100)}%`)
+                        .join(', ')}
+                    </td>
+                    <td className="n" data-label={t('power')}>
+                      {num(g.use.power)} MW
+                    </td>
+                    <td data-label={t('inputs')}>{flows(g.use, 'in')}</td>
+                    <td data-label={t('outputs')}>{flows(g.use, 'out')}</td>
+                  </tr>
+                ))}
+              </Fragment>
+            );
+          })}
         </tbody>
       </table>
 

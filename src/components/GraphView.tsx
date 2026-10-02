@@ -33,6 +33,7 @@ import {
   type Point,
   type PowerEdgeData,
   type PowerNodeData,
+  cardExtra,
   runExtra,
 } from '../lib/graph';
 import { useT } from '../lib/i18n';
@@ -44,6 +45,7 @@ import { usePlan, useStore } from '../store';
 import { Glyph } from './Glyph';
 import { Icon } from './Icon';
 import { Slot } from './Slot';
+import { SplitBadge } from './SplitText';
 
 /** Hovered node and its direct neighbours; everything else fades so one line can be followed. */
 const Focus = createContext<{ node?: string; near: Set<string>; edge?: string }>({ near: new Set() });
@@ -177,7 +179,7 @@ function GeneratorNode({ id, data: d, selected }: NodeProps) {
 function MachineNode(props: NodeProps) {
   const { id, data: d, selected } = props;
   const { name, num } = useT();
-  const { use } = d as MachineNodeData;
+  const { use, split } = d as MachineNodeData;
   const dir = useContext(Flow);
   const { recipe } = use;
   const faded = useFaded(id);
@@ -186,7 +188,7 @@ function MachineNode(props: NodeProps) {
   return (
     <div
       className={`machine-node ${recipe.kind} ${faded ? 'faded' : ''} ${selected ? 'selected' : ''}`}
-      style={{ ['--run-extra' as string]: runExtra(use), ...(bar ? { ['--mod-bar' as string]: bar } : {}) }}
+      style={{ ['--run-extra' as string]: cardExtra(use, split), ...(bar ? { ['--mod-bar' as string]: bar } : {}) }}
     >
       <Handle type="target" position={inSide(dir)} />
       {/* The in-game build menu look: a coloured strip naming what it makes, the building and its draw below. */}
@@ -211,6 +213,7 @@ function MachineNode(props: NodeProps) {
             {use.sloops > 0 && <span className="mod-badge sloop">{use.sloops} ●</span>}
             <GroupsBadge use={use} />
           </span>
+          {split && <SplitBadge split={split} />}
         </span>
       </div>
       <Handle type="source" position={outSide(dir)} />

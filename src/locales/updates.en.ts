@@ -6,6 +6,16 @@ export type UpdateKind = 'added' | 'fixed' | 'changed';
 
 export const UPDATES: { version: string; date: string; notes: [UpdateKind, string][] }[] = [
   {
+    version: '0.12.8',
+    date: '2026-10-02',
+    notes: [
+      [
+        'added',
+        'A line feeding more than one place is also shown as one group of machines per place, each at its own clock: no splitter ratios.',
+      ],
+    ],
+  },
+  {
     version: '0.12.7',
     date: '2026-10-02',
     notes: [

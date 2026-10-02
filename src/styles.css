@@ -2701,6 +2701,60 @@ button.slot:hover {
   font: 600 12px var(--font-body);
 }
 
+/* "By destination": one group of machines per place the output goes, each at its own clock. */
+.mod-badge.split {
+  align-self: flex-start;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  color: var(--supply);
+  white-space: nowrap;
+  line-height: calc(32px * (0.3 + 0.7 * var(--t)));
+}
+
+.inspector-stats > .inspector-split {
+  flex-wrap: wrap;
+  row-gap: 6px;
+}
+
+.inspector-stats dd.split-line {
+  flex-basis: 100%;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 4px 10px;
+  font: 700 17px var(--font-display);
+}
+
+.split-line .split-to {
+  flex: 1;
+  min-width: 0;
+  color: var(--supply);
+}
+
+.split-line .split-rate {
+  color: var(--dim);
+}
+
+.split-line .split-groups {
+  flex-basis: 100%;
+  font: 600 12px var(--font-body);
+  color: var(--fluid);
+}
+
+/* Under a line in the list: its groups by destination, indented and quieter. */
+.plan-table tbody tr.split-row td {
+  padding-top: 4px;
+  padding-bottom: 4px;
+  font-size: 15px;
+  color: var(--dim);
+}
+
+.plan-table tbody tr.split-row td.recipe-cell {
+  padding-left: 34px;
+  color: var(--supply);
+}
+
 .inspector .text-button {
   align-self: flex-start;
 }
@@ -6235,6 +6289,22 @@ button.gen-count[aria-pressed='true'] {
 
   .plan-table td:nth-last-child(-n + 2) {
     grid-column: 1 / -1;
+  }
+
+  /* A line's groups by destination hang under its card, indented. */
+  .plan-table tbody tr.split-row {
+    margin: -6px 0 10px 18px;
+    padding: 8px 12px;
+    border-left: 3px solid var(--supply);
+  }
+
+  .plan-table tbody tr.split-row td.dim {
+    display: none;
+  }
+
+  .plan-table tbody tr.split-row td.recipe-cell {
+    padding-left: 0;
+    font-size: 16px;
   }
 
   .bill {

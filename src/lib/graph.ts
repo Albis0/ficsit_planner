@@ -4,6 +4,7 @@ import { groupClocks } from './clocks';
 import { data, transportFor, type Transport } from './data';
 import { plantIdOf } from './power';
 import type { RecipeUse, SolveResult } from './solver';
+import { matchFlows, type Split, splitByDestination } from './split';
 
 /** Left to right or top to bottom. The layout picks whichever fits the screen, unless the player chose. */
 export type Direction = 'LR' | 'TB';
@@ -14,6 +15,8 @@ export interface MachineNodeData extends Record<string, unknown> {
   use: RecipeUse;
   /** Generators: MW this plant puts on the grid, augmenter boost included. */
   generation?: number;
+  /** The line built as one group per place its output goes, when it goes to more than one. */
+  split?: Split;
 }
 
 /** Who draws from the grid: a factory, the fuel chain itself, what the player typed in, or the output sent on. */
@@ -103,6 +106,8 @@ export const SIZE = {
 /** Each clock group past the first ("+ 1 × 126.19%") takes a line of its own under the count, and the card grows by it. */
 export const RUN_LINE = 32;
 export const runExtra = (u: RecipeUse) => Math.max(0, groupClocks(u.clocks).length - 1);
+/** Lines a machine card grows by: extra clock groups, and the split by destination on a line of its own. */
+export const cardExtra = (u: RecipeUse, split?: Split) => runExtra(u) + (split ? 1 : 0);
 
 type Box = { width: number; height: number };
 
@@ -145,24 +150,12 @@ export interface GraphOptions {
   consumers?: Consumer[];
 }
 
-/**
- * Turns an LP solution into a factory graph. Each item's producers are matched to its
- * consumers greedily (largest first), which keeps the number of belts low compared
- * to splitting every producer proportionally across every consumer.
- */
+/** Turns an LP solution into a factory graph, with a belt for each flow `matchFlows` finds. */
 export function buildGraph(result: SolveResult, tier: number, opts: GraphOptions = {}): { nodes: Node[]; edges: Edge[]; dir: Direction } {
   const k = opts.scale ?? 1;
   const box = (size: Box) => cardBox(size, k, opts.text ?? 1);
   const nodes: Node[] = [];
   const sides = new Map<string, { source: boolean; target: boolean }>();
-  const producers = new Map<string, { node: string; rate: number }[]>();
-  const consumers = new Map<string, { node: string; rate: number }[]>();
-  const push = (m: typeof producers, item: string, node: string, rate: number) => {
-    if (rate <= 1e-6) return;
-    const list = m.get(item) ?? [];
-    list.push({ node, rate });
-    m.set(item, list);
-  };
 
   const endpoint = (kind: EndpointKind, item: string, rate: number) => {
     const id = `${kind}:${item}`;
@@ -176,58 +169,42 @@ export function buildGraph(result: SolveResult, tier: number, opts: GraphOptions
       handles: [],
     });
     sides.set(id, { source, target: !source });
-    return id;
   };
 
-  for (const r of result.raw) push(producers, r.item, endpoint('raw', r.item, r.rate), r.rate);
-  for (const s of result.supplies) push(producers, s.item, endpoint('supply', s.item, s.rate), s.rate);
-  for (const m of result.missing) push(producers, m.item, endpoint('missing', m.item, m.rate), m.rate);
+  for (const r of result.raw) endpoint('raw', r.item, r.rate);
+  for (const s of result.supplies) endpoint('supply', s.item, s.rate);
+  for (const m of result.missing) endpoint('missing', m.item, m.rate);
 
+  const flows = matchFlows(result);
   for (const u of result.recipes) {
     const id = `recipe:${u.recipe.id}`;
     const plant = plantIdOf(u.recipe.id);
+    const split = splitByDestination(u, flows, tier);
     nodes.push({
       id,
       type: 'machine',
       position: { x: 0, y: 0 },
-      data: { use: u, generation: plant ? (result.grid?.plants[plant] ?? 0) : undefined } satisfies MachineNodeData,
-      ...box({ ...SIZE.machine, height: SIZE.machine.height + RUN_LINE * runExtra(u) }),
+      data: { use: u, generation: plant ? (result.grid?.plants[plant] ?? 0) : undefined, split } satisfies MachineNodeData,
+      ...box({ ...SIZE.machine, height: SIZE.machine.height + RUN_LINE * cardExtra(u, split) }),
       handles: [],
     });
     sides.set(id, { source: true, target: true });
-    for (const o of u.outputs) push(producers, o.item, id, o.rate);
-    for (const i of u.inputs) push(consumers, i.item, id, i.rate);
   }
 
-  for (const t of result.targets) push(consumers, t.item, endpoint('target', t.item, t.rate), t.rate);
-  for (const s of result.surplus) push(consumers, s.item, endpoint('surplus', s.item, s.rate), s.rate);
+  for (const t of result.targets) endpoint('target', t.item, t.rate);
+  for (const s of result.surplus) endpoint('surplus', s.item, s.rate);
 
   const edges: Edge[] = [];
-  for (const [item, prod] of producers) {
-    const cons = consumers.get(item);
-    if (!cons) continue;
-    const p = prod.map((x) => ({ ...x })).sort((a, b) => b.rate - a.rate);
-    const c = cons.map((x) => ({ ...x })).sort((a, b) => b.rate - a.rate);
-    let i = 0;
-    let j = 0;
-    while (i < p.length && j < c.length) {
-      const flow = Math.min(p[i].rate, c[j].rate);
-      if (flow > 1e-4 && p[i].node !== c[j].node) {
-        const it = data.items[item];
-        const { transport, lanes } = transportFor(it, flow, tier);
-        edges.push({
-          id: `${p[i].node}>${c[j].node}>${item}`,
-          source: p[i].node,
-          target: c[j].node,
-          type: 'flow',
-          data: { item, rate: flow, transport, lanes } satisfies FlowEdgeData,
-        });
-      }
-      p[i].rate -= flow;
-      c[j].rate -= flow;
-      if (p[i].rate <= 1e-6) i++;
-      if (c[j].rate <= 1e-6) j++;
-    }
+  for (const f of flows) {
+    if (f.from === f.to) continue;
+    const { transport, lanes } = transportFor(data.items[f.item], f.rate, tier);
+    edges.push({
+      id: `${f.from}>${f.to}>${f.item}`,
+      source: f.from,
+      target: f.to,
+      type: 'flow',
+      data: { item: f.item, rate: f.rate, transport, lanes } satisfies FlowEdgeData,
+    });
   }
 
   if (result.grid) addGrid(result, nodes, edges, sides, opts.consumers ?? [], box);
