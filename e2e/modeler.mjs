@@ -847,6 +847,7 @@ const clash = (a, b) => a && b && a.x < b.x + b.width && b.x < a.x + a.width && 
     const mm = await model();
     const tag = item.replace(/^Desc_|_C$/g, '');
     await shot(`big-${tag}-open`);
+    ok(`${tag}: converted, the whole floor in view`, await allInView());
     ok(
       `${tag}: opens on cards`,
       (await page.$$eval(
@@ -1076,6 +1077,7 @@ const clash = (a, b) => a && b && a.x < b.x + b.width && b.x < a.x + a.width && 
   await settle();
   await wait(600);
   await shot('c-motor');
+  ok('converted on a phone, the whole floor in view', await allInView());
   const bar = await page.locator('.floor-bar').boundingBox();
   const controls = await page.locator('.floor-controls').boundingBox();
   const kinds = await page.locator('.floor-kind').boundingBox();

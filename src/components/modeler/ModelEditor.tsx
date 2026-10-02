@@ -64,6 +64,12 @@ function topRoom() {
   return floor && bar ? Math.max(TOP, Math.round(bar.bottom - floor.top + 12)) : TOP;
 }
 
+/** Furthest out: far enough for a whole big factory on a phone. */
+const MIN_ZOOM = 0.04;
+
+/** How long after opening a floor its camera follows the floor's size, while the totals over it come in. */
+const SETTLE = 3000;
+
 /** The chooser's size, for keeping it inside the floor. */
 const CHOOSER = { w: 440, h: 520 };
 /** Narrower than this, the chooser comes up from the bottom instead. */
@@ -89,7 +95,7 @@ function fitted(nodes: Node[], width: number, height: number, top: number): View
   const y1 = Math.max(...nodes.map((n) => n.position.y + (n.height ?? 0)));
   const w = width - 48;
   const h = height - top - BAR;
-  const zoom = Math.max(0.1, Math.min(1, w / Math.max(1, x1 - x0), h / Math.max(1, y1 - y0)));
+  const zoom = Math.max(MIN_ZOOM, Math.min(1, w / Math.max(1, x1 - x0), h / Math.max(1, y1 - y0)));
   return { x: 24 + (w - (x1 - x0) * zoom) / 2 - x0 * zoom, y: top + (h - (y1 - y0) * zoom) / 2 - y0 * zoom, zoom };
 }
 
@@ -396,6 +402,41 @@ function Canvas({ host, calc }: { host: ModelHost; calc?: CalcResult }) {
     [model, host, tier, choose],
   );
 
+  // The camera a floor opens with: all of it when built afresh or tidied up, else the stretch with the most cards.
+  // Kept while the floor around it settles (the totals come in a moment later and take room from the top), until
+  // the player moves it.
+  const settling = useRef<{ until: number; all: boolean }>(undefined);
+  const latest = useRef(nodes);
+  latest.current = nodes;
+  const openCamera = useCallback(
+    (all: boolean) => {
+      const box = document.querySelector('.floor-view')?.getBoundingClientRect();
+      if (!box) return;
+      const sized = latest.current.map((n) => {
+        const { w, h } = cardSize((n.data as PartData).node);
+        return { ...n, width: w, height: h };
+      });
+      const top = topRoom();
+      if (all) return void flow.setViewport(fitted(sized, box.width, box.height, top));
+      // Below the toolbar along the top, above the buttons along the bottom.
+      const h = box.height - BAR - top;
+      const v = openingViewport(sized, box.width, h, 'LR');
+      const d = densest(sized, v, box.width, h);
+      flow.setViewport({ ...d, y: d.y + top });
+    },
+    [flow],
+  );
+  useEffect(() => {
+    const floor = document.querySelector('.floor-view');
+    if (!floor) return;
+    const watch = new ResizeObserver(() => {
+      const s = settling.current;
+      if (s && performance.now() < s.until) openCamera(s.all);
+    });
+    watch.observe(floor);
+    return () => watch.disconnect();
+  }, [openCamera]);
+
   const closeChooser = useCallback(() => setChoosing(undefined), []);
   const parts = model.nodes.filter(isPart).length;
 
@@ -453,28 +494,21 @@ function Canvas({ host, calc }: { host: ModelHost; calc?: CalcResult }) {
             multiSelectionKeyCode={['Control', 'Meta']}
             selectionKeyCode="Shift"
             selectionMode={SelectionMode.Partial}
-            minZoom={0.1}
+            minZoom={MIN_ZOOM}
             maxZoom={2}
             snapToGrid
             snapGrid={[20, 20]}
             proOptions={{ hideAttribution: true }}
             defaultViewport={cameras.get(host.key)}
-            onInit={(f) => {
+            onInit={() => {
               if (cameras.has(host.key) || model.nodes.length === 0) return;
-              const box = document.querySelector('.floor-view')?.getBoundingClientRect();
-              const sized = nodes.map((n) => {
-                const { w, h } = cardSize((n.data as PartData).node);
-                return { ...n, width: w, height: h };
-              });
-              if (!box) return;
-              const top = topRoom();
-              // Built afresh or tidied up: all of it, to see what came out.
-              if (showAll.delete(host.key)) return f.setViewport(fitted(sized, box.width, box.height, top));
-              // Below the toolbar along the top, above the buttons along the bottom.
-              const h = box.height - BAR - top;
-              const v = openingViewport(sized, box.width, h, 'LR');
-              const d = densest(sized, v, box.width, h);
-              f.setViewport({ ...d, y: d.y + top });
+              const all = showAll.delete(host.key);
+              settling.current = { until: performance.now() + SETTLE, all };
+              openCamera(all);
+            }}
+            onMoveStart={(e) => {
+              // Moved by the player: the camera is theirs from here on.
+              if (e) settling.current = undefined;
             }}
             onMoveEnd={(_, v) => cameras.set(host.key, v)}
             onNodeClick={(e, n) => {
