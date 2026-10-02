@@ -28,8 +28,8 @@ export interface BeltData extends Record<string, unknown> {
 /** Opens a belt in the panel, from its label. */
 export const PickLink = createContext<(id: string) => void>(() => {});
 
-/** Belts shorter than this, in floor units, show no label unless picked. */
-const SHORT = 220;
+/** Belts shorter than their label, in floor units, show none unless picked; a laid-out floor keeps room for it. */
+const SHORT = 180;
 
 /** Below this zoom belt labels hide, so the machines stay readable. */
 const FAR_ZOOM = 0.55;
@@ -65,6 +65,8 @@ export function BeltLink({ sourceX, sourceY, targetX, targetY, sourcePosition, t
   const short = Math.hypot(targetX - sourceX, targetY - sourceY) < SHORT;
   const shown = item && (selected || labels === 'always' || (labels === 'auto' && !far && !short));
   const bad = calc?.status === 'jam' || calc?.status === 'unbounded';
+  // Full at the Mk, not at a limit the player set lower.
+  const full = calc?.status === 'capped' && !(link.lim !== undefined && link.lim < transport.rate * lanes);
   return (
     <>
       {/* A wide invisible line over the belt, so it's easy to click. */}
@@ -85,14 +87,16 @@ export function BeltLink({ sourceX, sourceY, targetX, targetY, sourcePosition, t
               <Icon id={calc?.items[0]?.[0] ?? item} size={24} />
               <span className="edge-text">
                 <span className="edge-meta">
-                  <span className="edge-rate">
-                    {num(calc?.rate ?? 0)}
-                    {t('perMin')}
-                  </span>
+                  {calc && (
+                    <span className="edge-rate">
+                      {num(calc.rate)}
+                      {t('perMin')}
+                    </span>
+                  )}
                   <span
-                    className={`edge-tier ${calc?.status === 'capped' ? 'full' : ''}`}
+                    className={`edge-tier ${full ? 'full' : ''}`}
                     style={{ background: color }}
-                    title={calc?.status === 'capped' ? t('beltFull', { mk: transport.name }) : undefined}
+                    title={full ? t('beltFull', { mk: transport.name }) : undefined}
                   >
                     {lanes > 1 && `${lanes}× `}
                     {transport.name}

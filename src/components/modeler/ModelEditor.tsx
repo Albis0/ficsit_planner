@@ -8,6 +8,7 @@ import {
   type Node,
   type NodeChange,
   ReactFlow,
+  SelectionMode,
   type Viewport,
   ReactFlowProvider,
   useReactFlow,
@@ -64,6 +65,36 @@ const SHEET = 600;
 /** Where the camera was on each model, so coming back from the list finds the floor as it was left. */
 const cameras = new Map<string, Viewport>();
 
+/** Forgets where the camera was on a model, so a model built afresh opens like a new one. */
+export const forgetCamera = (key: string) => cameras.delete(key);
+
+/**
+ * A big floor opens at the readable zoom on the stretch with the most cards in view, rather than on the first
+ * column, which on a floor laid out by hand or tidied can be one miner in an empty corner.
+ */
+function densest(nodes: Node[], v: Viewport, width: number, height: number): Viewport {
+  const centres = nodes.map((n) => ({ x: n.position.x + (n.width ?? 0) / 2, y: n.position.y + (n.height ?? 0) / 2 }));
+  const w = width / v.zoom / 2;
+  const h = height / v.zoom / 2;
+  const inside = (c: { x: number; y: number }) => centres.filter((p) => Math.abs(p.x - c.x) < w && Math.abs(p.y - c.y) < h);
+  // The whole floor already in view: as it is.
+  const shown = { x: (width / 2 - v.x) / v.zoom, y: (height / 2 - v.y) / v.zoom };
+  if (inside(shown).length === centres.length) return v;
+  let best = shown;
+  let most = inside(shown).length;
+  for (const c of centres) {
+    const near = inside(c);
+    // Centred on what's around it, so the cards at the window's edge aren't cut in half.
+    const mid = { x: near.reduce((s, p) => s + p.x, 0) / near.length, y: near.reduce((s, p) => s + p.y, 0) / near.length };
+    const n = inside(mid).length;
+    if (n > most || (n === most && mid.x < best.x)) {
+      most = n;
+      best = mid;
+    }
+  }
+  return { x: width / 2 - best.x * v.zoom, y: height / 2 - best.y * v.zoom, zoom: v.zoom };
+}
+
 /** What the panel shows: a node by its id, or a belt as "link:<id>". */
 export const linkKey = (id: string) => `link:${id}`;
 
@@ -101,7 +132,7 @@ function Canvas({ host, calc }: { host: ModelHost; calc?: CalcResult }) {
 
   // Cards as React Flow draws them. Kept here so a drag moves the card at once; the model hears of it when it's let go.
   const toNodes = useCallback(
-    (m: Model, keep?: Node[]): Node[] => {
+    (m: Model, keep?: Node[], letGo = false): Node[] => {
       const open = openEnds(m);
       const wired = new Map<string, { ins: boolean[]; outs: boolean[] }>();
       for (const n of m.nodes) {
@@ -121,14 +152,20 @@ function Canvas({ host, calc }: { host: ModelHost; calc?: CalcResult }) {
         type: 'part',
         position: { x: n.x, y: n.y },
         data: { node: n, wired: wired.get(n.id)!, open: open.get(n.id) } satisfies PartData,
-        selected: inspect === n.id || was.get(n.id)?.selected,
+        selected: inspect === n.id || (!letGo && was.get(n.id)?.selected),
       }));
     },
     [inspect],
   );
   const [nodes, setNodes] = useState<Node[]>(() => toNodes(model));
+  // Closing the panel lets go of the cards too, so on a phone a finger on them pans the floor again.
+  const shownBefore = useRef(inspect);
   // biome-ignore lint/correctness/useExhaustiveDependencies: a new model (or a new pick in the panel) redraws the cards.
-  useEffect(() => setNodes((cur) => toNodes(model, cur)), [model, inspect]);
+  useEffect(() => {
+    const letGo = shownBefore.current !== undefined && inspect === undefined;
+    shownBefore.current = inspect;
+    setNodes((cur) => toNodes(model, cur, letGo));
+  }, [model, inspect]);
 
   const [picked, setPicked] = useState<Set<string>>(new Set());
   const net = useMemo(() => compile(model, tier), [model, tier]);
@@ -176,7 +213,11 @@ function Canvas({ host, calc }: { host: ModelHost; calc?: CalcResult }) {
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
-      if (typing(e)) return;
+      if (typing(e)) {
+        // Escape in a field of the panel leaves the field; a second one lets go of the card.
+        if (e.key === 'Escape') (e.target as HTMLElement).blur?.();
+        return;
+      }
       const mod = e.ctrlKey || e.metaKey;
       if (mod && e.key.toLowerCase() === 'z') {
         e.preventDefault();
@@ -190,7 +231,8 @@ function Canvas({ host, calc }: { host: ModelHost; calc?: CalcResult }) {
         removeSelected();
       } else if (e.key === 'Escape') {
         setPicked(new Set());
-        flowStore.setState({ connectionClickStartHandle: null });
+        setNodes((cur) => cur.map((n) => (n.selected ? { ...n, selected: false } : n)));
+        flowStore.setState({ connectionClickStartHandle: null, nodesSelectionActive: false });
         set({ inspect: undefined });
       }
     };
@@ -357,8 +399,12 @@ function Canvas({ host, calc }: { host: ModelHost; calc?: CalcResult }) {
           onConnectEnd={onConnectEnd}
           isValidConnection={isValid}
           onDoubleClick={(e) => {
-            // A double click on the empty floor puts something down there.
+            // A double click on the empty floor puts something down there; so does a right click.
             if ((e.target as HTMLElement).classList.contains('react-flow__pane')) choose({ x: e.clientX, y: e.clientY });
+          }}
+          onPaneContextMenu={(e) => {
+            e.preventDefault();
+            choose({ x: e.clientX, y: e.clientY });
           }}
           connectOnClick
           nodesDraggable
@@ -367,6 +413,7 @@ function Canvas({ host, calc }: { host: ModelHost; calc?: CalcResult }) {
           deleteKeyCode={null}
           multiSelectionKeyCode={['Control', 'Meta']}
           selectionKeyCode="Shift"
+          selectionMode={SelectionMode.Partial}
           minZoom={0.1}
           maxZoom={2}
           snapToGrid
@@ -382,8 +429,10 @@ function Canvas({ host, calc }: { host: ModelHost; calc?: CalcResult }) {
             });
             if (!box) return;
             // Below the toolbar along the top, above the buttons along the bottom.
-            const v = openingViewport(sized, box.width, box.height - BAR - TOP, 'LR');
-            f.setViewport({ ...v, y: v.y + TOP });
+            const h = box.height - BAR - TOP;
+            const v = openingViewport(sized, box.width, h, 'LR');
+            const d = densest(sized, v, box.width, h);
+            f.setViewport({ ...d, y: d.y + TOP });
           }}
           onMoveEnd={(_, v) => cameras.set(host.key, v)}
           onNodeClick={(e, n) => {
@@ -488,7 +537,8 @@ function Canvas({ host, calc }: { host: ModelHost; calc?: CalcResult }) {
 export function ModelEditor({ host, calc }: { host: ModelHost; calc?: CalcResult }) {
   return (
     <ReactFlowProvider key={host.key}>
-      <Canvas host={host} calc={calc} />
+      {/* With the numbers off, cards and belts show none: not even zeros. */}
+      <Canvas host={host} calc={calc?.mode === 'off' ? undefined : calc} />
     </ReactFlowProvider>
   );
 }

@@ -10064,3 +10064,17 @@ a.codex-flow:hover {
     font-size: 14px;
   }
 }
+
+/* Cards picked with a box stay clickable one by one; dragging any of them moves them all. */
+.floor-view .react-flow__nodesselection-rect {
+  pointer-events: none;
+  border: 0;
+  background: none;
+}
+
+/* A card's panel open on a wide screen: + Add and Fit step left of it instead of going under it. */
+@media (min-width: 901px) {
+  .floor-view:has(> .inspector.manual) .floor-controls {
+    right: 436px;
+  }
+}

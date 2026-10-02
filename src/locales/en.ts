@@ -947,6 +947,7 @@ export const en = {
   beltMk: 'Belt',
   pipeMk: 'Pipe',
   beltFull: '{mk} is full',
+  beltAtLimit: 'At the limit set below',
   beltJam: 'Wrong item: nothing moves',
   beltUnbounded: 'Nothing limits this',
   beltsSide: 'Belts side by side',
@@ -969,4 +970,6 @@ export const en = {
   openEnds: '{n} not connected',
   openEndsHint: 'Cards with an end that needs a belt; each click goes to the next one',
   notConnected: 'Not connected',
+  tidy: 'Tidy up',
+  tidyHint: 'Lay every card out afresh, left to right, with the belts routed around them. Undo puts them back.',
 };

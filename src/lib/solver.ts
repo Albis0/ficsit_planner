@@ -208,13 +208,19 @@ function machineClocks(built: number, units: number): number[] {
   });
 }
 
-export function describeUse(recipe: Recipe, mod: RecipeMod, count: number): RecipeUse {
+export function describeUse(recipe: Recipe, mod: RecipeMod, count: number, asSet = false): RecipeUse {
   const built = Math.max(1, Math.ceil(count - EPS));
   const clock = (mod.clock * count) / built;
   const amp = amplification(recipe, mod);
   const slots = sloopSlots(recipe);
   const sloops = Math.round(built * Math.min(mod.sloops, slots));
-  const clocks = machineClocks(built, mod.clock * count);
+  // Built by hand, each machine runs at the clock the player set and the part machine at its share of it: 8/3 at
+  // 150% is 2 at 150% and 1 at 100%. Worked out, the clocks spread for the fewest power shards.
+  const whole = Math.floor(count + EPS);
+  const part = count - whole;
+  const clocks = asSet
+    ? [...Array.from({ length: whole }, () => mod.clock), ...(part > EPS ? [mod.clock * part] : [])]
+    : machineClocks(built, mod.clock * count);
   const shards = clocks.reduce((s, c) => s + shardsFor(c), 0);
   return {
     inputs: recipe.inputs.map((s) => ({ item: s.item, rate: s.rate * mod.clock * count })),

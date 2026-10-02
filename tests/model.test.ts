@@ -5,6 +5,7 @@ import { DEFAULT_EXTRACTION } from '../src/lib/extraction';
 import { adaptModel } from '../src/lib/model/calc/adapter';
 import { calcKey, calcModel } from '../src/lib/model/calc';
 import { modelFromSolve } from '../src/lib/model/fromAuto';
+import { arrangeModel } from '../src/lib/model/arrange';
 import { openCards, openEnds } from '../src/lib/model/checks';
 import { choicesFor, choiceWords, placeChoice, wantAt } from '../src/lib/model/choices';
 import { cardSize, freeSpot } from '../src/lib/model/layout';
@@ -379,4 +380,39 @@ describe('open ends', () => {
       outs: [true, true, true],
     });
   });
+});
+
+describe('tidy up', () => {
+  const standard = () => new Set(data.recipes.filter((r) => r.kind === 'standard').map((r) => r.id));
+  for (const [item, rate] of [
+    ['Desc_Motor_C', 10],
+    ['Desc_MotorLightweight_C', 2],
+    ['Desc_SpaceElevatorPart_9_C', 2],
+  ] as const)
+    test(`${item}: no card on another, every belt routed, left to right`, () => {
+      const auto = solve(highs, {
+        targets: [{ item, rate }],
+        supplies: [],
+        enabledRecipes: standard(),
+        resourceCaps: {},
+        objective: 'resources',
+      });
+      const m = modelFromSolve(auto, 9, DEFAULT_EXTRACTION);
+      const box = (n: MNode) => ({ ...cardSize(n), x: n.x, y: n.y });
+      for (let i = 0; i < m.nodes.length; i++)
+        for (let j = i + 1; j < m.nodes.length; j++) {
+          const a = box(m.nodes[i]);
+          const b = box(m.nodes[j]);
+          expect(a.x < b.x + b.w && b.x < a.x + a.w && a.y < b.y + b.h && b.y < a.y + a.h).toBe(false);
+        }
+      expect(m.links.every((l) => (l.pts?.length ?? 0) > 0)).toBe(true);
+      const at = new Map(m.nodes.map((n) => [n.id, n]));
+      // Left to right, but for a belt that loops back (a byproduct fed back in).
+      const back = m.links.filter((l) => at.get(l.a)!.x >= at.get(l.b)!.x);
+      expect(back.length).toBeLessThanOrEqual(Math.ceil(m.links.length * 0.05));
+      // Tidying again changes nothing; a moved card goes back.
+      expect(arrangeModel(m)).toEqual(m);
+      const moved = { ...m, nodes: m.nodes.map((n, i) => (i === 0 ? { ...n, x: n.x + 999 } : n)) };
+      expect(arrangeModel(moved).nodes).toEqual(m.nodes);
+    });
 });

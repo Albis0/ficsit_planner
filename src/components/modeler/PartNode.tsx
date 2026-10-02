@@ -97,7 +97,7 @@ function Machine({ data: d, selected }: { data: PartData; selected: boolean }) {
   if (n.k !== 'machine' && n.k !== 'gen') return null;
   const recipe = runnerRecipe(n);
   if (!recipe) return null;
-  const use = describeUse(recipe, { clock: n.clock ?? 1, sloops: n.k === 'machine' ? (n.sloops ?? 0) : 0 }, n.n ?? 1);
+  const use = describeUse(recipe, { clock: n.clock ?? 1, sloops: n.k === 'machine' ? (n.sloops ?? 0) : 0 }, n.n ?? 1, true);
   const bar = modBar(use.shards, use.sloops);
   const ends = Math.max(recipe.inputs.length, recipe.outputs.length);
   return (
@@ -121,7 +121,7 @@ function Machine({ data: d, selected }: { data: PartData; selected: boolean }) {
           <span className="machine-type">{name(data.machines[recipe.machine] ?? { name: recipe.machine })}</span>
           <RunLine clocks={use.clocks} />
           <span className="machine-mods">
-            {recipe.kind !== 'power' && (
+            {recipe.kind !== 'power' && calc && (
               <span className="machine-draw">
                 {num(use.power * (calc?.u ?? 0))}
                 <small>MW</small>
@@ -183,10 +183,12 @@ function Endpoint({ data: d, selected }: { data: PartData; selected: boolean }) 
           {it ? name(it) : t('anything')}
         </span>
         <span className="endpoint-line">
-          <span className="endpoint-rate">
-            {num(rate)}
-            <small>{t('perMin')}</small>
-          </span>
+          {calc && (
+            <span className="endpoint-rate">
+              {num(rate)}
+              <small>{t('perMin')}</small>
+            </span>
+          )}
           {note && <span className="endpoint-extract">{note}</span>}
           {n.k === 'extract' && <Status calc={calc} />}
         </span>
@@ -221,10 +223,12 @@ function Fitting({ data: d, selected }: { data: PartData; selected: boolean }) {
     <div className={`fitting-node ${n.k} ${selected ? 'selected' : ''} ${n.done ? 'done' : ''}`} title={n.label ?? title}>
       <Ends {...d} />
       {icon ? <Icon id={icon} size={44} /> : <span className="fitting-unknown">?</span>}
-      <span className="fitting-rate">
-        {num(through)}
-        <small>{t('perMin')}</small>
-      </span>
+      {calc && (
+        <span className="fitting-rate">
+          {num(through)}
+          <small>{t('perMin')}</small>
+        </span>
+      )}
     </div>
   );
 }

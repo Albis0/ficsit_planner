@@ -12,7 +12,8 @@ import { PlantInspector, PowerQuickStart, PowerSummary } from './components/Powe
 import { PowerPanel } from './components/PowerPanel';
 import { InstallButton, ClosedTab, Notice, PwaStatus } from './components/PwaStatus';
 import { useFactoryHost, useModelCalc } from './components/modeler/hosts';
-import { ModelEditor } from './components/modeler/ModelEditor';
+import { forgetCamera, ModelEditor } from './components/modeler/ModelEditor';
+import { arrangeModel } from './lib/model/arrange';
 import { ModelInspector } from './components/modeler/ModelInspector';
 import { ModelToolbar } from './components/modeler/Toolbar';
 import { QuickPick } from './components/QuickPick';
@@ -121,15 +122,21 @@ export default function App() {
   );
   const extraction = manual ? (hand.adapted?.extraction ?? []) : autoExtraction;
   /** Auto or Manual: the first switch to Manual starts from the factory as worked out, or an empty floor. */
+  // A model built afresh opens with a fresh camera.
+  const [built, setBuilt] = useState(0);
   const setFloor = (floor: 'auto' | 'manual') => {
     if (floor === 'auto' || plan.model) return s.setFloor(plan.id, floor);
     const model = factory.result ? modelFromSolve(factory.result, s.tier, effectiveExtraction(plan.extraction, s.tier)) : emptyModel();
+    forgetCamera(plan.id);
+    setBuilt((n) => n + 1);
     s.setFloor(plan.id, 'manual', model);
   };
   const rebuild = async () => {
     if (!factoryIn || !window.confirm(t('rebuildConfirm'))) return;
     try {
       const r = await solveAsync(factoryIn);
+      forgetCamera(plan.id);
+      setBuilt((n) => n + 1);
       s.setFloor(plan.id, 'manual', modelFromSolve(r, s.tier, effectiveExtraction(plan.extraction, s.tier)));
     } catch {
       /* the Auto floor shows why it can't be solved */
@@ -375,8 +382,17 @@ export default function App() {
                 <TransportView result={result} links={links} />
               ) : manual ? (
                 <>
-                  <ModelEditor host={host} calc={hand.calc} />
-                  <ModelToolbar host={host} onRebuild={factoryIn ? rebuild : undefined} unbounded={hand.calc?.unbounded} />
+                  <ModelEditor key={built} host={host} calc={hand.calc} />
+                  <ModelToolbar
+                    host={host}
+                    onTidy={() => {
+                      host.edit(arrangeModel);
+                      forgetCamera(plan.id);
+                      setBuilt((n) => n + 1);
+                    }}
+                    onRebuild={factoryIn ? rebuild : undefined}
+                    unbounded={hand.calc?.unbounded}
+                  />
                 </>
               ) : (
                 <GraphView result={result} extraction={extraction} consumers={consumers} links={links} />

@@ -96,5 +96,5 @@ export function adaptModel(model: Model, calc: CalcResult | undefined): { result
 /** A machine node as the solver would describe that many machines at that clock. */
 function describeUse0(recipe: string, clock: number, sloops: number, n: number): RecipeUse | undefined {
   const r = recipeById.get(recipe);
-  return r ? describeUse(r, { clock, sloops }, n) : undefined;
+  return r ? describeUse(r, { clock, sloops }, n, true) : undefined;
 }

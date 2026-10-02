@@ -7,7 +7,17 @@ import type { ModelHost } from './ModelEditor';
 const MODES: CalcMode[] = ['basic', 'off'];
 
 /** Over the hand-built floor: how it's worked out, what an open output does, undo and redo, starting again. */
-export function ModelToolbar({ host, onRebuild, unbounded }: { host: ModelHost; onRebuild?: () => void; unbounded?: boolean }) {
+export function ModelToolbar({
+  host,
+  onTidy,
+  onRebuild,
+  unbounded,
+}: {
+  host: ModelHost;
+  onTidy: () => void;
+  onRebuild?: () => void;
+  unbounded?: boolean;
+}) {
   const { t } = useT();
   const { model } = host;
   return (
@@ -47,6 +57,9 @@ export function ModelToolbar({ host, onRebuild, unbounded }: { host: ModelHost; 
           {t('redo')}
         </button>
       </div>
+      <button type="button" className="floor-button" title={t('tidyHint')} disabled={host.model.nodes.length === 0} onClick={onTidy}>
+        {t('tidy')}
+      </button>
       {onRebuild && (
         <button type="button" className="floor-button" title={t('rebuildHint')} onClick={onRebuild}>
           {t('rebuild')}

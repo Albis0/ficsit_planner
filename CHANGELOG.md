@@ -2,44 +2,40 @@
 
 All notable changes to FICSIT Planner. Dates are when the version was finished.
 
-## 0.12.11 — 2026-10-02
-
-### Added
-
-- **Adding to a manual floor**: double-click the empty floor, press **+ Add** in the corner, or let go of a belt on the
-  empty floor, and a build menu opens: Production, Resources, Logistics, In and out, with a search over recipe,
-  building and item names. Let go of a belt and it lists only what fits that belt's end (what takes iron ingots, or
-  the miner and the recipes that make iron ore for an input wanting it), and the new card comes in already joined to
-  the belt, its end where the belt was let go. Recipes turned on for the factory come first, ones above the unlocked
-  tier are greyed with their tier. A belt let go on a card goes onto that card's first free end that fits.
-- A manual floor can start empty: **Build by hand** beside "Pick a product", and an **Add a machine** button on an
-  empty floor.
-- **Not connected**: ends that need a belt are dashed orange (a splitter's spare outputs no longer are), the button
-  in the corner says how many cards have one and goes from one to the next, and the panel marks each open end.
-- Laying a belt by taps: after tapping an end, a strip says to tap an input (or output), or the floor to put
-  something there; tapping the floor opens the build menu for that belt. Tapping an end no longer opens the card's
-  panel over the floor.
-
-### Changed
-
-- Fit to screen on a manual floor keeps clear of the toolbar and doesn't zoom past 100%.
-- A card just added that lands under the panel moves into view.
-
-## 0.12.10 — 2026-10-02
+## 0.13.0 — 2026-10-02
 
 ### Added
 
 - **Manual floor**: under the factory, Auto / Manual. Manual turns the factory as worked out into one you build by
-  hand: every machine a card where it stood, every belt a link, a splitter wherever one output feeds several machines
-  and a merger wherever several belts feed one input, a miner or pump per raw input belt. Cards can be moved and stay
-  where they're put; a belt can be drawn from an output to an input by dragging, or by clicking one end and then the
-  other. Picking a machine sets its count (fractions work: 2.5, 8/3) and clock; picking a miner its Mk, purity, count
-  and clock; picking a belt its Mk and a limit; inputs and outputs take a limit too. Each machine says whether it runs
-  at full speed, how far below, or what stops it: an input or output with no belt, a belt bringing the wrong item, or
-  a loop that waits on itself. Belts at their most turn red at the Mk badge. Double-click a card to pick its belts;
-  Delete takes off what's picked; Ctrl+Z and Ctrl+Y undo and redo. The numbers are the most every machine can run
-  within its count, clock and belts ("Max flow"); the totals, the list and the transport view read them. Switching
-  back to Auto keeps the hand-built floor for next time, and Rebuild from targets starts it again.
+  hand: every machine a card, every belt a link, a splitter wherever one output feeds several machines and a merger
+  wherever several belts feed one input, a miner or pump per raw input belt, all laid out left to right with every
+  belt routed around the cards. Each machine runs as many as get built at the clock they run at (2.67 smelters at
+  100% are 3 at 88.89%), and the totals match the Auto floor. Cards can be moved and stay where they're put; a belt
+  is drawn from an output to an input by dragging, or by clicking one end and then the other; a belt let go on a
+  card goes onto its first free end that fits, and one end holds one belt as in the game. Picking a machine sets its
+  count (fractions work: 2.5, 8/3), clock and somersloops; the card shows the machines as built, 8/3 at 150% being
+  2 × 150% + 1 × 100%. Picking a miner sets its Mk, purity, count and clock; picking a belt its Mk, belts side by side
+  and a limit; inputs and outputs take a limit too. Each machine says whether it runs at full speed, how far below,
+  or what stops it: an end with no belt, a belt bringing the wrong item, or a loop that waits on itself. A belt at
+  its most turns red at the Mk badge; one held by its limit says so. The numbers are the most every machine can run
+  within its count, clock and belts ("Max flow"), or none ("Off"); the totals, the list and the transport view read
+  them. Switching back to Auto keeps the hand-built floor for next time, and Rebuild from targets starts it again.
+  Share links carry it.
+- **Adding to it**: double-click or right-click the empty floor, press **+ Add**, or let go of a belt on the empty
+  floor, and a build menu opens: Production, Resources, Logistics, In and out, with a search over recipe, building
+  and item names. Let go of a belt and it lists only what fits that belt's end (what takes iron ingots, or the miner
+  and the recipes that make iron ore for an input wanting it), and the new card comes in already joined to the belt.
+  Recipes turned on for the factory come first; ones above the unlocked tier are greyed with their tier.
+- **Build by hand** beside "Pick a product" starts from an empty floor, with an **Add a machine** button on it.
+- **Not connected**: ends that need a belt are dashed orange (a splitter's spare outputs aren't); the button in the
+  corner says how many cards have one and goes from one to the next; the panel marks each open end.
+- **Tidy up** lays the whole floor out afresh, left to right, with every belt routed; undo puts it back.
+- Mouse and keys: click a card to open it, double-click it to pick its belts, drag the empty floor to move around,
+  Shift + drag to pick cards in a box, Delete to take off what's picked, Ctrl+Z / Ctrl+Y to undo and redo, Escape to
+  let go.
+- On a phone: a finger on a card that isn't picked moves the floor; tap a card to pick it, then drag it. Tap an end,
+  then an input (or the floor, for the build menu); a strip says what to do next. The build menu comes up from the
+  bottom.
 
 ## 0.12.9 — 2026-10-02
 

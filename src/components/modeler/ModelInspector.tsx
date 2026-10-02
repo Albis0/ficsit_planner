@@ -19,8 +19,9 @@ import { useStatusText } from './PartNode';
 const MAX_CLOCK = 2.5;
 
 /** The panel for whatever is picked on a hand-built floor: a machine, a miner, an input or output, a belt. */
-export function ModelInspector({ host, calc }: { host: ModelHost; calc?: CalcResult }) {
+export function ModelInspector({ host, calc: all }: { host: ModelHost; calc?: CalcResult }) {
   const inspect = useStore((s) => s.inspect);
+  const calc = all?.mode === 'off' ? undefined : all;
   if (!inspect) return null;
   if (inspect.startsWith('link:')) {
     const link = host.model.links.find((l) => linkKey(l.id) === inspect);
@@ -127,8 +128,13 @@ function Flows({ node, calc, open }: { node: MNode; calc?: CalcResult; open?: Op
           <dd className="run-state bad">{t('notConnected')}</dd>
         ) : (
           <dd>
-            {num(now)}
-            {full !== undefined && <small> / {num(full)}</small>}
+            {c && num(now)}
+            {full !== undefined && (
+              <small>
+                {c ? ' / ' : ''}
+                {num(full)}
+              </small>
+            )}
             {t('perMin')}
           </dd>
         )}
@@ -193,7 +199,7 @@ function NodePanel({ host, node, calc }: { host: ModelHost; node: MNode; calc?: 
     };
     const slots = node.k === 'machine' && r ? (data.machines[r.machine]?.somersloopSlots ?? 0) : 0;
     const use = r
-      ? describeUse(r, { clock: node.clock ?? 1, sloops: node.k === 'machine' ? (node.sloops ?? 0) : 0 }, node.n ?? 1)
+      ? describeUse(r, { clock: node.clock ?? 1, sloops: node.k === 'machine' ? (node.sloops ?? 0) : 0 }, node.n ?? 1, true)
       : undefined;
     body = (
       <>
@@ -356,7 +362,14 @@ function LinkPanel({ host, link, calc }: { host: ModelHost; link: MLink; calc?: 
         )}
       </dl>
       {c?.status === 'jam' && <p className="run-state big bad">{t('beltJam')}</p>}
-      {c?.status === 'capped' && <p className="run-state big warn">{t('beltFull', { mk: transport.name })}</p>}
+      {c?.status === 'capped' && (
+        <p className="run-state big warn">
+          {/* The player's own limit reached, or the belt itself full. */}
+          {link.lim !== undefined && link.lim < transport.rate * (link.lanes ?? 1)
+            ? t('beltAtLimit')
+            : t('beltFull', { mk: transport.name })}
+        </p>
+      )}
       <div className="inspector-row">
         <span className="inspector-label">{t(medium === 'pipe' ? 'pipeMk' : 'beltMk')}</span>
         <div className="segmented mk-pick" role="radiogroup">
