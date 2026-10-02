@@ -397,6 +397,17 @@ function FloorSection() {
       <Percent k="cardScale" label={t('cardSize')} hint={t('cardSizeHint')} />
       <Percent k="textScale" label={t('textSize')} hint={t('textSizeHint')} />
       <Percent k="spacing" label={t('spacing')} hint={t('spacingHint')} />
+      <Row label={t('splitLines')} hint={t('splitLinesHint')}>
+        <Choice
+          label={t('splitLines')}
+          value={s.splitLines}
+          options={[
+            { id: 'each', label: t('splitLinesEach') },
+            { id: 'one', label: t('splitLinesOne') },
+          ]}
+          onChange={(v) => set({ splitLines: v })}
+        />
+      </Row>
       <Row label={t('beltLabels')} hint={t('beltLabelsHint')}>
         <Choice
           label={t('beltLabels')}

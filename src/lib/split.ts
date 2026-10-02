@@ -67,6 +67,8 @@ export function matchFlows(result: SolveResult): Flow[] {
 export interface SplitGroup {
   /** Where this group's main output goes; more than one when a destination was too small for a machine of its own. */
   to: Destination[];
+  /** The same as graph node ids (`recipe:<id>`, `target:<item>`…). */
+  nodes: string[];
   /** Main output it sends there, a minute. */
   rate: number;
   /** The group's own machines, clocks, power and flows, byproducts included in proportion. */
@@ -103,20 +105,40 @@ export function splitByDestination(use: RecipeUse, flows: Flow[], tier: number):
   if (out.length < 2 || total <= EPS) return undefined;
 
   // Machines at the configured clock for each destination; any too small to run even one at 1% joins the biggest.
-  const parts: { to: Destination[]; rate: number }[] = [];
+  const parts: { to: Destination[]; nodes: string[]; rate: number }[] = [];
   for (const f of out) {
     const units = (use.count * use.mod.clock * f.rate) / total;
     if (parts.length > 0 && units < MIN_CLOCK - EPS) {
       parts[0].to.push(f.dest!);
+      parts[0].nodes.push(f.to);
       parts[0].rate += f.rate;
-    } else parts.push({ to: [f.dest!], rate: f.rate });
+    } else parts.push({ to: [f.dest!], nodes: [f.to], rate: f.rate });
   }
   if (parts.length < 2) return undefined;
 
   const groups = parts.map((p) => {
     const part = describeUse(use.recipe, use.mod, (use.count * p.rate) / total);
-    return { to: p.to, rate: p.rate, use: part, groups: buildGroups(part, tier) };
+    return { to: p.to, nodes: p.nodes, rate: p.rate, use: part, groups: buildGroups(part, tier) };
   });
   const extra = groups.reduce((s, g) => s + g.use.built, 0) - use.built;
   return { item, groups, extra };
+}
+
+/**
+ * What building every split line as a group per destination adds to the plan: machines (by building), MW and power
+ * shards. For the totals when the graph draws a card per destination, so they count the machines on the floor.
+ */
+export function splitExtras(result: SolveResult, tier: number) {
+  const flows = matchFlows(result);
+  const machines = new Map<string, number>();
+  let power = 0;
+  let shards = 0;
+  for (const u of result.recipes) {
+    const split = splitByDestination(u, flows, tier);
+    if (!split) continue;
+    if (split.extra > 0) machines.set(u.recipe.machine, (machines.get(u.recipe.machine) ?? 0) + split.extra);
+    power += split.groups.reduce((s, g) => s + g.use.power, 0) - u.power;
+    shards += split.groups.reduce((s, g) => s + g.use.shards, 0) - u.shards;
+  }
+  return { machines, power, shards };
 }

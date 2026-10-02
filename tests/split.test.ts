@@ -121,3 +121,88 @@ describe('split by destination', () => {
     expect(sum(split.groups.map((g) => g.use.count))).toBeCloseTo(ingots.count, 6);
   });
 });
+
+describe('rounding from the solver', () => {
+  test('a clock a hair over 100% takes no power shard', () => {
+    const use = describeUse(recipe('Recipe_IngotIron_C'), NO_MOD, 4.00000002);
+    expect(use.built).toBe(4);
+    expect(use.shards).toBe(0);
+  });
+
+  test('rods 73.55 and plates 30.966667 typed in: no shards anywhere, and the ingots split 3 + 2', () => {
+    const r = solve(highs, {
+      targets: [
+        { item: 'Desc_IronRod_C', rate: 73.55 },
+        { item: 'Desc_IronPlate_C', rate: 30.966667 },
+      ],
+      supplies: [],
+      enabledRecipes: standard(),
+      resourceCaps: {},
+      objective: 'resources',
+    });
+    expect(r.shards).toBe(0);
+    const ingots = r.recipes.find((u) => u.recipe.id === 'Recipe_IngotIron_C')!;
+    const split = splitByDestination(ingots, matchFlows(r), 9)!;
+    expect(split.groups.map((g) => g.use.built)).toEqual([3, 2]);
+    expect(split.groups.every((g) => g.use.shards === 0)).toBe(true);
+  });
+});
+
+describe('a card per destination on the graph', () => {
+  const factory = () =>
+    solve(highs, {
+      targets: [
+        { item: 'Desc_IronRod_C', rate: 73.55 },
+        { item: 'Desc_IronPlate_C', rate: (46.45 * 20) / 30 },
+      ],
+      supplies: [],
+      enabledRecipes: standard(),
+      resourceCaps: {},
+      objective: 'resources',
+    });
+
+  test('the ingot line is two cards, each fed its share of ore and belting only to its own destination', async () => {
+    const { buildGraph } = await import('../src/lib/graph');
+    const { nodes, edges } = buildGraph(factory(), 9, { splitLines: 'each' });
+    const ids = nodes.map((n) => n.id);
+    expect(ids).toContain('recipe:Recipe_IngotIron_C~0');
+    expect(ids).toContain('recipe:Recipe_IngotIron_C~1');
+    expect(ids).not.toContain('recipe:Recipe_IngotIron_C');
+    const belt = (from: string, to: string) => edges.find((e) => e.source === from && e.target === to)?.data?.rate as number | undefined;
+    expect(belt('raw:Desc_OreIron_C', 'recipe:Recipe_IngotIron_C~0')).toBeCloseTo(73.55, 4);
+    expect(belt('raw:Desc_OreIron_C', 'recipe:Recipe_IngotIron_C~1')).toBeCloseTo(46.45, 4);
+    expect(belt('recipe:Recipe_IngotIron_C~0', 'recipe:Recipe_IronRod_C')).toBeCloseTo(73.55, 4);
+    expect(belt('recipe:Recipe_IngotIron_C~1', 'recipe:Recipe_IronPlate_C')).toBeCloseTo(46.45, 4);
+    expect(belt('recipe:Recipe_IngotIron_C~0', 'recipe:Recipe_IronPlate_C')).toBeUndefined();
+  });
+
+  test('one card keeps the line whole', async () => {
+    const { buildGraph } = await import('../src/lib/graph');
+    const { nodes } = buildGraph(factory(), 9, { splitLines: 'one' });
+    expect(nodes.map((n) => n.id)).toContain('recipe:Recipe_IngotIron_C');
+  });
+
+  test('every item still adds up: what the belts carry equals what the plan makes and uses', async () => {
+    const { buildGraph } = await import('../src/lib/graph');
+    const r = solve(highs, {
+      targets: [{ item: 'Desc_Motor_C', rate: 10 }],
+      supplies: [],
+      enabledRecipes: standard(),
+      resourceCaps: {},
+      objective: 'resources',
+    });
+    const one = buildGraph(r, 9, { splitLines: 'one' }).edges;
+    const each = buildGraph(r, 9, { splitLines: 'each' }).edges;
+    const total = (edges: typeof one) => {
+      const by = new Map<string, number>();
+      for (const e of edges) {
+        const d = e.data as { item: string; rate: number };
+        by.set(d.item, (by.get(d.item) ?? 0) + d.rate);
+      }
+      return by;
+    };
+    const a = total(one);
+    const b = total(each);
+    for (const [item, rate] of a) expect(b.get(item)).toBeCloseTo(rate, 3);
+  });
+});

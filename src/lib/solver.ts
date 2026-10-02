@@ -155,8 +155,12 @@ const MAX_SCALE = 1e4;
 /** Ceiling on the MW a maximised power plan reports, far past any real map. */
 const MAX_POWER = 1e8;
 
-/** Power shards a machine needs for a given clock: each one adds 50% above 100%. */
-export const shardsFor = (clock: number) => (clock > 1 + 1e-9 ? Math.ceil((clock - 1) / 0.5 - 1e-9) : 0);
+/**
+ * Power shards a machine needs for a given clock: each one adds 50% above 100%. A clock past 100% by less than the
+ * game can set (100.0001%) is rounding left over from the solver, e.g. 120.0000005 ingots a minute from 4 smelters,
+ * and takes none.
+ */
+export const shardsFor = (clock: number) => (clock > 1 + 1e-6 ? Math.ceil((clock - 1) / 0.5 - 1e-6) : 0);
 
 /** Somersloop slots on the recipe's building; generators have none. */
 export const sloopSlots = (recipe: Recipe) => data.machines[recipe.machine]?.somersloopSlots ?? 0;

@@ -232,6 +232,7 @@ export function cleanSettings(saved: unknown): Settings {
       d.font,
     ),
     summary: oneOf(s.summary, ['compact', 'full'] as const, d.summary),
+    splitLines: oneOf(s.splitLines, ['each', 'one'] as const, d.splitLines),
     game: gameOf(s.game),
   };
 }

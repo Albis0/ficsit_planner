@@ -11,8 +11,12 @@ export const UPDATES: { version: string; date: string; notes: [UpdateKind, strin
     notes: [
       [
         'added',
-        'A line feeding more than one place is also shown as one group of machines per place, each at its own clock: no splitter ratios.',
+        'A line feeding more than one place is built as a card per place, each at its own clock: no splitter ratios, no power shards. Settings › Factory floor can keep it as one card.',
       ],
+      ['fixed', 'A target with many decimals no longer makes the plan count power shards it doesn’t need.'],
+      ['fixed', 'Long numbers in amount fields shrink to fit before they scroll.'],
+      ['fixed', 'A target with many decimals no longer makes the plan count power shards it doesn’t need.'],
+      ['fixed', 'Long numbers in amount fields shrink to fit before they scroll.'],
     ],
   },
   {

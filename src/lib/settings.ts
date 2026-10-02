@@ -37,6 +37,8 @@ export interface Settings {
   font: FontId;
   /** The strip of totals over the floor: compact, or large figures. */
   summary: 'compact' | 'full';
+  /** A line whose output goes to several places, on the graph: a card per place, or one card that says how to split it. */
+  splitLines: 'each' | 'one';
   /** The save's own multipliers for part costs, power draw and the Space Elevator. */
   game: GameRules;
 }
@@ -83,6 +85,7 @@ export const DEFAULT_SETTINGS: Settings = {
   motion: 'system',
   font: 'satisfactory',
   summary: 'compact',
+  splitLines: 'each',
   game: DEFAULT_GAME,
 };
 

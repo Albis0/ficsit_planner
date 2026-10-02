@@ -6,12 +6,28 @@ All notable changes to FICSIT Planner. Dates are when the version was finished.
 
 ### Added
 
-- **By destination**: a line whose output goes to more than one place is also shown as one group of machines per
-  place, each at its own clock, so there's no splitter ratio to work out. Four smelters sending 73.55/min to rods and
-  46.45/min to plates read as 3 × 81.72% → Iron Rod and 2 × 77.42% → Iron Plate. Each group rounds up on its own,
-  so a split can take up to one machine more per extra group; the machine panel says how many. Byproducts go with
-  each group in proportion, and a group whose belts still overflow says how to build it in groups too. Shown in the
-  machine panel, under the line in the list, and as a short badge on the graph's machine card.
+- **By destination**: a line whose output goes to more than one place is built as one group of machines per place,
+  each at its own clock, so there's no splitter ratio to work out and no power shard needed. Four smelters sending
+  73.55/min to rods and 46.45/min to plates become 3 × 81.72% → Iron Rod and 2 × 77.42% → Iron Plate. Each group
+  rounds up on its own, so a split can take up to one machine more per extra group; the machine panel says how many.
+  Byproducts go with each group in proportion, and a group whose belts still overflow says how to build it in groups
+  too. On the graph each group is a card of its own, fed its share of the inputs; Settings › Factory floor › Lines
+  feeding several places switches back to one card with a "Split 3 + 2" note. With a card each, the machine count,
+  power and build cost count the cards' machines. The machine panel and the list show the groups either way.
+
+### Fixed
+
+- A line running a hair over 100% from rounding (120.0000005 ingots a minute on four smelters, from a target typed
+  to six decimals) no longer counts a power shard per machine, and an extractor no longer gets one either.
+- A long number in an amount field gets smaller type until it fits, down to 60% of its size; past that it scrolls
+  inside the field as before.
+
+### Fixed
+
+- A line running a hair over 100% from rounding (120.0000005 ingots a minute on four smelters, from a target typed
+  to six decimals) no longer counts a power shard per machine, and an extractor no longer gets one either.
+- A long number in an amount field gets smaller type until it fits, down to 60% of its size; past that it scrolls
+  inside the field as before.
 
 ## 0.12.7 — 2026-10-02
 

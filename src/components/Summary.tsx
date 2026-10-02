@@ -1,8 +1,10 @@
+import { useMemo } from 'react';
 import { data, recipeById } from '../lib/data';
 import { fold } from '../lib/fold';
 import type { ExtractionUse } from '../lib/extraction';
 import { useT } from '../lib/i18n';
 import { showInPanel } from '../lib/panel';
+import { splitExtras } from '../lib/split';
 import type { SolveResult } from '../lib/solver';
 import { recipeLabel } from '../lib/text';
 import { usePlan, useStore } from '../store';
@@ -35,11 +37,16 @@ export function Summary({ result, extraction }: { result: SolveResult; extractio
   const set = useStore((s) => s.set);
   const fixed = usePlan().fixed;
   const pinned = Object.keys(fixed).length > 0;
-  const machines = result.recipes.reduce((s, u) => s + u.built, 0);
+  // With a card per destination on the floor, the totals count those cards' machines.
+  const tier = useStore((s) => s.tier);
+  const each = useStore((s) => s.settings.splitLines) === 'each';
+  const split = useMemo(() => (each ? splitExtras(result, tier) : undefined), [each, result, tier]);
+  const machines = result.recipes.reduce((s, u) => s + u.built, 0) + [...(split?.machines.values() ?? [])].reduce((a, b) => a + b, 0);
+  const machinePower = result.power + (split?.power ?? 0);
   const extractors = extraction.reduce((s, u) => s + u.built, 0);
   const extractionPower = extraction.reduce((s, u) => s + u.power, 0);
   // Shards in machines and in overclocked miners and pumps.
-  const shards = result.shards + extraction.reduce((s, u) => s + u.shards, 0);
+  const shards = result.shards + (split?.shards ?? 0) + extraction.reduce((s, u) => s + u.shards, 0);
 
   return (
     <div className={`summary ${closed ? 'closed' : ''}`}>
@@ -52,7 +59,7 @@ export function Summary({ result, extraction }: { result: SolveResult; extractio
           onClick={(e) => fold(e.currentTarget.closest<HTMLElement>('.summary'), ['height'], () => set({ summaryClosed: false }))}
         >
           <span>
-            {t('power')} <b className="power">{num(result.power + extractionPower)}</b> MW
+            {t('power')} <b className="power">{num(machinePower + extractionPower)}</b> MW
           </span>
           <span>
             {t('machines')} <b>{machines}</b>
@@ -71,9 +78,9 @@ export function Summary({ result, extraction }: { result: SolveResult; extractio
           <div className="readout power">
             <span className="readout-label">{t('power')}</span>
             <span className="readout-value">
-              {num(result.power + extractionPower)} <small>MW</small>
+              {num(machinePower + extractionPower)} <small>MW</small>
             </span>
-            <span className="readout-sub">{t('powerSplit', { machines: num(result.power), extractors: num(extractionPower) })}</span>
+            <span className="readout-sub">{t('powerSplit', { machines: num(machinePower), extractors: num(extractionPower) })}</span>
           </div>
           <div className="readout">
             <span className="readout-label">{t('machines')}</span>

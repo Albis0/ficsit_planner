@@ -45,7 +45,7 @@ import { usePlan, useStore } from '../store';
 import { Glyph } from './Glyph';
 import { Icon } from './Icon';
 import { Slot } from './Slot';
-import { SplitBadge } from './SplitText';
+import { SplitBadge, SplitTo } from './SplitText';
 
 /** Hovered node and its direct neighbours; everything else fades so one line can be followed. */
 const Focus = createContext<{ node?: string; near: Set<string>; edge?: string }>({ near: new Set() });
@@ -179,7 +179,7 @@ function GeneratorNode({ id, data: d, selected }: NodeProps) {
 function MachineNode(props: NodeProps) {
   const { id, data: d, selected } = props;
   const { name, num } = useT();
-  const { use, split } = d as MachineNodeData;
+  const { use, split, part } = d as MachineNodeData;
   const dir = useContext(Flow);
   const { recipe } = use;
   const faded = useFaded(id);
@@ -188,7 +188,7 @@ function MachineNode(props: NodeProps) {
   return (
     <div
       className={`machine-node ${recipe.kind} ${faded ? 'faded' : ''} ${selected ? 'selected' : ''}`}
-      style={{ ['--run-extra' as string]: cardExtra(use, split), ...(bar ? { ['--mod-bar' as string]: bar } : {}) }}
+      style={{ ['--run-extra' as string]: cardExtra(use, split ?? part), ...(bar ? { ['--mod-bar' as string]: bar } : {}) }}
     >
       <Handle type="target" position={inSide(dir)} />
       {/* The in-game build menu look: a coloured strip naming what it makes, the building and its draw below. */}
@@ -214,6 +214,7 @@ function MachineNode(props: NodeProps) {
             <GroupsBadge use={use} />
           </span>
           {split && <SplitBadge split={split} />}
+          {part && <SplitTo part={part} />}
         </span>
       </div>
       <Handle type="source" position={outSide(dir)} />
@@ -755,7 +756,8 @@ function Canvas({ nodes, edges, sig, dir }: { nodes: Node[]; edges: Edge[]; sig:
   const flow = useReactFlow();
   useEffect(() => {
     if (!inspect) return;
-    const node = flow.getNode(`recipe:${inspect}`);
+    // A line drawn as a card per destination is found by its first card.
+    const node = flow.getNode(`recipe:${inspect}`) ?? flow.getNode(`recipe:${inspect}~0`);
     if (!node) return;
     const zoom = Math.max(flow.getZoom(), 0.9);
     // On a phone the machine panel is a sheet over the floor's lower part: centre the machine in what's left above it.
@@ -781,7 +783,7 @@ function Canvas({ nodes, edges, sig, dir }: { nodes: Node[]; edges: Edge[]; sig:
   }, [inspect, set]);
 
   // A machine that's gone from the plan (its recipe was just unticked) focuses nothing, so the floor doesn't dim.
-  const inspected = inspect && neighbours.has(`recipe:${inspect}`) ? `recipe:${inspect}` : undefined;
+  const inspected = inspect ? [`recipe:${inspect}`, `recipe:${inspect}~0`].find((id) => neighbours.has(id)) : undefined;
   // A clicked belt lights itself and the two machines it joins; otherwise the machine under the pointer, or the
   // selected one, lights its belts and neighbours.
   const picked = edge ? edges.find((e) => e.id === edge) : undefined;
@@ -859,6 +861,7 @@ export function GraphView({
   const chosen = useStore((s) => s.graphDir);
   const scale = useStore((s) => s.settings.cardScale);
   const text = useStore((s) => s.settings.textScale);
+  const splitLines = useStore((s) => s.settings.splitLines);
   const spacing = useStore((s) => s.settings.spacing);
   // Uncontrolled flow remounted per solve: nodes stay draggable, and each new solve lays out fresh.
   const { nodes, edges, dir, key, sig } = useMemo(() => {
@@ -870,6 +873,7 @@ export function GraphView({
       text,
       spacing,
       consumers,
+      splitLines,
     });
     return {
       ...g,
@@ -880,7 +884,7 @@ export function GraphView({
           .sort()
           .join('|') + g.dir,
     };
-  }, [result, tier, chosen, scale, text, spacing, consumers]);
+  }, [result, tier, chosen, scale, text, spacing, consumers, splitLines]);
   const exMap = useMemo(() => new Map(extraction.map((u) => [u.item, u])), [extraction]);
   return (
     <Extraction.Provider value={exMap}>

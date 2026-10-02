@@ -1,7 +1,7 @@
 import { groupClocks } from '../lib/clocks';
 import { useT } from '../lib/i18n';
 import type { RecipeUse } from '../lib/solver';
-import type { Destination, Split } from '../lib/split';
+import type { Destination, Split, SplitGroup } from '../lib/split';
 import { recipeLabel } from '../lib/text';
 
 /** Words for a split line: where a group's output goes, its machines and clocks, and what the split costs. */
@@ -37,6 +37,18 @@ export function SplitBadge({ split }: { split: Split }) {
       {split.groups.length > 3
         ? t('splitWays', { n: split.groups.length })
         : t('splitShort', { sizes: split.groups.map((g) => g.use.built).join(' + ') })}
+    </span>
+  );
+}
+
+/** On a card of its own for one destination's group: "→ Iron Rod". */
+export function SplitTo({ part }: { part: SplitGroup }) {
+  const { t } = useT();
+  const { where } = useSplitText();
+  const to = t('splitTo', { to: where(part.to) });
+  return (
+    <span className="mod-badge split" title={to}>
+      {to}
     </span>
   );
 }

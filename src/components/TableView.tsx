@@ -8,16 +8,18 @@ import type { RecipeUse, SolveResult } from '../lib/solver';
 import { useStore } from '../store';
 import { groupClocks } from '../lib/clocks';
 import { buildGroups, groupsLabel, isPipe } from '../lib/groups';
-import { matchFlows, splitByDestination } from '../lib/split';
+import { matchFlows, splitByDestination, splitExtras } from '../lib/split';
 import { Icon } from './Icon';
 import { Slot } from './Slot';
 import { useSplitText } from './SplitText';
 
 /** Buildings to place and the parts they cost, summed across the whole plan. */
-function buildBill(result: SolveResult, extraction: ExtractionUse[]) {
+function buildBill(result: SolveResult, extraction: ExtractionUse[], extra?: Map<string, number>) {
   const buildings = new Map<string, number>();
   const add = (id: string, n: number) => buildings.set(id, (buildings.get(id) ?? 0) + n);
   for (const u of result.recipes) add(u.recipe.machine, u.built);
+  // With a card per destination on the floor, the machines those cards add are built too.
+  for (const [id, n] of extra ?? []) add(id, n);
   for (const e of extraction) add(e.extractor.id, e.built);
 
   const parts = new Map<string, number>();
@@ -37,7 +39,11 @@ export function TableView({ result, extraction }: { result: SolveResult; extract
   const tier = useStore((s) => s.tier);
   const set = useStore((s) => s.set);
   const generated = result.grid?.plants ?? {};
-  const bill = useMemo(() => buildBill(result, extraction), [result, extraction]);
+  const each = useStore((s) => s.settings.splitLines) === 'each';
+  const bill = useMemo(
+    () => buildBill(result, extraction, each ? splitExtras(result, tier).machines : undefined),
+    [result, extraction, each, tier],
+  );
   const splits = useMemo(() => {
     const flows = matchFlows(result);
     return new Map(result.recipes.map((u) => [u.recipe.id, splitByDestination(u, flows, tier)]));

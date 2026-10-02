@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { useT } from '../lib/i18n';
 
 interface Props {
@@ -18,10 +18,63 @@ interface Props {
 const up = (v: number) => Math.floor(v + 1e-9) + 1;
 const down = (v: number) => Math.max(0, Math.ceil(v - 1e-9) - 1);
 
+/** A long number gets smaller type down to this share of the field's own size; past that it scrolls inside. */
+const MIN_TYPE = 0.6;
+let ruler: CanvasRenderingContext2D | null | undefined;
+
+/**
+ * Shrinks the field's type until its text fits, no smaller than MIN_TYPE; the field keeps its height. The size the
+ * stylesheet gives it is read once, before any shrinking: Chrome can go on reporting the shrunk size for a while after
+ * the inline one is taken off, and refitting from that would shrink it again each time.
+ */
+function fitText(el: HTMLInputElement) {
+  ruler ??= document.createElement('canvas').getContext('2d');
+  if (!ruler) return;
+  const cs = getComputedStyle(el);
+  if (!el.dataset.type) {
+    if (el.style.fontSize) return;
+    el.dataset.type = `${cs.fontSize}|${cs.lineHeight}`;
+  }
+  const [type, line] = el.dataset.type.split('|');
+  const size = Number.parseFloat(type);
+  const room = el.clientWidth - Number.parseFloat(cs.paddingLeft) - Number.parseFloat(cs.paddingRight);
+  // Firefox leaves the `font` shorthand empty in computed styles, so it's put together by hand.
+  ruler.font = `${cs.fontStyle} ${cs.fontWeight} ${type} ${cs.fontFamily}`;
+  const width = el.value ? ruler.measureText(el.value).width : 0;
+  const fits = room <= 0 || width <= room;
+  el.style.fontSize = fits ? '' : `${Math.max(MIN_TYPE, room / width) * size}px`;
+  el.style.lineHeight = fits ? '' : line;
+}
+
 /** Numeric field that accepts both "12,5" and "12.5" and only commits valid numbers. */
 export function RateInput({ value, onChange, label, placeholder, onClear, step, max }: Props) {
   const { t } = useT();
   const [text, setText] = useState(Number.isNaN(value) ? '' : String(value));
+  const ref = useRef<HTMLInputElement>(null);
+
+  // biome-ignore lint/correctness/useExhaustiveDependencies: refit whenever the text changes.
+  useLayoutEffect(() => {
+    if (ref.current) fitText(ref.current);
+  }, [text]);
+  // Again once the field gets a width (a panel opening, a phone turning) and once the web fonts are in.
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    let width = -1;
+    const refit = () => {
+      if (el.clientWidth === width) return;
+      width = el.clientWidth;
+      fitText(el);
+    };
+    const watch = typeof ResizeObserver === 'undefined' ? undefined : new ResizeObserver(refit);
+    watch?.observe(el);
+    let live = true;
+    document.fonts?.ready.then(() => live && fitText(el));
+    return () => {
+      live = false;
+      watch?.disconnect();
+    };
+  }, []);
 
   // biome-ignore lint/correctness/useExhaustiveDependencies: only sync when the outside value changes, not while typing.
   useEffect(() => {
@@ -40,6 +93,7 @@ export function RateInput({ value, onChange, label, placeholder, onClear, step, 
 
   const input = (
     <input
+      ref={ref}
       className="rate-input"
       inputMode="decimal"
       aria-label={label}
