@@ -9834,3 +9834,233 @@ a.codex-flow:hover {
   color: var(--line-2);
   cursor: default;
 }
+
+/* An end that's free and doesn't need a belt: a splitter's spare output. */
+.react-flow__handle.port.free {
+  border-color: var(--line);
+}
+
+/* The end tapped first while laying a belt by taps. */
+.react-flow__handle.port.clickconnecting {
+  border-color: var(--ficsit);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--ficsit) 50%, transparent);
+}
+
+.quick-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px 24px;
+}
+
+/* Bottom right of the hand-built floor: the cards still missing a belt, and adding one. */
+.floor-button.open-ends {
+  color: var(--power);
+  border-color: color-mix(in srgb, var(--power) 60%, transparent);
+}
+
+.floor-button.add-part {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--paper);
+}
+
+.floor-button.add-part .add-plus {
+  font-size: 22px;
+}
+
+/* Nothing on the floor yet. */
+.floor-empty {
+  position: absolute;
+  inset: 0;
+  z-index: 4;
+  display: grid;
+  place-items: center;
+  pointer-events: none;
+}
+
+.floor-empty > * {
+  pointer-events: auto;
+}
+
+/* Half way through laying a belt by taps. */
+.connect-strip {
+  position: absolute;
+  top: 70px;
+  left: 50%;
+  z-index: 7;
+  transform: translateX(-50%);
+  width: max-content;
+  max-width: calc(100% - 24px);
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 8px 14px;
+  background: var(--panel);
+  border: 1px solid var(--ficsit);
+  font: 600 15px var(--font-body);
+}
+
+/* The build menu of a hand-built floor. */
+.chooser {
+  position: absolute;
+  z-index: 9;
+  width: min(440px, calc(100% - 24px));
+  max-height: min(520px, calc(100% - 24px));
+  display: flex;
+  flex-direction: column;
+  background: var(--panel);
+  border: 1px solid var(--ficsit);
+  box-shadow: 0 14px 36px rgb(0 0 0 / 55%);
+}
+
+.chooser:not(.at) {
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+}
+
+.chooser-head {
+  flex: none;
+  display: flex;
+  align-items: center;
+  border-bottom: 1px solid var(--line);
+}
+
+.chooser-head .picker-search {
+  flex: 1;
+  min-width: 0;
+  border: 0;
+}
+
+.chooser-head .icon-button {
+  margin-right: 6px;
+}
+
+.chooser-tabs {
+  flex: none;
+  display: flex;
+  overflow-x: auto;
+  border-bottom: 1px solid var(--line);
+  scrollbar-width: none;
+}
+
+.chooser-tabs button {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 9px 14px;
+  border: 0;
+  background: none;
+  font: 600 15px var(--font-display);
+  color: var(--dim);
+}
+
+.chooser-tabs button[aria-selected='true'] {
+  color: var(--ficsit);
+  box-shadow: inset 0 -3px var(--ficsit);
+}
+
+.chooser-tabs button:disabled {
+  opacity: 0.4;
+}
+
+.chooser-list {
+  flex: 1;
+  min-height: 0;
+  margin: 0;
+  padding: 4px 0;
+  list-style: none;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+.chooser-list li {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 6px 14px;
+  cursor: pointer;
+}
+
+.chooser-list li.active {
+  background: var(--raised);
+  box-shadow: inset 4px 0 var(--ficsit);
+}
+
+.chooser-list li.locked {
+  opacity: 0.55;
+}
+
+.chooser-list li.picker-empty {
+  cursor: default;
+}
+
+.chooser-blank {
+  flex: none;
+  width: 40px;
+  height: 40px;
+}
+
+.chooser-text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.chooser-title {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 8px;
+  font: 600 16px var(--font-body);
+}
+
+.chooser-sub {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 2px 10px;
+  font-size: 13px;
+  color: var(--dim);
+}
+
+.chooser-io {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+}
+
+/* On a phone it comes up from the bottom, the width of the screen. */
+@media (max-width: 600px) {
+  .chooser,
+  .chooser.at,
+  .chooser:not(.at) {
+    left: 0;
+    right: 0;
+    top: auto;
+    bottom: 0;
+    width: auto;
+    max-height: 72%;
+    transform: none;
+    border-width: 1px 0 0;
+  }
+
+  .chooser-list li {
+    padding: 8px 14px;
+  }
+
+  .chooser-tabs button {
+    padding: 9px 10px;
+  }
+
+  .connect-strip {
+    top: auto;
+    bottom: 140px;
+    font-size: 14px;
+  }
+}

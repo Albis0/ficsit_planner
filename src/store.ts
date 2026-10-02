@@ -11,7 +11,7 @@ import { DEFAULT_SETTINGS, type Settings } from './lib/settings';
 import type { RecipeMod, Target } from './lib/solver';
 import { cleanMapFilter, DEFAULT_MAP_FILTER, type MapFilter } from './lib/world';
 import { forget, record, redo, undo } from './lib/model/history';
-import type { Model } from './lib/model/types';
+import { emptyModel, type Model } from './lib/model/types';
 import type { Carrier } from './lib/transport';
 
 export const MAX_TIER = Math.max(...data.recipes.map((r) => r.tier ?? 0));
@@ -564,10 +564,12 @@ export const useStore = create<State>()(
         },
         editModel: (id, fn, merge) => {
           const plan = get().plans.find((p) => p.id === id);
-          if (!plan?.model) return;
-          const next = fn(plan.model);
-          if (next === plan.model) return;
-          record(id, plan.model, merge);
+          // A manual floor saved without its model starts from an empty one.
+          const model = plan?.model ?? (plan?.floor === 'manual' ? emptyModel() : undefined);
+          if (!model) return;
+          const next = fn(model);
+          if (next === model) return;
+          record(id, model, merge);
           set({ plans: get().plans.map((p) => (p.id === id ? { ...p, model: next } : p)) });
         },
         undoModel: (id) => {

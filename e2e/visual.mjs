@@ -119,6 +119,24 @@ const SCREENS = [
     },
   },
   {
+    name: 'manual-empty',
+    state: saved({
+      mode: 'factory',
+      plans: [{ id: 'f1', name: 'Factory 1', targets: [], floor: 'manual', model: { v: 1, calc: 'basic', nodes: [], links: [], seq: 1 } }],
+      active: 'f1',
+    }),
+  },
+  {
+    name: 'manual-chooser',
+    state: factory([['Desc_Motor_C', 10]]),
+    act: async (page) => {
+      await page.click('.floor-kind button >> nth=1');
+      await page.waitForTimeout(1200);
+      await page.click('.add-part');
+      await page.locator('.chooser input').fill('rotor');
+    },
+  },
+  {
     name: 'recipes-panel',
     state: factory([['Desc_Motor_C', 10]], { tab: 'recipes' }),
     act: async (page, phone) => phone && page.click('.mobile-nav button >> nth=1'),

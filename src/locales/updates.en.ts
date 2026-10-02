@@ -6,6 +6,17 @@ export type UpdateKind = 'added' | 'fixed' | 'changed';
 
 export const UPDATES: { version: string; date: string; notes: [UpdateKind, string][] }[] = [
   {
+    version: '0.12.11',
+    date: '2026-10-02',
+    notes: [
+      [
+        'added',
+        'Manual floor (preview): double-click the floor, press + Add, or let go of a belt on the floor to pick a machine; a belt lists only what fits it and comes in already joined.',
+      ],
+      ['added', 'Build by hand from an empty floor, and a button that goes to each card still missing a belt.'],
+    ],
+  },
+  {
     version: '0.12.10',
     date: '2026-10-02',
     notes: [

@@ -5,7 +5,10 @@ import { DEFAULT_EXTRACTION } from '../src/lib/extraction';
 import { adaptModel } from '../src/lib/model/calc/adapter';
 import { calcKey, calcModel } from '../src/lib/model/calc';
 import { modelFromSolve } from '../src/lib/model/fromAuto';
-import { canConnect, connect, removeNodes } from '../src/lib/model/ops';
+import { openCards, openEnds } from '../src/lib/model/checks';
+import { choicesFor, choiceWords, placeChoice, wantAt } from '../src/lib/model/choices';
+import { cardSize, freeSpot } from '../src/lib/model/layout';
+import { addNode, canConnect, connect, removeNodes } from '../src/lib/model/ops';
 import { cleanModel } from '../src/lib/model/sanitize';
 import { type MLink, type MNode, type Model, MODEL_VERSION } from '../src/lib/model/types';
 import { solve } from '../src/lib/solver';
@@ -271,5 +274,109 @@ describe('a manual factory tab', () => {
     expect(useStore.getState().plans[0].model).toEqual(before);
     s.redoModel(plan.id);
     expect(useStore.getState().plans[0].model.calc).toBe('off');
+  });
+});
+
+describe('the chooser', () => {
+  test('a belt of iron ore let go on the floor lists what takes iron ore, and its end on each', () => {
+    const m = model([miner('m')], []);
+    const want = wantAt(m, 9, 'm', 'out', 0);
+    expect(want).toEqual({ side: 'in', node: 'm', port: 0, item: ORE, medium: 'belt' });
+    const list = choicesFor(want, 9);
+    const make = list.filter((c) => c.tab === 'make');
+    expect(make.length).toBeGreaterThan(1);
+    for (const c of make) {
+      if (c.init.k !== 'machine') throw new Error('not a machine');
+      const r = data.recipes.find((x) => x.id === c.init.recipe)!;
+      expect(r.inputs[c.port!].item).toBe(ORE);
+    }
+    expect(make.some((c) => c.init.k === 'machine' && c.init.recipe === SMELT)).toBe(true);
+    // No miners for a belt that's already carrying something; a splitter, merger, sink and an output.
+    expect(list.some((c) => c.tab === 'raw')).toBe(false);
+    expect(list.filter((c) => c.tab === 'logistic').map((c) => c.key)).toEqual(['l:splitter', 'l:merger', 'sink']);
+    expect(list.find((c) => c.tab === 'io')?.init).toEqual({ k: 'out', item: ORE, x: 0, y: 0 });
+  });
+
+  test('an input wanting iron ore lists the miner and what makes it', () => {
+    const m = model([smelter('s')], []);
+    const list = choicesFor(wantAt(m, 9, 's', 'in', 0), 9);
+    const raw = list.filter((c) => c.tab === 'raw');
+    expect(raw).toHaveLength(1);
+    expect(raw[0].init).toMatchObject({ k: 'extract', item: ORE, extractor: 'Build_MinerMk3_C' });
+    // At tier 3 the best miner is Mk.1.
+    expect(choicesFor(wantAt(m, 3, 's', 'in', 0), 3).find((c) => c.tab === 'raw')?.init).toMatchObject({ extractor: 'Build_MinerMk1_C' });
+    expect(list.find((c) => c.tab === 'io')?.init).toEqual({ k: 'in', item: ORE, x: 0, y: 0 });
+  });
+
+  test("a splitter's output carries what reaches the splitter", () => {
+    const m = model([miner('m'), { id: 's', ...at, k: 'logistic', kind: 'splitter' }], [{ a: 'm', ap: 0, b: 's', bp: 0 }]);
+    expect(wantAt(m, 9, 's', 'out', 1)).toMatchObject({ side: 'in', item: ORE, medium: 'belt' });
+    // Nothing on it yet: any belt item, no pipes.
+    const bare = model([{ id: 's', ...at, k: 'logistic', kind: 'splitter' }], []);
+    const want = wantAt(bare, 9, 's', 'out', 0);
+    expect(want?.item).toBeUndefined();
+    expect(choicesFor(want, 9).some((c) => c.key === 'l:junction')).toBe(false);
+  });
+
+  test('a water pipe lists pipe parts only', () => {
+    const pump: MNode = { id: 'p', ...at, k: 'extract', extractor: 'Build_WaterPump_C', item: 'Desc_Water_C' };
+    const list = choicesFor(wantAt(model([pump], []), 9, 'p', 'out', 0), 9);
+    expect(list.filter((c) => c.tab === 'logistic').map((c) => c.key)).toEqual(['l:junction']);
+  });
+
+  test('with nothing waiting it lists everything, turned on and unlocked first', () => {
+    const list = choicesFor(undefined, 2, new Set([SMELT]));
+    const make = list.filter((c) => c.tab === 'make');
+    expect(make[0].init).toMatchObject({ recipe: SMELT });
+    const firstLocked = make.findIndex((c) => c.tier > 2);
+    expect(make.slice(firstLocked).every((c) => c.tier > 2)).toBe(true);
+    expect(list.some((c) => c.tab === 'raw' && c.init.k === 'extract' && c.init.item === 'Desc_Water_C')).toBe(true);
+    expect(new Set(list.map((c) => c.key)).size).toBe(list.length);
+    expect(choiceWords(make[0])).toContain('Iron Ore');
+  });
+
+  test('a new card sits with its end where the belt was let go, off the cards already there', () => {
+    const m = model([miner('m')], []);
+    const want = wantAt(m, 9, 'm', 'out', 0)!;
+    const c = choicesFor(want, 9).find((x) => x.init.k === 'machine' && x.init.recipe === SMELT)!;
+    const placed = placeChoice(m, c, { x: 500, y: 300 }, want);
+    expect(placed.x).toBe(520);
+    // One input: half way down the card, give or take the grid.
+    expect(Math.abs(placed.y + cardSize(placed).h / 2 - 300)).toBeLessThanOrEqual(10);
+    // Let go on top of the miner: moved down off it.
+    const over = placeChoice(m, c, { x: 100, y: 50 }, want);
+    expect(over.y).toBeGreaterThanOrEqual(cardSize(m.nodes[0]).h + 20);
+    const added = addNode(m, { ...over, id: undefined } as never);
+    const joined = connect(added.model, 'm', 0, added.id, c.port!).model;
+    expect(joined.links).toHaveLength(1);
+  });
+
+  test('a free spot is the spot itself on an empty floor, on the grid', () => {
+    expect(freeSpot([], { x: 13, y: 27, w: 96, h: 96 })).toEqual({ x: 20, y: 20 });
+  });
+});
+
+describe('open ends', () => {
+  test('a machine needs every end; a splitter one on each side', () => {
+    const m = model(
+      [miner('m'), { id: 's', ...at, k: 'logistic', kind: 'splitter' }, smelter('a'), out('o')],
+      [
+        { a: 'm', ap: 0, b: 's', bp: 0 },
+        { a: 's', ap: 1, b: 'a', bp: 0 },
+      ],
+    );
+    const open = openEnds(m);
+    expect(open.get('s')).toEqual({ ins: [false], outs: [false, false, false] });
+    expect(open.get('a')).toEqual({ ins: [false], outs: [true] });
+    expect(open.get('o')).toEqual({ ins: [true], outs: [] });
+    expect(open.get('m')).toEqual({ ins: [], outs: [false] });
+    expect(openCards(m)).toEqual(['a', 'o'].sort((x, y) => m.nodes.findIndex((n) => n.id === x) - m.nodes.findIndex((n) => n.id === y)));
+    // Counting open outputs as left over: the smelter's output no longer needs a belt.
+    expect(openEnds({ ...m, drain: true }).get('a')).toEqual({ ins: [false], outs: [false] });
+    // A splitter with nothing on it at all.
+    expect(openEnds(model([{ id: 's', ...at, k: 'logistic', kind: 'splitter' }], [])).get('s')).toEqual({
+      ins: [true],
+      outs: [true, true, true],
+    });
   });
 });

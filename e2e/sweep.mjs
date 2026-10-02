@@ -161,7 +161,28 @@ async function run(size) {
         await node.dispatchEvent('click');
         await page.waitForTimeout(500);
         await check(`manual inspector ${item}`);
+        // The chooser, from the + button and from a belt let go on the floor.
+        await page.keyboard.press('Escape');
+        await page.click('.add-part');
+        await page.waitForTimeout(300);
+        await check(`manual chooser ${item}`);
+        await page.keyboard.press('Escape');
+        const end = page.locator('.react-flow__handle.port.out').first();
+        const box = (await end.count()) ? await end.boundingBox() : null;
+        if (!box) return;
+        await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
+        await page.mouse.down();
+        await page.mouse.move(box.x + 120, box.y + 60, { steps: 6 });
+        await page.mouse.up();
+        await page.waitForTimeout(300);
+        await check(`manual drop ${item}`);
+        await page.keyboard.press('Escape');
       });
+    // A floor built by hand from nothing.
+    await step('manual empty', async () => {
+      await open(saved({ mode: 'factory', plans: [{ id: 'f1', name: 'Factory 1', targets: [], floor: 'manual' }], active: 'f1' }));
+      await check('manual empty');
+    });
     // Every side panel tab, on the factory and next to it.
     for (const [tab, panel] of [
       ['targets', 'top'],

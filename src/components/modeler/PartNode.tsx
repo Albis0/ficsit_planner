@@ -4,6 +4,7 @@ import { data } from '../../lib/data';
 import { useT } from '../../lib/i18n';
 import { LOGISTICS, SINK, STORAGE, STORAGE_NAME } from '../../lib/model/catalog';
 import type { NodeCalc, NodeStatus } from '../../lib/model/calc/result';
+import type { OpenEnds } from '../../lib/model/checks';
 import { extractorById, type Port, portsOf, runnerRecipe } from '../../lib/model/ports';
 import type { MNode } from '../../lib/model/types';
 import { describeUse } from '../../lib/solver';
@@ -19,6 +20,8 @@ export interface PartData extends Record<string, unknown> {
   node: MNode;
   /** Which ends have a belt on them. */
   wired: { ins: boolean[]; outs: boolean[] };
+  /** Which ends need one and have none: a splitter's spare outputs don't. */
+  open?: OpenEnds;
 }
 
 /** What a status says on a card, and the tone it's shown in. */
@@ -46,8 +49,8 @@ export function useStatusText() {
   };
 }
 
-/** One end of a node: a square on its edge holding the item's icon, dashed while nothing is on it. */
-function End({ side, i, of, port, wired }: { side: 'in' | 'out'; i: number; of: number; port: Port; wired: boolean }) {
+/** One end of a node: a square on its edge holding the item's icon, dashed in orange while it needs a belt. */
+function End({ side, i, of, port, wired, open }: { side: 'in' | 'out'; i: number; of: number; port: Port; wired: boolean; open: boolean }) {
   const { name } = useT();
   const item = port.item ? data.items[port.item] : undefined;
   return (
@@ -55,7 +58,7 @@ function End({ side, i, of, port, wired }: { side: 'in' | 'out'; i: number; of: 
       type={side === 'in' ? 'target' : 'source'}
       position={side === 'in' ? Position.Left : Position.Right}
       id={`${side === 'in' ? 'i' : 'o'}${i}`}
-      className={`port ${side} ${wired ? 'wired' : 'open'} ${port.medium === 'pipe' ? 'pipe' : ''}`}
+      className={`port ${side} ${wired ? 'wired' : open ? 'open' : 'free'} ${port.medium === 'pipe' ? 'pipe' : ''}`}
       style={{ top: `${((i + 1) / (of + 1)) * 100}%` }}
       title={item ? name(item) : undefined}
     >
@@ -64,17 +67,17 @@ function End({ side, i, of, port, wired }: { side: 'in' | 'out'; i: number; of: 
   );
 }
 
-function Ends({ node, wired }: PartData) {
+function Ends({ node, wired, open }: PartData) {
   const ports = portsOf(node);
   return (
     <>
       {ports.ins.map((p, i) => (
         // biome-ignore lint/suspicious/noArrayIndexKey: ends are fixed by the node's recipe or kind, never reordered here.
-        <End key={`i${i}`} side="in" i={i} of={ports.ins.length} port={p} wired={wired.ins[i]} />
+        <End key={`i${i}`} side="in" i={i} of={ports.ins.length} port={p} wired={wired.ins[i]} open={!!open?.ins[i]} />
       ))}
       {ports.outs.map((p, i) => (
         // biome-ignore lint/suspicious/noArrayIndexKey: as above.
-        <End key={`o${i}`} side="out" i={i} of={ports.outs.length} port={p} wired={wired.outs[i]} />
+        <End key={`o${i}`} side="out" i={i} of={ports.outs.length} port={p} wired={wired.outs[i]} open={!!open?.outs[i]} />
       ))}
     </>
   );

@@ -4,6 +4,7 @@ import { useT } from '../../lib/i18n';
 import { LOGISTICS, SINK, STORAGE_NAME } from '../../lib/model/catalog';
 import { linkMedium, transportOf } from '../../lib/model/calc/compile';
 import type { CalcResult } from '../../lib/model/calc/result';
+import { type OpenEnds, openEnds } from '../../lib/model/checks';
 import { removeLinks, removeNodes, updateLink, updateNode } from '../../lib/model/ops';
 import { extractorById, extractorRate, portsOf, runnerRecipe } from '../../lib/model/ports';
 import type { MLink, MNode } from '../../lib/model/types';
@@ -105,7 +106,7 @@ function CountClock({ host, node }: { host: ModelHost; node: MNode & { n?: numbe
 }
 
 /** Each end: what goes through it now, and what it would at full speed. */
-function Flows({ node, calc }: { node: MNode; calc?: CalcResult }) {
+function Flows({ node, calc, open }: { node: MNode; calc?: CalcResult; open?: OpenEnds }) {
   const { t, name, num } = useT();
   const c = calc?.nodes[node.id];
   const ports = portsOf(node);
@@ -122,11 +123,15 @@ function Flows({ node, calc }: { node: MNode; calc?: CalcResult }) {
           {p.item && <Icon id={p.item} size={18} />}{' '}
           {p.item ? name(data.items[p.item]) : side === 'in' ? t('inEnd', { n: i + 1 }) : t('outEnd', { n: i + 1 })}
         </dt>
-        <dd>
-          {num(now)}
-          {full !== undefined && <small> / {num(full)}</small>}
-          {t('perMin')}
-        </dd>
+        {(side === 'in' ? open?.ins[i] : open?.outs[i]) ? (
+          <dd className="run-state bad">{t('notConnected')}</dd>
+        ) : (
+          <dd>
+            {num(now)}
+            {full !== undefined && <small> / {num(full)}</small>}
+            {t('perMin')}
+          </dd>
+        )}
       </div>
     );
   };
@@ -308,7 +313,7 @@ function NodePanel({ host, node, calc }: { host: ModelHost; node: MNode; calc?: 
         </p>
       )}
       {body}
-      <Flows node={node} calc={calc} />
+      <Flows node={node} calc={calc} open={openEnds(host.model).get(node.id)} />
       <Remove host={host} node={node} />
     </aside>
   );

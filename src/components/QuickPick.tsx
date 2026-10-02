@@ -36,6 +36,8 @@ export function QuickPick() {
   const tier = useStore((s) => s.tier);
   const set = useStore((s) => s.set);
   const updatePlan = useStore((s) => s.updatePlan);
+  const setFloor = useStore((s) => s.setFloor);
+  const active = useStore((s) => s.active);
   const [q, setQ] = useState('');
 
   const matches = useMemo(() => {
@@ -74,7 +76,21 @@ export function QuickPick() {
   return (
     <div className="quick-pick">
       <div className="quick-inner">
-        <h2 className="quick-title">{t('whatToMake')}</h2>
+        <div className="quick-head">
+          <h2 className="quick-title">{t('whatToMake')}</h2>
+          {/* Or no targets at all: an empty floor to build on by hand. */}
+          <button
+            type="button"
+            className="text-button"
+            title={t('manualHint')}
+            onClick={() => {
+              setFloor(active, 'manual');
+              set({ view: 'graph' });
+            }}
+          >
+            {t('buildByHand')}
+          </button>
+        </div>
         <input
           className="quick-search"
           type="search"

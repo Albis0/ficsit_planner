@@ -2,6 +2,29 @@
 
 All notable changes to FICSIT Planner. Dates are when the version was finished.
 
+## 0.12.11 — 2026-10-02
+
+### Added
+
+- **Adding to a manual floor**: double-click the empty floor, press **+ Add** in the corner, or let go of a belt on the
+  empty floor, and a build menu opens: Production, Resources, Logistics, In and out, with a search over recipe,
+  building and item names. Let go of a belt and it lists only what fits that belt's end (what takes iron ingots, or
+  the miner and the recipes that make iron ore for an input wanting it), and the new card comes in already joined to
+  the belt, its end where the belt was let go. Recipes turned on for the factory come first, ones above the unlocked
+  tier are greyed with their tier. A belt let go on a card goes onto that card's first free end that fits.
+- A manual floor can start empty: **Build by hand** beside "Pick a product", and an **Add a machine** button on an
+  empty floor.
+- **Not connected**: ends that need a belt are dashed orange (a splitter's spare outputs no longer are), the button
+  in the corner says how many cards have one and goes from one to the next, and the panel marks each open end.
+- Laying a belt by taps: after tapping an end, a strip says to tap an input (or output), or the floor to put
+  something there; tapping the floor opens the build menu for that belt. Tapping an end no longer opens the card's
+  panel over the floor.
+
+### Changed
+
+- Fit to screen on a manual floor keeps clear of the toolbar and doesn't zoom past 100%.
+- A card just added that lands under the panel moves into view.
+
 ## 0.12.10 — 2026-10-02
 
 ### Added

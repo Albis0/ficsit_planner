@@ -2,8 +2,8 @@ import type { Edge, Node } from '@xyflow/react';
 import { data, transportFor } from '../data';
 import { type ExtractionSettings, extractorFor } from '../extraction';
 import { buildGraph, type EndpointNodeData, type FlowEdgeData, type MachineNodeData } from '../graph';
-import { portsOf } from './ports';
 import type { SolveResult } from '../solver';
+import { cardSize as sizeOf, GRID, snap } from './layout';
 import { extractorRate, mediumOf } from './ports';
 import { type MLink, type MNode, type Model, MODEL_VERSION } from './types';
 
@@ -13,9 +13,6 @@ import { type MLink, type MNode, type Model, MODEL_VERSION } from './types';
   splitter goes in, and where several belts feed one input a merger, because in the game one end holds one belt.
   Raw inputs become a miner (or pump) per belt, sized to what that belt carries.
 */
-
-const GRID = 20;
-const snap = (v: number) => Math.round(v / GRID) * GRID;
 
 /** Up to three outputs per splitter (three inputs per merger); more than that chains another one on. */
 const FAN = 3;
@@ -220,13 +217,6 @@ export function modelFromSolve(result: SolveResult, tier: number, extraction: Ex
   }
   return { v: MODEL_VERSION, calc: 'basic', nodes, links, seq };
 }
-
-/** Rough card sizes on the floor, for keeping added cards off each other. */
-const sizeOf = (n: MNode) => {
-  if (n.k === 'machine') return { w: 310, h: 130 + Math.max(0, Math.max(portsOf(n).ins.length, portsOf(n).outs.length) - 3) * 20 };
-  if (n.k === 'extract' || n.k === 'in' || n.k === 'out') return { w: 330, h: 100 };
-  return { w: 96, h: 96 };
-};
 
 /**
  * Cards the Auto floor didn't have (splitters, mergers, a second miner for one ore) are put down near where they

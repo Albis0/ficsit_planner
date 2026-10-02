@@ -49,6 +49,7 @@ const DYNAMIC_PREFIXES = [
   'cat_',
   'calc_',
   'calcHint_',
+  'choose_',
   'guideLine_',
   'sort_',
   'extra_',

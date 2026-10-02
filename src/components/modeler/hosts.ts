@@ -14,6 +14,8 @@ const EMPTY = emptyModel();
 /** A factory tab as the home of a hand-built model. */
 export function useFactoryHost(planId: string): ModelHost {
   const model = useStore((s) => s.plans.find((p) => p.id === planId)?.model) ?? EMPTY;
+  const enabled = useStore((s) => s.plans.find((p) => p.id === planId)?.enabled);
+  const marked = useMemo(() => new Set(enabled), [enabled]);
   const editModel = useStore((s) => s.editModel);
   const undoModel = useStore((s) => s.undoModel);
   const redoModel = useStore((s) => s.redoModel);
@@ -24,8 +26,9 @@ export function useFactoryHost(planId: string): ModelHost {
       edit: (fn, merge) => editModel(planId, fn, merge),
       undo: () => undoModel(planId),
       redo: () => redoModel(planId),
+      marked,
     }),
-    [planId, model, editModel, undoModel, redoModel],
+    [planId, model, editModel, undoModel, redoModel, marked],
   );
 }
 

@@ -12,7 +12,8 @@ export function nextIds(m: Model, n: number): { ids: string[]; seq: number } {
   return { ids, seq: m.seq + n };
 }
 
-type NodeInit = MNode extends infer N ? (N extends MNode ? Omit<N, 'id'> : never) : never;
+/** A node as it's put down, before it has an id. */
+export type NodeInit = MNode extends infer N ? (N extends MNode ? Omit<N, 'id'> : never) : never;
 
 export function addNode(m: Model, init: NodeInit): { model: Model; id: string } {
   const { ids, seq } = nextIds(m, 1);
