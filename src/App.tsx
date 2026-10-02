@@ -19,6 +19,7 @@ import { SettingsDialog } from './components/SettingsDialog';
 import { Splitter } from './components/Splitter';
 import { Summary, SummaryHandle } from './components/Summary';
 import { TableView } from './components/TableView';
+import { TransportView } from './components/TransportView';
 import { TargetsPanel } from './components/TargetsPanel';
 import { TierDialog } from './components/TierPicker';
 import { effectiveExtraction, planExtraction } from './lib/extraction';
@@ -337,22 +338,34 @@ export default function App() {
               </div>
             )}
             {shown &&
-              (s.view === 'graph' ? (
-                <GraphView result={result} extraction={extraction} consumers={consumers} links={links} />
-              ) : (
+              (s.view === 'table' ? (
                 <TableView result={result} extraction={extraction} />
+              ) : s.view === 'transport' && !powerMode ? (
+                <TransportView result={result} links={links} />
+              ) : (
+                <GraphView result={result} extraction={extraction} consumers={consumers} links={links} />
               ))}
             {shown && (inspectPlant ? <PlantInspector key={inspectPlant} result={result} /> : <Inspector result={result} />)}
             {busy && <div className="busy">{t('solving')}</div>}
             {shown && (
               <div className="floor-bar">
                 <div className="segmented" role="radiogroup">
-                  <button type="button" role="radio" aria-checked={s.view === 'graph'} onClick={() => s.set({ view: 'graph' })}>
+                  <button
+                    type="button"
+                    role="radio"
+                    aria-checked={s.view === 'graph' || (powerMode && s.view === 'transport')}
+                    onClick={() => s.set({ view: 'graph' })}
+                  >
                     {t('graph')}
                   </button>
                   <button type="button" role="radio" aria-checked={s.view === 'table'} onClick={() => s.set({ view: 'table' })}>
                     {t('table')}
                   </button>
+                  {!powerMode && (
+                    <button type="button" role="radio" aria-checked={s.view === 'transport'} onClick={() => s.set({ view: 'transport' })}>
+                      {t('transportView')}
+                    </button>
+                  )}
                 </div>
                 {!s.inspect && <span className="floor-hint">{powerMode ? t('inspectPowerHint') : t('inspectHint')}</span>}
               </div>

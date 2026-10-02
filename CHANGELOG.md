@@ -2,6 +2,21 @@
 
 All notable changes to FICSIT Planner. Dates are when the version was finished.
 
+## 0.12.7 — 2026-10-02
+
+### Added
+
+- **Transport**, a third view next to Factory and List: every input and output of the factory, each with how it
+  travels. Belts and pipes by default; pick a train, truck, tractor, explorer, fluid truck or drone, type the
+  distance one way, and it says how many vehicles, stations and platforms that takes, the round trip, the power
+  and the fuel or batteries. Freight cars follow the wiki's train throughput formula (a car takes its load over two
+  belts plus 27.08 s to fill); trip times use top speeds on flat ground and are marked as estimates. Only vehicles
+  unlocked at your tier are offered, and drones only carry solids. The choices are saved with the factory and go
+  along in shared links and backups. Thanks to u/TheUnitFoxhound6.
+- **Codex › Transport** (was Belts and pipes): the same calculator for any item, every carrier side by side, and a
+  table of what each vehicle holds, how fast it goes and how long a stop takes.
+- Stack sizes, vehicles and stations now come from the game files.
+
 ## 0.12.6 — 2026-10-02
 
 ### Changed

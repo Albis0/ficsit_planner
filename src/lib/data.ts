@@ -11,6 +11,8 @@ export interface Item {
   raw: boolean;
   /** What it gives a generator: MJ per item, or per m³ for fluids. Only on fuels. */
   energy?: number;
+  /** Solids: how many fit in one inventory slot. */
+  stack?: number;
 }
 
 export interface Stack {
@@ -112,6 +114,33 @@ export interface PowerStorage {
   cost: Cost[];
 }
 
+/** A vehicle from the game files; what they don't say (speeds, a fluid car's volume) is in lib/transport.ts. */
+export interface Vehicle {
+  id: string;
+  name: string;
+  /** Inventory slots; a fluid vehicle has one fluid slot. */
+  slots: number;
+  fluid: boolean;
+  /** MW of fuel burnt while driving (road vehicles). */
+  fuelPower?: number;
+  /** MW the locomotive draws, idle to full power. */
+  powerRange?: [number, number];
+  tier: number;
+}
+
+export interface Station {
+  id: string;
+  name: string;
+  /** Seconds a vehicle sits there loading or unloading. */
+  load: number;
+  power: number;
+  tier: number;
+  /** Fluid Truck Station: 50 m³ stacks in its one fluid slot, a fluid truck's load. */
+  fluidStacks?: number;
+  /** Drone Port: MJ a round trip takes, fixed and per metre flown, and what one battery holds. */
+  trip?: { base: number; perMetre: number; battery: number };
+}
+
 interface GameData {
   items: Record<string, Item>;
   recipes: Recipe[];
@@ -122,6 +151,8 @@ interface GameData {
   extractors: Extractor[];
   generators: Generator[];
   powerStorage: PowerStorage;
+  vehicles: Vehicle[];
+  stations: Station[];
 }
 
 export const data = raw as GameData;

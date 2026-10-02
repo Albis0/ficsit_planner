@@ -1,10 +1,11 @@
 import { DEFAULT_GAME, GAME_RANGE, type GameRules } from './game';
-import type { Plan, PowerPlan, Supply } from '../store';
+import type { Plan, PowerPlan, Route, Supply } from '../store';
 import { data, generatorById, recipeById } from './data';
 import { DEFAULT_EXTRACTION, type ExtractionSettings, MINERS, PURITIES, type Purity } from './extraction';
 import { PLANT_NAMES, type Plant, type PlantSize, type SizeBy } from './power';
 import { clampSetting, DEFAULT_COLORS, DEFAULT_SETTINGS, FONTS, type Settings } from './settings';
 import type { RecipeMod, Target } from './solver';
+import { CARRIERS, type Carrier } from './transport';
 
 /*
   Saved state and loaded copies are data from outside the code: an older version, a hand-edited
@@ -87,6 +88,18 @@ function nodesOf(x: unknown): ExtractionSettings['nodes'] {
   return Object.keys(out).length ? out : undefined;
 }
 
+/** Carriers chosen for a factory's inputs and outputs: known items, known carriers, 0 to 100 km. */
+function transportOf(x: unknown): Record<string, Route> | undefined {
+  const out: Record<string, Route> = {};
+  for (const [key, v] of Object.entries(obj(x))) {
+    const m = key.match(/^(in|out):(.+)$/);
+    const { by, distance } = obj(v);
+    if (!m || !data.items[m[2]] || !CARRIERS.includes(by as Carrier)) continue;
+    out[key] = { by: by as Carrier, distance: within(distance, 0, 100_000, 1000) };
+  }
+  return Object.keys(out).length ? out : undefined;
+}
+
 /** A factory tab, cleaned against the current game data. */
 export function cleanPlan(saved: unknown, fallback: Plan): Plan {
   const p = obj(saved);
@@ -102,6 +115,7 @@ export function cleanPlan(saved: unknown, fallback: Plan): Plan {
     fixed: amounts(p.fixed),
     mods: mods(p.mods),
     extraction: extraction(p.extraction ?? fallback.extraction),
+    ...(transportOf(p.transport) ? { transport: transportOf(p.transport) } : {}),
   };
 }
 

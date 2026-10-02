@@ -56,6 +56,8 @@ for (const g of en) {
       sink: Number.parseInt(c.mResourceSinkPoints ?? '0', 10) || 0,
       color: form === 'solid' ? undefined : (colorOf(form === 'gas' ? c.mGasColor : c.mFluidColor) ?? colorOf(c.mFluidColor)),
       raw: nativeName(g) === 'FGResourceDescriptor',
+      // Items per inventory slot; what a freight car, truck or drone holds is slots × this.
+      ...(form === 'solid' ? { stack: Number.parseInt(c.mCachedStackSize, 10) } : {}),
     };
   }
 }
@@ -270,6 +272,70 @@ const withTier = (list, nc) =>
     const c = byNative(en, nc).find((x) => x.mDisplayName.endsWith(t.name));
     return { ...t, id: c.ClassName, tier: buildingInfo(c.ClassName).tier };
   });
+// ---- Transport ---------------------------------------------------------------
+// Vehicles: inventory slots, whether they carry fluid, and what they run on (MW of fuel while driving, or the
+// locomotive's draw). What the files don't say (speeds, a fluid car's volume) lives in src/lib/transport.ts.
+const vehicleClasses = new Map(byNative(en, 'FGVehicleDescriptor').map((c) => [c.ClassName, c]));
+const range = (s) =>
+  s
+    ?.match(/Min=([\d.]+),Max=([\d.]+)/)
+    ?.slice(1)
+    .map(num);
+const vehicles = [
+  'Desc_Locomotive_C',
+  'Desc_FreightWagon_C',
+  'Desc_Truck_C',
+  'Desc_FluidTruck_C',
+  'Desc_Tractor_C',
+  'Desc_Explorer_C',
+  'Desc_DroneTransport_C',
+].map((id) => {
+  const c = vehicleClasses.get(id);
+  return {
+    id,
+    name: c.mDisplayName,
+    slots: c.mInventorySize ? Number.parseInt(c.mInventorySize, 10) : 0,
+    fluid: c.mIsFluidStorageInventory === 'True',
+    fuelPower: c.mManualFuelConsumption ? num(c.mManualFuelConsumption) : undefined,
+    powerRange: range(c.mPowerConsumption),
+    tier: buildingInfo(id.replace(/^Desc_/, 'Build_')).tier,
+  };
+});
+// Stations: seconds a vehicle sits loading or unloading, and their power. The Drone Port also says what a trip costs
+// in MJ, a fixed part and a part per metre flown, and the battery holds a known amount.
+const stationClass = (id) => classById.get(id);
+const station = (id, load) => ({
+  id,
+  name: stationClass(id).mDisplayName,
+  load,
+  power: num(stationClass(id).mPowerConsumption),
+  tier: buildingInfo(id).tier,
+});
+const freight = stationClass('Build_TrainDockingStation_C');
+const fluidTruckStation = stationClass('Build_FluidTruckStation_C');
+const drone = stationClass('Build_DroneStation_C');
+const stations = [
+  station('Build_TrainDockingStation_C', num(freight.mTimeToCompleteLoad)),
+  station('Build_TrainDockingStationLiquid_C', num(stationClass('Build_TrainDockingStationLiquid_C').mTimeToCompleteLoad)),
+  station('Build_TrainStation_C', 0),
+  station('Build_TruckStation_C', num(stationClass('Build_TruckStation_C').mLoadUnloadCycleLength)),
+  {
+    ...station('Build_FluidTruckStation_C', num(fluidTruckStation.mLoadUnloadCycleLength)),
+    // One fluid slot, 64 stacks of 50 m³ deep: a fluid truck's load.
+    fluidStacks: Number.parseInt(fluidTruckStation.mFluidStackSizeMultiplier, 10),
+  },
+  {
+    ...station('Build_DroneStation_C', 0),
+    trip: {
+      base: num(drone.mTripPowerCost),
+      perMetre: num(drone.mTripPowerPerMeterCost),
+      battery: num(classById.get('Desc_Battery_C').mEnergyValue),
+    },
+  },
+];
+console.log('vehicles', vehicles.map((v) => `${v.name} ${v.slots}${v.fluid ? 'f' : ''} T${v.tier}`).join(', '));
+console.log('stations', stations.map((x) => `${x.name} ${x.load}s ${x.power}MW T${x.tier}`).join(', '));
+
 // Building costs may reference parts no production recipe touched; include them too.
 items = Object.fromEntries([...used].filter((id) => allItems[id]).map((id) => [id, allItems[id]]));
 const beltsOut = withTier(belts, 'FGBuildableConveyorBelt');
@@ -329,7 +395,19 @@ recipes.sort((a, b) => a.name.localeCompare(b.name));
 fs.mkdirSync(path.dirname(outFile), { recursive: true });
 fs.writeFileSync(
   outFile,
-  JSON.stringify({ items, recipes, machines, worldLimits, belts: beltsOut, pipes: pipesOut, extractors, generators, powerStorage }),
+  JSON.stringify({
+    items,
+    recipes,
+    machines,
+    worldLimits,
+    belts: beltsOut,
+    pipes: pipesOut,
+    extractors,
+    generators,
+    powerStorage,
+    vehicles,
+    stations,
+  }),
 );
 console.log('belts', belts.map((b) => `${b.name}=${b.rate}`).join(' '), '| pipes', pipes.map((p) => `${p.name}=${p.rate}`).join(' '));
 

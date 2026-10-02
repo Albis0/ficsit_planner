@@ -9,13 +9,19 @@ import { useWorld } from '../lib/finds';
 import { useT } from '../lib/i18n';
 import { fuelRate, MAX_CLOCK } from '../lib/power';
 import { shardsFor } from '../lib/solver';
+import { CARRIERS, carrierTier, carries, haul, vehicleFacts } from '../lib/transport';
 import { recipeLabel } from '../lib/text';
 import { CodexLink, PhaseList, phaseOpens } from './Codex';
 import { Delta, Flows, rawOrder } from './CodexLine';
 import { Glyph } from './Glyph';
 import { openMapOn } from './MapNav';
 import { Icon } from './Icon';
+import { ItemPicker } from './ItemPicker';
 import { RateInput } from './RateInput';
+import { HaulResult, useCarrierLabel } from './TransportView';
+
+/** Anything a belt, pipe or vehicle can move: every part and every raw resource. */
+const HAULABLE = Object.values(data.items).filter((i) => i.raw || i.form !== 'solid' || i.stack);
 
 /** Mechanics explained with the game's own numbers, and small calculators to try them on. */
 export function GuidePage({ id }: { id: GuideId }) {
@@ -374,10 +380,87 @@ function Fuel() {
 }
 
 function Transport() {
-  const { t, num } = useT();
+  const { t, num, name } = useT();
+  const tier = useStore((s) => s.tier);
+  const label = useCarrierLabel();
+  const [id, setId] = useState('Desc_OreIron_C');
+  const [rate, setRate] = useState(480);
+  const [distance, setDistance] = useState(2000);
+  const item = data.items[id];
   return (
     <>
       <Text k="guideText_transport" />
+      <Box title={t('tryIt')}>
+        <div className="codex-calc">
+          <div className="haul-calc-inputs">
+            <span className="haul-calc-item">
+              <Icon id={id} size={40} />
+              <b>{name(item)}</b>
+            </span>
+            <ItemPicker items={HAULABLE} label={t('pickItem')} onPick={setId} exclude={[id]} />
+            <span className="haul-distance">
+              <span className="control-label">{t('rate')}</span>
+              <RateInput value={rate} label={t('rate')} onChange={setRate} />
+              <span className="haul-unit">{item.form === 'solid' ? t('perMin') : t('m3PerMin')}</span>
+            </span>
+            <span className="haul-distance">
+              <span className="control-label">{t('distanceOneWay')}</span>
+              <RateInput value={distance} label={t('distanceOneWay')} max={100000} onChange={setDistance} />
+              <span className="haul-unit">m</span>
+            </span>
+          </div>
+          <ul className="haul-list">
+            {CARRIERS.filter((c) => carries(c, item)).map((c) => (
+              <li key={c} className="haul">
+                <span className="haul-name">
+                  {label(c, item)}
+                  {carrierTier(c) > tier && <span className="estimate-tag">{t('tierN', { tier: carrierTier(c) })}</span>}
+                </span>
+                <HaulResult h={haul(item, rate, c, distance, tier)} item={item} />
+              </li>
+            ))}
+          </ul>
+          {item.form !== 'solid' && <p className="hint">{t('dronesNoFluid')}</p>}
+          <p className="hint">{t('transportNote')}</p>
+        </div>
+      </Box>
+      <Box title={t('vehiclesTitle')}>
+        <div className="codex-table-wrap">
+          <table className="codex-table">
+            <thead>
+              <tr>
+                <th>{t('vehicleCol')}</th>
+                <th>{t('holdsCol')}</th>
+                <th>{t('speedCol')}</th>
+                <th>{t('stopCol')}</th>
+                <th>{t('statTier')}</th>
+              </tr>
+            </thead>
+            <tbody>
+              {vehicleFacts().map((v) => (
+                <tr key={v.carrier}>
+                  <td>
+                    <span className="codex-machine">
+                      <Icon id={v.id} size={24} />
+                      {label(v.carrier, data.items[v.carrier === 'fluidTruck' ? 'Desc_Water_C' : 'Desc_OreIron_C'])}
+                    </span>
+                  </td>
+                  <td>
+                    {v.carrier === 'fluidTruck'
+                      ? `${num(v.fluid ?? 0)} m³`
+                      : v.fluid
+                        ? t('slotsOrFluid', { slots: v.slots, m3: num(v.fluid) })
+                        : t('slotsN', { n: v.slots })}
+                  </td>
+                  <td>{t('kmh', { n: num(Math.round(v.speed)) })}</td>
+                  <td>{t('secondsN', { n: num(v.stop) })}</td>
+                  <td>{v.tier}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </Box>
       <Box title={t('beltsTitle')}>
         <div className="codex-table-wrap">
           <table className="codex-table">

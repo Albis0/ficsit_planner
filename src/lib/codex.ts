@@ -176,7 +176,7 @@ export const GUIDE_ICON: Record<GuideId, string> = {
   sloops: 'Desc_WAT1_C',
   nodes: 'Build_MinerMk3_C',
   fuel: 'Build_GeneratorFuel_C',
-  transport: 'Build_ConveyorBeltMk6_C',
+  transport: 'Desc_FreightWagon_C',
   world: 'Build_RadarTower_C',
   sink: 'Build_ResourceSink_C',
   crashsites: 'Desc_HardDrive_C',

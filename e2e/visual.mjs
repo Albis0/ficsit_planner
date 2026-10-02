@@ -81,6 +81,20 @@ const SCREENS = [
     ),
   },
   {
+    name: 'factory-motor-transport',
+    state: factory([['Desc_Motor_C', 10]], {
+      view: 'transport',
+      plans: [
+        {
+          id: 'f1',
+          name: 'Factory 1',
+          targets: [{ item: 'Desc_Motor_C', rate: 10 }],
+          transport: { 'in:Desc_OreIron_C': { by: 'train', distance: 2000 }, 'out:Desc_Motor_C': { by: 'drone', distance: 3000 } },
+        },
+      ],
+    }),
+  },
+  {
     name: 'inspector',
     state: factory([['Desc_Motor_C', 10]]),
     act: async (page) => {
@@ -98,6 +112,7 @@ const SCREENS = [
   { name: 'codex-motor', state: saved({ mode: 'codex' }), hash: '#codex/item/Desc_Motor_C' },
   { name: 'codex-constructor', state: saved({ mode: 'codex' }), hash: '#codex/building/Build_ConstructorMk1_C' },
   { name: 'codex-guide-overclock', state: saved({ mode: 'codex' }), hash: '#codex/guide/overclock' },
+  { name: 'codex-guide-transport', state: saved({ mode: 'codex' }), hash: '#codex/guide/transport' },
   { name: 'map', state: saved({ mode: 'map' }), wait: 2500 },
   {
     name: 'settings',

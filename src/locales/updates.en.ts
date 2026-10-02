@@ -6,6 +6,17 @@ export type UpdateKind = 'added' | 'fixed' | 'changed';
 
 export const UPDATES: { version: string; date: string; notes: [UpdateKind, string][] }[] = [
   {
+    version: '0.12.7',
+    date: '2026-10-02',
+    notes: [
+      [
+        'added',
+        'Transport view: how each input and output travels, by belt, train, truck, tractor, explorer, fluid truck or drone, and what that takes. Thanks to u/TheUnitFoxhound6.',
+      ],
+      ['added', 'Codex › Transport: the same calculator for any item, and what each vehicle holds.'],
+    ],
+  },
+  {
     version: '0.12.6',
     date: '2026-10-02',
     notes: [

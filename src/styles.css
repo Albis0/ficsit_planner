@@ -2874,6 +2874,168 @@ button.slot:hover {
   }
 }
 
+/* ---------- Transport view ---------- */
+
+.transport-wrap {
+  position: absolute;
+  inset: 0;
+  overflow: auto;
+  padding: 18px 18px 84px;
+  display: flex;
+  flex-direction: column;
+  gap: 22px;
+}
+
+.haul-group {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.haul-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 460px), 1fr));
+  gap: 10px;
+}
+
+.haul {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 12px;
+  background: var(--raised);
+  border-radius: var(--radius-lg);
+}
+
+.haul-head {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.haul-name {
+  flex: 1;
+  min-width: 0;
+  font: 600 20px / 1.15 var(--font-display);
+}
+
+.haul-name b {
+  color: var(--ficsit);
+  font-weight: 700;
+}
+
+.haul-note {
+  font: 600 14px var(--font-display);
+  color: var(--dim);
+}
+
+.haul-pick {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.haul-pick button {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 40px;
+  padding: 4px 10px 4px 6px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--bg);
+  color: var(--dim);
+  font: 600 15px var(--font-display);
+}
+
+.haul-pick button:hover {
+  color: var(--paper);
+  background: var(--panel);
+}
+
+.haul-pick button[aria-checked='true'] {
+  border-color: var(--ficsit);
+  background: color-mix(in srgb, var(--ficsit) 16%, var(--bg));
+  color: var(--paper);
+}
+
+.haul-distance {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.haul-distance .rate-input {
+  width: 110px;
+}
+
+.haul-unit {
+  color: var(--dim);
+}
+
+.haul-result {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.haul-stats {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 14px;
+  margin-left: 6px;
+}
+
+.haul-stat {
+  font: 600 16px var(--font-display);
+  color: var(--paper);
+}
+
+.haul-total {
+  padding: 12px;
+  background: var(--panel);
+  border-radius: var(--radius-lg);
+}
+
+.haul-calc-inputs {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px 20px;
+  margin-bottom: 12px;
+}
+
+.haul-calc-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font: 600 20px var(--font-display);
+}
+
+.codex-calc .haul-list {
+  margin-bottom: 10px;
+}
+
+.codex-calc .haul-name {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.estimate-tag {
+  padding: 0 6px;
+  font: 600 13px / 1.6 var(--font-display);
+  color: var(--dim);
+  border: 1px solid var(--line-2);
+  border-radius: var(--radius);
+}
+
 /* ---------- Conveyor belts and pipes ---------- */
 
 .belt-edge path,

@@ -10,6 +10,7 @@ import { cleanChoice, cleanNumber, cleanPlan, cleanPowerPlan, cleanSettings, gri
 import { DEFAULT_SETTINGS, type Settings } from './lib/settings';
 import type { RecipeMod, Target } from './lib/solver';
 import { cleanMapFilter, DEFAULT_MAP_FILTER, type MapFilter } from './lib/world';
+import type { Carrier } from './lib/transport';
 
 export const MAX_TIER = Math.max(...data.recipes.map((r) => r.tier ?? 0));
 
@@ -34,6 +35,14 @@ export interface Plan {
   mods: Record<string, RecipeMod>;
   /** Which miner, node purity and clock to count extractors with. */
   extraction: ExtractionSettings;
+  /** How each input arrives and each output leaves ("in:<item>", "out:<item>"); belts or pipes when not set. */
+  transport?: Record<string, Route>;
+}
+
+/** A carrier chosen for one input or output, and how far it goes one way, in metres. */
+export interface Route {
+  by: Carrier;
+  distance: number;
 }
 
 const uid = () => Math.random().toString(36).slice(2, 10);
@@ -131,7 +140,7 @@ interface State {
   onboarded: boolean;
   /** Somersloops and power shards the player owns, for auto placement. */
   inventory: { sloops: number; shards: number };
-  view: 'graph' | 'table';
+  view: 'graph' | 'table' | 'transport';
   tab: 'targets' | 'recipes' | 'resources';
   plans: Plan[];
   active: string;
@@ -636,7 +645,7 @@ export function mergeState<S extends State>(persisted: unknown, current: S): S {
       sloops: Math.round(cleanNumber(p.inventory?.sloops, 0, 1e4, 0)),
       shards: Math.round(cleanNumber(p.inventory?.shards, 0, 1e4, 0)),
     },
-    view: cleanChoice(p.view, ['graph', 'table'] as const, current.view),
+    view: cleanChoice(p.view, ['graph', 'table', 'transport'] as const, current.view),
     tab: cleanChoice(p.tab, ['targets', 'recipes', 'resources'] as const, current.tab),
     deckHeight: typeof p.deckHeight === 'number' ? cleanNumber(p.deckHeight, 100, 4000, 320) : undefined,
     sideWidth: typeof p.sideWidth === 'number' ? cleanNumber(p.sideWidth, 200, 4000, 460) : undefined,

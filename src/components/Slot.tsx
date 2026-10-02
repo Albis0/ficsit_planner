@@ -13,7 +13,14 @@ interface Props {
 /** An inventory slot like the game's: square, icon in the middle, amount in the bottom-right corner. */
 export function Slot({ id, rate, size = 56, tone = 'default', onClick }: Props) {
   const { name, num } = useT();
-  const label = name(data.items[id] ?? data.machines[id] ?? data.extractors.find((e) => e.id === id));
+  const label = name(
+    data.items[id] ??
+      data.machines[id] ??
+      data.extractors.find((e) => e.id === id) ??
+      data.vehicles.find((v) => v.id === id) ??
+      data.stations.find((s) => s.id === id) ??
+      [...data.belts, ...data.pipes].find((b) => b.id === id),
+  );
   const body = (
     <>
       <Icon id={id} size={Math.round(size * 0.74)} />

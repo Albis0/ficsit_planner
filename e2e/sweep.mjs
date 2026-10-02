@@ -134,6 +134,11 @@ async function run(size) {
         await check(`list ${item}`);
       });
     for (const item of sample(products, 4).slice(0, QUICK ? 4 : 40))
+      await step(`transport ${item}`, async () => {
+        await open(factory([item], { view: 'transport' }));
+        await check(`transport ${item}`);
+      });
+    for (const item of sample(products, 4).slice(0, QUICK ? 4 : 40))
       await step(`inspector ${item}`, async () => {
         await open(factory([item]));
         const node = page.locator('.react-flow__node-machine').first();
