@@ -90,9 +90,9 @@ export interface Split {
 const MIN_CLOCK = 0.01;
 
 /**
- * A line whose main output goes to several places, built as one group of machines per place, each at its own clock:
- * 4 smelters sending 73.55/min to rods and 46.45/min to plates become 2 × 61.29% for the rods and 2 × 38.71% for the
- * plates. No splitter ratio to work out, and each group gets one belt. Each group rounds up on its own, so it can take
+ * A line whose main output goes to several places, built as one group of machines per place, each sized to it:
+ * 4 smelters sending 73.55/min to rods and 46.45/min to plates become 2 × 100% + 1 × 45.17% for the rods and
+ * 1 × 100% + 1 × 54.83% for the plates. No splitter ratio to work out, and each group gets one belt. Each group rounds up on its own, so it can take
  * up to (groups − 1) more machines than the line; that's counted in `extra`. Undefined for a single destination, for a
  * single machine, and for power plants.
  */
@@ -117,7 +117,7 @@ export function splitByDestination(use: RecipeUse, flows: Flow[], tier: number):
   if (parts.length < 2) return undefined;
 
   const groups = parts.map((p) => {
-    const part = describeUse(use.recipe, use.mod, (use.count * p.rate) / total);
+    const part = describeUse(use.recipe, use.mod, (use.count * p.rate) / total, use.spread);
     return { to: p.to, nodes: p.nodes, rate: p.rate, use: part, groups: buildGroups(part, tier) };
   });
   const extra = groups.reduce((s, g) => s + g.use.built, 0) - use.built;

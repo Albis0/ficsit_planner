@@ -239,6 +239,7 @@ export function cleanSettings(saved: unknown): Settings {
     showLocked: typeof s.showLocked === 'boolean' ? s.showLocked : d.showLocked,
     summary: oneOf(s.summary, ['compact', 'full'] as const, d.summary),
     splitLines: oneOf(s.splitLines, ['each', 'one'] as const, d.splitLines),
+    clockSpread: oneOf(s.clockSpread, ['average', 'single'] as const, d.clockSpread),
     game: gameOf(s.game),
   };
 }

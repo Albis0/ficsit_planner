@@ -411,6 +411,17 @@ function FloorSection() {
           onChange={(v) => set({ splitLines: v })}
         />
       </Row>
+      <Row label={t('clockSpread')} hint={t('clockSpreadHint')}>
+        <Choice
+          label={t('clockSpread')}
+          value={s.clockSpread}
+          options={[
+            { id: 'average', label: t('clockSpreadAverage') },
+            { id: 'single', label: t('clockSpreadSingle') },
+          ]}
+          onChange={(v) => set({ clockSpread: v })}
+        />
+      </Row>
       <Row label={t('beltLabels')} hint={t('beltLabelsHint')}>
         <Choice
           label={t('beltLabels')}

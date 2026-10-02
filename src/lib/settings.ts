@@ -46,9 +46,14 @@ export interface Settings {
   summary: 'compact' | 'full';
   /** A line whose output goes to several places, on the graph: a card per place, or one card that says how to split it. */
   splitLines: 'each' | 'one';
+  /** How a line's machines share its work: all at the same average clock, or all full and a single one at the rest. */
+  clockSpread: ClockSpread;
   /** The save's own multipliers for part costs, power draw and the Space Elevator. */
   game: GameRules;
 }
+
+/** Machines in a line at one average clock (the least power), or every one full and a single one at what's left. */
+export type ClockSpread = 'average' | 'single';
 
 export type FontId = 'satisfactory' | 'poppins' | 'inter' | 'rajdhani' | 'barlow';
 
@@ -95,6 +100,7 @@ export const DEFAULT_SETTINGS: Settings = {
   showLocked: false,
   summary: 'compact',
   splitLines: 'each',
+  clockSpread: 'single',
   game: DEFAULT_GAME,
 };
 

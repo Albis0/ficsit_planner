@@ -38,11 +38,23 @@ describe('standard chains', () => {
   });
 
   test('underclocking lowers power below linear', () => {
-    // 45 plates = 2.25 constructors -> 3 built at 75%.
+    // 45 plates = 2.25 constructors -> 2 built at 100% and 1 at 25%.
     const r = plan({ targets: [{ item: 'Desc_IronPlate_C', rate: 45 }] });
     const plates = r.recipes.find((u) => u.recipe.id === 'Recipe_IronPlate_C')!;
-    expect(plates.power).toBeCloseTo(3 * 4 * 0.75 ** 1.321929);
+    expect(plates.clocks).toEqual([1, 1, expect.closeTo(0.25, 6)]);
+    expect(plates.power).toBeCloseTo(2 * 4 + 4 * 0.25 ** 1.321929);
     expect(plates.power).toBeLessThan(2.25 * 4);
+  });
+
+  test('average clocks: every machine at the same clock, for a little less power than all full and a single one', () => {
+    // 45 plates = 2.25 constructors -> 3 built at 75%.
+    const target = { targets: [{ item: 'Desc_IronPlate_C', rate: 45 }] };
+    const average = plan({ ...target, clocks: 'average' }).recipes.find((u) => u.recipe.id === 'Recipe_IronPlate_C')!;
+    const single = plan(target).recipes.find((u) => u.recipe.id === 'Recipe_IronPlate_C')!;
+    expect(average.clocks).toEqual([0.75, 0.75, 0.75]);
+    expect(average.power).toBeCloseTo(3 * 4 * 0.75 ** 1.321929);
+    expect(average.power).toBeLessThan(single.power);
+    expect(average.inputs).toEqual(single.inputs);
   });
 });
 
@@ -141,8 +153,8 @@ describe('clock speed and somersloops', () => {
     expect(u.count).toBeCloseTo(1.5);
     expect(rate(u.inputs, 'Desc_IronIngot_C')).toBeCloseTo(45);
     expect(rate(looped.raw, 'Desc_OreIron_C')).toBeCloseTo(45);
-    // 1.5 machines -> 2 built at 75%, each at 4 MW × 2² × 0.75^1.321928.
-    expect(u.power).toBeCloseTo(2 * 4 * 4 * 0.75 ** 1.321929, 3);
+    // 1.5 machines -> 1 built at 100% and 1 at 50%, each at 4 MW × 2² × its clock^1.321928.
+    expect(u.power).toBeCloseTo(4 * 4 * (1 + 0.5 ** 1.321929), 3);
     expect(base.sloops).toBe(0);
     expect(u.sloops).toBe(2);
   });

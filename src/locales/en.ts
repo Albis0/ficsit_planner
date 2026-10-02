@@ -692,6 +692,11 @@ export const en = {
   splitLinesEach: 'A card each',
   splitLinesOne: 'One card',
   splitTo: '→ {to}',
+  clockSpread: 'Machine clocks',
+  clockSpreadHint:
+    'Every machine in a line at the same average clock, which takes the least power, or every machine at 100% and a single one at what’s left over.',
+  clockSpreadAverage: 'Average',
+  clockSpreadSingle: 'Single',
   splitExtraOne: 'One more machine than building it as one line, since each group rounds up on its own.',
   splitExtraN: '{n} more machines than building it as one line, since each group rounds up on its own.',
   splitSame: 'Same number of machines as one line.',

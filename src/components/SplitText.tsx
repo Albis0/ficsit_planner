@@ -14,7 +14,7 @@ export function useSplitText() {
           d.kind === 'recipe' ? recipeLabel(name(d.recipe), d.recipe.kind) : t(d.kind === 'target' ? 'productLabel' : 'surplus'),
         )
         .join(', '),
-    /** "2 × 61.29%", or "1 × 150% + 1 × 100%" on an overclocked group. */
+    /** "2 × 100% + 1 × 45.17%", or "1 × 150% + 1 × 100%" on an overclocked group. */
     run: (u: RecipeUse) =>
       groupClocks(u.clocks)
         .map((g) => `${g.n} × ${num(g.clock * 100)}%`)

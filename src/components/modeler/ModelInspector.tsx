@@ -220,7 +220,7 @@ function NodePanel({ host, node, calc }: { host: ModelHost; node: MNode; calc?: 
     };
     const slots = node.k === 'machine' && r ? (data.machines[r.machine]?.somersloopSlots ?? 0) : 0;
     const use = r
-      ? describeUse(r, { clock: node.clock ?? 1, sloops: node.k === 'machine' ? (node.sloops ?? 0) : 0 }, count || 1, true)
+      ? describeUse(r, { clock: node.clock ?? 1, sloops: node.k === 'machine' ? (node.sloops ?? 0) : 0 }, count || 1, 'set')
       : undefined;
     body = (
       <>

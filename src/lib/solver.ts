@@ -1,4 +1,5 @@
 import type { GameRules } from './game';
+import type { ClockSpread } from './settings';
 import type { Highs } from 'highs';
 import { data, producersOf, recipeById, resourceWeights, type Recipe } from './data';
 import { gridBoost, type Plant, plantClock, plantRecipe, plantSize, plantValid, unitPower } from './power';
@@ -54,6 +55,8 @@ export interface SolveInput {
    * resource nodes anywhere. Water stays free either way.
    */
   equalWeights?: boolean;
+  /** How each line's machines share its work: one average clock, or all full and a single one at the rest (default). */
+  clocks?: ClockSpread;
 }
 
 export interface PowerInput {
@@ -104,6 +107,8 @@ export interface RecipeUse {
   outputs: Target[];
   /** On a hand-built floor: the node these machines are, as two nodes can share a recipe. */
   node?: string;
+  /** Worked out: how the machines share the work, so a line split up again shares it the same way. */
+  spread?: ClockSpread;
 }
 
 export interface SolveResult {
@@ -193,13 +198,36 @@ function placedPower(recipe: Recipe, clocks: number[], sloopsTotal: number): num
   return power;
 }
 
+/** The game's lowest clock. */
+const MIN_CLOCK = 0.01;
+
 /**
- * Clocks for the placed machines. Underclocked lines run evenly. Overclocked lines keep every
- * machine at 100% and push only as many as needed past it, 50% per shard, so they use the fewest
- * shards: 5 machines' worth on 4 machines is two at 150% and two at 100%, i.e. 2 shards, not 4.
+ * Clocks for the placed machines. An underclocked line either runs every machine at the same average clock, which
+ * takes the least power (2.45 smelters are 3 at 81.67%), or, with `single`, every machine at the configured clock (at
+ * most 100%) and the last one at what's left over (2 at 100% and 1 at 45%), never one under the game's 1% (it borrows
+ * that much from the one before). Overclocked lines keep every machine at 100% and push only as many as
+ * needed past it, 50% per shard, so they use the fewest shards: 5 machines' worth on 4 machines is two at 150% and two
+ * at 100%, i.e. 2 shards, not 4.
  */
-function machineClocks(built: number, units: number): number[] {
-  if (units <= built + EPS) return Array(built).fill(units / built);
+function machineClocks(built: number, units: number, clock: number, spread: ClockSpread): number[] {
+  if (units <= built + EPS && spread === 'average') return Array(built).fill(units / built);
+  if (units <= built + EPS) {
+    const each = Math.min(1, clock);
+    let left = units;
+    const clocks = Array.from({ length: built }, () => {
+      const c = Math.min(each, left);
+      left -= c;
+      return c;
+    });
+    // Whatever rounding left over goes on the last machine, and a sliver too small to run borrows from the one before.
+    clocks[built - 1] += Math.max(0, left);
+    const last = clocks[built - 1];
+    if (built > 1 && last < MIN_CLOCK - EPS) {
+      clocks[built - 2] -= MIN_CLOCK - last;
+      clocks[built - 1] = MIN_CLOCK;
+    }
+    return clocks;
+  }
   let extra = units - built;
   return Array.from({ length: built }, () => {
     const add = Math.min(1.5, extra);
@@ -208,19 +236,24 @@ function machineClocks(built: number, units: number): number[] {
   });
 }
 
-export function describeUse(recipe: Recipe, mod: RecipeMod, count: number, asSet = false): RecipeUse {
+/**
+ * `count` machines' worth of a recipe at `mod`, placed on whole machines. `set` is a line built by hand: each machine
+ * at the clock the player set. Otherwise the clocks spread as `machineClocks` says.
+ */
+export function describeUse(recipe: Recipe, mod: RecipeMod, count: number, spread: ClockSpread | 'set' = 'single'): RecipeUse {
   const built = Math.max(1, Math.ceil(count - EPS));
   const clock = (mod.clock * count) / built;
   const amp = amplification(recipe, mod);
   const slots = sloopSlots(recipe);
   const sloops = Math.round(built * Math.min(mod.sloops, slots));
   // Built by hand, each machine runs at the clock the player set and the part machine at its share of it: 8/3 at
-  // 150% is 2 at 150% and 1 at 100%. Worked out, the clocks spread for the fewest power shards.
+  // 150% is 2 at 150% and 1 at 100%. Worked out, they spread as chosen, with the fewest power shards.
   const whole = Math.floor(count + EPS);
   const part = count - whole;
-  const clocks = asSet
-    ? [...Array.from({ length: whole }, () => mod.clock), ...(part > EPS ? [mod.clock * part] : [])]
-    : machineClocks(built, mod.clock * count);
+  const clocks =
+    spread === 'set'
+      ? [...Array.from({ length: whole }, () => mod.clock), ...(part > EPS ? [mod.clock * part] : [])]
+      : machineClocks(built, mod.clock * count, mod.clock, spread);
   const shards = clocks.reduce((s, c) => s + shardsFor(c), 0);
   return {
     inputs: recipe.inputs.map((s) => ({ item: s.item, rate: s.rate * mod.clock * count })),
@@ -234,6 +267,7 @@ export function describeUse(recipe: Recipe, mod: RecipeMod, count: number, asSet
     power: placedPower(recipe, clocks, sloops),
     shards,
     sloops,
+    ...(spread === 'set' ? {} : { spread }),
   };
 }
 
@@ -528,7 +562,7 @@ function solveWith(solver: Highs, input: SolveInput, draw?: Map<string, number>)
   const used: RecipeUse[] = [];
   for (const r of recipes) {
     const count = val(rv.get(r.id)!);
-    if (count > EPS) used.push(describeUse(r, modOf(r), count));
+    if (count > EPS) used.push(describeUse(r, modOf(r), count, input.clocks));
   }
 
   const net = new Map<string, number>();

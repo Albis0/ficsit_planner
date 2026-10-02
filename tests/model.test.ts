@@ -254,6 +254,27 @@ describe('from an Auto plan', () => {
       for (const n of m.nodes) if (n.k === 'machine') expect(r.nodes[n.id].u).toBeCloseTo(1, 6);
     });
   }
+
+  test('machines come over as they run: all full and a single one at the rest, or all at one average clock', async () => {
+    const plates = async (clocks?: 'average') => {
+      const auto = solve(highs, {
+        targets: [{ item: 'Desc_IronPlate_C', rate: 45 }],
+        supplies: [],
+        enabledRecipes: standard(),
+        resourceCaps: {},
+        ...(clocks ? { clocks } : {}),
+      });
+      const m = await modelFromSolve(auto, 9, DEFAULT_EXTRACTION);
+      return m.nodes.find((n) => n.k === 'machine' && n.recipe === 'Recipe_IronPlate_C') as MNode & { n?: number; clock?: number };
+    };
+    // 45 plates = 2.25 constructors: 2 at 100% and 1 at 25%, or 3 at 75%.
+    const single = await plates();
+    expect(single.n).toBeCloseTo(2.25, 9);
+    expect(single.clock).toBeUndefined();
+    const average = await plates('average');
+    expect(average.n).toBe(3);
+    expect(average.clock).toBeCloseTo(0.75, 9);
+  });
 });
 
 describe('saved models', () => {

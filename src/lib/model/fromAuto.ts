@@ -41,20 +41,24 @@ export async function modelFromSolve(result: SolveResult, tier: number, extracti
   // Where each card goes is worked out at the end, once every card is there.
   const at = { x: 0, y: 0 };
 
-  // Machines, as many as get built at the clock they run at: 2.67 smelters at
-  // 100% are 3 at 88.89%, as on the Auto card. Somersloops on a node go machine by machine, so an average across the
-  // line rounds to the nearest whole one.
+  // Machines as on the Auto card. A line run full with a single one at the rest is that many machines' worth at its
+  // clock: 2.67 smelters at 100% are 2 at 100% and 1 at 66.67%, as Fill to 100% leaves them. A line at one average
+  // clock (or overclocked) is as many as get built at the clock they run at: 3 at 88.89%. Somersloops on a node go
+  // machine by machine, so an average across the line rounds to the nearest whole one.
   for (const n of g.nodes) {
     if (n.type !== 'machine') continue;
     const { use } = n.data as MachineNodeData;
     if (use.recipe.kind === 'power') continue;
+    const full = use.spread === 'single' && use.mod.clock <= 1 + 1e-12;
+    const count = !full ? use.built : Math.abs(use.count - Math.round(use.count)) < 1e-9 ? Math.round(use.count) : use.count;
+    const clock = full ? use.mod.clock : use.clock;
     const m: MNode = {
       id: id(),
       ...at,
       k: 'machine',
       recipe: use.recipe.id,
-      ...(use.built !== 1 ? { n: use.built } : {}),
-      ...(Math.abs(use.clock - 1) > 1e-12 ? { clock: use.clock } : {}),
+      ...(count !== 1 ? { n: count } : {}),
+      ...(Math.abs(clock - 1) > 1e-12 ? { clock } : {}),
       ...(Math.round(use.mod.sloops) > 0 ? { sloops: Math.round(use.mod.sloops) } : {}),
     };
     nodes.push(m);

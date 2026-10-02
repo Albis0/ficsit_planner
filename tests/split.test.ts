@@ -21,7 +21,7 @@ const to = (from: string, item: string, rate: number, dest: string): Flow => ({
 const sum = (xs: number[]) => xs.reduce((a, b) => a + b, 0);
 
 describe('split by destination', () => {
-  test('4 smelters sending 73.55 to rods and 46.45 to plates: 3 × 81.72% and 2 × 77.42%, one machine more', () => {
+  test('4 smelters sending 73.55 to rods and 46.45 to plates: 2 × 100% + 45.17% and 100% + 54.83%, one machine more', () => {
     const use = describeUse(recipe('Recipe_IngotIron_C'), NO_MOD, 4);
     const flows = [
       to('Recipe_IngotIron_C', 'Desc_IronIngot_C', 73.55, 'Recipe_IronRod_C'),
@@ -30,14 +30,25 @@ describe('split by destination', () => {
     const split = splitByDestination(use, flows, 9)!;
     expect(split.item).toBe('Desc_IronIngot_C');
     expect(split.groups.map((g) => g.use.built)).toEqual([3, 2]);
-    expect(split.groups[0].use.clocks[0]).toBeCloseTo(73.55 / 90, 6);
-    expect(split.groups[1].use.clocks[0]).toBeCloseTo(46.45 / 60, 6);
+    expect(split.groups[0].use.clocks).toEqual([1, 1, expect.closeTo(73.55 / 30 - 2, 6)]);
+    expect(split.groups[1].use.clocks).toEqual([1, expect.closeTo(46.45 / 30 - 1, 6)]);
     expect(split.groups.map((g) => g.to[0].kind === 'recipe' && g.to[0].recipe.id)).toEqual(['Recipe_IronRod_C', 'Recipe_IronPlate_C']);
     expect(split.groups[0].use.outputs[0].rate).toBeCloseTo(73.55, 6);
     expect(split.groups[1].use.outputs[0].rate).toBeCloseTo(46.45, 6);
     // Each group rounds up on its own: never more than one machine per extra group.
     expect(split.extra).toBe(1);
     expect(sum(split.groups.map((g) => g.use.inputs[0].rate))).toBeCloseTo(use.inputs[0].rate, 6);
+  });
+
+  test('with average clocks, every destination’s group runs evenly too: 3 × 81.72% and 2 × 77.42%', () => {
+    const use = describeUse(recipe('Recipe_IngotIron_C'), NO_MOD, 4, 'average');
+    const flows = [
+      to('Recipe_IngotIron_C', 'Desc_IronIngot_C', 73.55, 'Recipe_IronRod_C'),
+      to('Recipe_IngotIron_C', 'Desc_IronIngot_C', 46.45, 'Recipe_IronPlate_C'),
+    ];
+    const split = splitByDestination(use, flows, 9)!;
+    expect(split.groups[0].use.clocks).toEqual(Array(3).fill(expect.closeTo(73.55 / 90, 6)));
+    expect(split.groups[1].use.clocks).toEqual(Array(2).fill(expect.closeTo(46.45 / 60, 6)));
   });
 
   test('a line that splits evenly costs no extra machine', () => {

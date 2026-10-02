@@ -202,7 +202,7 @@ function Machine({ data: d, selected }: { data: PartData; selected: boolean }) {
   if (!recipe) return null;
   const auto = n.k === 'machine' && !!n.auto;
   const count = countOf(n, calc);
-  const use = describeUse(recipe, { clock: n.clock ?? 1, sloops: n.k === 'machine' ? (n.sloops ?? 0) : 0 }, count || 1, true);
+  const use = describeUse(recipe, { clock: n.clock ?? 1, sloops: n.k === 'machine' ? (n.sloops ?? 0) : 0 }, count || 1, 'set');
   const bar = modBar(use.shards, use.sloops);
   return (
     <div

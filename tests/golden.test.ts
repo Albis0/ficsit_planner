@@ -164,10 +164,11 @@ function expectLine(r: SolveResult, machines: Record<string, number>, raw: Recor
   if (mw !== undefined) expect(r.power).toBeCloseTo(mw, 3);
 }
 
-/** MW of `n` machines' worth of work placed on whole buildings, evenly underclocked. */
+/** MW of `n` machines' worth of work placed on whole buildings: every one at 100% but the last, at what's left. */
 const line = (base: number, n: number) => {
-  const built = Math.ceil(n - 1e-9);
-  return built * base * (n / built) ** E;
+  const whole = Math.floor(n + 1e-9);
+  const part = n - whole;
+  return whole * base + (part > 1e-9 ? base * part ** E : 0);
 };
 
 describe('production lines worked out by hand', () => {

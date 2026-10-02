@@ -2,6 +2,16 @@
 
 All notable changes to FICSIT Planner. Dates are when the version was finished.
 
+## Unreleased
+
+### Changed
+
+- **Machines run full**: a line runs every machine at 100% (or the clock you set, if lower) and only a single one at
+  what's left over, so 2.45 smelters are 2 × 100% + 1 × 45% rather than 3 × 81.67%, as Fill to 100% does on a Manual
+  card. Power goes up a little, since a machine's power grows faster than its clock: 5 motors a minute take 186.85 MW
+  instead of 184.96 MW. Settings › Factory floor › **Machine clocks** › Average puts every machine back at the same
+  clock, for the least power. Converting a factory to Manual keeps the machines as they run.
+
 ## 0.13.2 — 2026-10-03
 
 ### Changed
