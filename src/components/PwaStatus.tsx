@@ -28,6 +28,27 @@ export function InstallButton({ className = 'install-button' }: { className?: st
 const CHECK_EVERY = 30 * 60 * 1000;
 
 /**
+ * Lets the waiting version take over, then reloads into it: when it controls the page, when it has activated (a
+ * page it doesn't control yet never sees the first), or after a few seconds whatever happens.
+ */
+function reloadInto(reg: ServiceWorkerRegistration | undefined) {
+  const waiting = reg?.waiting;
+  let done = false;
+  const go = () => {
+    if (done) return;
+    done = true;
+    window.location.reload();
+  };
+  if (!waiting) return go();
+  navigator.serviceWorker.addEventListener('controllerchange', go);
+  waiting.addEventListener('statechange', () => {
+    if (waiting.state === 'activated') go();
+  });
+  setTimeout(go, 4000);
+  waiting.postMessage({ type: 'SKIP_WAITING' });
+}
+
+/**
  * Registers the service worker, says once when everything is cached for offline use, and when a newer version
  * has downloaded, offers to reload into it. An open tab looks for one every half hour and whenever it comes back
  * into view, since browsers only look on their own when a page is opened.
@@ -35,13 +56,17 @@ const CHECK_EVERY = 30 * 60 * 1000;
 export function PwaStatus() {
   const { t } = useT();
   const [later, setLater] = useState(false);
+  const [registration, setRegistration] = useState<ServiceWorkerRegistration>();
   const {
     offlineReady: [offlineReady, setOfflineReady],
     needRefresh: [needRefresh],
-    updateServiceWorker,
   } = useRegisterSW({
+    // Reload is done here instead: the library only reloads a page the old version was already serving, so after a
+    // hard refresh or on a first visit Reload did nothing.
+    onNeedReload() {},
     onRegisteredSW(_url, reg) {
       if (!reg) return;
+      setRegistration(reg);
       const check = () => {
         if (navigator.onLine && !reg.installing) reg.update().catch(() => {});
       };
@@ -62,7 +87,7 @@ export function PwaStatus() {
     return (
       <div className="toast" role="status">
         <span>{t('newVersion')}</span>
-        <button type="button" className="text-button" onClick={() => updateServiceWorker(true)}>
+        <button type="button" className="text-button" onClick={() => reloadInto(registration)}>
           {t('reloadNow')}
         </button>
         <button type="button" className="text-button quiet" onClick={() => setLater(true)}>

@@ -2,6 +2,13 @@
 
 All notable changes to FICSIT Planner. Dates are when the version was finished.
 
+## 0.12.5 — 2026-10-02
+
+### Fixed
+
+- **Reload on "A new version is ready"** did nothing when the page had been opened with a hard refresh (Ctrl+F5) or on
+  a first visit; it now always reloads into the new version.
+
 ## 0.12.4 — 2026-10-01
 
 ### Added

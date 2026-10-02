@@ -6,6 +6,11 @@ export type UpdateKind = 'added' | 'fixed' | 'changed';
 
 export const UPDATES: { version: string; date: string; notes: [UpdateKind, string][] }[] = [
   {
+    version: '0.12.5',
+    date: '2026-10-02',
+    notes: [['fixed', 'Reload on "A new version is ready" works after a hard refresh too.']],
+  },
+  {
     version: '0.12.4',
     date: '2026-10-01',
     notes: [
