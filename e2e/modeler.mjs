@@ -754,15 +754,14 @@ const clash = (a, b) => a && b && a.x < b.x + b.width && b.x < a.x + a.width && 
   ok('the miner added and joined', !!mine && m.links.some((l) => l.a === mine.id && l.b === sm));
   await page.keyboard.press('Escape');
   // The player's line from the report: miner, smelter, plates, nothing after. It runs, sized to the miner.
-  ok('machines put down by hand size themselves', m.nodes.filter((n) => n.k === 'machine').every((n) => n.auto === true));
+  ok(
+    'machines put down by hand size themselves',
+    m.nodes.filter((n) => n.k === 'machine').every((n) => n.auto === true),
+  );
   await page.click('.floor-controls .floor-button >> nth=-1');
   await wait(500);
   const chainStates = await page.$$eval('.react-flow__node .run-state', (l) => l.map((x) => x.textContent));
-  ok(
-    'miner → smelter → plates all run',
-    chainStates.length === 3 && chainStates.every((x) => x === 'Full speed'),
-    chainStates.join(', '),
-  );
+  ok('miner → smelter → plates all run', chainStates.length === 3 && chainStates.every((x) => x === 'Full speed'), chainStates.join(', '));
   const plateText = (await card(plate.id).innerText()).replace(/\s+/g, ' ');
   ok('the plates come out of the last card', /\d+\/min/.test(await card(plate.id).locator('.port-spare').innerText()), plateText);
   ok('the panel lists them as left over', /Left over[\s\S]*Iron Plate/.test(await page.locator('.side').innerText()));
@@ -1024,7 +1023,9 @@ const clash = (a, b) => a && b && a.x < b.x + b.width && b.x < a.x + a.width && 
   await page.locator('.quick-search').fill('');
   await open(low({ settings: { showLocked: true }, mode: 'power' }));
   ok('turned on: locked generators show', (await page.locator('.gen-card.locked').count()) > 0);
-  await open(low({ settings: { showLocked: true }, plans: [{ id: 'f1', name: 'Factory 1', targets: [{ item: 'Desc_IronPlate_C', rate: 10 }] }] }));
+  await open(
+    low({ settings: { showLocked: true }, plans: [{ id: 'f1', name: 'Factory 1', targets: [{ item: 'Desc_IronPlate_C', rate: 10 }] }] }),
+  );
   await page.locator('.side .tabs button[role="tab"]:has-text("Recipes")').click();
   await wait(300);
   ok('turned on: Recipes offers Show locked', (await page.locator('.locked-note').count()) === 1);

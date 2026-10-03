@@ -439,8 +439,9 @@ describe('the chooser', () => {
     const c = choicesFor(want, 9).find((x) => x.init.k === 'machine' && x.init.recipe === SMELT)!;
     const placed = placeChoice(m, c, { x: 500, y: 300 }, want);
     expect(placed.x).toBe(520);
-    // One input: half way down the card, give or take the grid.
-    expect(Math.abs(placed.y + cardSize(placed).h / 2 - 300)).toBeLessThanOrEqual(10);
+    // One input: half way down the card, give or take half a grid square; the card on the grid.
+    expect(Math.abs(placed.y + cardSize(placed).h / 2 - 300)).toBeLessThanOrEqual(20);
+    expect(placed.x % 40 === 0 && placed.y % 40 === 0).toBe(true);
     // Let go on top of the miner: moved down off it.
     const over = placeChoice(m, c, { x: 100, y: 50 }, want);
     expect(over.y).toBeGreaterThanOrEqual(cardSize(m.nodes[0]).h + 20);
@@ -450,7 +451,8 @@ describe('the chooser', () => {
   });
 
   test('a free spot is the spot itself on an empty floor, on the grid', () => {
-    expect(freeSpot([], { x: 13, y: 27, w: 96, h: 96 })).toEqual({ x: 20, y: 20 });
+    expect(freeSpot([], { x: 13, y: 27, w: 80, h: 160 })).toEqual({ x: 0, y: 40 });
+    expect(freeSpot([], { x: 61, y: 99, w: 80, h: 160 })).toEqual({ x: 80, y: 80 });
   });
 });
 
@@ -502,6 +504,9 @@ describe('tidy up', () => {
       for (let i = 0; i < m.nodes.length; i++)
         for (let j = i + 1; j < m.nodes.length; j++) expect(hits(box(m.nodes[i]), box(m.nodes[j]))).toBe(false);
       const at = new Map(m.nodes.map((n) => [n.id, n]));
+      // Every card on the grid, so every end is on a grid line; bends on a line or halfway.
+      for (const n of m.nodes) expect([n.x % 40, n.y % 40]).toEqual([0, 0]);
+      for (const l of m.links) for (const [x, y] of l.pts ?? []) expect([x % 20, y % 20]).toEqual([0, 0]);
       // Every belt has a spot for its label, on no card.
       for (const l of m.links) {
         expect(l.lbl).toBeDefined();

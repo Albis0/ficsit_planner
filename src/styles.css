@@ -9679,6 +9679,15 @@ a.codex-flow:hover {
   overflow: visible;
 }
 
+/* Hand-built cards keep their grid size: whole squares, so their sides and ends sit on the floor's lines. */
+.machine-node.manual,
+.endpoint-node.manual,
+.fitting-node {
+  --t: 1;
+  zoom: 1;
+  box-sizing: border-box;
+}
+
 .machine-node.manual {
   clip-path: none;
 }
@@ -10261,4 +10270,15 @@ a.codex-flow:hover {
 .floor-io-now {
   color: var(--power);
   font: 600 14px var(--font-body);
+}
+
+/* A hand-built card is one grid square tall: its amount, miners and state stay on one line. */
+.endpoint-node.manual .endpoint-line {
+  flex-wrap: nowrap;
+  overflow: hidden;
+}
+
+.endpoint-node.manual .endpoint-line .run-state {
+  overflow: hidden;
+  text-overflow: ellipsis;
 }

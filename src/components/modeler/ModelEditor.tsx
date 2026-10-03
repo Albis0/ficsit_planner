@@ -23,7 +23,7 @@ import type { CalcResult } from '../../lib/model/calc/result';
 import { compile } from '../../lib/model/calc/compile';
 import { openCards, openEnds } from '../../lib/model/checks';
 import { type Choice, placeChoice, type Want, wantAt } from '../../lib/model/choices';
-import { cardSize } from '../../lib/model/layout';
+import { cardSize, GRID } from '../../lib/model/layout';
 import { addNode, canConnect, connect, moveNodes, removeLinks, removeNodes, updateNode } from '../../lib/model/ops';
 import { portsOf } from '../../lib/model/ports';
 import { type Model, isPart } from '../../lib/model/types';
@@ -507,7 +507,7 @@ function Canvas({ host, calc }: { host: ModelHost; calc?: CalcResult }) {
             minZoom={MIN_ZOOM}
             maxZoom={2}
             snapToGrid
-            snapGrid={[20, 20]}
+            snapGrid={[GRID, GRID]}
             proOptions={{ hideAttribution: true }}
             defaultViewport={cameras.get(host.key)}
             onInit={() => {
@@ -550,8 +550,8 @@ function Canvas({ host, calc }: { host: ModelHost; calc?: CalcResult }) {
             }}
             zoomOnDoubleClick={false}
           >
-            {gridLines && <Background id="minor" variant={BackgroundVariant.Lines} gap={40} lineWidth={1} color="#2f2f2f" />}
-            {gridLines && <Background id="major" variant={BackgroundVariant.Lines} gap={160} lineWidth={1} color="#3b3b3b" />}
+            {gridLines && <Background id="minor" variant={BackgroundVariant.Lines} gap={GRID} lineWidth={1} color="#2f2f2f" />}
+            {gridLines && <Background id="major" variant={BackgroundVariant.Lines} gap={GRID * 4} lineWidth={1} color="#3b3b3b" />}
             {parts === 0 && !choosing && (
               <div className="floor-empty">
                 <button type="button" className="primary-button" onClick={() => choose(undefined)}>

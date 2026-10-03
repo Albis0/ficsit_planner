@@ -5,6 +5,7 @@ import { useT } from '../../lib/i18n';
 import { LOGISTICS, SINK, STORAGE, STORAGE_NAME } from '../../lib/model/catalog';
 import { countOf, type NodeCalc, type NodeStatus } from '../../lib/model/calc/result';
 import type { OpenEnds } from '../../lib/model/checks';
+import { cardSize, portY } from '../../lib/model/layout';
 import { extractorById, type Port, portsOf, runnerRecipe } from '../../lib/model/ports';
 import { evenSpeed, fullSpeed } from '../../lib/model/ops';
 import type { MNode } from '../../lib/model/types';
@@ -13,6 +14,12 @@ import { minerLabel, recipeLabel } from '../../lib/text';
 import { modBar, RunLine } from '../GraphView';
 import { Icon } from '../Icon';
 import { Slot } from '../Slot';
+
+/** A card's size on the floor, whole grid squares, whatever the card size and text settings say elsewhere. */
+const grid = (n: MNode) => {
+  const { w, h } = cardSize(n);
+  return { width: w, height: h };
+};
 
 /** The numbers for every node, by id; one context so a card re-renders only when its own numbers change. */
 export const CalcNodes = createContext<Record<string, NodeCalc> | undefined>(undefined);
@@ -112,6 +119,7 @@ function End({
   side,
   i,
   of,
+  h,
   port,
   wired,
   open,
@@ -120,6 +128,8 @@ function End({
   side: 'in' | 'out';
   i: number;
   of: number;
+  /** The card's height, for where the end sits on the grid. */
+  h: number;
   port: Port;
   wired: boolean;
   open: boolean;
@@ -133,7 +143,7 @@ function End({
       position={side === 'in' ? Position.Left : Position.Right}
       id={`${side === 'in' ? 'i' : 'o'}${i}`}
       className={`port ${side} ${wired ? 'wired' : open ? 'open' : 'free'} ${port.medium === 'pipe' ? 'pipe' : ''}`}
-      style={{ top: `${((i + 1) / (of + 1)) * 100}%` }}
+      style={{ top: portY(h, i, of) }}
       title={item ? name(item) : undefined}
     >
       {item && <Icon id={item.id} size={18} />}
@@ -149,12 +159,13 @@ function End({
 
 function Ends({ node, wired, open }: PartData) {
   const ports = portsOf(node);
+  const { h } = cardSize(node);
   const spare = useContext(CalcNodes)?.[node.id]?.spare;
   return (
     <>
       {ports.ins.map((p, i) => (
         // biome-ignore lint/suspicious/noArrayIndexKey: ends are fixed by the node's recipe or kind, never reordered here.
-        <End key={`i${i}`} side="in" i={i} of={ports.ins.length} port={p} wired={wired.ins[i]} open={!!open?.ins[i]} />
+        <End key={`i${i}`} side="in" i={i} of={ports.ins.length} h={h} port={p} wired={wired.ins[i]} open={!!open?.ins[i]} />
       ))}
       {ports.outs.map((p, i) => (
         <End
@@ -163,6 +174,7 @@ function Ends({ node, wired, open }: PartData) {
           side="out"
           i={i}
           of={ports.outs.length}
+          h={h}
           port={p}
           wired={wired.outs[i]}
           open={!!open?.outs[i]}
@@ -192,14 +204,10 @@ function Machine({ data: d, selected }: { data: PartData; selected: boolean }) {
   const count = countOf(n, calc);
   const use = describeUse(recipe, { clock: n.clock ?? 1, sloops: n.k === 'machine' ? (n.sloops ?? 0) : 0 }, count || 1, true);
   const bar = modBar(use.shards, use.sloops);
-  const ends = Math.max(recipe.inputs.length, recipe.outputs.length);
   return (
     <div
       className={`machine-node manual ${recipe.kind} ${selected ? 'selected' : ''} ${n.done ? 'done' : ''}`}
-      style={{
-        ['--run-extra' as string]: Math.max(0, ends - 3) * 0.6 + Math.max(0, new Set(use.clocks).size - 1),
-        ...(bar ? { ['--mod-bar' as string]: bar } : {}),
-      }}
+      style={{ ...grid(n), ...(bar ? { ['--mod-bar' as string]: bar } : {}) }}
     >
       <Ends {...d} />
       <div className="machine-strip">
@@ -281,7 +289,7 @@ function Endpoint({ data: d, selected }: { data: PartData; selected: boolean }) 
   return (
     <div
       className={`endpoint-node manual ${kind} ${selected ? 'selected' : ''} ${n.done ? 'done' : ''}`}
-      style={it && it.form !== 'solid' ? { ['--fluid-color' as string]: it.color ?? 'var(--fluid)' } : undefined}
+      style={{ ...grid(n), ...(it && it.form !== 'solid' ? { ['--fluid-color' as string]: it.color ?? 'var(--fluid)' } : {}) }}
     >
       <Ends {...d} />
       {it ? <Slot id={it.id} size={60} tone={kind === 'target' ? 'target' : 'default'} /> : <span className="slot-empty" />}
@@ -328,7 +336,7 @@ function Fitting({ data: d, selected }: { data: PartData; selected: boolean }) {
       )
     : 0;
   return (
-    <div className={`fitting-node ${n.k} ${selected ? 'selected' : ''} ${n.done ? 'done' : ''}`} title={n.label ?? title}>
+    <div className={`fitting-node ${n.k} ${selected ? 'selected' : ''} ${n.done ? 'done' : ''}`} style={grid(n)} title={n.label ?? title}>
       <Ends {...d} />
       {icon ? <Icon id={icon} size={44} /> : <span className="fitting-unknown">?</span>}
       {calc && (

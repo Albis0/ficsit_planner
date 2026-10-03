@@ -2,6 +2,38 @@
 
 All notable changes to FICSIT Planner. Dates are when the version was finished.
 
+## 0.13.2 — 2026-10-03
+
+### Changed
+
+- **What your tier can't make is hidden by default**, everywhere on the factory and power sides: the product
+  lists, the "Pick a product" screen, things already on hand, the Recipes panel (no "Show locked" either), the miners
+  in Resources, the belt Mks on a Manual belt, the build menu and the power plant lists. Settings › Interface ›
+  **Show what your tier can't make** brings them back, marked with their tier. The Codex shows everything as before.
+  Thanks to u/Suspicious_Fly_1838.
+- **Manual floor, machines that size themselves**: a machine put down by hand is set to **Auto**: it takes as many
+  machines as what comes in keeps busy, so a miner → smelter → constructor line runs at once and follows the miner.
+  The card shows the count it takes with an AUTO tag; typing a count in the panel sets it by hand again. Machines
+  from a converted factory keep the counts worked out for them.
+- **Manual floor, open outputs**: what a machine makes on an output with no belt counts as left over and shows
+  beside that end and under **Left over** in the panel, instead of stopping the machine and everything before it.
+  **Open outputs back up** in the toolbar stops it as in the game.
+- **Manual floor, splitters** share out evenly between the machines after them when nothing else decides it,
+  instead of sending everything down one side.
+- **Manual floor side panel**: Products lists the floor's own output cards with what reaches each, and Comes in its
+  input cards. An amount set there is the most that output takes or that input brings; adding one puts its card on
+  the floor; removing one takes it off. **Rebuild** starts from these and makes them the factory's targets.
+- **Manual floor grid**: cards are whole grid squares and snap to the drawn lines, every end sits on a line, and
+  belts turn on a line or halfway between. Tidy up tries more ways to lay a floor out and bends belts about a third
+  less.
+- **Built in the game** is a box to tick in a card's panel, green when ticked, with the tick on the card.
+- **Fill to 100%** and **Even out** always show in a machine's panel, greyed out when there's nothing to change.
+- **Build by hand** on the "Pick a product" screen is a button with an icon.
+
+### Added
+
+- A miner's panel takes **what it makes** a minute: the same miners at another clock, or more of them past 250%.
+
 ## 0.13.1 — 2026-10-03
 
 ### Added

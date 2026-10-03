@@ -1,24 +1,26 @@
 import type { ELK, ElkExtendedEdge, ElkNode } from 'elkjs/lib/elk-api';
-import { cardSize } from './layout';
+import { cardSize, GRID, HALF, portY } from './layout';
 import { portsOf } from './ports';
 import { isPart, type MLink, type Model } from './types';
 
 /** Room kept on each belt for its label, so no label sits on a card or on another belt. */
-const LABEL = { w: 150, h: 40 };
+const LABEL = { w: 160, h: 40 };
 
-/** Where an end sits on its card: spread evenly down the side, as the card draws them. */
-export const portY = (h: number, i: number, of: number) => (h * (i + 1)) / (of + 1);
+export { portY };
 
 /**
  * Ways of laying a floor out that are all tried; the one with the fewest crossing belts, bends and the least belt is
- * kept. Each does better on some factories: how cards line up in their columns, how a loop (a byproduct fed back) is
- * broken, and whether columns are counted from the miners or the products.
+ * kept. Each does better on some factories: which way cards in a column lean to keep belts straight, and how close
+ * the columns are drawn afterwards. Picked by trying many on a spread of factories.
  */
+const COMPACT = { 'elk.layered.compaction.postCompaction.strategy': 'EDGE_LENGTH' };
+const DEPTH = { 'elk.layered.cycleBreaking.strategy': 'DEPTH_FIRST' };
+const lean = (to: string) => ({ 'elk.layered.nodePlacement.strategy': 'BRANDES_KOEPF', 'elk.layered.nodePlacement.bk.fixedAlignment': to });
 const VARIANTS: Record<string, string>[] = [
-  { 'elk.layered.nodePlacement.strategy': 'NETWORK_SIMPLEX' },
-  { 'elk.layered.nodePlacement.strategy': 'BRANDES_KOEPF' },
-  { 'elk.layered.nodePlacement.strategy': 'NETWORK_SIMPLEX', 'elk.layered.cycleBreaking.strategy': 'DEPTH_FIRST' },
-  { 'elk.layered.nodePlacement.strategy': 'NETWORK_SIMPLEX', 'elk.layered.layering.strategy': 'LONGEST_PATH_SOURCE' },
+  { ...lean('NONE'), ...COMPACT },
+  { ...lean('NONE'), ...COMPACT, ...DEPTH },
+  { ...lean('RIGHTUP'), ...COMPACT },
+  { ...lean('RIGHTUP'), ...COMPACT, ...DEPTH },
 ];
 
 /** Workers the tries are shared between, so they run side by side. */
@@ -30,14 +32,15 @@ const BASE: Record<string, string> = {
   'elk.algorithm': 'layered',
   'elk.direction': 'RIGHT',
   'elk.edgeRouting': 'ORTHOGONAL',
-  'elk.layered.thoroughness': '20',
-  'elk.spacing.nodeNode': '40',
-  'elk.layered.spacing.nodeNodeBetweenLayers': '40',
-  'elk.spacing.edgeNode': '24',
-  'elk.layered.spacing.edgeNodeBetweenLayers': '24',
-  'elk.spacing.edgeEdge': '16',
-  'elk.layered.spacing.edgeEdgeBetweenLayers': '16',
-  'elk.spacing.componentComponent': '80',
+  'elk.layered.thoroughness': '60',
+  // Gaps in grid squares and half squares, so the floor snaps onto the grid without two belts landing on one line.
+  'elk.spacing.nodeNode': String(GRID),
+  'elk.layered.spacing.nodeNodeBetweenLayers': String(GRID),
+  'elk.spacing.edgeNode': String(GRID),
+  'elk.layered.spacing.edgeNodeBetweenLayers': String(GRID),
+  'elk.spacing.edgeEdge': String(HALF),
+  'elk.layered.spacing.edgeEdgeBetweenLayers': String(HALF),
+  'elk.spacing.componentComponent': String(GRID * 2),
   'elk.layered.cycleBreaking.strategy': 'GREEDY',
   'elk.layered.nodePlacement.bk.fixedAlignment': 'BALANCED',
   'elk.layered.nodePlacement.favorStraightEdges': 'true',
@@ -72,7 +75,7 @@ interface Laid {
 const runs = (pts: { x: number; y: number }[]) => pts.slice(1).map((p, i) => [pts[i], p] as const);
 
 /** Belts that cross each other, bends and length together: lower reads better. */
-function score(lines: { x: number; y: number }[][]): number {
+function measure(lines: { x: number; y: number }[][]): { cross: number; bends: number; length: number } {
   let cross = 0;
   let bends = 0;
   let length = 0;
@@ -103,10 +106,15 @@ function score(lines: { x: number; y: number }[][]): number {
           const [vy0, vy1] = [Math.min(v[0].y, v[1].y), Math.max(v[0].y, v[1].y)];
           if (v[0].x > hx0 && v[0].x < hx1 && h[0].y > vy0 && h[0].y < vy1) cross++;
         }
+  return { cross, bends, length };
+}
+
+function score(lines: { x: number; y: number }[][]): number {
+  const { cross, bends, length } = measure(lines);
   return cross * 4 + bends + length / 400;
 }
 
-async function place(m: Model, variant: Record<string, string>, engine: ELK): Promise<Laid> {
+async function place(m: Model, variant: Record<string, string>, engine: ELK): Promise<Laid & { lines: { x: number; y: number }[][] }> {
   const parts = m.nodes.filter(isPart);
   const ids = new Set(parts.map((n) => n.id));
   const links = m.links.filter((l) => ids.has(l.a) && ids.has(l.b));
@@ -152,23 +160,45 @@ async function place(m: Model, variant: Record<string, string>, engine: ELK): Pr
     ),
   };
   const out = await engine.layout(graph);
-  const pos = new Map((out.children ?? []).map((c) => [c.id, { x: Math.round(c.x ?? 0), y: Math.round(c.y ?? 0) }]));
+  // Onto the grid: cards on its lines, so their ends are too; bends on a line or halfway, which keeps belts that ran
+  // side by side apart. The first and last stretch of a belt stay level with the ends they leave and reach.
+  const on = (v: number, step: number) => Math.round(v / step) * step;
+  const pos = new Map((out.children ?? []).map((c) => [c.id, { x: on(c.x ?? 0, GRID), y: on(c.y ?? 0, GRID) }]));
+  const byId = new Map(parts.map((n) => [n.id, n]));
+  const endAt = (id: string, side: 'in' | 'out', i: number) => {
+    const n = byId.get(id);
+    const p = pos.get(id);
+    if (!n || !p) return undefined;
+    const { w, h } = cardSize(n);
+    const ports = portsOf(n);
+    return { x: p.x + (side === 'out' ? w : 0), y: p.y + portY(h, i, side === 'out' ? ports.outs.length : ports.ins.length) };
+  };
   const routes: Laid['routes'] = new Map();
   const lines: { x: number; y: number }[][] = [];
+  const linkOf = new Map(links.map((l) => [l.id, l]));
   for (const e of (out.edges ?? []) as ElkExtendedEdge[]) {
     const s = e.sections?.[0];
-    if (!s) continue;
-    lines.push([s.startPoint, ...(s.bendPoints ?? []), s.endPoint]);
+    const l = linkOf.get(e.id);
+    if (!s || !l) continue;
+    const from = endAt(l.a, 'out', l.ap);
+    const to = endAt(l.b, 'in', l.bp);
+    if (!from || !to) continue;
+    const bends = (s.bendPoints ?? []).map((p) => ({ x: on(p.x, HALF), y: on(p.y, HALF) }));
+    if (bends.length) {
+      bends[0].y = from.y;
+      bends[bends.length - 1].y = to.y;
+    }
+    lines.push([from, ...bends, to]);
     const label = e.labels?.[0];
     routes.set(e.id, {
-      pts: (s.bendPoints ?? []).map((p) => [Math.round(p.x), Math.round(p.y)]),
+      pts: bends.map((p) => [p.x, p.y]),
       lbl:
         label?.x !== undefined && label.y !== undefined
-          ? [Math.round(label.x + (label.width ?? 0) / 2), Math.round(label.y + (label.height ?? 0) / 2)]
+          ? [on(label.x + (label.width ?? 0) / 2, HALF), on(label.y + (label.height ?? 0) / 2, HALF)]
           : undefined,
     });
   }
-  return { pos, routes, score: score(lines) };
+  return { pos, routes, score: score(lines), lines };
 }
 
 /**

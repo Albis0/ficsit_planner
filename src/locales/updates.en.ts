@@ -6,6 +6,25 @@ export type UpdateKind = 'added' | 'fixed' | 'changed';
 
 export const UPDATES: { version: string; date: string; notes: [UpdateKind, string][] }[] = [
   {
+    version: '0.13.2',
+    date: '2026-10-03',
+    notes: [
+      [
+        'changed',
+        'What your tier can’t make is now hidden everywhere on the factory and power sides: products, recipes, miners, belts, plants. Settings › Interface › Show what your tier can’t make brings it back. Thanks to u/Suspicious_Fly_1838.',
+      ],
+      [
+        'changed',
+        'Manual floor: a machine you put down takes as many machines as what comes in keeps busy (Auto), so a miner → smelter → constructor line runs straight away. Type a count to set it yourself.',
+      ],
+      ['changed', 'Manual floor: an open output counts as left over and shows what comes out of it, instead of stopping the line.'],
+      ['changed', 'Manual floor: the side panel lists the floor’s own outputs and inputs, and Rebuild starts from them.'],
+      ['changed', 'Manual floor: cards, their ends and belts sit on the grid; Tidy up bends belts less.'],
+      ['added', 'A miner’s panel takes what it makes a minute.'],
+      ['changed', 'Built in the game is a box to tick; Fill to 100% always shows in a machine’s panel; Build by hand is a button.'],
+    ],
+  },
+  {
     version: '0.13.1',
     date: '2026-10-03',
     notes: [

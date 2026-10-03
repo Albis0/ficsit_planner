@@ -3,7 +3,7 @@ import { compile } from './calc/compile';
 import type { NodeInit } from './ops';
 import { extractorById, type Medium, mediumOf, portsOf } from './ports';
 import type { LogisticKind, MNode, Model } from './types';
-import { cardSize, freeSpot } from './layout';
+import { cardSize, freeSpot, portY } from './layout';
 
 /*
   What can be put down on a hand-built floor, as the chooser lists it: recipes, miners and pumps, splitters and
@@ -164,7 +164,7 @@ export function placeChoice(m: Model, c: Choice, at: { x: number; y: number }, w
   if (want && c.port !== undefined) {
     const ends = want.side === 'in' ? portsOf(probe).ins : portsOf(probe).outs;
     x = want.side === 'in' ? at.x + 20 : at.x - w - 20;
-    y = at.y - (h * (c.port + 1)) / (ends.length + 1);
+    y = at.y - portY(h, c.port, ends.length);
   }
   return { ...probe, ...freeSpot(m.nodes, { x, y, w, h }) };
 }
