@@ -166,6 +166,8 @@ export interface Model {
   seq: number;
   /** A machine with nothing on an output fills up and stops, as in the game; unset, what it makes there is left over. */
   stall?: true;
+  /** Runs top to bottom: every card takes in on its top and puts out at its bottom. Unset, left to right. */
+  dir?: 'TB';
 }
 
 export const emptyModel = (): Model => ({ v: MODEL_VERSION, calc: 'basic', nodes: [], links: [], seq: 1 });

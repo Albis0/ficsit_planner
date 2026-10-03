@@ -1,6 +1,6 @@
 import { lazy, Suspense, useEffect, useMemo, useState } from 'react';
 import { CodexNav, CodexPage, useCodexRoute } from './components/Codex';
-import { type FactoryLinks, GraphView } from './components/GraphView';
+import { autoDir, type FactoryLinks, GraphView } from './components/GraphView';
 import { Glyph } from './components/Glyph';
 import { Inspector } from './components/Inspector';
 import { MapNav } from './components/MapNav';
@@ -16,6 +16,7 @@ import { FloorPanel } from './components/modeler/FloorPanel';
 import { forgetCamera, ModelEditor } from './components/modeler/ModelEditor';
 import { floorEnds } from './lib/model/calc/adapter';
 import { arrangeModel } from './lib/model/arrange';
+import { dirOf } from './lib/model/layout';
 import { ModelInspector } from './components/modeler/ModelInspector';
 import { ModelToolbar } from './components/modeler/Toolbar';
 import { QuickPick } from './components/QuickPick';
@@ -29,6 +30,7 @@ import { TableView } from './components/TableView';
 import { TransportView } from './components/TransportView';
 import { TargetsPanel } from './components/TargetsPanel';
 import { TierDialog } from './components/TierPicker';
+import { TipLayer } from './components/TipLayer';
 import { effectiveExtraction, planExtraction } from './lib/extraction';
 import { applyGame } from './lib/game';
 import type { Consumer } from './lib/graph';
@@ -43,8 +45,8 @@ import { fold } from './lib/fold';
 import { useMediaQuery } from './lib/useMediaQuery';
 import { LATEST_UPDATE } from './locales/updates.en';
 import { modelFromSolve } from './lib/model/fromAuto';
-import { emptyModel } from './lib/model/types';
-import { solveAsync } from './lib/solverClient';
+import { emptyModel, type Model } from './lib/model/types';
+import { calcAsync, solveAsync } from './lib/solverClient';
 import { activePowerPlan, aimOf, usePlan, useStore } from './store';
 
 // Folding the panel moves the app's grid tracks: above the floor a row, beside it a column.
@@ -139,7 +141,10 @@ export default function App() {
   const setFloor = async (floor: 'auto' | 'manual') => {
     if (floor === 'auto' || plan.model) return s.setFloor(plan.id, floor);
     const solved = factory.result;
-    const model = solved ? await lay(() => modelFromSolve(solved, s.tier, effectiveExtraction(plan.extraction, s.tier))) : emptyModel();
+    // Running the way the Auto floor did.
+    const model = solved
+      ? await lay(() => modelFromSolve(solved, s.tier, effectiveExtraction(plan.extraction, s.tier), s.graphDir ?? autoDir()))
+      : emptyModel();
     forgetCamera(plan.id);
     setBuilt((n) => n + 1);
     s.setFloor(plan.id, 'manual', model);
@@ -147,31 +152,43 @@ export default function App() {
   const exports = useExports(plan.id);
   // Rebuilding a hand-built floor starts from what its panel lists: the floor's own outputs and inputs. Those become
   // the factory's targets too, so Auto and Manual agree afterwards.
+  // With the numbers hidden the floor carries nothing to read them from, so they're worked out once on the click.
+  const hidden = plan.model?.calc === 'off';
   const ends = useMemo(
-    () => (manualPlan && plan.model ? floorEnds(plan.model, hand.calc) : undefined),
-    [manualPlan, plan.model, hand.calc],
+    () => (manualPlan && plan.model && !hidden ? floorEnds(plan.model, hand.calc) : undefined),
+    [manualPlan, plan.model, hand.calc, hidden],
   );
-  const rebuildIn = useMemo(() => {
-    if (!ends || ends.targets.length === 0) return undefined;
-    // A supply taken from another factory tab stays taken from it.
-    const supplies = ends.supplies.map((x) => {
-      const from = plan.supplies.find((y) => y.item === x.item)?.from;
-      return from ? { ...x, from } : x;
-    });
-    return { input: factoryInput({ ...plan, targets: ends.targets, supplies }, s.tier, exports, aimOf(s), s.settings.game), supplies };
-  }, [ends, plan, s, exports]);
+  const canRebuild = hidden ? !!plan.model?.nodes.some((n) => n.k === 'out' && n.tag !== 'spare') : !!ends?.targets.length;
   const rebuild = async () => {
-    if (!rebuildIn?.input || !window.confirm(t('rebuildConfirm'))) return;
+    const m = plan.model;
+    if (!m || !window.confirm(t('rebuildConfirm'))) return;
     try {
-      const r = await solveAsync(rebuildIn.input);
-      const model = await lay(() => modelFromSolve(r, s.tier, effectiveExtraction(plan.extraction, s.tier)));
+      const from = hidden ? floorEnds(m, await calcAsync({ model: { ...m, calc: 'basic' }, tier: s.tier, game: s.settings.game })) : ends;
+      if (!from?.targets.length) return;
+      // A supply taken from another factory tab stays taken from it.
+      const supplies = from.supplies.map((x) => {
+        const tab = plan.supplies.find((y) => y.item === x.item)?.from;
+        return tab ? { ...x, from: tab } : x;
+      });
+      const input = factoryInput({ ...plan, targets: from.targets, supplies }, s.tier, exports, aimOf(s), s.settings.game);
+      if (!input) return;
+      const r = await solveAsync(input);
+      const model = await lay(() => modelFromSolve(r, s.tier, effectiveExtraction(plan.extraction, s.tier), dirOf(m)));
       forgetCamera(plan.id);
       setBuilt((n) => n + 1);
-      s.updatePlan({ targets: ends?.targets ?? plan.targets, supplies: rebuildIn.supplies });
+      s.updatePlan({ targets: from.targets, supplies });
       s.setFloor(plan.id, 'manual', model);
     } catch {
       /* the Auto floor shows why it can't be solved */
     }
+  };
+
+  // Tidying up, or turning the floor the other way: laid out afresh, one step to undo, the whole floor in view.
+  const arrange = async (m: Model) => {
+    const tidy = await lay(() => arrangeModel(m));
+    host.edit(() => tidy);
+    forgetCamera(plan.id);
+    setBuilt((n) => n + 1);
   };
 
   useEffect(() => {
@@ -422,16 +439,11 @@ export default function App() {
                 <TransportView result={result} links={links} />
               ) : manual ? (
                 <>
-                  <ModelEditor key={built} host={host} calc={hand.calc} />
+                  <ModelEditor key={built} host={host} calc={hand.calc} onArrange={arrange} />
                   <ModelToolbar
                     host={host}
-                    onTidy={async () => {
-                      const tidy = await lay(() => arrangeModel(host.model));
-                      host.edit(() => tidy);
-                      forgetCamera(plan.id);
-                      setBuilt((n) => n + 1);
-                    }}
-                    onRebuild={rebuildIn?.input ? rebuild : undefined}
+                    onTidy={() => arrange(host.model)}
+                    onRebuild={canRebuild ? rebuild : undefined}
                     unbounded={hand.calc?.unbounded}
                   />
                 </>
@@ -492,6 +504,7 @@ export default function App() {
       {(!s.onboarded || tierOpen) && <TierDialog onClose={() => setTierOpen(false)} />}
       {s.dialog === 'settings' && <SettingsDialog onClose={() => s.set({ dialog: undefined })} />}
       {s.dialog === 'report' && <ReportDialog onClose={() => s.set({ dialog: undefined })} />}
+      <TipLayer />
       <Notice />
       <ClosedTab />
       <PwaStatus />

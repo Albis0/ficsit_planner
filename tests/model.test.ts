@@ -6,12 +6,12 @@ import { adaptModel } from '../src/lib/model/calc/adapter';
 import { calcKey, calcModel } from '../src/lib/model/calc';
 import { builtTransport } from '../src/lib/model/calc/compile';
 import { modelFromSolve } from '../src/lib/model/fromAuto';
-import { arrangeModel, portY } from '../src/lib/model/arrange';
+import { arrangeModel } from '../src/lib/model/arrange';
 import { openCards, openEnds, ruleFlags } from '../src/lib/model/checks';
 import { choicesFor, choiceWords, placeChoice, wantAt } from '../src/lib/model/choices';
-import { cardSize, freeSpot } from '../src/lib/model/layout';
+import { cardSize, endSpot, freeSpot } from '../src/lib/model/layout';
 import { addNode, canConnect, connect, evenSpeed, fullSpeed, minerFor, moveNodes, removeNodes } from '../src/lib/model/ops';
-import { mediumOf, portsOf } from '../src/lib/model/ports';
+import { mediumOf } from '../src/lib/model/ports';
 import { cleanModel } from '../src/lib/model/sanitize';
 import { type MLink, type MNode, type Model, MODEL_VERSION } from '../src/lib/model/types';
 import { solve } from '../src/lib/solver';
@@ -255,6 +255,36 @@ describe('from an Auto plan', () => {
       for (const n of m.nodes) if (n.k === 'machine') expect(r.nodes[n.id].u).toBeCloseTo(1, 6);
     });
   }
+
+  test('a target set lower afterwards takes fewer machines and slower belts, not machines running slower', async () => {
+    const item = 'Desc_IronPlateReinforced_C';
+    const auto = solve(highs, {
+      targets: [{ item, rate: 30 }],
+      supplies: [],
+      enabledRecipes: standard(),
+      resourceCaps: {},
+      objective: 'resources',
+    });
+    const m = await modelFromSolve(auto, 9, DEFAULT_EXTRACTION);
+    // Left to the load: no belt with a Mk picked, every machine sizing itself.
+    expect(m.links.filter((l) => l.mk !== undefined)).toEqual([]);
+    expect(m.nodes.filter((n) => n.k === 'machine' && !n.auto)).toEqual([]);
+    const machines = (r: ReturnType<typeof run>) => m.nodes.reduce((s, n) => s + (n.k === 'machine' ? (r.nodes[n.id].n ?? 0) : 0), 0);
+    const r30 = run(m);
+    // As many as the plan builds, at its clocks.
+    expect(Math.round(machines(r30))).toBe(auto.recipes.reduce((s, u) => s + u.built, 0));
+    const belts = (mm: Model, r: ReturnType<typeof run>) =>
+      mm.links.map((l) => builtTransport(mediumOf(item), l, 9, r.links[l.id].rate).id);
+    expect(belts(m, r30)).toContain(data.belts[2].id);
+
+    const product = m.nodes.find((n) => n.k === 'out' && n.item === item)!;
+    const five: Model = { ...m, nodes: m.nodes.map((n) => (n.id === product.id ? { ...n, lim: 5 } : n)) };
+    const r5 = run(five);
+    expect(adaptModel(five, r5).result.targets.find((t) => t.item === item)?.rate).toBeCloseTo(5, 4);
+    expect(machines(r5)).toBeCloseTo(machines(r30) / 6, 4);
+    for (const n of five.nodes) if (n.k === 'machine') expect(r5.nodes[n.id].status).toBe('full');
+    expect(new Set(belts(five, r5))).toEqual(new Set([data.belts[0].id]));
+  });
 });
 
 describe('saved models', () => {
@@ -594,12 +624,15 @@ describe('open ends', () => {
 
 describe('tidy up', () => {
   const standard = () => new Set(data.recipes.filter((r) => r.kind === 'standard').map((r) => r.id));
-  for (const [item, rate] of [
-    ['Desc_Motor_C', 10],
-    ['Desc_MotorLightweight_C', 2],
-    ['Desc_SpaceElevatorPart_9_C', 2],
+  for (const [item, rate, dir] of [
+    ['Desc_Motor_C', 10, 'LR'],
+    ['Desc_MotorLightweight_C', 2, 'LR'],
+    ['Desc_SpaceElevatorPart_9_C', 2, 'LR'],
+    ['Desc_Motor_C', 10, 'TB'],
+    ['Desc_MotorLightweight_C', 2, 'TB'],
+    ['Desc_SpaceElevatorPart_9_C', 2, 'TB'],
   ] as const)
-    test(`${item}: no card on another, belts in square runs that meet their ends in order, left to right`, async () => {
+    test(`${item}: no card on another, belts in square runs that meet their ends in order, ${dir === 'TB' ? 'top to bottom' : 'left to right'}`, async () => {
       const auto = solve(highs, {
         targets: [{ item, rate }],
         supplies: [],
@@ -607,8 +640,9 @@ describe('tidy up', () => {
         resourceCaps: {},
         objective: 'resources',
       });
-      const m = await modelFromSolve(auto, 9, DEFAULT_EXTRACTION);
-      const box = (n: MNode) => ({ ...cardSize(n), x: n.x, y: n.y });
+      const m = await modelFromSolve(auto, 9, DEFAULT_EXTRACTION, dir);
+      expect(m.dir).toBe(dir === 'TB' ? 'TB' : undefined);
+      const box = (n: MNode) => ({ ...cardSize(n, dir), x: n.x, y: n.y });
       const hits = (a: { x: number; y: number; w: number; h: number }, b: { x: number; y: number; w: number; h: number }) =>
         a.x < b.x + b.w && b.x < a.x + a.w && a.y < b.y + b.h && b.y < a.y + a.h;
       for (let i = 0; i < m.nodes.length; i++)
@@ -627,8 +661,10 @@ describe('tidy up', () => {
       const runs = m.links.map((l) => {
         const a = at.get(l.a)!;
         const b = at.get(l.b)!;
-        const from = { x: a.x + cardSize(a).w, y: a.y + portY(cardSize(a).h, l.ap, portsOf(a).outs.length) };
-        const to = { x: b.x, y: b.y + portY(cardSize(b).h, l.bp, portsOf(b).ins.length) };
+        const ea = endSpot(a, 'out', l.ap, dir);
+        const eb = endSpot(b, 'in', l.bp, dir);
+        const from = { x: a.x + ea.x, y: a.y + ea.y };
+        const to = { x: b.x + eb.x, y: b.y + eb.y };
         const pts = [from, ...(l.pts ?? []).map(([x, y]) => ({ x, y })), to];
         return pts.slice(1).map((p, i) => [pts[i], p] as const);
       });
@@ -704,8 +740,9 @@ describe('tidy up', () => {
         }
       }
       expect(crossed).toEqual([]);
-      // Left to right, but for a belt that loops back (a byproduct fed back in).
-      const back = m.links.filter((l) => at.get(l.a)!.x >= at.get(l.b)!.x);
+      // The floor's way, but for a belt that loops back (a byproduct fed back in).
+      const k = dir === 'TB' ? 'y' : 'x';
+      const back = m.links.filter((l) => at.get(l.a)![k] >= at.get(l.b)![k]);
       expect(back.length).toBeLessThanOrEqual(Math.ceil(m.links.length * 0.05));
       // Tidying again changes nothing; a moved card goes back.
       expect(await arrangeModel(m)).toEqual(m);

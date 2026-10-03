@@ -178,6 +178,30 @@ for (const r of data.recipes) {
 }
 
 /** Items a player would plan for: anything a recipe produces, excluding raw resources. */
+/**
+ * Gear rather than factory parts: what the Codex files as ammo, equipment or consumables, and power shards. The build
+ * menu keeps them on a tab of their own and Add product at the end of its list. A test keeps this in step with the Codex.
+ */
+export const SPECIAL_ITEMS: ReadonlySet<string> = new Set([
+  'BP_ItemDescriptorPortableMiner_C',
+  'Desc_CartridgeChaos_C',
+  'Desc_CartridgeSmartProjectile_C',
+  'Desc_CartridgeStandard_C',
+  'Desc_CrystalShard_C',
+  'Desc_Fireworks_Projectile_01_C',
+  'Desc_Fireworks_Projectile_02_C',
+  'Desc_Fireworks_Projectile_03_C',
+  'Desc_NobeliskCluster_C',
+  'Desc_NobeliskExplosive_C',
+  'Desc_NobeliskGas_C',
+  'Desc_NobeliskNuke_C',
+  'Desc_NobeliskShockwave_C',
+  'Desc_Rebar_Explosive_C',
+  'Desc_Rebar_Spreadshot_C',
+  'Desc_Rebar_Stunshot_C',
+  'Desc_SpikedRebar_C',
+]);
+
 export const craftableItems = Object.values(data.items).filter((i) => !i.raw && producersOf.has(i.id));
 
 export const rawItems = Object.values(data.items).filter((i) => i.raw);

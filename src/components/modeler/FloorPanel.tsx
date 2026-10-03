@@ -1,7 +1,7 @@
 import { craftableItems, data, itemLocked } from '../../lib/data';
 import { useT } from '../../lib/i18n';
 import type { CalcResult } from '../../lib/model/calc/result';
-import { cardSize, freeSpot } from '../../lib/model/layout';
+import { cardSize, dirOf, freeSpot } from '../../lib/model/layout';
 import { addNode, removeNodes, updateNode } from '../../lib/model/ops';
 import { isPart, type IoNode, type Model } from '../../lib/model/types';
 import type { SolveResult } from '../../lib/solver';
@@ -28,14 +28,21 @@ function arriving(model: Model, calc: CalcResult | undefined, id: string): { rat
   return { rate, item };
 }
 
-/** A new card off to the right of the floor, at the top, where it lies on nothing. */
+/** A new card past the floor's end (its start, for an input), where it lies on nothing: off to the right, or below. */
 function spotFor(model: Model, kind: 'in' | 'out'): { x: number; y: number } {
   const parts = model.nodes.filter(isPart);
   if (!parts.length) return { x: 0, y: 0 };
-  const size = cardSize({ id: '', k: kind, x: 0, y: 0 });
-  const top = Math.min(...parts.map((n) => n.y));
-  const x = kind === 'out' ? Math.max(...parts.map((n) => n.x + cardSize(n).w)) + 120 : Math.min(...parts.map((n) => n.x)) - size.w - 120;
-  return freeSpot(model.nodes, { x, y: top, ...size });
+  const dir = dirOf(model);
+  const size = cardSize({ id: '', k: kind, x: 0, y: 0 }, dir);
+  const box = parts.map((n) => ({ ...n, ...cardSize(n, dir) }));
+  if (dir === 'TB') {
+    const left = Math.min(...box.map((n) => n.x));
+    const y = kind === 'out' ? Math.max(...box.map((n) => n.y + n.h)) + 120 : Math.min(...box.map((n) => n.y)) - size.h - 120;
+    return freeSpot(model.nodes, { x: left, y, ...size }, dir);
+  }
+  const top = Math.min(...box.map((n) => n.y));
+  const x = kind === 'out' ? Math.max(...box.map((n) => n.x + n.w)) + 120 : Math.min(...box.map((n) => n.x)) - size.w - 120;
+  return freeSpot(model.nodes, { x, y: top, ...size }, dir);
 }
 
 /**

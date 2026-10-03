@@ -6,6 +6,20 @@ export type UpdateKind = 'added' | 'fixed' | 'changed';
 
 export const UPDATES: { version: string; date: string; notes: [UpdateKind, string][] }[] = [
   {
+    version: '0.13.5',
+    date: '2026-10-03',
+    notes: [
+      [
+        'fixed',
+        'Manual floor: machines on a converted floor size themselves, so a lower target takes fewer of them, and its belts follow the line’s Mk.',
+      ],
+      ['fixed', 'Manual floor: Rebuild stays while the numbers are hidden; a double click ticks a card built without opening its panel.'],
+      ['added', 'Manual floor: left to right or top to bottom, with the same → ↓ switch as the Auto floor.'],
+      ['added', 'A Special tab in the build menu for Nobelisks, ammo, fireworks and power shards.'],
+      ['changed', 'Tips on hover in the app’s own style, with the key where a button has one.'],
+    ],
+  },
+  {
     version: '0.13.4',
     date: '2026-10-03',
     notes: [

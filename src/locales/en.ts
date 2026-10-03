@@ -987,6 +987,7 @@ export const en = {
   choose_raw: 'Resources',
   choose_logistic: 'Logistics',
   choose_io: 'In and out',
+  choose_special: 'Special',
   moreResults: '{n} more: type to narrow them down',
   tapInput: 'Tap an input to lay the belt, or the floor to put something there',
   tapOutput: 'Tap an output to lay the belt, or the floor to put something there',

@@ -74,16 +74,18 @@ export function ModelToolbar({
           onClick={() => host.edit((x) => ({ ...x, calc: numbers ? 'off' : 'basic' }))}
         />
       </div>
-      <div className="segmented open-outputs" role="radiogroup" aria-label={t('openOutputs')}>
-        <span className="seg-label" aria-hidden>
+      <div className="open-outputs">
+        <span className="tool-label" id="open-outputs-label">
           {t('openOutputs')}
         </span>
-        <button type="button" role="radio" aria-checked={!model.stall} title={t('openLeftOverHint')} onClick={() => setStall(false)}>
-          {t('openLeftOver')}
-        </button>
-        <button type="button" role="radio" aria-checked={!!model.stall} title={t('openFillHint')} onClick={() => setStall(true)}>
-          {t('openFill')}
-        </button>
+        <div className="segmented" role="radiogroup" aria-labelledby="open-outputs-label">
+          <button type="button" role="radio" aria-checked={!model.stall} title={t('openLeftOverHint')} onClick={() => setStall(false)}>
+            {t('openLeftOver')}
+          </button>
+          <button type="button" role="radio" aria-checked={!!model.stall} title={t('openFillHint')} onClick={() => setStall(true)}>
+            {t('openFill')}
+          </button>
+        </div>
       </div>
       {unbounded && <span className="run-state bad">{t('unboundedHint')}</span>}
     </div>

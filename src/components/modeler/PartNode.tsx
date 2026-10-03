@@ -5,7 +5,7 @@ import { useT } from '../../lib/i18n';
 import { LOGISTICS, SINK, STORAGE, STORAGE_NAME } from '../../lib/model/catalog';
 import { countOf, type NodeCalc, type NodeStatus } from '../../lib/model/calc/result';
 import type { Flag, OpenEnds } from '../../lib/model/checks';
-import { cardSize, portY } from '../../lib/model/layout';
+import { cardSize, type Dir, endSpot } from '../../lib/model/layout';
 import { extractorById, type Port, portsOf, runnerRecipe } from '../../lib/model/ports';
 import { evenSpeed, fullSpeed } from '../../lib/model/ops';
 import type { MNode } from '../../lib/model/types';
@@ -15,9 +15,12 @@ import { modBar, RunLine } from '../GraphView';
 import { Icon } from '../Icon';
 import { Slot } from '../Slot';
 
+/** Which way the floor runs: a card's ends go on its sides or along its top and bottom. */
+export const FloorDir = createContext<Dir>('LR');
+
 /** A card's size on the floor, whole grid squares, whatever the card size and text settings say elsewhere. */
-const grid = (n: MNode) => {
-  const { w, h } = cardSize(n);
+const grid = (n: MNode, dir: Dir) => {
+  const { w, h } = cardSize(n, dir);
   return { width: w, height: h };
 };
 
@@ -144,8 +147,8 @@ export function useStatusText() {
 function End({
   side,
   i,
-  of,
-  h,
+  at,
+  down,
   port,
   wired,
   open,
@@ -153,9 +156,10 @@ function End({
 }: {
   side: 'in' | 'out';
   i: number;
-  of: number;
-  /** The card's height, for where the end sits on the grid. */
-  h: number;
+  /** Where it sits on its card, on the grid. */
+  at: { x: number; y: number };
+  /** On a floor running top to bottom: along the card's top or bottom. */
+  down: boolean;
   port: Port;
   wired: boolean;
   open: boolean;
@@ -166,10 +170,10 @@ function End({
   return (
     <Handle
       type={side === 'in' ? 'target' : 'source'}
-      position={side === 'in' ? Position.Left : Position.Right}
+      position={down ? (side === 'in' ? Position.Top : Position.Bottom) : side === 'in' ? Position.Left : Position.Right}
       id={`${side === 'in' ? 'i' : 'o'}${i}`}
-      className={`port ${side} ${wired ? 'wired' : open ? 'open' : 'free'} ${port.medium === 'pipe' ? 'pipe' : ''}`}
-      style={{ top: portY(h, i, of) }}
+      className={`port ${side} ${down ? 'down' : ''} ${wired ? 'wired' : open ? 'open' : 'free'} ${port.medium === 'pipe' ? 'pipe' : ''}`}
+      style={down ? { left: at.x } : { top: at.y }}
       title={item ? name(item) : undefined}
     >
       {item && <Icon id={item.id} size={18} />}
@@ -185,13 +189,23 @@ function End({
 
 function Ends({ node, wired, open }: PartData) {
   const ports = portsOf(node);
-  const { h } = cardSize(node);
+  const dir = useContext(FloorDir);
+  const down = dir === 'TB';
   const spare = useContext(CalcNodes)?.[node.id]?.spare;
   return (
     <>
       {ports.ins.map((p, i) => (
-        // biome-ignore lint/suspicious/noArrayIndexKey: ends are fixed by the node's recipe or kind, never reordered here.
-        <End key={`i${i}`} side="in" i={i} of={ports.ins.length} h={h} port={p} wired={wired.ins[i]} open={!!open?.ins[i]} />
+        <End
+          // biome-ignore lint/suspicious/noArrayIndexKey: ends are fixed by the node's recipe or kind, never reordered here.
+          key={`i${i}`}
+          side="in"
+          i={i}
+          at={endSpot(node, 'in', i, dir)}
+          down={down}
+          port={p}
+          wired={wired.ins[i]}
+          open={!!open?.ins[i]}
+        />
       ))}
       {ports.outs.map((p, i) => (
         <End
@@ -199,8 +213,8 @@ function Ends({ node, wired, open }: PartData) {
           key={`o${i}`}
           side="out"
           i={i}
-          of={ports.outs.length}
-          h={h}
+          at={endSpot(node, 'out', i, dir)}
+          down={down}
           port={p}
           wired={wired.outs[i]}
           open={!!open?.outs[i]}
@@ -219,6 +233,7 @@ function Status({ calc }: { calc?: NodeCalc }) {
 }
 
 function Machine({ data: d, selected }: { data: PartData; selected: boolean }) {
+  const dir = useContext(FloorDir);
   const { t, name, num } = useT();
   const n = d.node;
   const calc = useContext(CalcNodes)?.[n.id];
@@ -233,7 +248,7 @@ function Machine({ data: d, selected }: { data: PartData; selected: boolean }) {
   return (
     <div
       className={`machine-node manual ${recipe.kind} ${selected ? 'selected' : ''} ${n.done ? 'done' : ''}`}
-      style={{ ...grid(n), ...(bar ? { ['--mod-bar' as string]: bar } : {}) }}
+      style={{ ...grid(n, dir), ...(bar ? { ['--mod-bar' as string]: bar } : {}) }}
     >
       <FlagTag id={n.id} />
       <Ends {...d} />
@@ -281,6 +296,7 @@ function Machine({ data: d, selected }: { data: PartData; selected: boolean }) {
 
 /** Sources and ends of the line, in the Auto floor's endpoint look: miners and pumps, inputs from outside, outputs. */
 function Endpoint({ data: d, selected }: { data: PartData; selected: boolean }) {
+  const dir = useContext(FloorDir);
   const { t, name, num } = useT();
   const n = d.node;
   const calc = useContext(CalcNodes)?.[n.id];
@@ -298,7 +314,9 @@ function Endpoint({ data: d, selected }: { data: PartData; selected: boolean }) 
     // On a belt, or left over where the miner has none.
     rate = (calc?.outs[0] ?? 0) + (calc?.spare?.[0] ?? 0);
     const built = Math.max(1, Math.ceil((n.n ?? 1) - 1e-6));
-    note = `${built}× ${num((((n.clock ?? 1) * (n.n ?? 1)) / built) * 100)}%`;
+    // Held back by what takes its ore, a miner is as good as one clocked down to that: say the clock, as in the game.
+    const held = calc?.status === 'partial' ? calc.u : 1;
+    note = `${built}× ${num((((n.clock ?? 1) * (n.n ?? 1) * held) / built) * 100)}%`;
   } else if (n.k === 'in') {
     item = n.item;
     kind = n.tag === 'bring' ? 'missing' : 'supply';
@@ -316,7 +334,7 @@ function Endpoint({ data: d, selected }: { data: PartData; selected: boolean }) 
   return (
     <div
       className={`endpoint-node manual ${kind} ${selected ? 'selected' : ''} ${n.done ? 'done' : ''}`}
-      style={{ ...grid(n), ...(it && it.form !== 'solid' ? { ['--fluid-color' as string]: it.color ?? 'var(--fluid)' } : {}) }}
+      style={{ ...grid(n, dir), ...(it && it.form !== 'solid' ? { ['--fluid-color' as string]: it.color ?? 'var(--fluid)' } : {}) }}
     >
       <FlagTag id={n.id} />
       <Ends {...d} />
@@ -334,7 +352,7 @@ function Endpoint({ data: d, selected }: { data: PartData; selected: boolean }) 
             </span>
           )}
           {note && <span className="endpoint-extract">{note}</span>}
-          {n.k === 'extract' && <Status calc={calc} />}
+          {n.k === 'extract' && calc?.status !== 'partial' && <Status calc={calc} />}
         </span>
       </span>
     </div>
@@ -343,6 +361,7 @@ function Endpoint({ data: d, selected }: { data: PartData; selected: boolean }) 
 
 /** Splitters, mergers, sinks and containers: a small square with the building's icon. */
 function Fitting({ data: d, selected }: { data: PartData; selected: boolean }) {
+  const dir = useContext(FloorDir);
   const n = d.node;
   const calc = useContext(CalcNodes)?.[n.id];
   const { num, t } = useT();
@@ -364,7 +383,11 @@ function Fitting({ data: d, selected }: { data: PartData; selected: boolean }) {
       )
     : 0;
   return (
-    <div className={`fitting-node ${n.k} ${selected ? 'selected' : ''} ${n.done ? 'done' : ''}`} style={grid(n)} title={n.label ?? title}>
+    <div
+      className={`fitting-node ${n.k} ${selected ? 'selected' : ''} ${n.done ? 'done' : ''}`}
+      style={grid(n, dir)}
+      title={n.label ?? title}
+    >
       <Ends {...d} />
       {icon ? <Icon id={icon} size={44} /> : <span className="fitting-unknown">?</span>}
       {calc && (

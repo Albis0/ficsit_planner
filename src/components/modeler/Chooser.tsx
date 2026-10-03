@@ -49,7 +49,7 @@ export function Chooser({
   );
   // An input wanting ore or water starts on the miners and pumps.
   const order: ChoiceTab[] =
-    want?.side === 'out' && want.item && data.items[want.item]?.raw ? ['raw', 'make', 'logistic', 'io'] : CHOICE_TABS;
+    want?.side === 'out' && want.item && data.items[want.item]?.raw ? ['raw', 'make', 'logistic', 'io', 'special'] : CHOICE_TABS;
   const tabs = order.filter((x) => all.some((c) => c.tab === x));
   const [tab, setTab] = useState<ChoiceTab>(tabs[0] ?? 'make');
   const [q, setQ] = useState('');

@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { craftableItems, data, itemLocked, itemTier } from '../lib/data';
+import { craftableItems, data, itemLocked, itemTier, SPECIAL_ITEMS } from '../lib/data';
 import { useT } from '../lib/i18n';
 import { searchKey } from '../lib/text';
 import { useStore } from '../store';
@@ -50,7 +50,11 @@ export function QuickPick() {
     return craftableItems
       .filter((i) => searchKey(name(i)).includes(f) && !(hide && itemLocked(i.id, tier)))
       .sort(
-        (a, b) => Number(!searchKey(name(a)).startsWith(f)) - Number(!searchKey(name(b)).startsWith(f)) || name(a).localeCompare(name(b)),
+        // Gear (ammo, equipment, power shards) after the parts.
+        (a, b) =>
+          Number(SPECIAL_ITEMS.has(a.id)) - Number(SPECIAL_ITEMS.has(b.id)) ||
+          Number(!searchKey(name(a)).startsWith(f)) - Number(!searchKey(name(b)).startsWith(f)) ||
+          name(a).localeCompare(name(b)),
       )
       .slice(0, RESULTS);
   }, [q, name, hide, tier]);

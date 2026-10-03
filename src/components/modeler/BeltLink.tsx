@@ -22,6 +22,8 @@ export interface BeltData extends Record<string, unknown> {
   item?: string;
   transport: Transport;
   calc?: LinkCalc;
+  /** On a floor running top to bottom. */
+  down?: boolean;
 }
 
 /** Opens a belt in the panel, from its label. */
@@ -37,18 +39,24 @@ type Pt = { x: number; y: number };
 
 /**
  * A belt in straight runs with rounded square turns, from one end through its bends to the other. The ends are where
- * the cards draw them, so the first and last bends line up with them; with no bends it steps across half way.
+ * the cards draw them, so the first and last bends line up with them; with no bends it steps across half way. On a
+ * floor running down the same holds turned a quarter: it leaves and reaches its ends going down.
  */
-export function squarePath(from: Pt, bends: Pt[], to: Pt): { path: string; runs: [Pt, Pt][] } {
-  const mid = bends.map((p) => ({ ...p }));
+export function squarePath(from: Pt, bends: Pt[], to: Pt, down = false): { path: string; runs: [Pt, Pt][] } {
+  // Worked out as if left to right, then turned back.
+  const turn = (p: Pt) => (down ? { x: p.y, y: p.x } : { ...p });
+  const [a0, b0] = [turn(from), turn(to)];
+  const mid = bends.map(turn);
   if (mid.length >= 2) {
-    mid[0].y = from.y;
-    mid[mid.length - 1].y = to.y;
-  } else if (mid.length === 0 && Math.abs(from.y - to.y) > 0.5) {
-    const x = (from.x + to.x) / 2;
-    mid.push({ x, y: from.y }, { x, y: to.y });
+    mid[0].y = a0.y;
+    mid[mid.length - 1].y = b0.y;
+  } else if (mid.length === 0 && Math.abs(a0.y - b0.y) > 0.5) {
+    const x = (a0.x + b0.x) / 2;
+    mid.push({ x, y: a0.y }, { x, y: b0.y });
   }
-  const pts = [from, ...mid, to].filter((p, i, all) => i === 0 || Math.abs(p.x - all[i - 1].x) + Math.abs(p.y - all[i - 1].y) > 0.5);
+  const pts = [a0, ...mid, b0]
+    .map(turn)
+    .filter((p, i, all) => i === 0 || Math.abs(p.x - all[i - 1].x) + Math.abs(p.y - all[i - 1].y) > 0.5);
   let d = `M${pts[0].x},${pts[0].y}`;
   for (let i = 1; i < pts.length - 1; i++) {
     const [a, b, c] = [pts[i - 1], pts[i], pts[i + 1]];
@@ -74,7 +82,7 @@ export function BeltLink({ sourceX, sourceY, targetX, targetY, sourcePosition, t
   const still = useFlowStore(stillSelector);
   const labels = useStore((s) => s.settings.beltLabels);
   const oneColor = useStore((s) => s.settings.beltColors === 'one');
-  const { link, item, transport, calc } = d as BeltData;
+  const { link, item, transport, calc, down } = d as BeltData;
   const pick = useContext(PickLink);
   const geo = { sourceX, sourceY, targetX, targetY, sourcePosition, targetPosition };
   let path: string;
@@ -82,12 +90,13 @@ export function BeltLink({ sourceX, sourceY, targetX, targetY, sourcePosition, t
   let ly: number;
   if (link.line === 'straight') [path, lx, ly] = getStraightPath(geo);
   else if (link.line === 'curve') [path, lx, ly] = getBezierPath(geo);
-  else if (sourceX < targetX || link.pts?.length) {
+  else if ((down ? sourceY < targetY : sourceX < targetX) || link.pts?.length) {
     // Straight runs with square turns, through the bends the floor was laid out with; the label on its longest run.
     const square = squarePath(
       { x: sourceX, y: sourceY },
       (link.pts ?? []).map(([x, y]) => ({ x, y })),
       { x: targetX, y: targetY },
+      down,
     );
     path = square.path;
     const [a, b] = square.runs.reduce((l, r) =>

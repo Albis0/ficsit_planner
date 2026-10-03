@@ -254,5 +254,6 @@ export function cleanModel(saved: unknown): Model | undefined {
     links,
     seq: Math.max(top + 1, Math.round(within(m.seq, 1, 1e9, 1))),
     ...(m.stall === true ? { stall: true as const } : {}),
+    ...(m.dir === 'TB' ? { dir: 'TB' as const } : {}),
   };
 }

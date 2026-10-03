@@ -2,6 +2,8 @@ import { expect, test } from 'bun:test';
 import fs from 'node:fs';
 import path from 'node:path';
 import { type CodexData, indexOf, pageKey, pageOf, parsePage, recipesFor, schematicIcon, search } from '../src/lib/codex';
+import { data, recipeById, SPECIAL_ITEMS } from '../src/lib/data';
+import { choicesFor } from '../src/lib/model/choices';
 import codexJson from '../src/data/codex.json';
 import creaturesJson from '../src/data/creatures.json';
 
@@ -69,4 +71,19 @@ test('every creature has an icon, a page and remains that exist', () => {
   }
   expect(search(index, 'hog').some((e) => e.page.kind === 'creature')).toBe(true);
   expect(codex.counts.pod).toBe(118);
+});
+
+test('gear kept apart in the build menu is what the Codex calls ammo, equipment or consumables, and power shards', () => {
+  const made = new Set(data.recipes.flatMap((r) => r.outputs.map((o) => o.item)));
+  const gear = Object.entries((codexJson as unknown as CodexData).items)
+    .filter(([id, x]) => made.has(id) && ['ammo', 'equipment', 'consumable'].includes(x.kind))
+    .map(([id]) => id);
+  expect([...SPECIAL_ITEMS].sort()).toEqual([...gear, 'Desc_CrystalShard_C'].sort());
+  // In the build menu: every recipe making one on the Special tab, none of the parts.
+  for (const c of choicesFor(undefined, 9)) {
+    if (c.init.k !== 'machine') continue;
+    const r = recipeById.get(c.init.recipe)!;
+    expect(c.tab).toBe(r.outputs.some((o) => SPECIAL_ITEMS.has(o.item)) ? 'special' : 'make');
+  }
+  expect(choicesFor(undefined, 9).find((c) => c.init.k === 'machine' && c.init.recipe === 'Recipe_Nobelisk_C')?.tab).toBe('special');
 });

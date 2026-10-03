@@ -1117,6 +1117,17 @@ button.slot:hover {
   cursor: default;
 }
 
+.picker-list li.picker-heading {
+  margin-top: 6px;
+  padding: 8px 14px 4px;
+  border-top: 1px solid var(--line);
+  font: 600 13px var(--font-display);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--faint);
+  cursor: default;
+}
+
 /* ---------- Recipes ---------- */
 
 /* Tools in a column on the left, the recipes flowing in columns across the rest. */
@@ -6325,6 +6336,18 @@ button.gen-count[aria-pressed='true'] {
     display: none;
   }
 
+  /* A floor built by hand keeps its way with it, so the switch stays. */
+  .floor-controls .segmented.floor-dir {
+    display: flex;
+  }
+
+  /* Clear of Auto and Manual on the left: on a narrow phone what doesn't fit goes on a row above. */
+  .floor-view:has(.floor-dir) .floor-controls {
+    max-width: calc(100% - 190px);
+    flex-wrap: wrap-reverse;
+    justify-content: flex-end;
+  }
+
   .busy {
     left: 12px;
     top: 10px;
@@ -9670,6 +9693,17 @@ a.codex-flow:hover {
   right: -14px;
 }
 
+/* On a floor running down: inputs along a card's top, outputs along its bottom. */
+.react-flow__handle.port.down.in {
+  top: -14px;
+}
+
+.react-flow__handle.port.down.out {
+  top: auto;
+  right: auto;
+  bottom: -14px;
+}
+
 .react-flow__handle.port.open {
   border-style: dashed;
   border-color: var(--ficsit);
@@ -9932,17 +9966,20 @@ a.codex-flow:hover {
 }
 
 /* What an output with no belt does: the words say it, no hint to read. */
+/* A caption beside the switch, not a part of it. */
 .open-outputs {
+  display: flex;
   align-items: center;
-  background: #1a1a1a;
+  gap: 8px;
 }
 
-.open-outputs .seg-label {
-  padding: 0 8px 0 6px;
-  font: 600 14px var(--font-display);
-  letter-spacing: 0.03em;
+.tool-label {
+  font: 600 12px var(--font-display);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
   color: var(--faint);
   white-space: nowrap;
+  text-shadow: 0 1px 2px rgb(0 0 0 / 80%);
 }
 
 .model-toolbar .run-state {
@@ -10032,6 +10069,12 @@ a.codex-flow:hover {
   font: 700 14px var(--font-display);
   white-space: nowrap;
   pointer-events: none;
+}
+
+.react-flow__handle.port.down .port-spare {
+  top: calc(100% + 6px);
+  left: 50%;
+  translate: -50% 0;
 }
 
 .port-spare small {
@@ -10136,22 +10179,43 @@ a.codex-flow:hover {
   pointer-events: auto;
 }
 
-/* Half way through laying a belt by taps. */
-.connect-strip {
+/* Low over the floor, above the buttons along the bottom: half way through laying a belt by taps, say. */
+.floor-strip {
   position: absolute;
-  top: 70px;
+  bottom: 78px;
   left: 50%;
   z-index: 7;
   transform: translateX(-50%);
   width: max-content;
-  max-width: calc(100% - 24px);
+  max-width: min(640px, calc(100% - 24px));
   display: flex;
   align-items: center;
-  gap: 14px;
-  padding: 8px 14px;
+  gap: 12px;
+  padding: 6px 6px 6px 10px;
   background: var(--panel);
-  border: 1px solid var(--ficsit);
-  font: 600 15px var(--font-body);
+  border: 1px solid var(--line-2);
+  border-left: 4px solid var(--ficsit);
+  border-radius: var(--radius);
+  box-shadow: 0 10px 28px rgb(0 0 0 / 50%);
+  font: 600 15px / 1.25 var(--font-body);
+}
+
+.floor-strip .slot {
+  flex: none;
+}
+
+.floor-strip-text {
+  min-width: 0;
+}
+
+.floor-strip-actions {
+  display: flex;
+  flex: none;
+  gap: 4px;
+}
+
+.floor-strip-actions .text-button {
+  padding: 8px 12px;
 }
 
 /* The build menu of a hand-built floor. */
@@ -10196,6 +10260,17 @@ a.codex-flow:hover {
   overflow-x: auto;
   border-bottom: 1px solid var(--line);
   scrollbar-width: none;
+  /* Tabs running past the right edge fade out there, only while there are more to scroll to. */
+  --fade: 0px;
+  mask-image: linear-gradient(to right, #000 calc(100% - var(--fade) * 2), transparent);
+}
+
+@supports (animation-timeline: scroll()) {
+  .chooser-tabs {
+    animation: more-below linear both;
+    animation-timeline: scroll(self inline);
+    animation-range: calc(100% - 30px) 100%;
+  }
 }
 
 .chooser-tabs button {
@@ -10306,11 +10381,14 @@ a.codex-flow:hover {
   }
 
   .chooser-tabs button {
-    padding: 9px 10px;
+    padding: 9px 8px;
   }
 
-  .connect-strip {
-    top: auto;
+  .chooser-tabs .tab-badge {
+    margin-left: 4px;
+  }
+
+  .floor-strip {
     bottom: 140px;
     font-size: 14px;
   }
@@ -10362,4 +10440,77 @@ a.codex-flow:hover {
 .endpoint-node.manual .endpoint-line .run-state {
   overflow: hidden;
   text-overflow: ellipsis;
+}
+
+/* The app's own hover tips: a dark box with an arrow, under what it's for or over it near the bottom. */
+.tip {
+  position: fixed;
+  z-index: 1000;
+  translate: -50% 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  max-width: min(320px, calc(100vw - 16px));
+  padding: 6px 10px;
+  background: #151515;
+  border: 1px solid var(--line-2);
+  border-radius: var(--radius);
+  box-shadow: 0 8px 22px rgb(0 0 0 / 55%);
+  color: var(--paper);
+  font: 500 13px / 1.35 var(--font-body);
+  pointer-events: none;
+  animation: tip-in 0.12s ease-out;
+}
+
+.tip.below {
+  margin-top: 8px;
+}
+
+.tip.above {
+  margin-top: -8px;
+  translate: -50% -100%;
+}
+
+/* The arrow: a small square turned, half under the box's edge. */
+.tip::before {
+  content: '';
+  position: absolute;
+  left: calc(50% + var(--arrow, 0px) - 5px);
+  width: 9px;
+  height: 9px;
+  background: #151515;
+  border: 1px solid var(--line-2);
+  rotate: 45deg;
+}
+
+.tip.below::before {
+  top: -6px;
+  border-width: 1px 0 0 1px;
+}
+
+.tip.above::before {
+  bottom: -6px;
+  border-width: 0 1px 1px 0;
+}
+
+.tip kbd {
+  padding: 1px 6px;
+  background: var(--raised);
+  border: 1px solid var(--line-2);
+  border-radius: 3px;
+  color: var(--dim);
+  font: 600 12px var(--font-body);
+  white-space: nowrap;
+}
+
+@keyframes tip-in {
+  from {
+    opacity: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .tip {
+    animation: none;
+  }
 }

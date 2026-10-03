@@ -4,6 +4,7 @@ import { type ExtractionSettings, extractorFor } from '../extraction';
 import { buildGraph, type EndpointNodeData, type FlowEdgeData, type MachineNodeData } from '../graph';
 import type { SolveResult } from '../solver';
 import { arrangeModel } from './arrange';
+import type { Dir } from './layout';
 import { extractorRate, mediumOf } from './ports';
 import { type MLink, type MNode, type Model, MODEL_VERSION } from './types';
 
@@ -18,20 +19,16 @@ import { type MLink, type MNode, type Model, MODEL_VERSION } from './types';
 /** Up to three outputs per splitter (three inputs per merger); more than that chains another one on. */
 const FAN = 3;
 
-/** The belt or pipe that carries a load, as its index in the game's list, and how many side by side. */
-const line = (item: string, rate: number, tier: number): { mk: number; lanes?: number } => {
-  const { transport, lanes } = transportFor(data.items[item], rate, tier);
-  const all = mediumOf(item) === 'pipe' ? data.pipes : data.belts;
-  return {
-    mk: Math.max(
-      0,
-      all.findIndex((t) => t.id === transport.id),
-    ),
-    ...(lanes > 1 ? { lanes } : {}),
-  };
+/**
+ * Belts and pipes are left to the load, so the line takes the slowest Mk that carries what it does and follows it when
+ * a target changes. Only a load past the best one unlocked gets lines side by side.
+ */
+const line = (item: string, rate: number, tier: number): { lanes?: number } => {
+  const { lanes } = transportFor(data.items[item], rate, tier);
+  return lanes > 1 ? { lanes } : {};
 };
 
-export async function modelFromSolve(result: SolveResult, tier: number, extraction: ExtractionSettings): Promise<Model> {
+export async function modelFromSolve(result: SolveResult, tier: number, extraction: ExtractionSettings, dir: Dir = 'LR'): Promise<Model> {
   const g = buildGraph(result, tier, { dir: 'LR', splitLines: 'each' });
   let seq = 1;
   const id = () => (seq++).toString(36);
@@ -41,9 +38,9 @@ export async function modelFromSolve(result: SolveResult, tier: number, extracti
   // Where each card goes is worked out at the end, once every card is there.
   const at = { x: 0, y: 0 };
 
-  // Machines, as many as get built at the clock they run at: 2.67 smelters at
-  // 100% are 3 at 88.89%, as on the Auto card. Somersloops on a node go machine by machine, so an average across the
-  // line rounds to the nearest whole one.
+  // Machines size themselves to what comes in, at the clock they run at on the Auto card (2.67 smelters at 100% are 3
+  // at 88.89%), so a target set lower later takes fewer of them instead of running them all slower. Somersloops on a
+  // node go machine by machine, so an average across the line rounds to the nearest whole one.
   for (const n of g.nodes) {
     if (n.type !== 'machine') continue;
     const { use } = n.data as MachineNodeData;
@@ -53,7 +50,7 @@ export async function modelFromSolve(result: SolveResult, tier: number, extracti
       ...at,
       k: 'machine',
       recipe: use.recipe.id,
-      ...(use.built !== 1 ? { n: use.built } : {}),
+      auto: true,
       ...(Math.abs(use.clock - 1) > 1e-12 ? { clock: use.clock } : {}),
       ...(Math.round(use.mod.sloops) > 0 ? { sloops: Math.round(use.mod.sloops) } : {}),
     };
@@ -176,12 +173,14 @@ export async function modelFromSolve(result: SolveResult, tier: number, extracti
     }
     if (!dst && b.type === 'endpoint') {
       const d = b.data as EndpointNodeData;
-      const n: MNode = { id: id(), ...at, k: 'out', item, ...(d.kind === 'surplus' ? { tag: 'spare' as const } : {}) };
+      // A product takes what the factory was solved for and no more, so machines sizing themselves share what comes in
+      // as the solve did; what's left over takes whatever reaches it.
+      const n: MNode = { id: id(), ...at, k: 'out', item, ...(d.kind === 'surplus' ? { tag: 'spare' as const } : { lim: rate }) };
       nodes.push(n);
       dst = { node: n.id, port: 0 };
     }
     if (!src || !dst) continue;
     links.push({ id: id(), a: src.node, ap: src.port, b: dst.node, bp: dst.port, ...line(item, rate, tier) });
   }
-  return arrangeModel({ v: MODEL_VERSION, calc: 'basic', nodes, links, seq });
+  return arrangeModel({ v: MODEL_VERSION, calc: 'basic', nodes, links, seq, ...(dir === 'TB' ? { dir } : {}) });
 }

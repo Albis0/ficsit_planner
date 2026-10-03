@@ -1,10 +1,10 @@
-import { data, recipeById, recipeTier } from '../data';
+import { data, recipeById, recipeTier, SPECIAL_ITEMS } from '../data';
 import { type ExtractionSettings, effectiveExtraction } from '../extraction';
 import { compile } from './calc/compile';
 import type { NodeInit } from './ops';
 import { extractorById, type Medium, mediumOf, portsOf } from './ports';
 import type { LogisticKind, MNode, Model } from './types';
-import { cardSize, freeSpot, portY } from './layout';
+import { cardSize, dirOf, endSpot, freeSpot } from './layout';
 
 /*
   What can be put down on a hand-built floor, as the chooser lists it: recipes, miners and pumps, splitters and
@@ -12,8 +12,9 @@ import { cardSize, freeSpot, portY } from './layout';
   end, and says which end of the new card the belt goes on.
 */
 
-export type ChoiceTab = 'make' | 'raw' | 'logistic' | 'io';
-export const CHOICE_TABS: ChoiceTab[] = ['make', 'raw', 'logistic', 'io'];
+/** Special: gear made in the factory (ammo, equipment, power shards), kept apart from the parts. */
+export type ChoiceTab = 'make' | 'raw' | 'logistic' | 'io' | 'special';
+export const CHOICE_TABS: ChoiceTab[] = ['make', 'raw', 'logistic', 'io', 'special'];
 
 /** A belt end waiting for something: the side of the new card it goes on, and what it carries. */
 export interface Want {
@@ -102,7 +103,7 @@ export function choicesFor(want: Want | undefined, tier: number, rules: ChoiceRu
     if (port === -1) continue;
     recipes.push({
       key: `r:${r.id}`,
-      tab: 'make',
+      tab: r.outputs.some((o) => SPECIAL_ITEMS.has(o.item)) ? 'special' : 'make',
       init: { k: 'machine', recipe: r.id, auto: true, x: 0, y: 0 },
       ...(port !== undefined ? { port } : {}),
       tier: recipeTier(r),
@@ -179,18 +180,25 @@ export function choiceWords(c: Choice): string[] {
 }
 
 /**
- * Where the new card goes: with a waiting belt, its end on the spot the belt was let go (to the right of an output,
- * to the left of an input); otherwise centred on the spot. Then off any card already there.
+ * Where the new card goes: with a waiting belt, its end on the spot the belt was let go (after an output, before an
+ * input, the way the floor runs); otherwise centred on the spot. Then off any card already there.
  */
 export function placeChoice(m: Model, c: Choice, at: { x: number; y: number }, want?: Want): MNode {
+  const dir = dirOf(m);
   const probe = { ...c.init, id: '' } as MNode;
-  const { w, h } = cardSize(probe);
+  const { w, h } = cardSize(probe, dir);
   let x = at.x - w / 2;
   let y = at.y - h / 2;
   if (want && c.port !== undefined) {
-    const ends = want.side === 'in' ? portsOf(probe).ins : portsOf(probe).outs;
-    x = want.side === 'in' ? at.x + 20 : at.x - w - 20;
-    y = at.y - portY(h, c.port, ends.length);
+    const end = endSpot(probe, want.side, c.port, dir);
+    const after = want.side === 'in';
+    if (dir === 'TB') {
+      x = at.x - end.x;
+      y = after ? at.y + 20 : at.y - h - 20;
+    } else {
+      x = after ? at.x + 20 : at.x - w - 20;
+      y = at.y - end.y;
+    }
   }
-  return { ...probe, ...freeSpot(m.nodes, { x, y, w, h }) };
+  return { ...probe, ...freeSpot(m.nodes, { x, y, w, h }, dir) };
 }

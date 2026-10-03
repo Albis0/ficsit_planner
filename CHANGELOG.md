@@ -2,6 +2,36 @@
 
 All notable changes to FICSIT Planner. Dates are when the version was finished.
 
+## 0.13.5 — 2026-10-03
+
+### Fixed
+
+- **A converted Manual floor didn't follow a lower target.** Set from 30 to 5 Reinforced Iron Plates a minute, its
+  machines kept their count and ran at 16.67%, and its belts stayed Mk.3. Machines on a converted floor now size
+  themselves to what comes in (fewer of them at the same clock) and its belts take the slowest Mk that carries
+  their line. A miner held back says the clock it runs at. Floors converted before keep their counts; Rebuild
+  makes them afresh.
+- **Rebuild went from the toolbar while the numbers were hidden.** It stays, and builds for what the floor puts out.
+- **A double click to tick a card built opened its panel too.** One click still opens it, a moment later; a double
+  click only ticks it.
+- **The strip for laying a belt by clicks or taps sat under the toolbar.** It's low over the floor now, above the
+  buttons along the bottom, with what the belt carries.
+
+### Added
+
+- **Left to right or top to bottom on the Manual floor**: the same → ↓ switch as on the Auto floor, by Fit to
+  screen. Turned the other way, the floor is laid out afresh that way, cards taking in on their tops and putting
+  out at their bottoms; one undo turns it back. A factory switched to Manual starts the way its Auto floor ran.
+- **A Special tab in the build menu** for what isn't a factory part: Nobelisks, rebar, rifle ammo, fireworks, the
+  Portable Miner and power shards. Add product lists them last, under a heading of their own.
+- **The app's own tips**: resting on a button shows its name in a dark box under it, with its key where it has one
+  (Undo, Ctrl+Z), in place of the browser's plain tip. None on a touch screen.
+
+### Changed
+
+- **Open outputs** is a caption beside its Left over | Fill up switch, not a part of it.
+- The build menu's tabs fade at the right edge on a phone while there are more to scroll to.
+
 ## 0.13.4 — 2026-10-03
 
 ### Fixed

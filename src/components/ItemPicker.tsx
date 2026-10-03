@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import type { Item } from '../lib/data';
+import { type Item, SPECIAL_ITEMS } from '../lib/data';
 import { useT } from '../lib/i18n';
 import { searchKey } from '../lib/text';
 import { Icon } from './Icon';
@@ -27,15 +27,17 @@ export function ItemPicker({ items, label, onPick, exclude = [] }: Props) {
     return items
       .filter((i) => !skip.has(i.id))
       .filter((i) => !f || searchKey(name(i)).includes(f))
-      .sort((a, b) => name(a).localeCompare(name(b)));
+      .sort((a, b) => Number(SPECIAL_ITEMS.has(a.id)) - Number(SPECIAL_ITEMS.has(b.id)) || name(a).localeCompare(name(b)));
   }, [q, items, exclude, name]);
+  // Gear (ammo, equipment, power shards) comes last, under a heading of its own.
+  const firstSpecial = matches.findIndex((i) => SPECIAL_ITEMS.has(i.id));
 
   useEffect(() => {
     if (open) input.current?.focus();
   }, [open]);
 
   useEffect(() => {
-    list.current?.children[cursor]?.scrollIntoView({ block: 'nearest' });
+    list.current?.querySelectorAll('[role=option]')[cursor]?.scrollIntoView({ block: 'nearest' });
   }, [cursor]);
 
   useEffect(() => {
@@ -98,7 +100,12 @@ export function ItemPicker({ items, label, onPick, exclude = [] }: Props) {
       {/* biome-ignore lint/a11y/noNoninteractiveElementToInteractiveRole: listbox of the combobox above */}
       <ul className="picker-list" id="picker-list" role="listbox" ref={list}>
         {matches.length === 0 && <li className="picker-empty">{t('noResults')}</li>}
-        {matches.map((i, k) => (
+        {matches.map((i, k) => [
+          k === firstSpecial && (
+            <li key="special" className="picker-heading" role="presentation">
+              {t('choose_special')}
+            </li>
+          ),
           // biome-ignore lint/a11y/useFocusableInteractive: options are reached through aria-activedescendant, not focus.
           <li
             key={i.id}
@@ -115,8 +122,8 @@ export function ItemPicker({ items, label, onPick, exclude = [] }: Props) {
           >
             <Icon id={i.id} size={38} />
             {name(i)}
-          </li>
-        ))}
+          </li>,
+        ])}
       </ul>
     </div>
   );

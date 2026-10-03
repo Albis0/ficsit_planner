@@ -24,7 +24,7 @@ import type { CalcResult } from '../../lib/model/calc/result';
 import { builtTransport, compile } from '../../lib/model/calc/compile';
 import { openCards, openEnds, ruleFlags } from '../../lib/model/checks';
 import { type Choice, placeChoice, type Want, wantAt } from '../../lib/model/choices';
-import { cardSize, GRID } from '../../lib/model/layout';
+import { cardSize, dirOf, GRID } from '../../lib/model/layout';
 import { addNode, canConnect, connect, moveNodes, removeLinks, removeNodes, updateNode } from '../../lib/model/ops';
 import { portsOf } from '../../lib/model/ports';
 import { type Model, isPart } from '../../lib/model/types';
@@ -33,7 +33,8 @@ import { useStore } from '../../store';
 import { openingViewport } from '../GraphView';
 import { type BeltData, BeltLink, PickLink } from './BeltLink';
 import { Chooser } from './Chooser';
-import { CalcNodes, CardFlags, EditCard, type PartData, PartNode } from './PartNode';
+import { FloorStrip } from './FloorStrip';
+import { CalcNodes, CardFlags, EditCard, FloorDir, type PartData, PartNode } from './PartNode';
 
 /**
  * Where a hand-built model lives and how it changes. The factory tab is one host today; the editor knows nothing else
@@ -77,6 +78,8 @@ const SETTLE = 3000;
 
 /** How long a finger stays still on the empty floor before the build menu opens. */
 const PRESS = 500;
+/** How long a click waits for a second one before the card's panel opens. */
+const DOUBLE = 250;
 
 /** The chooser's size, for keeping it inside the floor. */
 const CHOOSER = { w: 440, h: 520 };
@@ -161,7 +164,7 @@ interface Choosing {
 const clickStartSelector = (s: { connectionClickStartHandle: { nodeId: string; id?: string | null; type: string } | null }) =>
   s.connectionClickStartHandle;
 
-function Canvas({ host, calc }: { host: ModelHost; calc?: CalcResult }) {
+function Canvas({ host, calc, onArrange }: { host: ModelHost; calc?: CalcResult; onArrange?: (m: Model) => void }) {
   const { t } = useT();
   const tier = useStore((s) => s.tier);
   const inspect = useStore((s) => s.inspect);
@@ -173,7 +176,17 @@ function Canvas({ host, calc }: { host: ModelHost; calc?: CalcResult }) {
   const flowStore = useStoreApi();
   const clickStart = useFlowStore(clickStartSelector);
   const { model } = host;
+  const dir = dirOf(model);
+  // What the belt being laid by taps carries, when its end says.
+  const clickItem = useMemo(() => {
+    const n = clickStart && model.nodes.find((x) => x.id === clickStart.nodeId);
+    if (!n || !clickStart) return undefined;
+    const p = portsOf(n);
+    return (clickStart.type === 'source' ? p.outs : p.ins)[Number(clickStart.id?.slice(1))]?.item;
+  }, [clickStart, model]);
   const [choosing, setChoosing] = useState<Choosing>();
+  const opening = useRef<number>(undefined);
+  useEffect(() => () => clearTimeout(opening.current), []);
 
   // Cards as React Flow draws them. Kept here so a drag moves the card at once; the model hears of it when it's let go.
   const toNodes = useCallback(
@@ -231,9 +244,10 @@ function Canvas({ host, calc }: { host: ModelHost; calc?: CalcResult }) {
           item: a.items[0] ?? a.from.ports.outs[a.link.ap]?.item ?? a.to.ports.ins[a.link.bp]?.item,
           transport: builtTransport(a.medium, a.link, tier, calc?.links[a.link.id]?.rate),
           calc: calc?.links[a.link.id],
+          down: dir === 'TB',
         } satisfies BeltData,
       })),
-    [net, calc, picked, inspect, tier],
+    [net, calc, picked, inspect, tier, dir],
   );
 
   // On a touch screen a card moves only once it's picked, so a finger on any other card pans the floor.
@@ -428,19 +442,21 @@ function Canvas({ host, calc }: { host: ModelHost; calc?: CalcResult }) {
   const settling = useRef<{ until: number; all: boolean }>(undefined);
   const latest = useRef(nodes);
   latest.current = nodes;
+  const latestDir = useRef(dir);
+  latestDir.current = dir;
   const openCamera = useCallback(
     (all: boolean) => {
       const box = document.querySelector('.floor-view')?.getBoundingClientRect();
       if (!box) return;
       const sized = latest.current.map((n) => {
-        const { w, h } = cardSize((n.data as PartData).node);
+        const { w, h } = cardSize((n.data as PartData).node, latestDir.current);
         return { ...n, width: w, height: h };
       });
       const top = topRoom();
       if (all) return void flow.setViewport(fitted(sized, box.width, box.height, top));
       // Below the toolbar along the top, above the buttons along the bottom.
       const h = box.height - BAR - top;
-      const v = openingViewport(sized, box.width, h, 'LR');
+      const v = openingViewport(sized, box.width, h, latestDir.current);
       const d = densest(sized, v, box.width, h);
       flow.setViewport({ ...d, y: d.y + top });
     },
@@ -513,7 +529,7 @@ function Canvas({ host, calc }: { host: ModelHost; calc?: CalcResult }) {
     const id = open[openAt.current++ % open.length];
     const n = model.nodes.find((x) => x.id === id);
     if (!n) return;
-    const { w, h } = cardSize(n);
+    const { w, h } = cardSize(n, dir);
     flow.setCenter(n.x + w / 2, n.y + h / 2, { zoom: Math.max(flow.getZoom(), 0.8), duration: 300 });
     setPicked(new Set());
     set({ inspect: id });
@@ -531,154 +547,194 @@ function Canvas({ host, calc }: { host: ModelHost; calc?: CalcResult }) {
   return (
     <CalcNodes.Provider value={calc?.nodes}>
       <CardFlags.Provider value={flags}>
-        <EditCard.Provider value={editCard}>
-          <PickLink.Provider value={pickLink}>
-            <ReactFlow
-              nodes={shown}
-              edges={edges}
-              nodeTypes={nodeTypes}
-              edgeTypes={edgeTypes}
-              onNodesChange={onNodesChange}
-              onNodeDragStop={(_, __, dragged) => host.edit((m) => moveNodes(m, new Map(dragged.map((n) => [n.id, n.position]))))}
-              onConnect={onConnect}
-              onConnectEnd={onConnectEnd}
-              isValidConnection={isValid}
-              ref={flowEl}
-              onDoubleClick={(e) => {
-                // A double click on the empty floor puts something down there, when the settings say so; a right click
-                // otherwise. Never both, so the one that isn't for adding stays free.
-                if (addWith === 'double' && (e.target as HTMLElement).classList.contains('react-flow__pane'))
-                  choose({ x: e.clientX, y: e.clientY });
-              }}
-              onPaneContextMenu={(e) => {
-                e.preventDefault();
-                // A held finger is handled above; a phone sends this too.
-                if (coarse) return;
-                if (addWith === 'right') choose({ x: e.clientX, y: e.clientY });
-              }}
-              connectOnClick
-              nodesDraggable
-              elementsSelectable
-              selectNodesOnDrag={false}
-              deleteKeyCode={null}
-              multiSelectionKeyCode={['Control', 'Meta']}
-              selectionKeyCode="Shift"
-              selectionMode={SelectionMode.Partial}
-              minZoom={MIN_ZOOM}
-              maxZoom={2}
-              snapToGrid
-              snapGrid={[GRID, GRID]}
-              proOptions={{ hideAttribution: true }}
-              defaultViewport={cameras.get(host.key)}
-              onInit={() => {
-                if (cameras.has(host.key) || model.nodes.length === 0) return;
-                const all = showAll.delete(host.key);
-                settling.current = { until: performance.now() + SETTLE, all };
-                openCamera(all);
-              }}
-              onMoveStart={(e) => {
-                // Moved by the player: the camera is theirs from here on.
-                if (e) settling.current = undefined;
-              }}
-              onMoveEnd={(_, v) => cameras.set(host.key, v)}
-              onNodeClick={(e, n) => {
-                // A tap on an end lays a belt; it doesn't open the card.
-                if ((e.target as HTMLElement).closest('.react-flow__handle')) return;
-                setPicked(new Set());
-                set({ inspect: n.id });
-              }}
-              onNodeDoubleClick={(e, n) => {
-                // A double click ticks a card built in the game, or unticks it.
-                if ((e.target as HTMLElement).closest('.react-flow__handle, button')) return;
-                const was = model.nodes.find((x) => x.id === n.id);
-                if (was) host.edit((m) => updateNode(m, n.id, { done: was.done ? undefined : true }));
-              }}
-              onEdgeClick={(_, e) => pickLink(e.id)}
-              onPaneClick={(e) => {
-                // Half way through laying a belt by taps: the floor tapped is where the next card goes.
-                const start = flowStore.getState().connectionClickStartHandle;
-                if (start) {
-                  flowStore.setState({ connectionClickStartHandle: null });
-                  const port = Number(start.id?.slice(1));
-                  if (Number.isInteger(port)) {
-                    choose({ x: e.clientX, y: e.clientY }, wantAt(model, tier, start.nodeId, start.type === 'source' ? 'out' : 'in', port));
-                    return;
+        <FloorDir.Provider value={dir}>
+          <EditCard.Provider value={editCard}>
+            <PickLink.Provider value={pickLink}>
+              <ReactFlow
+                nodes={shown}
+                edges={edges}
+                nodeTypes={nodeTypes}
+                edgeTypes={edgeTypes}
+                onNodesChange={onNodesChange}
+                onNodeDragStop={(_, __, dragged) => host.edit((m) => moveNodes(m, new Map(dragged.map((n) => [n.id, n.position]))))}
+                onConnect={onConnect}
+                onConnectEnd={onConnectEnd}
+                isValidConnection={isValid}
+                ref={flowEl}
+                onDoubleClick={(e) => {
+                  // A double click on the empty floor puts something down there, when the settings say so; a right click
+                  // otherwise. Never both, so the one that isn't for adding stays free.
+                  if (addWith === 'double' && (e.target as HTMLElement).classList.contains('react-flow__pane'))
+                    choose({ x: e.clientX, y: e.clientY });
+                }}
+                onPaneContextMenu={(e) => {
+                  e.preventDefault();
+                  // A held finger is handled above; a phone sends this too.
+                  if (coarse) return;
+                  if (addWith === 'right') choose({ x: e.clientX, y: e.clientY });
+                }}
+                connectOnClick
+                nodesDraggable
+                elementsSelectable
+                selectNodesOnDrag={false}
+                deleteKeyCode={null}
+                multiSelectionKeyCode={['Control', 'Meta']}
+                selectionKeyCode="Shift"
+                selectionMode={SelectionMode.Partial}
+                minZoom={MIN_ZOOM}
+                maxZoom={2}
+                snapToGrid
+                snapGrid={[GRID, GRID]}
+                proOptions={{ hideAttribution: true }}
+                defaultViewport={cameras.get(host.key)}
+                onInit={() => {
+                  if (cameras.has(host.key) || model.nodes.length === 0) return;
+                  const all = showAll.delete(host.key);
+                  settling.current = { until: performance.now() + SETTLE, all };
+                  openCamera(all);
+                }}
+                onMoveStart={(e) => {
+                  // Moved by the player: the camera is theirs from here on.
+                  if (e) settling.current = undefined;
+                }}
+                onMoveEnd={(_, v) => cameras.set(host.key, v)}
+                onNodeClick={(e, n) => {
+                  // A tap on an end lays a belt; it doesn't open the card.
+                  if ((e.target as HTMLElement).closest('.react-flow__handle')) return;
+                  setPicked(new Set());
+                  // The card shows picked at once; its panel waits out a double click, which ticks it built instead.
+                  clearTimeout(opening.current);
+                  if (e.detail > 1) return;
+                  opening.current = window.setTimeout(() => set({ inspect: n.id }), DOUBLE);
+                }}
+                onNodeDoubleClick={(e, n) => {
+                  clearTimeout(opening.current);
+                  // A double click ticks a card built in the game, or unticks it.
+                  if ((e.target as HTMLElement).closest('.react-flow__handle, button')) return;
+                  const was = model.nodes.find((x) => x.id === n.id);
+                  if (was) host.edit((m) => updateNode(m, n.id, { done: was.done ? undefined : true }));
+                }}
+                onEdgeClick={(_, e) => pickLink(e.id)}
+                onPaneClick={(e) => {
+                  // Half way through laying a belt by taps: the floor tapped is where the next card goes.
+                  const start = flowStore.getState().connectionClickStartHandle;
+                  if (start) {
+                    flowStore.setState({ connectionClickStartHandle: null });
+                    const port = Number(start.id?.slice(1));
+                    if (Number.isInteger(port)) {
+                      choose(
+                        { x: e.clientX, y: e.clientY },
+                        wantAt(model, tier, start.nodeId, start.type === 'source' ? 'out' : 'in', port),
+                      );
+                      return;
+                    }
                   }
-                }
-                setPicked(new Set());
-                set({ inspect: undefined });
-              }}
-              zoomOnDoubleClick={false}
-            >
-              {gridLines && <Background id="minor" variant={BackgroundVariant.Lines} gap={GRID} lineWidth={1} color="#2f2f2f" />}
-              {gridLines && <Background id="major" variant={BackgroundVariant.Lines} gap={GRID * 4} lineWidth={1} color="#3b3b3b" />}
-              {parts === 0 && !choosing && (
-                <div className="floor-empty">
-                  <button type="button" className="primary-button" onClick={() => choose(undefined)}>
-                    {t('addFirst')}
-                  </button>
-                </div>
-              )}
-              {clickStart && (
-                <div className="connect-strip" role="status">
-                  <span>{clickStart.type === 'source' ? t('tapInput') : t('tapOutput')}</span>
-                  <button type="button" className="text-button" onClick={() => flowStore.setState({ connectionClickStartHandle: null })}>
-                    {t('cancel')}
-                  </button>
-                </div>
-              )}
-              <div className="floor-controls">
-                {open.length > 0 && (
+                  clearTimeout(opening.current);
+                  setPicked(new Set());
+                  set({ inspect: undefined });
+                }}
+                zoomOnDoubleClick={false}
+              >
+                {gridLines && <Background id="minor" variant={BackgroundVariant.Lines} gap={GRID} lineWidth={1} color="#2f2f2f" />}
+                {gridLines && <Background id="major" variant={BackgroundVariant.Lines} gap={GRID * 4} lineWidth={1} color="#3b3b3b" />}
+                {parts === 0 && !choosing && (
+                  <div className="floor-empty">
+                    <button type="button" className="primary-button" onClick={() => choose(undefined)}>
+                      {t('addFirst')}
+                    </button>
+                  </div>
+                )}
+                {clickStart && (
+                  <FloorStrip
+                    item={clickItem}
+                    actions={
+                      <button
+                        type="button"
+                        className="text-button"
+                        onClick={() => flowStore.setState({ connectionClickStartHandle: null })}
+                      >
+                        {t('cancel')}
+                      </button>
+                    }
+                  >
+                    {clickStart.type === 'source' ? t('tapInput') : t('tapOutput')}
+                  </FloorStrip>
+                )}
+                <div className="floor-controls">
+                  {onArrange && model.nodes.some(isPart) && (
+                    <div className="segmented floor-dir" role="radiogroup" aria-label={t('direction')}>
+                      {(['LR', 'TB'] as const).map((d) => (
+                        <button
+                          key={d}
+                          type="button"
+                          role="radio"
+                          aria-checked={dir === d}
+                          title={t(d === 'LR' ? 'leftToRight' : 'topToBottom')}
+                          // Turned the other way, the floor is laid out afresh that way; one undo turns it back.
+                          onClick={() => {
+                            if (d === dir) return;
+                            const { dir: _, ...rest } = model;
+                            onArrange(d === 'TB' ? { ...rest, dir: 'TB' } : rest);
+                          }}
+                        >
+                          <span aria-hidden>{d === 'LR' ? '→' : '↓'}</span>
+                          <span className="sr-only">{t(d === 'LR' ? 'leftToRight' : 'topToBottom')}</span>
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                  {open.length > 0 && (
+                    <button
+                      type="button"
+                      className="floor-button open-ends"
+                      title={t('openEndsHint')}
+                      aria-label={t('openEnds', { n: open.length })}
+                      onClick={nextOpen}
+                    >
+                      <span className="fit-label">{t('openEnds', { n: open.length })}</span>
+                      <span className="fit-icon" aria-hidden>
+                        ⚠︎ {open.length}
+                      </span>
+                    </button>
+                  )}
                   <button
                     type="button"
-                    className="floor-button open-ends"
-                    title={t('openEndsHint')}
-                    aria-label={t('openEnds', { n: open.length })}
-                    onClick={nextOpen}
+                    className="floor-button"
+                    title={t('fit')}
+                    onClick={() =>
+                      flow.fitView({
+                        padding: { top: `${topRoom()}px`, left: '24px', right: '24px', bottom: `${BAR}px` },
+                        maxZoom: 1,
+                        duration: 250,
+                      })
+                    }
                   >
-                    <span className="fit-label">{t('openEnds', { n: open.length })}</span>
                     <span className="fit-icon" aria-hidden>
-                      ⚠︎ {open.length}
+                      ⤢
                     </span>
+                    <span className="fit-label">{t('fit')}</span>
                   </button>
-                )}
-                <button
-                  type="button"
-                  className="floor-button"
-                  title={t('fit')}
-                  onClick={() =>
-                    flow.fitView({
-                      padding: { top: `${topRoom()}px`, left: '24px', right: '24px', bottom: `${BAR}px` },
-                      maxZoom: 1,
-                      duration: 250,
-                    })
-                  }
-                >
-                  <span className="fit-icon" aria-hidden>
-                    ⤢
-                  </span>
-                  <span className="fit-label">{t('fit')}</span>
-                </button>
-              </div>
-              {choosing &&
-                createPortal(
-                  <Chooser want={choosing.want} tier={tier} rules={host} at={choosing.at} onPick={onPick} onClose={closeChooser} />,
-                  choosing.over,
-                )}
-            </ReactFlow>
-          </PickLink.Provider>
-        </EditCard.Provider>
+                </div>
+                {choosing &&
+                  createPortal(
+                    <Chooser want={choosing.want} tier={tier} rules={host} at={choosing.at} onPick={onPick} onClose={closeChooser} />,
+                    choosing.over,
+                  )}
+              </ReactFlow>
+            </PickLink.Provider>
+          </EditCard.Provider>
+        </FloorDir.Provider>
       </CardFlags.Provider>
     </CalcNodes.Provider>
   );
 }
 
 /** The hand-built floor: cards where the player put them, belts they laid, the numbers on both. */
-export function ModelEditor({ host, calc }: { host: ModelHost; calc?: CalcResult }) {
+export function ModelEditor({ host, calc, onArrange }: { host: ModelHost; calc?: CalcResult; onArrange?: (m: Model) => void }) {
   return (
     <ReactFlowProvider key={host.key}>
       {/* With the numbers off, cards and belts show none: not even zeros. */}
-      <Canvas host={host} calc={calc?.mode === 'off' ? undefined : calc} />
+      <Canvas host={host} calc={calc?.mode === 'off' ? undefined : calc} onArrange={onArrange} />
     </ReactFlowProvider>
   );
 }
