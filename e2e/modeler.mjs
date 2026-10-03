@@ -144,6 +144,27 @@ const onTab = () =>
       .map((b) => b.textContent);
   });
 
+/** Belts with a little kink: their two ends, as drawn, neither in line nor a clear step apart. */
+const kinked = (links) =>
+  page.evaluate((links) => {
+    const mid = (node, handle) => {
+      const h = document.querySelector(`.react-flow__handle[data-nodeid="${node}"][data-handleid="${handle}"]`);
+      if (!h) return undefined;
+      const r = h.getBoundingClientRect();
+      return r.left + r.width / 2;
+    };
+    const zoom = Number(/scale\(([\d.]+)\)/.exec(document.querySelector('.react-flow__viewport').style.transform)?.[1] ?? 1);
+    const bad = [];
+    for (const l of links) {
+      const x = mid(l.a, `o${l.ap}`);
+      const y = mid(l.b, `i${l.bp}`);
+      if (x === undefined || y === undefined) continue;
+      const d = Math.abs(x - y) / zoom;
+      if (d > 0.5 && d < 12) bad.push(`${l.id} ${d.toFixed(1)}`);
+    }
+    return bad;
+  }, links);
+
 /** Two boxes on screen drawn over each other. */
 const clash = (a, b) => a && b && a.x < b.x + b.width && b.x < a.x + a.width && a.y < b.y + b.height && b.y < a.y + a.height;
 
@@ -1402,6 +1423,8 @@ const clash = (a, b) => a && b && a.x < b.x + b.width && b.x < a.x + a.width && 
     }),
   );
   ok('inputs along the cards’ tops', tops);
+  const kinks = await kinked(m.links);
+  ok('ends in line, belts without kinks', kinks.length === 0, kinks.slice(0, 5).join(', '));
   const goDown = m.links.filter((l) => {
     const a = m.nodes.find((n) => n.id === l.a);
     const b = m.nodes.find((n) => n.id === l.b);
@@ -1427,6 +1450,8 @@ const clash = (a, b) => a && b && a.x < b.x + b.width && b.x < a.x + a.width && 
   await settle();
   m = await model();
   ok('converted from a floor running down, it runs down', m.dir === 'TB' && (await overlaps()).length === 0);
+  const motorKinks = await kinked(m.links);
+  ok('and its belts have no kinks', motorKinks.length === 0, motorKinks.slice(0, 5).join(', '));
   await shot('q-motor-down');
   await ctx.close();
 }

@@ -8046,35 +8046,168 @@ a.codex-flow:hover {
   font-size: 15px;
 }
 
-/* Settings › Updates: a few plain lines per version. */
+/* Settings › Updates: the latest version in full, under New, Improved and Fixed; earlier ones a line each. */
 .updates {
   display: flex;
   flex-direction: column;
-  gap: 22px;
+  gap: 26px;
 }
 
-.update-title {
-  margin: 0 0 6px;
-  font: 700 19px var(--font-display);
-  letter-spacing: 0.04em;
+.update.latest {
+  padding: 18px 22px 20px;
+  background: color-mix(in srgb, var(--panel-2) 70%, transparent);
+  border: 1px solid var(--line);
+  border-left: 3px solid var(--ficsit);
+  border-radius: var(--radius);
 }
 
-.update-title time {
-  margin-left: 10px;
+.update-head {
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+}
+
+.update-version {
+  font: 700 28px / 1 var(--font-display);
+  letter-spacing: 0.02em;
+}
+
+.update-head time {
   color: var(--faint);
-  font: 500 15px var(--font-body);
-  letter-spacing: 0;
+  font: 500 14px var(--font-body);
+}
+
+.update-group {
+  --k: var(--faint);
+  margin-top: 16px;
+}
+
+.update-group.added {
+  --k: var(--alt);
+}
+
+.update-group.fixed {
+  --k: var(--ficsit);
+}
+
+.update-kind {
+  margin: 0 0 8px;
+  color: var(--k);
+  font: 700 12px var(--font-display);
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
 }
 
 .update-notes {
   margin: 0;
-  padding-left: 0;
+  padding: 0;
   list-style: none;
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 7px;
   color: var(--dim);
   font-size: 15px;
+  line-height: 1.45;
+}
+
+.update-notes li {
+  position: relative;
+  padding-left: 18px;
+}
+
+/* A small square in the kind's colour, like the game's list markers. */
+.update-notes li::before {
+  content: '';
+  position: absolute;
+  left: 2px;
+  top: 0.58em;
+  width: 6px;
+  height: 6px;
+  background: var(--k);
+}
+
+.update-name {
+  margin: 8px 0 0;
+  font: 700 19px var(--font-display);
+  color: var(--paper);
+}
+
+.update-credit {
+  margin-left: 8px;
+  color: var(--faint);
+  font-size: 13px;
+  white-space: nowrap;
+}
+
+.update-earlier-title {
+  margin: 0 0 4px;
+  color: var(--faint);
+  font: 700 13px var(--font-display);
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.update-earlier details {
+  border-top: 1px solid var(--line);
+}
+
+.update-earlier details:last-child {
+  border-bottom: 1px solid var(--line);
+}
+
+.update-earlier summary {
+  padding: 12px 4px;
+  cursor: pointer;
+  list-style: none;
+}
+
+.update-earlier summary::-webkit-details-marker {
+  display: none;
+}
+
+.update-earlier summary .update-version {
+  font-size: 19px;
+}
+
+.update-count {
+  margin-left: auto;
+  color: var(--faint);
+  font-size: 13px;
+}
+
+/* A chevron that turns when the version opens. */
+.update-earlier summary::after {
+  content: '';
+  width: 8px;
+  height: 8px;
+  margin: 0 4px 2px 6px;
+  border: solid var(--faint);
+  border-width: 0 2px 2px 0;
+  rotate: 45deg;
+  align-self: center;
+  transition: rotate 0.15s;
+}
+
+.update-earlier details[open] summary::after {
+  rotate: 225deg;
+}
+
+.update-earlier summary:hover .update-version,
+.update-earlier summary:focus-visible .update-version {
+  color: var(--ficsit);
+}
+
+.update-earlier details > .update-group {
+  margin-top: 12px;
+  padding: 0 4px;
+}
+
+.update-earlier summary + .update-group {
+  margin-top: 2px;
+}
+
+.update-earlier details > .update-group:last-child {
+  margin-bottom: 16px;
 }
 
 .update-made {
@@ -9538,37 +9671,6 @@ a.codex-flow:hover {
   color: var(--ficsit);
 }
 
-.update-notes li {
-  display: flex;
-  align-items: baseline;
-}
-
-/* Settings › Updates: what kind of change each line is. */
-.update-tag {
-  display: inline-block;
-  min-width: 76px;
-  margin-right: 10px;
-  padding: 1px 6px;
-  border: 1px solid currentColor;
-  border-radius: var(--radius);
-  font: 700 12px / 1.4 var(--font-display);
-  letter-spacing: 0.06em;
-  text-align: center;
-  text-transform: uppercase;
-}
-
-.update-tag.added {
-  color: var(--alt);
-}
-
-.update-tag.fixed {
-  color: var(--ficsit);
-}
-
-.update-tag.changed {
-  color: var(--faint);
-}
-
 /* ---------- Folding: the buttons and the folded strips ---------- */
 
 /* The totals' fold handle: a small metal tab hanging from the middle of the strip, over the top of the floor. */
@@ -9782,6 +9884,7 @@ a.codex-flow:hover {
 
 .endpoint-node.manual {
   position: relative;
+  --edge-l: 5px;
 }
 
 /* Goes against the side panel (a recipe turned off, above the tier, past a resource limit): a tag over the card. */

@@ -17,7 +17,7 @@ import {
 import { BELT_COLORS } from '../lib/belts';
 import { exportAll, importFile, wipeLocal } from '../lib/backup';
 import meta from '../data/meta.json';
-import { LATEST_UPDATE, UPDATES } from '../locales/updates.en';
+import { LATEST_UPDATE, UPDATES, type UpdateKind, type UpdateNote } from '../locales/updates.en';
 import { useStore } from '../store';
 import { RateInput } from './RateInput';
 import { Dialog } from './Dialog';
@@ -616,30 +616,74 @@ function HelpSection() {
   );
 }
 
-/** A few plain lines per version, newest first. Opening it clears the dot on the gear. */
+const KINDS: UpdateKind[] = ['added', 'changed', 'fixed'];
+/** "… Thanks to u/someone." at the end of a note: shown apart, quieter. */
+const CREDIT = /\s*Thanks to (.+?)\.?$/;
+const DAY = new Intl.DateTimeFormat('en', { day: 'numeric', month: 'short', year: 'numeric' });
+const day = (iso: string) => DAY.format(new Date(`${iso}T12:00:00`));
+
+/** One version's notes, under New, Improved and Fixed. */
+function UpdateNotes({ notes }: { notes: UpdateNote[] }) {
+  const { t } = useT();
+  return (
+    <>
+      {KINDS.map((k) => {
+        const list = notes.filter((n) => n[0] === k);
+        if (!list.length) return null;
+        return (
+          <div key={k} className={`update-group ${k}`}>
+            <h5 className="update-kind">{t(`update_${k}`)}</h5>
+            <ul className="update-notes">
+              {list.map(([, text]) => {
+                const credit = CREDIT.exec(text);
+                return (
+                  <li key={text}>
+                    {credit ? text.slice(0, credit.index) : text}
+                    {credit && <span className="update-credit">{t('thanksTo', { who: credit[1] })}</span>}
+                  </li>
+                );
+              })}
+            </ul>
+          </div>
+        );
+      })}
+    </>
+  );
+}
+
+/** The latest version in full, earlier ones folded to a line each. Opening it clears the dot on the gear. */
 function UpdatesSection() {
   const { t } = useT();
   const set = useStore((s) => s.set);
   useEffect(() => {
     set({ seenUpdates: LATEST_UPDATE });
   }, [set]);
+  const [latest, ...earlier] = UPDATES;
   return (
     <div className="updates">
-      {UPDATES.map((u) => (
-        <section key={u.version} className="update">
-          <h4 className="update-title">
-            {u.version} <time dateTime={u.date}>{u.date}</time>
-          </h4>
-          <ul className="update-notes">
-            {u.notes.map(([kind, text]) => (
-              <li key={text}>
-                <span className={`update-tag ${kind}`}>{t(`update_${kind}`)}</span>
-                {text}
-              </li>
-            ))}
-          </ul>
-        </section>
-      ))}
+      <section className="update latest">
+        <header className="update-head">
+          <span className="update-version">{latest.version}</span>
+          <time dateTime={latest.date}>{day(latest.date)}</time>
+        </header>
+        {latest.title && <h4 className="update-name">{latest.title}</h4>}
+        <UpdateNotes notes={latest.notes} />
+      </section>
+      {earlier.length > 0 && (
+        <div className="update-earlier">
+          <h4 className="update-earlier-title">{t('earlierVersions')}</h4>
+          {earlier.map((u) => (
+            <details key={u.version} className="update">
+              <summary className="update-head">
+                <span className="update-version">{u.version}</span>
+                <time dateTime={u.date}>{day(u.date)}</time>
+                <span className="update-count">{u.notes.length === 1 ? t('oneChange') : t('changeCount', { n: u.notes.length })}</span>
+              </summary>
+              <UpdateNotes notes={u.notes} />
+            </details>
+          ))}
+        </div>
+      )}
       <p className="update-made">
         FICSIT Planner {LATEST_UPDATE} · {t('madeWith')}
       </p>

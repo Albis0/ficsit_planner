@@ -1,99 +1,38 @@
 /**
- * What changed, a few plain lines per version, newest first. Shown under Settings › Updates; the full
- * story of each version is in CHANGELOG.md.
+ * What changed, newest first, as players saw it: one entry per version that went live. Shown under Settings ›
+ * Updates; the full story of every version, previews included, is in CHANGELOG.md. A version may name what it's
+ * mostly about. Credits end a note as "Thanks to …".
  */
 export type UpdateKind = 'added' | 'fixed' | 'changed';
 
-export const UPDATES: { version: string; date: string; notes: [UpdateKind, string][] }[] = [
+export type UpdateNote = [UpdateKind, string];
+
+export const UPDATES: { version: string; date: string; title?: string; notes: UpdateNote[] }[] = [
   {
-    version: '0.13.5',
+    version: '0.13.6',
     date: '2026-10-03',
-    notes: [
-      [
-        'fixed',
-        'Manual floor: machines on a converted floor size themselves, so a lower target takes fewer of them, and its belts follow the line’s Mk.',
-      ],
-      ['fixed', 'Manual floor: Rebuild stays while the numbers are hidden; a double click ticks a card built without opening its panel.'],
-      ['added', 'Manual floor: left to right or top to bottom, with the same → ↓ switch as the Auto floor.'],
-      ['added', 'A Special tab in the build menu for Nobelisks, ammo, fireworks and power shards.'],
-      ['changed', 'Tips on hover in the app’s own style, with the key where a button has one.'],
-    ],
-  },
-  {
-    version: '0.13.4',
-    date: '2026-10-03',
-    notes: [
-      ['fixed', 'Manual floor: belts out of a splitter no longer cross each other after converting or Tidy up.'],
-      ['fixed', 'Manual floor: a new belt is the slowest Mk that carries its line, not the best one unlocked.'],
-      ['changed', 'Recipes turned off stay out of the factory side, the Auto machine panel included.'],
-      [
-        'changed',
-        'Manual floor: undo and redo are arrows, Tidy up and Rebuild icons, an eye shows or hides the numbers, Open outputs says Left over or Fill up.',
-      ],
-      ['changed', 'Manual floor: no Add button; right click the floor, or hold a finger on it. A double click on a card ticks it built.'],
-    ],
-  },
-  {
-    version: '0.13.3',
-    date: '2026-10-03',
-    notes: [
-      ['fixed', 'Manual floor: the build menu lists only the recipes turned on in Recipes.'],
-      ['changed', 'Manual floor: a new miner comes with the miner, purity and clock picked in Resources.'],
-      [
-        'changed',
-        'Manual floor: a card says when its recipe is off in Recipes, when it needs a higher tier, or when miners take more than the limit in Resources.',
-      ],
-    ],
-  },
-  {
-    version: '0.13.2',
-    date: '2026-10-03',
-    notes: [
-      [
-        'changed',
-        'What your tier can’t make is now hidden everywhere on the factory and power sides: products, recipes, miners, belts, plants. Settings › Interface › Show what your tier can’t make brings it back. Thanks to u/Suspicious_Fly_1838.',
-      ],
-      [
-        'changed',
-        'Manual floor: a machine you put down takes as many machines as what comes in keeps busy (Auto), so a miner → smelter → constructor line runs straight away. Type a count to set it yourself.',
-      ],
-      ['changed', 'Manual floor: an open output counts as left over and shows what comes out of it, instead of stopping the line.'],
-      ['changed', 'Manual floor: the side panel lists the floor’s own outputs and inputs, and Rebuild starts from them.'],
-      ['changed', 'Manual floor: cards, their ends and belts sit on the grid; Tidy up bends belts less.'],
-      ['added', 'A miner’s panel takes what it makes a minute.'],
-      ['changed', 'Built in the game is a box to tick; Fill to 100% always shows in a machine’s panel; Build by hand is a button.'],
-    ],
-  },
-  {
-    version: '0.13.1',
-    date: '2026-10-03',
+    title: 'Manual floor',
     notes: [
       [
         'added',
-        'Settings › Interface › Hide what your tier can’t make: products, buildings and generators above your tier leave the lists. Thanks to u/Suspicious_Fly_1838.',
+        'Switch any factory to Manual to place machines, draw belts and set counts yourself. It starts from the solved factory, already laid out.',
       ],
-      ['added', 'Fill to 100% on a machine: 7 × 95% becomes 6 × 100% + 1 × 65%, same output. Even out goes back.'],
-      ['added', 'Settings › Factory floor: add parts with a right click or a double click.'],
       [
-        'changed',
-        'Manual floor belts run straight with square turns, cards ordered so belts don’t cross, each label on its own belt; a new layout shows the whole floor.',
+        'added',
+        'Add a machine with a right click, by dropping a belt on empty floor, or by holding a finger on a touch screen. The build menu offers only what fits that belt.',
       ],
+      ['added', 'Lay a floor out left to right or top to bottom, tidy it up in one click, rebuild it for new targets, undo and redo.'],
+      [
+        'added',
+        'Machines size themselves to what comes in, and each belt takes the slowest Mk that carries its load, so a new target reshapes the whole line.',
+      ],
+      ['added', 'Cards say when their recipe is off, needs a higher tier, or mines past a limit. Double-click a card to mark it built.'],
+      ['added', 'Fill to 100%: 7 × 95% becomes 6 × 100% + 1 × 65% for the same output. Even out turns it back.'],
+      ['added', 'A Special tab in the build menu for ammo, equipment and Power Shards.'],
+      ['changed', 'What your tier can’t make is hidden everywhere; Settings › Interface brings it back. Thanks to u/Suspicious_Fly_1838.'],
+      ['changed', 'Recipes turned off stay out of every machine panel.'],
+      ['changed', 'Tooltips in the planner’s own style, with keyboard shortcuts.'],
       ['fixed', 'Closing Settings could crash the planner in the newest Chrome.'],
-    ],
-  },
-  {
-    version: '0.13.0',
-    date: '2026-10-02',
-    notes: [
-      [
-        'added',
-        'Manual floor: switch a factory to Manual to move machines, lay belts and set counts by hand, starting from the factory as worked out, laid out cleanly.',
-      ],
-      [
-        'added',
-        'Right-click the floor, press + Add, or let go of a belt on the floor to add a machine; a belt lists only what fits it and comes in already joined.',
-      ],
-      ['added', 'Build by hand from an empty floor, Tidy up, and a button that goes to each card still missing a belt.'],
     ],
   },
   {

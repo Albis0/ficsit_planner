@@ -173,7 +173,8 @@ function End({
       position={down ? (side === 'in' ? Position.Top : Position.Bottom) : side === 'in' ? Position.Left : Position.Right}
       id={`${side === 'in' ? 'i' : 'o'}${i}`}
       className={`port ${side} ${down ? 'down' : ''} ${wired ? 'wired' : open ? 'open' : 'free'} ${port.medium === 'pipe' ? 'pipe' : ''}`}
-      style={down ? { left: at.x } : { top: at.y }}
+      // Measured from inside the card's left edge, which is thicker on some cards: taken off so every end sits on its grid line.
+      style={down ? { left: `calc(${at.x}px - var(--edge-l, 1px))` } : { top: at.y }}
       title={item ? name(item) : undefined}
     >
       {item && <Icon id={item.id} size={18} />}

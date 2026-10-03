@@ -2,6 +2,18 @@
 
 All notable changes to FICSIT Planner. Dates are when the version was finished.
 
+## 0.13.6 — 2026-10-03
+
+### Fixed
+
+- **Belts on a floor running top to bottom had a small kink** where they left a miner or an input: those cards'
+  thicker left edge moved their ends off the grid line.
+
+### Changed
+
+- **Settings › Updates** shows the latest version in full, under New, Improved and Fixed, with each credit apart;
+  earlier versions fold to a line each. The previews from 0.13.0 on are one entry there.
+
 ## 0.13.5 — 2026-10-03
 
 ### Fixed
