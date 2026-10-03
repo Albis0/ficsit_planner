@@ -1,10 +1,11 @@
-import dagre from '@dagrejs/dagre';
-import { Position, type Edge, type Node, type NodeHandle } from '@xyflow/react';
+import { Position, type Edge, type Node } from '@xyflow/react';
 import { groupClocks } from './clocks';
 import { data, transportFor, type Transport } from './data';
 import { plantIdOf } from './power';
 import type { RecipeUse, SolveResult } from './solver';
 import { matchFlows, type Split, type SplitGroup, splitByDestination } from './split';
+import type { EdgeRouting, Point } from './routes';
+export type { Point } from './routes';
 
 /** Left to right or top to bottom. The layout picks whichever fits the screen, unless the player chose. */
 export type Direction = 'LR' | 'TB';
@@ -19,6 +20,8 @@ export interface MachineNodeData extends Record<string, unknown> {
   split?: Split;
   /** A card of its own for one of those groups: `use` is then just this group's machines. */
   part?: SplitGroup;
+  /** One per belt end, placed by the layout. */
+  ports?: Port[];
 }
 
 /** Who draws from the grid: a factory, the fuel chain itself, what the player typed in, or the output sent on. */
@@ -38,6 +41,8 @@ export interface PowerNodeData extends Record<string, unknown> {
   boost?: number;
   /** Grid: generation minus everything drawn; negative when the grid is short. */
   balance?: number;
+  /** One per belt end, placed by the layout. */
+  ports?: Port[];
 }
 
 /** A power line: generator to grid, grid to what it feeds. */
@@ -50,21 +55,19 @@ export interface EndpointNodeData extends Record<string, unknown> {
   kind: EndpointKind;
   item: string;
   rate: number;
-}
-
-export interface Point {
-  x: number;
-  y: number;
+  /** One per belt end, placed by the layout. */
+  ports?: Port[];
 }
 
 /** The belt's path from the layout: around machines, through a spot kept free for its label. */
 export interface Route {
-  /** Bends between the two machines; the label sits on the middle one. */
+  /** The whole path, from the output handle to the input handle. */
   points: Point[];
   label: Point;
   /** Where both machines were laid out. Once either is dragged, the belt falls back to a plain curve. */
   from: Point;
   to: Point;
+  routing: EdgeRouting;
 }
 
 export interface FlowEdgeData extends Record<string, unknown> {
@@ -76,26 +79,71 @@ export interface FlowEdgeData extends Record<string, unknown> {
   route?: Route;
 }
 
-const HANDLE = { width: 10, height: 18 };
+/** Where one belt meets a card: its own handle, `offset` along the side (from the top, or the left top to bottom). */
+export interface Port {
+  id: string;
+  type: 'source' | 'target';
+  offset: number;
+}
+
+/** Handle ids for a belt's two ends. */
+const ends = (id: string) => ({ sourceHandle: `${id}:out`, targetHandle: `${id}:in` });
+
+const HANDLE = { width: 8, height: 12 };
 
 /**
- * Handle positions spelled out up front. Without them React Flow assumes top/bottom handles for any
- * node it hasn't measured yet, and a belt can end up entering the output from above.
+ * The node's handles from its ports: inputs on the inflow side, outputs on the outflow side. Spelled out up front,
+ * since without them React Flow assumes top/bottom handles for any node it hasn't measured yet.
  */
-function handlesFor(size: { width: number; height: number }, sides: { target: boolean; source: boolean }, dir: Direction): NodeHandle[] {
-  const list: NodeHandle[] = [];
-  if (dir === 'TB') {
-    // Same handle turned on its side.
-    const x = size.width / 2 - HANDLE.height / 2;
-    const flat = { width: HANDLE.height, height: HANDLE.width };
-    if (sides.target) list.push({ type: 'target', position: Position.Top, x, y: -flat.height / 2, ...flat });
-    if (sides.source) list.push({ type: 'source', position: Position.Bottom, x, y: size.height - flat.height / 2, ...flat });
-    return list;
+export function setPorts(node: Node, ports: Port[], dir: Direction): void {
+  const width = node.width ?? 0;
+  const height = node.height ?? 0;
+  node.data = { ...node.data, ports };
+  node.handles = ports.map((p) => {
+    const input = p.type === 'target';
+    if (dir === 'TB') {
+      // Same handle turned on its side.
+      const flat = { width: HANDLE.height, height: HANDLE.width };
+      return {
+        id: p.id,
+        type: p.type,
+        position: input ? Position.Top : Position.Bottom,
+        x: p.offset - flat.width / 2,
+        y: input ? -flat.height / 2 : height - flat.height / 2,
+        ...flat,
+      };
+    }
+    return {
+      id: p.id,
+      type: p.type,
+      position: input ? Position.Left : Position.Right,
+      x: input ? -HANDLE.width / 2 : width - HANDLE.width / 2,
+      y: p.offset - HANDLE.height / 2,
+      ...HANDLE,
+    };
+  });
+}
+
+/** Ports spread evenly along each side in belt order, where nothing has placed them yet. */
+export function spreadPorts(nodes: Node[], edges: Edge[], dir: Direction): void {
+  for (const n of nodes) {
+    const side = dir === 'LR' ? (n.height ?? 0) : (n.width ?? 0);
+    const spread = (ids: string[], type: Port['type']) => ids.map((id, i) => ({ id, type, offset: (side * (i + 1)) / (ids.length + 1) }));
+    setPorts(
+      n,
+      [
+        ...spread(
+          edges.filter((e) => e.target === n.id).map((e) => e.targetHandle!),
+          'target',
+        ),
+        ...spread(
+          edges.filter((e) => e.source === n.id).map((e) => e.sourceHandle!),
+          'source',
+        ),
+      ],
+      dir,
+    );
   }
-  const y = size.height / 2 - HANDLE.height / 2;
-  if (sides.target) list.push({ type: 'target', position: Position.Left, x: -HANDLE.width / 2, y, ...HANDLE });
-  if (sides.source) list.push({ type: 'source', position: Position.Right, x: size.width - HANDLE.width / 2, y, ...HANDLE });
-  return list;
 }
 
 export const SIZE = {
@@ -113,11 +161,6 @@ export const cardExtra = (u: RecipeUse, split?: Split | SplitGroup) => runExtra(
 
 type Box = { width: number; height: number };
 
-const scaled = (size: Box, k: number) => ({
-  width: Math.round(size.width * k),
-  height: Math.round(size.height * k),
-});
-
 /**
  * A card's box on the floor: card size scales all of it, and text size makes room for the bigger
  * lettering (mostly height, since lines wrap). The CSS sizes the cards with the same formula.
@@ -128,42 +171,34 @@ export const cardBox = (size: Box, k: number, text: number): Box => ({
 });
 
 /**
- * Space kept for each belt label, so labels never sit on a machine. Dagre gives labels a rank of
- * their own, so ranksep is the gap on both sides of that label rank together.
+ * Space kept for each belt label, so labels never sit on a machine. ELK gives centred labels a layer of
+ * their own, so ranksep is the gap on both sides of that label layer together.
  */
-const LABEL = { width: 176, height: 50 };
-const SPACING = {
+export const LABEL = { width: 176, height: 50 };
+export const SPACING = {
   LR: { nodesep: 34, ranksep: 70 },
   TB: { nodesep: 30, ranksep: 70 },
 };
 
-export interface GraphOptions {
-  /** Fixed direction; without it both are tried against the screen and the better fit wins. */
-  dir?: Direction;
-  /** The floor the graph is shown on, for picking the direction. */
-  box?: { width: number; height: number };
+export interface BuildOptions {
   /** Card size from the settings; the stylesheet draws the cards at the same scale. */
   scale?: number;
   /** Belt label text size from the settings, for the room kept free for labels. */
   text?: number;
-  /** Room between machines, 1 = default. */
-  spacing?: number;
   /** Power grid: what it feeds, drawn after the grid node. */
   consumers?: Consumer[];
   /** A line whose output goes to several places: one card with a note, or a card per place. */
   splitLines?: 'one' | 'each';
 }
 
-/** Turns an LP solution into a factory graph, with a belt for each flow `matchFlows` finds. */
-export function buildGraph(result: SolveResult, tier: number, opts: GraphOptions = {}): { nodes: Node[]; edges: Edge[]; dir: Direction } {
+/** Turns an LP solution into a factory graph, with a belt for each flow `matchFlows` finds. Positions and ports come from `layoutGraph`. */
+export function buildGraph(result: SolveResult, tier: number, opts: BuildOptions = {}): { nodes: Node[]; edges: Edge[] } {
   const k = opts.scale ?? 1;
   const box = (size: Box) => cardBox(size, k, opts.text ?? 1);
   const nodes: Node[] = [];
-  const sides = new Map<string, { source: boolean; target: boolean }>();
 
   const endpoint = (kind: EndpointKind, item: string, rate: number) => {
     const id = `${kind}:${item}`;
-    const source = kind === 'raw' || kind === 'supply' || kind === 'missing';
     nodes.push({
       id,
       type: 'endpoint',
@@ -172,7 +207,6 @@ export function buildGraph(result: SolveResult, tier: number, opts: GraphOptions
       ...box(SIZE.endpoint),
       handles: [],
     });
-    sides.set(id, { source, target: !source });
   };
 
   for (const r of result.raw) endpoint('raw', r.item, r.rate);
@@ -198,7 +232,6 @@ export function buildGraph(result: SolveResult, tier: number, opts: GraphOptions
           ...box({ ...SIZE.machine, height: SIZE.machine.height + RUN_LINE * cardExtra(c.part.use, c.part) }),
           handles: [],
         });
-        sides.set(c.id, { source: true, target: true });
       }
       continue;
     }
@@ -210,7 +243,6 @@ export function buildGraph(result: SolveResult, tier: number, opts: GraphOptions
       ...box({ ...SIZE.machine, height: SIZE.machine.height + RUN_LINE * cardExtra(u, split) }),
       handles: [],
     });
-    sides.set(id, { source: true, target: true });
   }
 
   for (const t of result.targets) endpoint('target', t.item, t.rate);
@@ -219,10 +251,12 @@ export function buildGraph(result: SolveResult, tier: number, opts: GraphOptions
   const edges: Edge[] = [];
   const belt = (from: string, to: string, item: string, rate: number) => {
     const { transport, lanes } = transportFor(data.items[item], rate, tier);
+    const id = `${from}>${to}>${item}`;
     edges.push({
-      id: `${from}>${to}>${item}`,
+      id,
       source: from,
       target: to,
+      ...ends(id),
       type: 'flow',
       data: { item, rate, transport, lanes } satisfies FlowEdgeData,
     });
@@ -247,11 +281,9 @@ export function buildGraph(result: SolveResult, tier: number, opts: GraphOptions
     for (const [a, b, rate] of pair(sources, targets)) belt(a, b, f.item, rate);
   }
 
-  if (result.grid) addGrid(result, nodes, edges, sides, opts.consumers ?? [], box);
+  if (result.grid) addGrid(result, nodes, edges, opts.consumers ?? [], box);
 
-  const dir = layout(nodes, edges, opts);
-  for (const n of nodes) n.handles = handlesFor({ width: n.width!, height: n.height! }, sides.get(n.id)!, dir);
-  return { nodes, edges, dir };
+  return { nodes, edges };
 }
 
 /** Two lists of ends matched largest first, as few belts as it takes: [from, to, rate] each. */
@@ -276,14 +308,7 @@ function pair(sources: { id: string; rate: number }[], targets: { id: string; ra
  * The power grid as a node of its own: every generator feeds it a power line, and it feeds each
  * consumer, so the whole grid reads left to right from fuel to factories.
  */
-function addGrid(
-  result: SolveResult,
-  nodes: Node[],
-  edges: Edge[],
-  sides: Map<string, { source: boolean; target: boolean }>,
-  consumers: Consumer[],
-  box: (size: Box) => Box,
-) {
+function addGrid(result: SolveResult, nodes: Node[], edges: Edge[], consumers: Consumer[], box: (size: Box) => Box) {
   const grid = result.grid!;
   const drawn = consumers.reduce((s, c) => s + c.mw, 0);
   nodes.push({
@@ -294,7 +319,6 @@ function addGrid(
     ...box(SIZE.grid),
     handles: [],
   });
-  sides.set('grid', { source: consumers.length > 0, target: true });
   for (const u of result.recipes) {
     const plant = plantIdOf(u.recipe.id);
     if (!plant) continue;
@@ -303,6 +327,7 @@ function addGrid(
       id: `${id}>grid`,
       source: id,
       target: 'grid',
+      ...ends(`${id}>grid`),
       type: 'power',
       data: { mw: grid.plants[plant] ?? 0 } satisfies PowerEdgeData,
     });
@@ -317,92 +342,13 @@ function addGrid(
       ...box(SIZE.consumer),
       handles: [],
     });
-    sides.set(id, { source: false, target: true });
-    edges.push({ id: `grid>${id}`, source: 'grid', target: id, type: 'power', data: { mw: c.mw } satisfies PowerEdgeData });
+    edges.push({
+      id: `grid>${id}`,
+      source: 'grid',
+      target: id,
+      ...ends(`grid>${id}`),
+      type: 'power',
+      data: { mw: c.mw } satisfies PowerEdgeData,
+    });
   }
-}
-
-type Ranker = 'network-simplex' | 'tight-tree' | 'longest-path';
-const RANKERS: Ranker[] = ['network-simplex', 'tight-tree', 'longest-path'];
-
-interface Placement {
-  dir: Direction;
-  pos: Map<string, Point>;
-  routes: Map<string, { points: Point[]; label: Point }>;
-  width: number;
-  height: number;
-  crossings: number;
-}
-
-function place(nodes: Node[], edges: Edge[], dir: Direction, ranker: Ranker, opts: GraphOptions): Placement {
-  const g = new dagre.graphlib.Graph({ multigraph: true });
-  const gap = (opts.scale ?? 1) * (opts.spacing ?? 1);
-  const label = scaled(LABEL, opts.text ?? 1);
-  g.setGraph({ rankdir: dir, ranker, nodesep: SPACING[dir].nodesep * gap, ranksep: SPACING[dir].ranksep * gap, marginx: 30, marginy: 30 });
-  for (const n of nodes) g.setNode(n.id, { width: n.width, height: n.height });
-  for (const e of edges) g.setEdge(e.source, e.target, { ...label, labelpos: 'c' }, e.id);
-  dagre.layout(g);
-  const pos = new Map<string, Point>();
-  for (const n of nodes) {
-    const p = g.node(n.id);
-    pos.set(n.id, { x: p.x - (n.width ?? 0) / 2, y: p.y - (n.height ?? 0) / 2 });
-  }
-  const routes = new Map<string, { points: Point[]; label: Point }>();
-  for (const e of edges) {
-    const r = g.edge({ v: e.source, w: e.target, name: e.id });
-    // The first and last points sit on the machines' borders; the handles replace them.
-    routes.set(e.id, { points: r.points.slice(1, -1), label: { x: r.x, y: r.y } });
-  }
-  const { width = 0, height = 0 } = g.graph();
-  return { dir, pos, routes, width, height, crossings: crossings(nodes, edges, pos, dir) };
-}
-
-/** Belts that cross, counting each belt as a straight line from its output handle to its input handle. */
-function crossings(nodes: Node[], edges: Edge[], pos: Map<string, Point>, dir: Direction): number {
-  const size = new Map(nodes.map((n) => [n.id, { w: n.width ?? 0, h: n.height ?? 0 }]));
-  const out = (id: string) => {
-    const p = pos.get(id)!;
-    const s = size.get(id)!;
-    return dir === 'LR' ? { x: p.x + s.w, y: p.y + s.h / 2 } : { x: p.x + s.w / 2, y: p.y + s.h };
-  };
-  const into = (id: string) => {
-    const p = pos.get(id)!;
-    const s = size.get(id)!;
-    return dir === 'LR' ? { x: p.x, y: p.y + s.h / 2 } : { x: p.x + s.w / 2, y: p.y };
-  };
-  const lines = edges.map((e) => ({ e, a: out(e.source), b: into(e.target) }));
-  const side = (p: Point, q: Point, r: Point) => Math.sign((q.x - p.x) * (r.y - p.y) - (q.y - p.y) * (r.x - p.x));
-  let n = 0;
-  for (let i = 0; i < lines.length; i++) {
-    for (let j = i + 1; j < lines.length; j++) {
-      const l = lines[i];
-      const m = lines[j];
-      if (l.e.source === m.e.source || l.e.target === m.e.target) continue;
-      if (side(l.a, l.b, m.a) * side(l.a, l.b, m.b) < 0 && side(m.a, m.b, l.a) * side(m.a, m.b, l.b) < 0) n++;
-    }
-  }
-  return n;
-}
-
-/**
- * Tries each ranking strategy in each allowed direction. Within a direction the fewest crossing
- * belts wins; between directions, the one that shows the whole factory bigger on this screen,
- * unless it's only slightly better than the way the screen is shaped.
- */
-function layout(nodes: Node[], edges: Edge[], opts: GraphOptions): Direction {
-  const { dir, box } = opts;
-  const natural: Direction = box && box.height > box.width ? 'TB' : 'LR';
-  const dirs: Direction[] = dir ? [dir] : box ? ['LR', 'TB'] : ['LR'];
-  const best = dirs.map((d) => RANKERS.map((r) => place(nodes, edges, d, r, opts)).reduce((a, b) => (b.crossings < a.crossings ? b : a)));
-  const fit = (p: Placement) => (box ? Math.min(box.width / p.width, box.height / p.height) : 1);
-  const pick = best.reduce((a, b) => {
-    const [x, y] = a.dir === natural ? [a, b] : [b, a];
-    return fit(y) > fit(x) * 1.2 ? y : x;
-  });
-  for (const n of nodes) n.position = pick.pos.get(n.id)!;
-  for (const e of edges) {
-    const r = pick.routes.get(e.id)!;
-    (e.data as FlowEdgeData | PowerEdgeData).route = { ...r, from: pick.pos.get(e.source)!, to: pick.pos.get(e.target)! };
-  }
-  return pick.dir;
 }

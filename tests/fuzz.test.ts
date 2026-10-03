@@ -3,6 +3,8 @@ import loadHighs, { type Highs } from 'highs';
 import { craftableItems, data, rawItems, recipeUnlocked } from '../src/lib/data';
 import { DEFAULT_EXTRACTION, extractionPowerPerUnit, MINERS, PURITIES, planExtraction } from '../src/lib/extraction';
 import { buildGraph } from '../src/lib/graph';
+import { layoutGraph } from '../src/lib/layout';
+import { testEngine } from './helpers/elk';
 import { PLANT_OPTIONS, type Plant, plantSize, plantValid } from '../src/lib/power';
 import {
   autoAssign,
@@ -202,9 +204,10 @@ function checkResult(r: SolveResult, input: SolveInput) {
 }
 
 /** No two cards on the floor overlap. */
-function checkGraph(r: SolveResult, seed: number) {
+async function checkGraph(r: SolveResult, seed: number) {
   const dir = seed % 2 ? 'LR' : 'TB';
-  const { nodes } = buildGraph(r, 9, { dir, scale: 1 + (seed % 3) * 0.25, text: 1 + (seed % 5) * 0.125 });
+  const built = buildGraph(r, 9, { scale: 1 + (seed % 3) * 0.25, text: 1 + (seed % 5) * 0.125 });
+  const { nodes } = await layoutGraph(built, { dir, effort: 'fast' }, testEngine);
   for (let i = 0; i < nodes.length; i++) {
     const a = nodes[i];
     for (const x of [a.position.x, a.position.y, a.width ?? 0, a.height ?? 0]) finite(Math.abs(x), `${a.id} box`);
@@ -220,7 +223,7 @@ function checkGraph(r: SolveResult, seed: number) {
   }
 }
 
-function run(seed: number): 'ok' | 'error' {
+async function run(seed: number): Promise<'ok' | 'error'> {
   const input = randomInput(seed);
   let r: SolveResult;
   try {
@@ -232,7 +235,7 @@ function run(seed: number): 'ok' | 'error' {
   }
   try {
     checkResult(r, input);
-    if (seed % 8 === 0 && r.recipes.length < 80) checkGraph(r, seed);
+    if (seed % 8 === 0 && r.recipes.length < 80) await checkGraph(r, seed);
     // Auto placement never hands out more somersloops or shards than the stock.
     if (seed % 16 === 1 && !input.power && !Object.keys(input.fixed ?? {}).length) {
       const stock = { sloops: seed % 7, shards: seed % 11 };
@@ -260,13 +263,13 @@ describe('random plans', () => {
   const PLANS = Number(process.env.FUZZ_PLANS ?? 2000);
   const BATCH = 100;
   for (let start = 0; start < PLANS; start += BATCH) {
-    test(`plans ${start + 1}–${start + BATCH}`, () => {
+    test(`plans ${start + 1}–${start + BATCH}`, async () => {
       const tally = { ok: 0, error: 0 };
-      for (let seed = start + 1; seed <= start + BATCH; seed++) tally[run(seed)]++;
+      for (let seed = start + 1; seed <= start + BATCH; seed++) tally[await run(seed)]++;
       // Most made-up plans should solve; if nearly all fail, the generator stopped testing anything.
       expect(tally.ok).toBeGreaterThan(BATCH * 0.3);
     }, 120_000);
   }
 
-  for (const seed of SEEDS) test(`seed ${seed}`, () => expect(['ok', 'error']).toContain(run(seed)), 60_000);
+  for (const seed of SEEDS) test(`seed ${seed}`, async () => expect(['ok', 'error']).toContain(await run(seed)), 60_000);
 });

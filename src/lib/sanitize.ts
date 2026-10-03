@@ -3,7 +3,7 @@ import type { Plan, PowerPlan, Route, Supply } from '../store';
 import { data, generatorById, recipeById } from './data';
 import { DEFAULT_EXTRACTION, type ExtractionSettings, MINERS, PURITIES, type Purity } from './extraction';
 import { PLANT_NAMES, type Plant, type PlantSize, type SizeBy } from './power';
-import { clampSetting, DEFAULT_COLORS, DEFAULT_SETTINGS, FONTS, type Settings } from './settings';
+import { clampSetting, DEFAULT_COLORS, DEFAULT_SETTINGS, EFFORTS, FONTS, PLACEMENTS, ROUTINGS, type Settings } from './settings';
 import type { RecipeMod, Target } from './solver';
 import { CARRIERS, type Carrier } from './transport';
 import { cleanModel } from './model/sanitize';
@@ -228,6 +228,9 @@ export function cleanSettings(saved: unknown): Settings {
     gridLines: typeof s.gridLines === 'boolean' ? s.gridLines : d.gridLines,
     addWith: oneOf(s.addWith, ['right', 'double'] as const, d.addWith),
     beltColors: oneOf(s.beltColors, ['tier', 'one'] as const, d.beltColors),
+    layoutPlacement: oneOf(s.layoutPlacement, PLACEMENTS, d.layoutPlacement),
+    edgeRouting: oneOf(s.edgeRouting, ROUTINGS, d.edgeRouting),
+    layoutEffort: oneOf(s.layoutEffort, EFFORTS, d.layoutEffort),
     colors,
     decimals: finite(s.decimals) ? Math.round(clampSetting('decimals', s.decimals as number)) : d.decimals,
     motion: oneOf(s.motion, ['system', 'reduce', 'full'] as const, d.motion),

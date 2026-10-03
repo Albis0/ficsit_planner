@@ -1,4 +1,6 @@
-import type { ELK, ElkExtendedEdge, ElkNode } from 'elkjs/lib/elk-api';
+import type { ElkExtendedEdge, ElkNode } from 'elkjs/lib/elk-api';
+import type { Engine } from '../layout';
+import { layoutInBackground } from '../layoutClient';
 import { cardSize, GRID, HALF, portY } from './layout';
 import { portsOf } from './ports';
 import { isPart, type MLink, type Model } from './types';
@@ -23,9 +25,6 @@ const VARIANTS: Record<string, string>[] = [
   { ...lean('RIGHTUP'), ...COMPACT, ...DEPTH },
 ];
 
-/** Workers the tries are shared between, so they run side by side. */
-const WORKERS = 2;
-
 const ON_BELT = { 'elk.edgeLabels.placement': 'CENTER', 'elk.edgeLabels.inline': 'true' };
 
 const BASE: Record<string, string> = {
@@ -48,21 +47,15 @@ const BASE: Record<string, string> = {
   'elk.padding': '[top=40,left=40,bottom=40,right=40]',
 };
 
-let engines: Promise<ELK[]> | undefined;
 /**
- * The layout engine is big, so it's fetched the first time a floor is laid out, not with the app, and it runs in
- * workers of its own so the page doesn't stall on a big factory.
+ * Where the tries are laid out: the Auto floor's pool of workers, so they run side by side and the page doesn't stall
+ * on a big factory, or ELK on this thread when workers won't start here.
  */
-const elk = () => {
-  engines ??= Promise.all([import('elkjs/lib/elk-api.js'), import('elkjs/lib/elk-worker.min.js?url')]).then(([api, url]) =>
-    Array.from({ length: WORKERS }, () => new api.default({ workerUrl: url.default })),
-  );
-  return engines;
-};
+let engine: Engine = layoutInBackground;
 
-/** Runs layouts on other engines: the tests use ones with workers of their own. */
-export const setLayoutEngine = (list: ELK[]) => {
-  engines = Promise.resolve(list);
+/** Runs layouts on another engine: the tests use one with workers of their own. */
+export const setLayoutEngine = (e: Engine) => {
+  engine = e;
 };
 
 interface Laid {
@@ -114,7 +107,7 @@ function score(lines: { x: number; y: number }[][]): number {
   return cross * 4 + bends + length / 400;
 }
 
-async function place(m: Model, variant: Record<string, string>, engine: ELK): Promise<Laid & { lines: { x: number; y: number }[][] }> {
+async function place(m: Model, variant: Record<string, string>): Promise<Laid & { lines: { x: number; y: number }[][] }> {
   const parts = m.nodes.filter(isPart);
   const ids = new Set(parts.map((n) => n.id));
   const links = m.links.filter((l) => ids.has(l.a) && ids.has(l.b));
@@ -159,7 +152,7 @@ async function place(m: Model, variant: Record<string, string>, engine: ELK): Pr
       }),
     ),
   };
-  const out = await engine.layout(graph);
+  const out = await engine(graph);
   // Onto the grid: cards on its lines, so their ends are too; bends on a line or halfway, which keeps belts that ran
   // side by side apart. The first and last stretch of a belt stay level with the ends they leave and reach.
   const on = (v: number, step: number) => Math.round(v / step) * step;
@@ -201,27 +194,45 @@ async function place(m: Model, variant: Record<string, string>, engine: ELK): Pr
   return { pos, routes, score: score(lines), lines };
 }
 
+/** Where each card goes and each belt's bends and label: what laying a model out gives, before it's put on the model. */
+export type Arrangement = Pick<Laid, 'pos' | 'routes'>;
+
 /**
  * Lays a whole model out afresh, left to right: every card in a column by how far down the line it is, the cards in
  * each column ordered so belts meet their ends in order without crossing, and every belt run in straight stretches
- * with square turns and a spot of its own for its label. Notes and boxes stay where they are.
+ * with square turns and a spot of its own for its label. Notes and boxes aren't placed.
  */
-export async function arrangeModel(m: Model): Promise<Model> {
-  if (!m.nodes.some(isPart)) return m;
-  const pool = await elk();
-  const tries = await Promise.all(VARIANTS.map((v, i) => place(m, v, pool[i % pool.length])));
+export async function arrangement(m: Model): Promise<Arrangement> {
+  if (!m.nodes.some(isPart)) return { pos: new Map(), routes: new Map() };
+  const tries = await Promise.all(VARIANTS.map((v) => place(m, v)));
   const best = tries.reduce((a, b) => (b.score < a.score ? b : a));
+  return { pos: best.pos, routes: best.routes };
+}
+
+/**
+ * Puts an arrangement on a model: the cards it placed move there and their belts take its bends and label spots.
+ * Cards and belts it doesn't know (added while it was being worked out) stay as they are, but a belt between cards
+ * that moved loses its old bends, which would lead nowhere now.
+ */
+export function applyArrangement(m: Model, a: Arrangement): Model {
+  if (a.pos.size === 0) return m;
   return {
     ...m,
     nodes: m.nodes.map((n) => {
-      const p = best.pos.get(n.id);
+      const p = a.pos.get(n.id);
       return p ? { ...n, x: p.x, y: p.y } : n;
     }),
     links: m.links.map((l): MLink => {
+      const r = a.routes.get(l.id);
+      if (!r && !a.pos.has(l.a) && !a.pos.has(l.b)) return l;
       const { pts: _, lbl: __, ...rest } = l;
-      const r = best.routes.get(l.id);
       if (!r) return rest;
       return { ...rest, ...(r.pts.length ? { pts: r.pts } : {}), ...(r.lbl ? { lbl: r.lbl } : {}) };
     }),
   };
+}
+
+/** The model laid out afresh: `arrangement` put on it. Notes and boxes stay where they are. */
+export async function arrangeModel(m: Model): Promise<Model> {
+  return applyArrangement(m, await arrangement(m));
 }

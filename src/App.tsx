@@ -15,7 +15,7 @@ import { useFactoryHost, useModelCalc } from './components/modeler/hosts';
 import { FloorPanel } from './components/modeler/FloorPanel';
 import { forgetCamera, ModelEditor } from './components/modeler/ModelEditor';
 import { floorEnds } from './lib/model/calc/adapter';
-import { arrangeModel } from './lib/model/arrange';
+import { applyArrangement, arrangement } from './lib/model/arrange';
 import { ModelInspector } from './components/modeler/ModelInspector';
 import { ModelToolbar } from './components/modeler/Toolbar';
 import { QuickPick } from './components/QuickPick';
@@ -138,6 +138,7 @@ export default function App() {
   const [built, setBuilt] = useState(0);
   const setFloor = async (floor: 'auto' | 'manual') => {
     if (floor === 'auto' || plan.model) return s.setFloor(plan.id, floor);
+    if (laying) return;
     const solved = factory.result;
     const model = solved ? await lay(() => modelFromSolve(solved, s.tier, effectiveExtraction(plan.extraction, s.tier))) : emptyModel();
     forgetCamera(plan.id);
@@ -426,8 +427,10 @@ export default function App() {
                   <ModelToolbar
                     host={host}
                     onTidy={async () => {
-                      const tidy = await lay(() => arrangeModel(host.model));
-                      host.edit(() => tidy);
+                      if (laying) return;
+                      const laid = await lay(() => arrangement(host.model));
+                      // Onto the model as it is by then, so anything changed meanwhile stays; undo puts it back.
+                      host.edit((m) => applyArrangement(m, laid));
                       forgetCamera(plan.id);
                       setBuilt((n) => n + 1);
                     }}
@@ -446,7 +449,7 @@ export default function App() {
               ) : (
                 <Inspector result={result} />
               ))}
-            {busy && <div className="busy">{t('solving')}</div>}
+            {busy && <div className={`busy ${laying ? 'laying-out' : ''}`}>{t(laying ? 'layingOut' : 'solving')}</div>}
             {shown && (
               <div className="floor-bar">
                 {!powerMode && (

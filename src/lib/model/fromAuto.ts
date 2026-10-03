@@ -32,7 +32,7 @@ const line = (item: string, rate: number, tier: number): { mk: number; lanes?: n
 };
 
 export async function modelFromSolve(result: SolveResult, tier: number, extraction: ExtractionSettings): Promise<Model> {
-  const g = buildGraph(result, tier, { dir: 'LR', splitLines: 'each' });
+  const g = buildGraph(result, tier, { splitLines: 'each' });
   let seq = 1;
   const id = () => (seq++).toString(36);
   const nodes: MNode[] = [];

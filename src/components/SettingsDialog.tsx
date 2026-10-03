@@ -7,9 +7,12 @@ import {
   clampSetting,
   DEFAULT_COLORS,
   DEFAULT_SETTINGS,
+  EFFORTS,
   FONTS,
   type LIMITS,
   type PanelSide,
+  PLACEMENTS,
+  ROUTINGS,
   type Settings,
   sameSettings,
   settingsStyle,
@@ -234,14 +237,17 @@ function Choice<T extends string | number>({
   options,
   onChange,
   label,
+  wrap,
 }: {
   value: T;
   options: { id: T; label: string }[];
   onChange: (v: T) => void;
   label: string;
+  /** Many options: let them wrap onto a second row rather than push the dialog wider. */
+  wrap?: boolean;
 }) {
   return (
-    <div className="segmented" role="radiogroup" aria-label={label}>
+    <div className={`segmented ${wrap ? 'wrap' : ''}`} role="radiogroup" aria-label={label}>
       {options.map((o) => (
         <button key={String(o.id)} type="button" role="radio" aria-checked={value === o.id} onClick={() => onChange(o.id)}>
           {o.label}
@@ -438,6 +444,31 @@ function FloorSection() {
             { id: 'double', label: t('addWithDouble') },
           ]}
           onChange={(v) => set({ addWith: v })}
+        />
+      </Row>
+      <Row label={t('layoutPlacement')} hint={t('layoutPlacementHint')}>
+        <Choice
+          label={t('layoutPlacement')}
+          wrap
+          value={s.layoutPlacement}
+          options={PLACEMENTS.map((p) => ({ id: p, label: t(`placement_${p}`) }))}
+          onChange={(v) => set({ layoutPlacement: v })}
+        />
+      </Row>
+      <Row label={t('edgeRouting')} hint={t('edgeRoutingHint')}>
+        <Choice
+          label={t('edgeRouting')}
+          value={s.edgeRouting}
+          options={ROUTINGS.map((r) => ({ id: r, label: t(`routing_${r}`) }))}
+          onChange={(v) => set({ edgeRouting: v })}
+        />
+      </Row>
+      <Row label={t('layoutEffort')} hint={t('layoutEffortHint')}>
+        <Choice
+          label={t('layoutEffort')}
+          value={s.layoutEffort}
+          options={EFFORTS.map((e) => ({ id: e, label: t(`effort_${e}`) }))}
+          onChange={(v) => set({ layoutEffort: v })}
         />
       </Row>
     </>

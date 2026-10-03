@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react';
 import { BELT_COLORS } from '../../lib/belts';
 import { data, type Transport } from '../../lib/data';
+import { type Arrival, arrowHead } from '../../lib/routes';
 
 const beltIndex = (id: string) =>
   Math.max(
@@ -15,7 +16,8 @@ const pipeIndex = (id: string) =>
 
 /**
  * A conveyor belt (rails, bed, moving slats) or a pipe (casing, flowing fluid) along a path, as both floors draw them.
- * Side by side lines widen it. Returns the drawing and the colour of its tier, for the label's Mk badge.
+ * Side by side lines widen it, and `end` puts an arrowhead where it arrives. Returns the drawing and the colour of its
+ * tier, for the label's Mk badge.
  */
 export function beltStroke({
   path,
@@ -24,6 +26,7 @@ export function beltStroke({
   lanes = 1,
   state = '',
   oneColor = false,
+  end,
 }: {
   path: string;
   item: string;
@@ -31,18 +34,21 @@ export function beltStroke({
   lanes?: number;
   state?: string;
   oneColor?: boolean;
+  end?: Arrival;
 }): { body: ReactNode; color: string } {
   const it = data.items[item];
   if (it && it.form !== 'solid') {
     const mk = pipeIndex(transport.id);
     const w = mk === 0 ? 9 : 12;
     const color = it.color ?? 'var(--fluid)';
+    const wide = w + 4 * (lanes - 1);
     return {
       color,
       body: (
         <g className={`pipe-edge ${state}`}>
-          <path d={path} className="pipe-casing" style={{ strokeWidth: w + 4 * (lanes - 1) }} />
+          <path d={path} className="pipe-casing" style={{ strokeWidth: wide }} />
           <path d={path} className="pipe-fluid" style={{ stroke: color, strokeWidth: w - 4 }} />
+          {end && <polygon points={arrowHead(end, wide + 8, wide * 1.6 + 10)} className="pipe-arrow" style={{ fill: color }} />}
         </g>
       ),
     };
@@ -57,6 +63,7 @@ export function beltStroke({
         <path d={path} className="belt-rails" style={{ strokeWidth: w }} />
         <path d={path} className="belt-bed" style={{ strokeWidth: w - 5 }} />
         <path d={path} className="belt-slats" style={{ strokeWidth: w - 5 }} />
+        {end && <polygon points={arrowHead(end, w + 8, w * 1.6 + 10)} className="belt-arrow" />}
       </g>
     ),
   };

@@ -576,8 +576,8 @@ function Canvas({ host, calc }: { host: ModelHost; calc?: CalcResult }) {
                   aria-label={t('openEnds', { n: open.length })}
                   onClick={nextOpen}
                 >
-                  <span className="fit-label">{t('openEnds', { n: open.length })}</span>
-                  <span className="fit-icon" aria-hidden>
+                  <span className="floor-label">{t('openEnds', { n: open.length })}</span>
+                  <span className="floor-icon" aria-hidden>
                     ⚠︎ {open.length}
                   </span>
                 </button>
@@ -592,7 +592,7 @@ function Canvas({ host, calc }: { host: ModelHost; calc?: CalcResult }) {
                 <span aria-hidden className="add-plus">
                   +
                 </span>
-                <span className="fit-label">{t('add')}</span>
+                <span className="floor-label">{t('add')}</span>
               </button>
               <button
                 type="button"
@@ -606,10 +606,10 @@ function Canvas({ host, calc }: { host: ModelHost; calc?: CalcResult }) {
                   })
                 }
               >
-                <span className="fit-icon" aria-hidden>
+                <span className="floor-icon" aria-hidden>
                   ⤢
                 </span>
-                <span className="fit-label">{t('fit')}</span>
+                <span className="floor-label">{t('fit')}</span>
               </button>
             </div>
             {choosing &&

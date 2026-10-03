@@ -618,6 +618,15 @@ button:disabled {
   color: var(--ficsit-ink);
 }
 
+.segmented.wrap {
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+.segmented.wrap button {
+  padding: 6px 10px;
+}
+
 .text-button {
   border: 0;
   padding: 2px 0;
@@ -1563,6 +1572,29 @@ button.slot:hover {
   color: var(--ficsit);
 }
 
+.busy.laying-out {
+  color: var(--dim);
+}
+
+/* Solving comes first: the floor is laid out again right after anyway. */
+.floor-view:has(> .busy:not(.laying-out)) > .busy.laying-out {
+  display: none;
+}
+
+/* The foundation grid while the first layout of a floor runs, the same lines React Flow draws once it's there. */
+.floor-grid {
+  position: absolute;
+  inset: 0;
+  background-image:
+    linear-gradient(#3b3b3b 1px, transparent 1px), linear-gradient(90deg, #3b3b3b 1px, transparent 1px),
+    linear-gradient(#2f2f2f 1px, transparent 1px), linear-gradient(90deg, #2f2f2f 1px, transparent 1px);
+  background-size:
+    160px 160px,
+    160px 160px,
+    40px 40px,
+    40px 40px;
+}
+
 /* Ends short of the direction and Fit buttons on the right (not zoomed, so the gap is undone from the bar's zoom). */
 .floor-bar {
   position: absolute;
@@ -1615,7 +1647,7 @@ button.slot:hover {
   gap: 10px;
 }
 
-.fit-icon {
+.floor-icon {
   display: none;
   font-size: 20px;
   line-height: 1;
@@ -2060,8 +2092,8 @@ button.slot:hover {
 /* ---------- Graph nodes ---------- */
 
 .react-flow__handle {
-  width: 10px;
-  height: 18px;
+  width: 8px;
+  height: 12px;
   border-radius: 0;
   border: 0;
   background: var(--line-2);
@@ -2070,8 +2102,8 @@ button.slot:hover {
 /* Phones run the line top to bottom; the same handle lies on its side. */
 .react-flow__handle-top,
 .react-flow__handle-bottom {
-  width: 18px;
-  height: 10px;
+  width: 12px;
+  height: 8px;
 }
 
 .react-flow__node-machine {
@@ -3158,6 +3190,20 @@ button.slot:hover {
   stroke: color-mix(in srgb, var(--belt) 55%, #17191c);
   stroke-dasharray: 3 7;
   animation: belt var(--belt-speed) linear infinite;
+}
+
+/* Arrowheads where belts, pipes and cables arrive: not every line runs with the floor. */
+.belt-arrow {
+  fill: var(--belt);
+  stroke: #17191c;
+  stroke-width: 1.5;
+  stroke-linejoin: round;
+}
+
+.pipe-arrow {
+  stroke: #5b646d;
+  stroke-width: 2;
+  stroke-linejoin: round;
 }
 
 .pipe-casing {
@@ -4562,6 +4608,13 @@ button.gen-count[aria-pressed='true'] {
   to {
     stroke-dashoffset: -32;
   }
+}
+
+.cable-arrow {
+  fill: var(--power);
+  stroke: #0e1012;
+  stroke-width: 2;
+  stroke-linejoin: round;
 }
 
 .power-edge.faded {
@@ -6276,18 +6329,18 @@ button.gen-count[aria-pressed='true'] {
     display: none;
   }
 
-  /* Bottom right like on desktop, with Fit as an icon so it fits beside Factory / List. */
+  /* Bottom right like on desktop, with Fit and Lay out again as icons so they fit beside Factory / List. */
   .floor-controls {
     right: 10px;
     bottom: 10px;
     gap: 6px;
   }
 
-  .fit-label {
+  .floor-label {
     display: none;
   }
 
-  .fit-icon {
+  .floor-icon {
     display: inline;
   }
 

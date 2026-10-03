@@ -2,6 +2,32 @@
 
 All notable changes to FICSIT Planner. Dates are when the version was finished.
 
+## Unreleased
+
+### Added
+
+- **Layout settings** (Settings › Factory floor): machine placement, belt routing (right angles, curves or straight)
+  and layout effort, for the Auto floor.
+- **Arrows on the Auto floor**: every belt, pipe and power line ends in an arrowhead pointing into the machine it
+  feeds, so belts running back against the flow read the right way.
+- **Lay out again**: once a machine on the Auto floor has been dragged, a button beside Fit to screen puts every
+  machine back where the layout had it.
+
+### Changed
+
+- **The Auto floor is laid out by ELK**, as the Manual floor already is: belts run at right angles around machines
+  by default, each belt meets its machine at its own spot along the side, and several arrangements are tried for the
+  fewest crossing belts. Laying out happens in the background, in workers shared with the Manual floor's Tidy up, so
+  big factories no longer pause the page; the floor shows its grid and **Laying out** meanwhile, and coming back from
+  the table shows the last floor at once.
+- Converting a factory, Rebuild and Tidy up say **Laying out** rather than Solving while they work, and Tidy up keeps
+  anything changed on the floor meanwhile.
+
+### Fixed
+
+- **Dragging a machine** on the Auto floor no longer turns its belts into curves: they follow the belt routing
+  setting.
+
 ## 0.13.2 — 2026-10-03
 
 ### Changed
