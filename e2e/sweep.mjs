@@ -162,9 +162,9 @@ async function run(size) {
         await node.dispatchEvent('click');
         await page.waitForTimeout(500);
         await check(`manual inspector ${item}`);
-        // The chooser, from the + button and from a belt let go on the floor.
+        // The chooser, from a right click on the floor and from a belt let go on it.
         await page.keyboard.press('Escape');
-        await page.click('.add-part');
+        await page.locator('.react-flow__pane').click({ button: 'right', position: { x: 30, y: 200 } });
         await page.waitForTimeout(300);
         await check(`manual chooser ${item}`);
         await page.keyboard.press('Escape');

@@ -1,12 +1,43 @@
 import { useT } from '../../lib/i18n';
 import { canRedo, canUndo } from '../../lib/model/history';
-import type { CalcMode } from '../../lib/model/types';
+import { Glyph, type GlyphName } from '../Glyph';
 import type { ModelHost } from './ModelEditor';
 
-/** Calculators the hand-built floor offers so far. */
-const MODES: CalcMode[] = ['basic', 'off'];
+/** A square button with a line icon; its name shows on hover and is read out. */
+function Tool({
+  icon,
+  label,
+  title,
+  onClick,
+  disabled,
+  pressed,
+}: {
+  icon: GlyphName;
+  label: string;
+  title?: string;
+  onClick: () => void;
+  disabled?: boolean;
+  pressed?: boolean;
+}) {
+  return (
+    <button
+      type="button"
+      className="tool-button"
+      aria-label={label}
+      title={title ?? label}
+      disabled={disabled}
+      aria-pressed={pressed}
+      onClick={onClick}
+    >
+      <Glyph name={icon} size={22} />
+    </button>
+  );
+}
 
-/** Over the hand-built floor: how it's worked out, what an open output does, undo and redo, starting again. */
+/**
+ * Over the hand-built floor: undo and redo side by side, tidying up and starting again, the numbers on or off, and what
+ * an output with no belt does.
+ */
 export function ModelToolbar({
   host,
   onTidy,
@@ -20,51 +51,40 @@ export function ModelToolbar({
 }) {
   const { t } = useT();
   const { model } = host;
+  const numbers = model.calc !== 'off';
+  const setStall = (on: boolean) =>
+    host.edit((x) => {
+      const { stall: _, ...rest } = x;
+      return on ? { ...rest, stall: true } : rest;
+    });
   return (
     <div className="model-toolbar">
-      <div className="segmented" role="radiogroup" aria-label={t('calcMode')}>
-        {MODES.map((m) => (
-          <button
-            key={m}
-            type="button"
-            role="radio"
-            aria-checked={(model.calc === 'full' || model.calc === 'sheet' ? 'basic' : model.calc) === m}
-            title={t(`calcHint_${m}`)}
-            onClick={() => host.edit((x) => ({ ...x, calc: m }))}
-          >
-            {t(`calc_${m}`)}
-          </button>
-        ))}
+      <div className="tool-group">
+        <Tool icon="undo" label={t('undo')} title={t('undoKey')} disabled={!canUndo(host.key)} onClick={host.undo} />
+        <Tool icon="redo" label={t('redo')} title={t('redoKey')} disabled={!canRedo(host.key)} onClick={host.redo} />
       </div>
-      <label className="check model-drain" title={t('stallHint')}>
-        <input
-          type="checkbox"
-          checked={!!model.stall}
-          onChange={(e) =>
-            host.edit((x) => {
-              const { stall: _, ...rest } = x;
-              return e.target.checked ? { ...rest, stall: true } : rest;
-            })
-          }
+      <div className="tool-group">
+        <Tool icon="tidy" label={t('tidy')} disabled={model.nodes.length === 0} onClick={onTidy} />
+        {onRebuild && <Tool icon="rebuild" label={t('rebuild')} onClick={onRebuild} />}
+        <Tool
+          icon={numbers ? 'eye' : 'eyeOff'}
+          label={t('numbers')}
+          title={numbers ? t('hideNumbers') : t('showNumbers')}
+          pressed={numbers}
+          onClick={() => host.edit((x) => ({ ...x, calc: numbers ? 'off' : 'basic' }))}
         />
-        {t('stall')}
-      </label>
-      <div className="model-history">
-        <button type="button" className="floor-button" disabled={!canUndo(host.key)} title={t('undoKey')} onClick={host.undo}>
-          {t('undo')}
+      </div>
+      <div className="segmented open-outputs" role="radiogroup" aria-label={t('openOutputs')}>
+        <span className="seg-label" aria-hidden>
+          {t('openOutputs')}
+        </span>
+        <button type="button" role="radio" aria-checked={!model.stall} title={t('openLeftOverHint')} onClick={() => setStall(false)}>
+          {t('openLeftOver')}
         </button>
-        <button type="button" className="floor-button" disabled={!canRedo(host.key)} title={t('redoKey')} onClick={host.redo}>
-          {t('redo')}
+        <button type="button" role="radio" aria-checked={!!model.stall} title={t('openFillHint')} onClick={() => setStall(true)}>
+          {t('openFill')}
         </button>
       </div>
-      <button type="button" className="floor-button" title={t('tidyHint')} disabled={host.model.nodes.length === 0} onClick={onTidy}>
-        {t('tidy')}
-      </button>
-      {onRebuild && (
-        <button type="button" className="floor-button" title={t('rebuildHint')} onClick={onRebuild}>
-          {t('rebuild')}
-        </button>
-      )}
       {unbounded && <span className="run-state bad">{t('unboundedHint')}</span>}
     </div>
   );

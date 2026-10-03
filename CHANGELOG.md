@@ -2,6 +2,34 @@
 
 All notable changes to FICSIT Planner. Dates are when the version was finished.
 
+## 0.13.4 — 2026-10-03
+
+### Fixed
+
+- **Belts out of a splitter or into a merger crossed each other** on a converted or tidied Manual floor (the top
+  output going to the lower machine). Tidy up now puts a splitter's, merger's or pipe junction's belts on the ends
+  that keep them apart, and tidying twice still lays the floor out the same.
+- **A new belt on a Manual floor took the best Mk unlocked** (Mk.3 for a 25/min line). A belt left to choose its
+  Mk is now the slowest unlocked one that carries what goes through it, and follows the line as it changes; its
+  panel has **Auto** next to the Mks, and picking one fixes it.
+- **A finger held on a phone** opened the build menu and then picked whatever was under the finger. It now opens
+  the menu and leaves it open.
+
+### Changed
+
+- **Turned-off recipes stay out of the factory side entirely**: a machine's panel on the Auto floor lists only the
+  recipes turned on for its part (turn others on in Recipes), as the Manual build menu already does. The Codex,
+  which belongs to no factory, still shows every recipe.
+- **Manual floor toolbar**: undo and redo are arrows side by side; Tidy up and Rebuild are icons beside them, with
+  their names on hover; **Max flow / Off** is an eye that shows or hides the numbers; **Open outputs back up** is
+  **Open outputs: Left over | Fill up**.
+- **No Add button on the Manual floor**: a right click (or a double click, as set) on the floor opens the build
+  menu, a finger held there on a touch screen, or a belt let go on the floor.
+- **A double click on a Manual card ticks it built** (again to untick), instead of picking its belts.
+- The tab that folds the totals over the floor is bigger.
+- A panel's bottom edge fades only while there's more to scroll, and only a little, so nothing at the end is
+  covered.
+
 ## 0.13.3 — 2026-10-03
 
 ### Fixed

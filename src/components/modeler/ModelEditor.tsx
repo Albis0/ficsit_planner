@@ -21,7 +21,7 @@ import { createPortal } from 'react-dom';
 import type { ExtractionSettings } from '../../lib/extraction';
 import { useT } from '../../lib/i18n';
 import type { CalcResult } from '../../lib/model/calc/result';
-import { compile } from '../../lib/model/calc/compile';
+import { builtTransport, compile } from '../../lib/model/calc/compile';
 import { openCards, openEnds, ruleFlags } from '../../lib/model/checks';
 import { type Choice, placeChoice, type Want, wantAt } from '../../lib/model/choices';
 import { cardSize, GRID } from '../../lib/model/layout';
@@ -74,6 +74,9 @@ const MIN_ZOOM = 0.04;
 
 /** How long after opening a floor its camera follows the floor's size, while the totals over it come in. */
 const SETTLE = 3000;
+
+/** How long a finger stays still on the empty floor before the build menu opens. */
+const PRESS = 500;
 
 /** The chooser's size, for keeping it inside the floor. */
 const CHOOSER = { w: 440, h: 520 };
@@ -226,11 +229,11 @@ function Canvas({ host, calc }: { host: ModelHost; calc?: CalcResult }) {
         data: {
           link: a.link,
           item: a.items[0] ?? a.from.ports.outs[a.link.ap]?.item ?? a.to.ports.ins[a.link.bp]?.item,
-          transport: a.transport,
+          transport: builtTransport(a.medium, a.link, tier, calc?.links[a.link.id]?.rate),
           calc: calc?.links[a.link.id],
         } satisfies BeltData,
       })),
-    [net, calc, picked, inspect],
+    [net, calc, picked, inspect, tier],
   );
 
   // On a touch screen a card moves only once it's picked, so a finger on any other card pans the floor.
@@ -455,6 +458,52 @@ function Canvas({ host, calc }: { host: ModelHost; calc?: CalcResult }) {
   }, [openCamera]);
 
   const closeChooser = useCallback(() => setChoosing(undefined), []);
+
+  // A finger held still on the empty floor opens the build menu there.
+  const flowEl = useRef<HTMLDivElement>(null);
+  const chooseRef = useRef(choose);
+  chooseRef.current = choose;
+  useEffect(() => {
+    const el = flowEl.current;
+    if (!el) return;
+    let press: { x: number; y: number; timer: ReturnType<typeof setTimeout> } | undefined;
+    // Opened by a held finger: the mouse events the browser sends when it lifts would pick what's under it.
+    let fired = false;
+    const lift = (e: TouchEvent) => {
+      if (fired) e.preventDefault();
+      fired = false;
+    };
+    const cancel = () => {
+      if (press) clearTimeout(press.timer);
+      press = undefined;
+    };
+    const down = (e: PointerEvent) => {
+      cancel();
+      if (e.pointerType !== 'touch' || !(e.target as HTMLElement).classList.contains('react-flow__pane')) return;
+      const at = { x: e.clientX, y: e.clientY };
+      press = {
+        ...at,
+        timer: setTimeout(() => {
+          fired = true;
+          chooseRef.current(at);
+        }, PRESS),
+      };
+    };
+    const move = (e: PointerEvent) => {
+      if (press && Math.hypot(e.clientX - press.x, e.clientY - press.y) > 10) cancel();
+    };
+    el.addEventListener('pointerdown', down, true);
+    el.addEventListener('pointermove', move, true);
+    for (const t of ['pointerup', 'pointercancel']) el.addEventListener(t, cancel, true);
+    el.addEventListener('touchend', lift, { capture: true, passive: false });
+    return () => {
+      el.removeEventListener('touchend', lift, true);
+      cancel();
+      el.removeEventListener('pointerdown', down, true);
+      el.removeEventListener('pointermove', move, true);
+      for (const t of ['pointerup', 'pointercancel']) el.removeEventListener(t, cancel, true);
+    };
+  }, []);
   const parts = model.nodes.filter(isPart).length;
 
   // Cards with an end that needs a belt; the button goes from one to the next.
@@ -494,6 +543,7 @@ function Canvas({ host, calc }: { host: ModelHost; calc?: CalcResult }) {
               onConnect={onConnect}
               onConnectEnd={onConnectEnd}
               isValidConnection={isValid}
+              ref={flowEl}
               onDoubleClick={(e) => {
                 // A double click on the empty floor puts something down there, when the settings say so; a right click
                 // otherwise. Never both, so the one that isn't for adding stays free.
@@ -502,6 +552,8 @@ function Canvas({ host, calc }: { host: ModelHost; calc?: CalcResult }) {
               }}
               onPaneContextMenu={(e) => {
                 e.preventDefault();
+                // A held finger is handled above; a phone sends this too.
+                if (coarse) return;
                 if (addWith === 'right') choose({ x: e.clientX, y: e.clientY });
               }}
               connectOnClick
@@ -535,11 +587,11 @@ function Canvas({ host, calc }: { host: ModelHost; calc?: CalcResult }) {
                 setPicked(new Set());
                 set({ inspect: n.id });
               }}
-              onNodeDoubleClick={(_, n) => {
-                // A double click picks the belts on that card, not the cards at their other ends.
-                setPicked(new Set(model.links.filter((l) => l.a === n.id || l.b === n.id).map((l) => l.id)));
-                setNodes((cur) => cur.map((x) => (x.selected ? { ...x, selected: false } : x)));
-                set({ inspect: undefined });
+              onNodeDoubleClick={(e, n) => {
+                // A double click ticks a card built in the game, or unticks it.
+                if ((e.target as HTMLElement).closest('.react-flow__handle, button')) return;
+                const was = model.nodes.find((x) => x.id === n.id);
+                if (was) host.edit((m) => updateNode(m, n.id, { done: was.done ? undefined : true }));
               }}
               onEdgeClick={(_, e) => pickLink(e.id)}
               onPaneClick={(e) => {
@@ -590,18 +642,6 @@ function Canvas({ host, calc }: { host: ModelHost; calc?: CalcResult }) {
                     </span>
                   </button>
                 )}
-                <button
-                  type="button"
-                  className="floor-button add-part"
-                  title={t('addPart')}
-                  aria-label={t('addPart')}
-                  onClick={() => choose(undefined)}
-                >
-                  <span aria-hidden className="add-plus">
-                    +
-                  </span>
-                  <span className="fit-label">{t('add')}</span>
-                </button>
                 <button
                   type="button"
                   className="floor-button"

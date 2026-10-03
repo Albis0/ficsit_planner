@@ -1,7 +1,7 @@
 import type { ELK, ElkExtendedEdge, ElkNode } from 'elkjs/lib/elk-api';
 import { cardSize, GRID, HALF, portY } from './layout';
 import { portsOf } from './ports';
-import { isPart, type MLink, type Model } from './types';
+import { isPart, type MLink, type MNode, type Model } from './types';
 
 /** Room kept on each belt for its label, so no label sits on a card or on another belt. */
 const LABEL = { w: 160, h: 40 };
@@ -67,9 +67,17 @@ export const setLayoutEngine = (list: ELK[]) => {
 
 interface Laid {
   pos: Map<string, { x: number; y: number }>;
-  routes: Map<string, { pts: [number, number][]; lbl?: [number, number] }>;
+  /** Each belt's bends and label spot, and the ends it now leaves and reaches on a splitter or merger. */
+  routes: Map<string, { pts: [number, number][]; lbl?: [number, number]; ap: number; bp: number }>;
   score: number;
 }
+
+/**
+ * Splitters, mergers and pipe junctions: any of their ends on a side does the same, so the engine may put them in the order that keeps belts
+ * from crossing (the top output to the card highest up). Smart and programmable splitters keep theirs: each end has
+ * its own rule.
+ */
+const loose = (n: MNode) => n.k === 'logistic' && (n.kind === 'splitter' || n.kind === 'merger' || n.kind === 'junction');
 
 /** Straight stretches of a belt, from its first end to its last. */
 const runs = (pts: { x: number; y: number }[]) => pts.slice(1).map((p, i) => [pts[i], p] as const);
@@ -118,6 +126,34 @@ async function place(m: Model, variant: Record<string, string>, engine: ELK): Pr
   const parts = m.nodes.filter(isPart);
   const ids = new Set(parts.map((n) => n.id));
   const links = m.links.filter((l) => ids.has(l.a) && ids.has(l.b));
+  const byId = new Map(parts.map((n) => [n.id, n]));
+  // A splitter's or merger's belts go to the engine in an order of their own, by what's at their other end, so the
+  // ends they're on now don't sway the layout: tidying twice lays the floor out the same.
+  const slot = new Map<string, number>();
+  // The card at the other end, and the end on it when that end is fixed (a machine's), not one this may change.
+  const far = (id: string, port: number) => {
+    const n = byId.get(id);
+    return n && loose(n) ? id : `${id}:${port}`;
+  };
+  const rank = (ls: MLink[], other: (l: MLink) => string, side: 'a' | 'b') => {
+    ls.sort((x, y) => other(x).localeCompare(other(y)) || x.id.localeCompare(y.id));
+    for (const [k, l] of ls.entries()) slot.set(`${l.id}:${side}`, k);
+  };
+  for (const n of parts) {
+    if (!loose(n)) continue;
+    rank(
+      links.filter((l) => l.a === n.id),
+      (l) => far(l.b, l.bp),
+      'a',
+    );
+    rank(
+      links.filter((l) => l.b === n.id),
+      (l) => far(l.a, l.ap),
+      'b',
+    );
+  }
+  const srcPort = (l: MLink) => slot.get(`${l.id}:a`) ?? l.ap;
+  const dstPort = (l: MLink) => slot.get(`${l.id}:b`) ?? l.bp;
   const graph: ElkNode = {
     id: 'root',
     layoutOptions: { ...BASE, ...variant },
@@ -128,7 +164,10 @@ async function place(m: Model, variant: Record<string, string>, engine: ELK): Pr
         id: n.id,
         width: w,
         height: h,
-        layoutOptions: { 'elk.portConstraints': 'FIXED_POS' },
+        // Ends spread down the side as the cards draw them, so the order the engine picks lands on the same spots.
+        layoutOptions: (loose(n)
+          ? { 'elk.portConstraints': 'FIXED_SIDE', 'elk.portAlignment.default': 'DISTRIBUTED' }
+          : { 'elk.portConstraints': 'FIXED_POS' }) as Record<string, string>,
         ports: [
           ...p.ins.map((_, i) => ({
             id: `${n.id}:i${i}`,
@@ -152,8 +191,8 @@ async function place(m: Model, variant: Record<string, string>, engine: ELK): Pr
     edges: links.map(
       (l): ElkExtendedEdge => ({
         id: l.id,
-        sources: [`${l.a}:o${l.ap}`],
-        targets: [`${l.b}:i${l.bp}`],
+        sources: [`${l.a}:o${srcPort(l)}`],
+        targets: [`${l.b}:i${dstPort(l)}`],
         // Placed on the belt itself; the engine skips a label with no text.
         labels: [{ id: `${l.id}:label`, text: '-', width: LABEL.w, height: LABEL.h, layoutOptions: ON_BELT }],
       }),
@@ -164,7 +203,21 @@ async function place(m: Model, variant: Record<string, string>, engine: ELK): Pr
   // side by side apart. The first and last stretch of a belt stay level with the ends they leave and reach.
   const on = (v: number, step: number) => Math.round(v / step) * step;
   const pos = new Map((out.children ?? []).map((c) => [c.id, { x: on(c.x ?? 0, GRID), y: on(c.y ?? 0, GRID) }]));
-  const byId = new Map(parts.map((n) => [n.id, n]));
+  // On a splitter or merger, which of our ends each of the engine's became: its ends on a side, top to bottom.
+  const order = new Map<string, { in: number[]; out: number[] }>();
+  for (const c of out.children ?? []) {
+    const n = byId.get(c.id);
+    if (!n || !loose(n)) continue;
+    const ranked = (side: 'i' | 'o') => {
+      const ps = (c.ports ?? []).filter((p) => p.id.startsWith(`${c.id}:${side}`));
+      const by = [...ps].sort((a, b) => (a.y ?? 0) - (b.y ?? 0)).map((p) => p.id);
+      const to: number[] = [];
+      for (const p of ps) to[Number(p.id.slice(c.id.length + 2))] = by.indexOf(p.id);
+      return to;
+    };
+    order.set(c.id, { in: ranked('i'), out: ranked('o') });
+  }
+  const endOf = (id: string, side: 'in' | 'out', i: number) => order.get(id)?.[side][i] ?? i;
   const endAt = (id: string, side: 'in' | 'out', i: number) => {
     const n = byId.get(id);
     const p = pos.get(id);
@@ -180,8 +233,10 @@ async function place(m: Model, variant: Record<string, string>, engine: ELK): Pr
     const s = e.sections?.[0];
     const l = linkOf.get(e.id);
     if (!s || !l) continue;
-    const from = endAt(l.a, 'out', l.ap);
-    const to = endAt(l.b, 'in', l.bp);
+    const ap = endOf(l.a, 'out', srcPort(l));
+    const bp = endOf(l.b, 'in', dstPort(l));
+    const from = endAt(l.a, 'out', ap);
+    const to = endAt(l.b, 'in', bp);
     if (!from || !to) continue;
     const bends = (s.bendPoints ?? []).map((p) => ({ x: on(p.x, HALF), y: on(p.y, HALF) }));
     if (bends.length) {
@@ -191,6 +246,8 @@ async function place(m: Model, variant: Record<string, string>, engine: ELK): Pr
     lines.push([from, ...bends, to]);
     const label = e.labels?.[0];
     routes.set(e.id, {
+      ap,
+      bp,
       pts: bends.map((p) => [p.x, p.y]),
       lbl:
         label?.x !== undefined && label.y !== undefined
@@ -221,7 +278,7 @@ export async function arrangeModel(m: Model): Promise<Model> {
       const { pts: _, lbl: __, ...rest } = l;
       const r = best.routes.get(l.id);
       if (!r) return rest;
-      return { ...rest, ...(r.pts.length ? { pts: r.pts } : {}), ...(r.lbl ? { lbl: r.lbl } : {}) };
+      return { ...rest, ap: r.ap, bp: r.bp, ...(r.pts.length ? { pts: r.pts } : {}), ...(r.lbl ? { lbl: r.lbl } : {}) };
     }),
   };
 }

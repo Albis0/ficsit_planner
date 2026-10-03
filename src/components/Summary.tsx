@@ -218,7 +218,7 @@ export function SummaryHandle() {
       title={closed ? t('showTotals') : t('hideTotals')}
       onClick={() => fold(document.querySelector<HTMLElement>('.summary'), ['height'], () => set({ summaryClosed: !closed }))}
     >
-      <Glyph name={closed ? 'chevronDown' : 'chevronUp'} size={16} />
+      <Glyph name={closed ? 'chevronDown' : 'chevronUp'} size={22} />
     </button>
   );
 }

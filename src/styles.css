@@ -949,13 +949,37 @@ button.slot:hover {
   flex: 1;
   min-height: 0;
   overflow-y: auto;
-  /* Content running past the bottom fades out instead of stopping at a hard cut; when it all fits, only the
-     empty padding is under the fade. */
-  mask-image: linear-gradient(to bottom, #000 calc(100% - 20px), transparent);
+  /* Content running past the bottom fades out over a few pixels, only while there's more below: scrolled to the
+     end, or with nothing to scroll, nothing is faded. Browsers without scroll-linked animations show a hard cut. */
+  --fade: 0px;
+  mask-image: linear-gradient(to bottom, #000 calc(100% - var(--fade)), transparent);
   padding: 20px;
   display: flex;
   flex-direction: column;
   gap: 28px;
+}
+
+@property --fade {
+  syntax: '<length>';
+  inherits: false;
+  initial-value: 0px;
+}
+
+@keyframes more-below {
+  from {
+    --fade: 14px;
+  }
+  to {
+    --fade: 0px;
+  }
+}
+
+@supports (animation-timeline: scroll()) {
+  .panel-body {
+    animation: more-below linear both;
+    animation-timeline: scroll(self);
+    animation-range: calc(100% - 30px) 100%;
+  }
 }
 
 .stack {
@@ -9533,8 +9557,8 @@ a.codex-flow:hover {
   translate: -50% 0;
   display: grid;
   place-items: center;
-  width: 54px;
-  height: 18px;
+  width: 76px;
+  height: 24px;
   padding: 0;
   border: 1px solid #2c2c2c;
   border-top: 0;
@@ -9551,8 +9575,8 @@ a.codex-flow:hover {
 /* Big enough for a finger on touch screens. */
 @media (pointer: coarse) {
   .summary-handle {
-    width: 64px;
-    height: 28px;
+    width: 84px;
+    height: 32px;
   }
 }
 
@@ -9844,7 +9868,7 @@ a.codex-flow:hover {
 .model-toolbar {
   position: absolute;
   /* Below the totals' fold tab, which hangs over the middle of the floor's top edge. */
-  top: 28px;
+  top: 34px;
   left: 18px;
   right: 440px;
   z-index: 6;
@@ -9864,18 +9888,61 @@ a.codex-flow:hover {
   background: #1a1a1a;
 }
 
-.model-history {
+/* Square icon buttons joined in a row, in the floor buttons' metal: undo with redo, tidy up with rebuild. */
+.tool-group {
   display: flex;
-  gap: 6px;
+  border: 1px solid var(--button-edge);
+  border-radius: var(--radius);
+  overflow: hidden;
+  box-shadow: 0 2px 6px rgb(0 0 0 / 0.3);
 }
 
-.model-drain {
-  display: flex;
+.tool-button {
+  display: grid;
+  place-items: center;
+  width: 42px;
+  height: 40px;
+  padding: 0;
+  border: 0;
+  background: linear-gradient(180deg, var(--button-top), var(--button-bottom));
+  box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.07);
+  color: var(--paper);
+  cursor: pointer;
+}
+
+.tool-button + .tool-button {
+  border-left: 1px solid var(--button-edge);
+}
+
+.tool-button:hover:not(:disabled) {
+  color: var(--ficsit);
+}
+
+.tool-button:disabled {
+  cursor: default;
+}
+
+/* Nothing to undo or redo: still drawn, dimmed, so the pair keeps its shape. */
+.tool-button:disabled .glyph {
+  opacity: 0.3;
+}
+
+.tool-button[aria-pressed='false'] {
+  color: var(--dim);
+}
+
+/* What an output with no belt does: the words say it, no hint to read. */
+.open-outputs {
   align-items: center;
-  gap: 6px;
-  padding: 4px 10px;
-  background: rgb(21 21 22);
-  font: 500 15px var(--font-body);
+  background: #1a1a1a;
+}
+
+.open-outputs .seg-label {
+  padding: 0 8px 0 6px;
+  font: 600 14px var(--font-display);
+  letter-spacing: 0.03em;
+  color: var(--faint);
+  white-space: nowrap;
 }
 
 .model-toolbar .run-state {
@@ -9901,22 +9968,15 @@ a.codex-flow:hover {
 
 @media (max-width: 900px) {
   .model-toolbar {
-    top: 36px;
+    top: 42px;
     left: 8px;
     right: 8px;
     gap: 6px;
   }
 
-  .model-drain {
+  .open-outputs {
     display: none;
   }
-}
-
-/* Undo and redo with nothing to go back to stay solid, so the floor doesn't show through them. */
-.model-toolbar .floor-button:disabled {
-  opacity: 1;
-  color: var(--line-2);
-  cursor: default;
 }
 
 /* The same output another way: the machines at 100% with one slower, or all at one clock. */

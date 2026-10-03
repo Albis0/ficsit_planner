@@ -6,6 +6,20 @@ export type UpdateKind = 'added' | 'fixed' | 'changed';
 
 export const UPDATES: { version: string; date: string; notes: [UpdateKind, string][] }[] = [
   {
+    version: '0.13.4',
+    date: '2026-10-03',
+    notes: [
+      ['fixed', 'Manual floor: belts out of a splitter no longer cross each other after converting or Tidy up.'],
+      ['fixed', 'Manual floor: a new belt is the slowest Mk that carries its line, not the best one unlocked.'],
+      ['changed', 'Recipes turned off stay out of the factory side, the Auto machine panel included.'],
+      [
+        'changed',
+        'Manual floor: undo and redo are arrows, Tidy up and Rebuild icons, an eye shows or hides the numbers, Open outputs says Left over or Fill up.',
+      ],
+      ['changed', 'Manual floor: no Add button; right click the floor, or hold a finger on it. A double click on a card ticks it built.'],
+    ],
+  },
+  {
     version: '0.13.3',
     date: '2026-10-03',
     notes: [

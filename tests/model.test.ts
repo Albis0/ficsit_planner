@@ -4,13 +4,14 @@ import { data } from '../src/lib/data';
 import { DEFAULT_EXTRACTION } from '../src/lib/extraction';
 import { adaptModel } from '../src/lib/model/calc/adapter';
 import { calcKey, calcModel } from '../src/lib/model/calc';
+import { builtTransport } from '../src/lib/model/calc/compile';
 import { modelFromSolve } from '../src/lib/model/fromAuto';
 import { arrangeModel, portY } from '../src/lib/model/arrange';
 import { openCards, openEnds, ruleFlags } from '../src/lib/model/checks';
 import { choicesFor, choiceWords, placeChoice, wantAt } from '../src/lib/model/choices';
 import { cardSize, freeSpot } from '../src/lib/model/layout';
 import { addNode, canConnect, connect, evenSpeed, fullSpeed, minerFor, moveNodes, removeNodes } from '../src/lib/model/ops';
-import { portsOf } from '../src/lib/model/ports';
+import { mediumOf, portsOf } from '../src/lib/model/ports';
 import { cleanModel } from '../src/lib/model/sanitize';
 import { type MLink, type MNode, type Model, MODEL_VERSION } from '../src/lib/model/types';
 import { solve } from '../src/lib/solver';
@@ -453,6 +454,37 @@ describe('the chooser', () => {
     expect(recipes(new Set([...standard].filter((id) => id !== SMELT)))).not.toContain(SMELT);
   });
 
+  test('no recipe turned off ever shows: every item, either end, any mix of recipes on', () => {
+    // A fixed spread of mixes: none, standard only, everything, and random halves.
+    let seed = 7;
+    const coin = () => {
+      seed = (seed * 1103515245 + 12345) % 2 ** 31;
+      return seed / 2 ** 31 < 0.5;
+    };
+    const ids = data.recipes.map((r) => r.id);
+    const mixes = [
+      new Set<string>(),
+      new Set(data.recipes.filter((r) => r.kind === 'standard').map((r) => r.id)),
+      new Set(ids),
+      ...Array.from({ length: 4 }, () => new Set(ids.filter(coin))),
+    ];
+    let checked = 0;
+    for (const on of mixes) {
+      const all = (want: Parameters<typeof choicesFor>[0]) =>
+        choicesFor(want, 9, { on }).flatMap((c) => (c.init.k === 'machine' ? [c.init.recipe] : []));
+      for (const id of all(undefined)) expect(on.has(id)).toBe(true);
+      for (const item of Object.values(data.items))
+        for (const side of ['in', 'out'] as const) {
+          const want = { side, node: 'x', port: 0, item: item.id, medium: mediumOf(item.id) };
+          for (const id of all(want)) {
+            expect(on.has(id)).toBe(true);
+            checked++;
+          }
+        }
+    }
+    expect(checked).toBeGreaterThan(1000);
+  });
+
   test('a new miner comes with the miner, purity and clock picked in Resources', () => {
     const want = wantAt(model([smelter('s')], []), 9, 's', 'in', 0);
     const ex = { miner: 'Build_MinerMk1_C', purity: 'impure' as const, clock: 1.5 };
@@ -512,6 +544,25 @@ describe('going against the side panel', () => {
     const calc = await run(m);
     expect(ruleFlags(m, { tier: 9, caps: { [ORE]: 20 } }, calc).get('m')).toMatchObject({ k: 'cap', item: ORE, rate: 30, cap: 20 });
     expect(ruleFlags(m, { tier: 9, caps: { [ORE]: 500 } }, calc).has('m')).toBe(false);
+  });
+});
+
+describe('the Mk a belt is built with', () => {
+  test('left to itself: the slowest unlocked that carries the line; picked: the one picked', () => {
+    const link = { id: 'l', a: 'a', ap: 0, b: 'b', bp: 0 };
+    const name = (mk: number | undefined, rate: number | undefined, tier = 9, lanes?: number) =>
+      builtTransport('belt', { ...link, ...(mk !== undefined ? { mk } : {}), ...(lanes ? { lanes } : {}) }, tier, rate).name;
+    expect(name(undefined, 25)).toBe('Mk.1');
+    expect(name(undefined, 60)).toBe('Mk.1');
+    expect(name(undefined, 97.5)).toBe('Mk.2');
+    expect(name(undefined, 270)).toBe('Mk.3');
+    expect(name(undefined, 300)).toBe('Mk.4');
+    // Two side by side: each carries half.
+    expect(name(undefined, 200, 9, 2)).toBe('Mk.2');
+    // More than the best unlocked carries, or no numbers yet: the best unlocked.
+    expect(name(undefined, 5000, 3)).toBe(builtTransport('belt', link, 3).name);
+    expect(name(undefined, undefined)).toBe('Mk.6');
+    expect(name(2, 25)).toBe('Mk.3');
   });
 });
 
@@ -618,6 +669,41 @@ describe('tidy up', () => {
                 cross++;
             }
       expect(cross).toBeLessThanOrEqual(Math.ceil(m.links.length * 0.45));
+      // Belts leaving one splitter, or reaching one merger, never cross each other.
+      const meets = (i: number, j: number) => {
+        let n = 0;
+        for (const [a, b] of runs[i])
+          for (const [c, d] of runs[j]) {
+            const flat = Math.abs(a.y - b.y) < 1;
+            const [h, v] =
+              flat && Math.abs(c.x - d.x) < 1
+                ? [
+                    [a, b],
+                    [c, d],
+                  ]
+                : !flat && Math.abs(c.y - d.y) < 1
+                  ? [
+                      [c, d],
+                      [a, b],
+                    ]
+                  : [];
+            if (!h || !v) continue;
+            const inX = v[0].x > Math.min(h[0].x, h[1].x) && v[0].x < Math.max(h[0].x, h[1].x);
+            const inY = h[0].y > Math.min(v[0].y, v[1].y) && h[0].y < Math.max(v[0].y, v[1].y);
+            if (inX && inY) n++;
+          }
+        return n;
+      };
+      const crossed: string[] = [];
+      for (const n of m.nodes) {
+        if (n.k !== 'logistic') continue;
+        for (const side of ['a', 'b'] as const) {
+          const mine = m.links.flatMap((l, i) => (l[side] === n.id ? [i] : []));
+          for (let x = 0; x < mine.length; x++)
+            for (let y = x + 1; y < mine.length; y++) if (meets(mine[x], mine[y])) crossed.push(`${n.id} ${side}`);
+        }
+      }
+      expect(crossed).toEqual([]);
       // Left to right, but for a belt that loops back (a byproduct fed back in).
       const back = m.links.filter((l) => at.get(l.a)!.x >= at.get(l.b)!.x);
       expect(back.length).toBeLessThanOrEqual(Math.ceil(m.links.length * 0.05));
@@ -625,7 +711,8 @@ describe('tidy up', () => {
       expect(await arrangeModel(m)).toEqual(m);
       const moved = { ...m, nodes: m.nodes.map((n, i) => (i === 0 ? { ...n, x: n.x + 999 } : n)) };
       expect((await arrangeModel(moved)).nodes).toEqual(m.nodes);
-    });
+      // Three layouts of a big factory.
+    }, 30000);
 });
 
 describe('the same output another way', () => {

@@ -2,7 +2,7 @@ import { data } from '../../lib/data';
 import { PURITIES } from '../../lib/extraction';
 import { useT } from '../../lib/i18n';
 import { LOGISTICS, SINK, STORAGE_NAME } from '../../lib/model/catalog';
-import { linkMedium, transportOf } from '../../lib/model/calc/compile';
+import { builtTransport, linkMedium } from '../../lib/model/calc/compile';
 import { type CalcResult, countOf, type NodeCalc } from '../../lib/model/calc/result';
 import { type OpenEnds, openEnds, ruleFlags } from '../../lib/model/checks';
 import { minerFor, removeLinks, removeNodes, updateLink, updateNode } from '../../lib/model/ops';
@@ -376,8 +376,9 @@ function LinkPanel({ host, link, calc }: { host: ModelHost; link: MLink; calc?: 
   if (!a || !b) return null;
   const medium = linkMedium(portsOf(a), portsOf(b), link);
   const list = medium === 'pipe' ? data.pipes : data.belts;
-  const transport = transportOf(medium, link.mk, tier);
   const c = calc?.links[link.id];
+  const transport = builtTransport(medium, link, tier, c?.rate);
+  const lanes = link.lanes ?? 1;
   const change = (patch: Partial<MLink>, key?: string) => host.edit((m) => updateLink(m, link.id, patch), key && `${link.id}:${key}`);
   const item = c?.items[0]?.[0];
   return (
@@ -392,7 +393,7 @@ function LinkPanel({ host, link, calc }: { host: ModelHost; link: MLink; calc?: 
           <dt>{t('carries')}</dt>
           <dd>
             {num(c?.rate ?? 0)}
-            <small> / {num(c?.cap ?? transport.rate)}</small>
+            <small> / {num(Math.min(transport.rate * lanes, link.lim ?? Number.POSITIVE_INFINITY))}</small>
             {t('perMin')}
           </dd>
         </div>
@@ -417,6 +418,16 @@ function LinkPanel({ host, link, calc }: { host: ModelHost; link: MLink; calc?: 
       <div className="inspector-row">
         <span className="inspector-label">{t(medium === 'pipe' ? 'pipeMk' : 'beltMk')}</span>
         <div className="segmented mk-pick" role="radiogroup">
+          {/* Left to choose itself: the slowest one that carries the line. */}
+          <button
+            type="button"
+            role="radio"
+            aria-checked={link.mk === undefined}
+            title={t('autoMkHint')}
+            onClick={() => change({ mk: undefined })}
+          >
+            {t('autoCount')}
+          </button>
           {list.map((x, i) =>
             // Above the tier: greyed out, or left out unless Settings shows what the tier can't make.
             x.tier > tier && !showLocked && x.id !== transport.id ? null : (
@@ -424,7 +435,7 @@ function LinkPanel({ host, link, calc }: { host: ModelHost; link: MLink; calc?: 
                 key={x.id}
                 type="button"
                 role="radio"
-                aria-checked={x.id === transport.id}
+                aria-checked={link.mk === i}
                 disabled={x.tier > tier}
                 title={`${num(x.rate)}${t('perMin')}`}
                 onClick={() => change({ mk: i })}

@@ -135,7 +135,16 @@ const SCREENS = [
       await page.click('.floor-kind button >> nth=1');
       await page.waitForFunction(() => !document.querySelector('.busy'), null, { timeout: 30000 });
       await page.waitForTimeout(1200);
-      await page.click('.add-part');
+      // A right click on a laptop; a finger held on a phone.
+      await page.locator('.react-flow__pane').click({ button: 'right', position: { x: 30, y: 200 } });
+      await page.waitForTimeout(300);
+      if (!(await page.locator('.chooser').count())) {
+        const f = await page.locator('.react-flow__pane').boundingBox();
+        const cdp = await page.context().newCDPSession(page);
+        await cdp.send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: [{ x: f.x + 30, y: f.y + 200 }] });
+        await page.waitForTimeout(800);
+        await cdp.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] });
+      }
       await page.locator('.chooser input').fill('rotor');
     },
   },

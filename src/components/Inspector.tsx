@@ -226,8 +226,8 @@ export function Inspector({ result }: { result: SolveResult }) {
 }
 
 /**
- * Every recipe for the part this machine makes, ticked or not, so an alternate can be tried from the floor instead
- * of found in the Recipes tab. Each says how its whole line compares with the standard one, once the Codex is in.
+ * The recipes turned on for the part this machine makes, so one can be turned off from the floor; what's off stays in
+ * the Recipes tab. Each says how its whole line compares with the standard one, once the Codex is in.
  */
 function RecipeChoices({ item, result }: { item: string; result: SolveResult }) {
   const { t, name } = useT();
@@ -237,9 +237,9 @@ function RecipeChoices({ item, result }: { item: string; result: SolveResult }) 
   const codex = useCodex();
   // The comparisons are worked out at the game's default part cost; under another one they'd mislead.
   const parts = useStore((s) => s.settings.game.parts);
-  const recipes = (producersOf.get(item) ?? []).filter((r) => r.kind !== 'power' && recipeUnlocked(r, tier));
-  if (recipes.length < 2) return null;
   const on = new Set(plan.enabled);
+  const recipes = (producersOf.get(item) ?? []).filter((r) => r.kind !== 'power' && recipeUnlocked(r, tier) && on.has(r.id));
+  if (recipes.length < 2) return null;
   const used = new Set(result.recipes.map((u) => u.recipe.id));
   const insight = parts === 1 ? codex?.data.insights.items[item] : undefined;
   const change = (share: number, more: 'moreRaw' | 'morePower', less: 'lessRaw' | 'lessPower') =>

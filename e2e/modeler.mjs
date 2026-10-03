@@ -99,6 +99,13 @@ async function emptySpot(prefer = 'right') {
   }, prefer);
 }
 
+/** Opens the build menu on an empty spot of the floor, with a right click. */
+async function addHere(prefer = 'right') {
+  const at = await emptySpot(prefer);
+  await page.mouse.click(at.x, at.y, { button: 'right' });
+  await wait(300);
+}
+
 /** Cards drawn on top of each other. */
 const overlaps = () =>
   page.evaluate(() => {
@@ -255,15 +262,18 @@ const clash = (a, b) => a && b && a.x < b.x + b.width && b.x < a.x + a.width && 
   ok('one click picks just that card', (await page.locator('.react-flow__node.selected').count()) === 1);
   await card(smelter.id).locator('.machine-strip').dblclick();
   await wait();
-  const touching = m.links.filter((l) => l.a === smelter.id || l.b === smelter.id).map((l) => l.id);
-  const lit = await page.$$eval('.react-flow__edge.selected', (l) => l.map((e) => e.dataset.id ?? e.getAttribute('data-id')));
+  const builtNow = (await model()).nodes.find((n) => n.id === smelter.id)?.done === true;
   ok(
-    'double click picks its belts',
-    touching.length > 0 && touching.every((id) => lit.includes(id)) && lit.length === touching.length,
-    `${lit.length}/${touching.length}`,
+    'double click ticks it built, with the tick on the card and in the panel',
+    builtNow &&
+      (await card(smelter.id).locator('.machine-node.done').count()) === 1 &&
+      (await page.locator('aside.inspector .built-check input').isChecked()),
   );
-  ok('double click picks no cards', (await page.locator('.react-flow__node.selected').count()) === 0);
-  await shot('a3-belts');
+  await shot('a3-built');
+  await card(smelter.id).locator('.machine-strip').dblclick();
+  await wait();
+  ok('a second double click unticks it', !(await model()).nodes.find((n) => n.id === smelter.id)?.done);
+  const touching = m.links.filter((l) => l.a === smelter.id || l.b === smelter.id).map((l) => l.id);
   await page.keyboard.press('Escape');
   await wait();
   ok(
@@ -392,7 +402,7 @@ const clash = (a, b) => a && b && a.x < b.x + b.width && b.x < a.x + a.width && 
   await wait();
   const panelOpen = await page.locator('aside.inspector .mk-pick').isVisible();
   ok('clicking a belt opens it', panelOpen);
-  await page.locator('aside.inspector .mk-pick button >> nth=0').click();
+  await page.locator('aside.inspector .mk-pick button:text-is("Mk.1")').click();
   await settle();
   m = await model();
   const b1 = m.links.find((l) => l.id === plateBelt.id);
@@ -500,13 +510,13 @@ const clash = (a, b) => a && b && a.x < b.x + b.width && b.x < a.x + a.width && 
   );
   ok('the totals count it as left over', /Surplus\s*45/.test(await page.locator('.floor').innerText()));
   await shot('a7-left-over');
-  await page.locator('.model-drain input').check();
+  await page.locator('.open-outputs button:has-text("Fill up")').click();
   await settle();
   ok('open outputs backing up, as in the game: it stops', (await card(ironSmelter.id).innerText()).includes('Output not connected'));
   await shot('a7-stall');
-  await page.locator('.model-drain input').uncheck();
+  await page.locator('.open-outputs button:has-text("Left over")').click();
   await settle();
-  await page.locator('.model-toolbar .segmented button:has-text("Off")').click();
+  await page.locator('.tool-button[aria-label="Numbers"]').click();
   await settle();
   ok(
     'Off: no numbers',
@@ -514,9 +524,9 @@ const clash = (a, b) => a && b && a.x < b.x + b.width && b.x < a.x + a.width && 
       !(await page.locator('.edge-rate, .endpoint-rate, .machine-draw').count()),
   );
   await shot('a7-off');
-  await page.locator('.model-toolbar .segmented button:has-text("Max flow")').click();
+  await page.locator('.tool-button[aria-label="Numbers"]').click();
   await settle();
-  ok('Max flow: numbers back', (await card(ironSmelter.id).locator('.run-state').count()) === 1);
+  ok('numbers back', (await card(ironSmelter.id).locator('.run-state').count()) === 1);
 
   // ── A8: the other views, Auto and back, rebuild ──
   section = 'A8';
@@ -538,7 +548,7 @@ const clash = (a, b) => a && b && a.x < b.x + b.width && b.x < a.x + a.width && 
   await settle();
   ok('Auto and back keeps the floor', JSON.stringify(await model()) === JSON.stringify(m));
   page.once('dialog', (d) => d.accept());
-  await page.locator('.model-toolbar button:has-text("Rebuild")').click();
+  await page.locator('.tool-button[aria-label="Rebuild"]').click();
   await settle();
   const rebuilt = await model();
   ok('rebuild asks, then starts again', rebuilt.links.some((l) => l.a === ironSmelter.id) || rebuilt.nodes.length > 0);
@@ -706,10 +716,7 @@ const clash = (a, b) => a && b && a.x < b.x + b.width && b.x < a.x + a.width && 
   await wait(300);
   ok('set to double click: a right click adds nothing', !(await page.locator('.chooser').count()));
   await addWith('Right click');
-  await page.locator('.add-part').click();
-  await wait(300);
-  ok('+ Add opens it', await page.locator('.chooser').isVisible());
-  await page.keyboard.press('Escape');
+  ok('no Add button on the floor', !(await page.locator('.add-part').count()));
 
   section = 'B3';
   await page.click('.floor-controls .floor-button >> nth=-1');
@@ -783,7 +790,7 @@ const clash = (a, b) => a && b && a.x < b.x + b.width && b.x < a.x + a.width && 
   // A belt let go on a card's body goes onto its free end that fits.
   const rod = await page.evaluate(() => null);
   void rod;
-  await page.locator('.add-part').click();
+  await addHere('right');
   await page.keyboard.type('Iron Rod');
   await page.keyboard.press('Enter');
   await settle();
@@ -793,7 +800,7 @@ const clash = (a, b) => a && b && a.x < b.x + b.width && b.x < a.x + a.width && 
   await page.click('.floor-controls .floor-button >> nth=-1');
   await wait(500);
   // The smelter's output already feeds the plates: a splitter first, then from it onto the rod card's body.
-  await page.locator('.add-part').click();
+  await addHere('right');
   await page.locator('.chooser-tabs button:has-text("Logistics")').click();
   await page.locator('.chooser-list li:has-text("Conveyor Splitter")').dispatchEvent('mousedown');
   await settle();
@@ -826,7 +833,7 @@ const clash = (a, b) => a && b && a.x < b.x + b.width && b.x < a.x + a.width && 
 
   section = 'B4';
   // Open outputs backing up as in the game: then every open output needs a belt.
-  await page.locator('.model-drain input').check();
+  await page.locator('.open-outputs button:has-text("Fill up")').click();
   await settle();
   const openText = await page
     .locator('.open-ends')
@@ -856,7 +863,7 @@ const clash = (a, b) => a && b && a.x < b.x + b.width && b.x < a.x + a.width && 
     await page.keyboard.press('Escape');
   }
   ok('nothing left open', !(await page.locator('.open-ends').count()));
-  await page.locator('.model-drain input').uncheck();
+  await page.locator('.open-outputs button:has-text("Left over")').click();
   await settle();
   const allStates = await page.$$eval('.react-flow__node .run-state', (l) => l.map((x) => x.textContent));
   ok(
@@ -878,7 +885,7 @@ const clash = (a, b) => a && b && a.x < b.x + b.width && b.x < a.x + a.width && 
   );
   m = await model();
   const was = JSON.stringify(m.nodes.map((n) => [n.x, n.y]));
-  await page.locator('.model-toolbar button:has-text("Tidy up")').click();
+  await page.locator('.tool-button[aria-label="Tidy up"]').click();
   await settle();
   await wait(500);
   ok('Tidy up lays it out afresh', JSON.stringify((await model()).nodes.map((n) => [n.x, n.y])) !== was);
@@ -1155,6 +1162,73 @@ const clash = (a, b) => a && b && a.x < b.x + b.width && b.x < a.x + a.width && 
   ok('mined past the limit: the miner says so', (await card('m').locator('.card-flag').innerText()).toLowerCase() === 'over the limit');
   ok('and Resources too', (await page.locator('.resource-card .over-cap').count()) === 1);
   await shot('p-over-limit');
+  // Scrolled to the end of a panel, nothing at its bottom is faded.
+  const fadeAt = (where) =>
+    page.evaluate((where) => {
+      const p = document.querySelector('.panel-body.resources');
+      p.scrollTop = where === 'end' ? p.scrollHeight : 0;
+      return new Promise((r) =>
+        requestAnimationFrame(() => requestAnimationFrame(() => r(getComputedStyle(p).getPropertyValue('--fade').trim()))),
+      );
+    }, where);
+  const scrolls = await page.evaluate(() => {
+    const p = document.querySelector('.panel-body.resources');
+    return p.scrollHeight > p.clientHeight + 4;
+  });
+  ok('a panel faded only while there is more below', !scrolls || ((await fadeAt('top')) !== '0px' && (await fadeAt('end')) === '0px'));
+  // A belt left to choose its Mk: the slowest that carries it, though Mk.6 is unlocked.
+  await fit();
+  await page.locator('.react-flow__edge[data-id="l1"] .belt-hit').click({ force: true });
+  await wait();
+  const beltHead = await page.locator('aside.inspector .inspector-machine').innerText();
+  ok(
+    'a belt left to itself is the slowest Mk that carries it',
+    beltHead.includes('Mk.2') && (await page.locator('aside.inspector .mk-pick button[aria-checked="true"]').innerText()) === 'Auto',
+    beltHead,
+  );
+  await page.keyboard.press('Escape');
+  // Undo and redo side by side, arrows, no words.
+  const [u, r] = await Promise.all(['Undo', 'Redo'].map((n) => page.locator(`.tool-button[aria-label="${n}"]`).boundingBox()));
+  ok('undo and redo side by side', u && r && Math.abs(r.x - (u.x + u.width)) <= 2 && Math.abs(r.y - u.y) <= 1, JSON.stringify({ u, r }));
+  ok('the toolbar has no words on its buttons', !(await page.locator('.model-toolbar .tool-button').allInnerTexts()).some((x) => x.trim()));
+  const handle = await page.locator('.summary-handle').boundingBox();
+  ok('the totals fold tab is easy to hit', handle && handle.width >= 76 && handle.height >= 24, JSON.stringify(handle));
+  await shot('p-toolbar');
+  // Auto floor: a machine's panel lists only the recipes turned on.
+  await open(
+    saved({
+      mode: 'factory',
+      plans: [{ id: 'f1', name: 'Factory 1', targets: [{ item: 'Desc_IronPlateReinforced_C', rate: 5 }] }],
+      active: 'f1',
+    }),
+  );
+  await page.click('.deck-toggle');
+  await wait(500);
+  const plateCard = () =>
+    page
+      .locator('.react-flow__node')
+      .filter({ has: page.locator('.machine-product', { hasText: /^(Coated )?Iron Plate$/ }) })
+      .first();
+  await plateCard().click();
+  await wait(400);
+  ok('every alternate off: no recipe list to turn them on from in the Auto panel', !(await page.locator('.recipe-choices').count()));
+  await page.evaluate(() => {
+    const s = JSON.parse(localStorage.getItem('ficsit-planner'));
+    s.state.plans[0].enabled.push('Recipe_Alternate_CoatedIronPlate_C');
+    localStorage.setItem('ficsit-planner', JSON.stringify(s));
+  });
+  await page.reload();
+  await page.waitForFunction(() => !document.querySelector('.boot') && !document.querySelector('.busy'), null, { timeout: 30000 });
+  await wait(600);
+  await plateCard().click();
+  await wait(400);
+  const listed = await page.locator('.recipe-choices .recipe-choice-name').allInnerTexts();
+  const unticked = await page.locator('.recipe-choices input:not(:checked)').count();
+  ok(
+    'one turned on: the panel lists it with the standard one, nothing turned off',
+    listed.length === 2 && unticked === 0 && listed.some((x) => x.includes('Coated Iron Plate')),
+    listed.join(' | '),
+  );
   await ctx.close();
 }
 
@@ -1206,11 +1280,19 @@ const clash = (a, b) => a && b && a.x < b.x + b.width && b.x < a.x + a.width && 
   await open(blank);
   await page.locator('.quick-head .build-by-hand').tap();
   await wait(500);
-  await page.locator('.add-part').tap();
-  await wait(300);
+  // A finger held on the empty floor opens the menu; there's no Add button.
+  ok('no Add button on the phone either', !(await page.locator('.add-part').count()));
+  {
+    const f = await page.locator('.react-flow').boundingBox();
+    const at = { x: f.x + f.width / 2, y: f.y + f.height - 140 };
+    await cdp.send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: [at] });
+    await wait(800);
+    await cdp.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] });
+    await wait(400);
+  }
   const sheet = await page.locator('.chooser').boundingBox();
   ok(
-    '+ opens the menu from the bottom',
+    'a finger held on the floor opens the menu from the bottom',
     sheet &&
       Math.abs(
         sheet.y +

@@ -55,6 +55,18 @@ export function transportOf(medium: Medium, mk: number | undefined, tier: number
   return all.filter((t) => t.tier <= tier).at(-1) ?? all[0];
 }
 
+/**
+ * The belt or pipe a link is built with: the one the player picked, or, left to choose itself, the slowest one unlocked
+ * that carries what goes through it (a 25/min line is a Mk.1 belt even with Mk.5 unlocked). Without numbers yet, the
+ * best one unlocked, which is what it may carry at most.
+ */
+export function builtTransport(medium: Medium, link: MLink, tier: number, rate?: number): Transport {
+  if (link.mk !== undefined || rate === undefined) return transportOf(medium, link.mk, tier);
+  const lanes = link.lanes ?? 1;
+  const open = (medium === 'pipe' ? data.pipes : data.belts).filter((t) => t.tier <= tier);
+  return open.find((t) => t.rate * lanes >= rate - 1e-6) ?? transportOf(medium, undefined, tier);
+}
+
 /** Which kind of line a link is: whatever its ends say, belt when neither does. */
 export function linkMedium(fromPorts: Ports, toPorts: Ports, link: MLink): Medium {
   const a = fromPorts.outs[link.ap];
