@@ -6,7 +6,8 @@ import type { CalcResult, LinkCalc, NodeCalc, NodeStatus } from './result';
 /*
   Max flow: the most every machine can run within its count and clock, every belt within its Mk, every source and
   output within its limit. Two linear programs: first as many machines as busy as can be, then, holding that, as much
-  as can reach the outputs with as little going round in circles as possible. It finds an answer the game could run,
+  as can reach the outputs with as little going round in circles as possible. A machine set to size itself has no
+  count to fill: it takes as many machines as what reaches it keeps busy, so it follows the miners and inputs feeding it. It finds an answer the game could run,
   but not how the game's splitters would share things out; the game rules calculator does that.
 */
 
@@ -30,11 +31,14 @@ export function blocker(net: Net, c: CNode): NodeStatus | undefined {
 
 interface Lp {
   text: (objective: string, sense: 'Maximize' | 'Minimize', extra: string[]) => string;
-  /** Machine busy shares, by node. */
+  /** Machine busy shares, by node; machines in use for a node that sizes itself. */
   u: Map<CNode, string>;
   /** Flow of each item on each belt. */
   f: Map<Arc, Map<string, string>>;
-  terminal: string[];
+  /** What reaches an output, a sink or a filling container, and what's left over on open outputs: weight and variable. */
+  terminal: [number, string][];
+  /** What leaves the inputs and emptying containers. */
+  sources: string[];
 }
 
 function build(net: Net): Lp {
@@ -67,13 +71,14 @@ function build(net: Net): Lp {
   const flows = (arcs: (Arc | undefined)[], item?: string) =>
     arcs.flatMap((a) => (a ? [...(f.get(a) ?? [])].filter(([i]) => !item || i === item).map(([, v]) => v) : []));
 
-  const terminal: string[] = [];
+  const terminal: [number, string][] = [];
+  const sources: string[] = [];
   net.nodes.forEach((c, i) => {
     const n = c.node;
     if (isRunner(n)) {
       const name = `u${i}`;
       u.set(c, name);
-      bounds.push(blocker(net, c) ? ` ${name} = 0` : ` 0 <= ${name} <= 1`);
+      bounds.push(blocker(net, c) ? ` ${name} = 0` : ` 0 <= ${name} <= ${c.auto ? BIG : 1}`);
       c.inArcs.forEach((a, p) => {
         const item = c.recipe?.inputs[p]?.item;
         if (!a || !item) return;
@@ -81,7 +86,12 @@ function build(net: Net): Lp {
       });
       c.outArcs.forEach((a, q) => {
         const item = c.recipe?.outputs[q]?.item;
-        if (!a || !item) return;
+        if (!item) return;
+        // Left over on an open output counts as made, so a line ending in a machine still runs.
+        if (!a) {
+          if (net.drain && fullOut(c, q) > 0) terminal.push([fullOut(c, q), name]);
+          return;
+        }
         row([...flows([a], item).map((v) => `+ ${v}`), term(-fullOut(c, q), name)], '= 0');
       });
       return;
@@ -90,6 +100,7 @@ function build(net: Net): Lp {
     const outAll = flows(c.outArcs);
     switch (n.k) {
       case 'in':
+        sources.push(...outAll);
         if (n.lim !== undefined)
           row(
             outAll.map((v) => `+ ${v}`),
@@ -102,10 +113,10 @@ function build(net: Net): Lp {
             inAll.map((v) => `+ ${v}`),
             `<= ${fmt(n.lim)}`,
           );
-        terminal.push(...inAll);
+        terminal.push(...inAll.map((v): [number, string] => [1, v]));
         break;
       case 'sink':
-        terminal.push(...inAll);
+        terminal.push(...inAll.map((v): [number, string] => [1, v]));
         break;
       case 'storage':
         if (n.mode === 'fill') {
@@ -114,8 +125,9 @@ function build(net: Net): Lp {
               inAll.map((v) => `+ ${v}`),
               `<= ${fmt(n.lim)}`,
             );
-          terminal.push(...inAll);
+          terminal.push(...inAll.map((v): [number, string] => [1, v]));
         } else if (n.mode === 'empty') {
+          sources.push(...outAll);
           if (n.lim !== undefined)
             row(
               outAll.map((v) => `+ ${v}`),
@@ -153,7 +165,26 @@ function build(net: Net): Lp {
       ...bounds,
       'End',
     ].join('\n');
-  return { text, u, f, terminal };
+  return { text, u, f, terminal, sources };
+}
+
+/**
+ * For each splitter with more than one belt out: a variable for the least it sends down any of them, held under what
+ * each one carries. Raising those spreads its load out evenly wherever nothing after it says otherwise.
+ */
+function splitShares(net: Net, lp: Lp): { least: string; rows: string[] }[] {
+  const out: { least: string; rows: string[] }[] = [];
+  net.nodes.forEach((c, i) => {
+    if (c.node.k !== 'logistic' || c.node.kind === 'merger' || c.node.kind === 'prio') return;
+    const arcs = c.outArcs.filter((a): a is Arc => !!a && !a.jam && (lp.f.get(a)?.size ?? 0) > 0);
+    if (arcs.length < 2) return;
+    const least = `m${i}`;
+    out.push({
+      least,
+      rows: arcs.map((a, q) => ` s${i}_${q}: ${[...(lp.f.get(a)?.values() ?? [])].map((v) => `+ ${v}`).join(' ')} - ${least} >= 0`),
+    });
+  });
+  return out;
 }
 
 const solveLp = (highs: Highs, text: string) => {
@@ -164,18 +195,36 @@ const solveLp = (highs: Highs, text: string) => {
 
 export function basicCalc(highs: Highs, net: Net): CalcResult {
   const lp = build(net);
-  const uVars = [...lp.u.values()];
+  // Machines with a count to fill; one that sizes itself has none, and follows what feeds it.
+  const uVars = [...lp.u].filter(([c]) => !c.auto).map(([, v]) => v);
   const allF = [...lp.f.values()].flatMap((m) => [...m.values()]);
   let cols: Record<string, { Primal?: number }> = {};
-  if (uVars.length || allF.length) {
+  if (lp.u.size || allF.length) {
     // First: as many machines as busy as can be.
     const first = solveLp(highs, lp.text(uVars.map((v) => `+ ${v}`).join(' '), 'Maximize', []));
     const busy = uVars.reduce((s, v) => s + Math.max(0, first.Columns[v]?.Primal ?? 0), 0);
     const hold = uVars.length ? [` hold: ${uVars.map((v) => `+ ${v}`).join(' ')} >= ${fmt(Math.max(0, busy * (1 - 1e-10) - 1e-10))}`] : [];
-    // Then, keeping that: as much reaching the outputs as can, with as little looping as can be.
-    const obj = [...lp.terminal.map((v) => `+ ${v}`), ...allF.map((v) => `- 0.000001 ${v}`)].join(' ');
-    const second = solveLp(highs, lp.text(obj, 'Maximize', hold));
+    // Then, keeping that: as much reaching the outputs as can, with as little looping as can be. One term per
+    // variable: the LP format doesn't add up a variable named twice.
+    const made = new Map<string, number>();
+    for (const [k, v] of lp.terminal) made.set(v, (made.get(v) ?? 0) + k);
+    const sum = (weights: Map<string, number>) => [...weights].map(([v, k]) => `${k < 0 ? '-' : '+'} ${fmt(Math.abs(k))} ${v}`).join(' ');
+    const loops = new Map(allF.map((v) => [v, -0.000001]));
+    const second = solveLp(
+      highs,
+      lp.text(sum(new Map([...loops, ...[...made].map(([v, k]) => [v, k + (loops.get(v) ?? 0)] as const)])), 'Maximize', hold),
+    );
     cols = second.Columns as typeof cols;
+    // Last, keeping the machines as busy and as much coming in: a splitter shares out as evenly as what's after it
+    // lets it, as the game's does, rather than sending everything down the side that makes the most items.
+    const shares = splitShares(net, lp);
+    if (shares.length) {
+      const taken = new Map(lp.sources.map((v) => [v, 1]));
+      const total = lp.sources.reduce((t, v) => t + Math.max(0, cols[v]?.Primal ?? 0), 0);
+      const keep = taken.size ? [` keep: ${sum(taken)} >= ${fmt(Math.max(0, total * (1 - 1e-9) - 1e-9))}`] : [];
+      const obj = [...shares.map((x) => `+ ${x.least}`), sum(loops)].join(' ');
+      cols = solveLp(highs, lp.text(obj, 'Maximize', [...shares.flatMap((x) => x.rows), ...keep, ...hold])).Columns as typeof cols;
+    }
   }
   const val = (name: string | undefined) => (name ? Math.max(0, cols[name]?.Primal ?? 0) : 0);
   return read(
@@ -209,12 +258,21 @@ export function read(net: Net, uOf: (c: CNode) => number, flowOf: (a: Arc, item:
     const ins = c.inArcs.map(sum);
     const outs = c.outArcs.map(sum);
     if (isRunner(c.node)) {
-      const u = Math.min(1, uOf(c));
+      // A machine sizing itself runs every machine it takes at full speed; how many is its count.
+      const raw = uOf(c);
+      const u = c.auto ? (raw > EPS ? 1 : 0) : Math.min(1, raw);
       const block = blocker(net, c);
       const status: NodeStatus = block ?? (u >= 1 - 1e-6 ? 'full' : u > 1e-6 ? 'partial' : 'idle');
       // Nothing on an output end and the model drains it: what it makes there is left over.
-      const spare = net.drain ? c.outArcs.map((a, q) => (a ? 0 : fullOut(c, q) * u)) : undefined;
-      nodes[c.node.id] = { u, ins, outs, status, ...(spare?.some((x) => x > EPS) ? { spare } : {}) };
+      const spare = net.drain ? c.outArcs.map((a, q) => (a ? 0 : fullOut(c, q) * Math.min(c.auto ? BIG : 1, raw))) : undefined;
+      nodes[c.node.id] = {
+        u,
+        ins,
+        outs,
+        status,
+        ...(c.auto ? { n: raw > EPS ? raw : 0 } : {}),
+        ...(spare?.some((x) => x > EPS) ? { spare } : {}),
+      };
     } else {
       const block = blocker(net, c);
       const moving = ins.some((x) => x > EPS) || outs.some((x) => x > EPS);

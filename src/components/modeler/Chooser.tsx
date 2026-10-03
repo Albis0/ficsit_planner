@@ -34,7 +34,7 @@ export function Chooser({
   onClose: () => void;
 }) {
   const { t, name, num } = useT();
-  const hide = useStore((s) => s.settings.hideLocked);
+  const hide = useStore((s) => !s.settings.showLocked);
   // Set to hide what isn't unlocked yet: only what can be built at this tier, and no ends for parts it can't make.
   const all = useMemo(
     () =>

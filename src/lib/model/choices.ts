@@ -87,7 +87,7 @@ export function choicesFor(want: Want | undefined, tier: number, marked: Readonl
     recipes.push({
       key: `r:${r.id}`,
       tab: 'make',
-      init: { k: 'machine', recipe: r.id, x: 0, y: 0 },
+      init: { k: 'machine', recipe: r.id, auto: true, x: 0, y: 0 },
       ...(port !== undefined ? { port } : {}),
       tier: recipeTier(r),
       ...(marked.has(r.id) ? { marked: true } : {}),

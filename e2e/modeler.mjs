@@ -340,11 +340,21 @@ const clash = (a, b) => a && b && a.x < b.x + b.width && b.x < a.x + a.width && 
     m = await model();
     ok('one somersloop', m.nodes.find((n) => n.id === cons.id).sloops === 1);
   }
-  await page.locator('aside.inspector .inspector-actions .text-button >> nth=0').click();
+  const speed = page.locator('aside.inspector .speed-buttons button');
+  ok(
+    'Fill to 100% and Even out always in the panel',
+    (await speed.count()) === 2 && (await speed.first().isEnabled()) && (await speed.first().innerText()) === 'Fill to 100%',
+  );
+  const built = page.locator('aside.inspector .built-check');
+  ok('Built in the game is a box to tick', (await built.locator('input[type="checkbox"]').count()) === 1 && (await built.isVisible()));
+  await built.click();
   await wait();
   m = await model();
-  ok('mark as built', m.nodes.find((n) => n.id === cons.id).done === true && (await card(cons.id).locator('.done').count()) === 1);
-  await page.locator('aside.inspector .inspector-actions .text-button >> nth=0').click();
+  ok(
+    'ticked: built, with a tick on the card',
+    m.nodes.find((n) => n.id === cons.id).done === true && (await card(cons.id).locator('.done').count()) === 1,
+  );
+  await built.click();
   await wait();
   ok('and back', !(await model()).nodes.find((n) => n.id === cons.id).done);
   await shot('a4-machine');
@@ -483,15 +493,19 @@ const clash = (a, b) => a && b && a.x < b.x + b.width && b.x < a.x + a.width && 
   await page.locator(`.react-flow__edge[data-id="${outBelt.id}"] .belt-hit`).click({ force: true });
   await page.keyboard.press('Delete');
   await settle();
-  ok('an open output stops the machine', (await card(ironSmelter.id).innerText()).includes('Output not connected'));
+  ok(
+    'with its output open, it runs and what it makes is left over',
+    (await card(ironSmelter.id).innerText()).includes('Full speed') && (await card(ironSmelter.id).locator('.port-spare').count()) === 1,
+    (await card(ironSmelter.id).innerText()).replace(/\s+/g, ' '),
+  );
+  ok('the totals count it as left over', /Surplus\s*45/.test(await page.locator('.floor').innerText()));
+  await shot('a7-left-over');
   await page.locator('.model-drain input').check();
   await settle();
-  ok(
-    'counted as left over, it runs',
-    (await card(ironSmelter.id).innerText()).includes('Full speed'),
-    await card(ironSmelter.id).innerText(),
-  );
-  await shot('a7-drain');
+  ok('open outputs backing up, as in the game: it stops', (await card(ironSmelter.id).innerText()).includes('Output not connected'));
+  await shot('a7-stall');
+  await page.locator('.model-drain input').uncheck();
+  await settle();
   await page.locator('.model-toolbar .segmented button:has-text("Off")').click();
   await settle();
   ok(
@@ -524,11 +538,20 @@ const clash = (a, b) => a && b && a.x < b.x + b.width && b.x < a.x + a.width && 
   await settle();
   ok('Auto and back keeps the floor', JSON.stringify(await model()) === JSON.stringify(m));
   page.once('dialog', (d) => d.accept());
-  await page.locator('.model-toolbar button:has-text("Rebuild from targets")').click();
+  await page.locator('.model-toolbar button:has-text("Rebuild")').click();
   await settle();
   const rebuilt = await model();
   ok('rebuild asks, then starts again', rebuilt.links.some((l) => l.a === ironSmelter.id) || rebuilt.nodes.length > 0);
-  ok('rebuilt: no open output left', !rebuilt.drain && (await page.locator('.open-ends').count()) === 0);
+  ok('rebuilt: no open output left', !rebuilt.stall && (await page.locator('.open-ends').count()) === 0);
+  const plan = await page.evaluate(() => JSON.parse(localStorage.getItem('ficsit-planner')).state.plans[0]);
+  const outs = rebuilt.nodes.filter((n) => n.k === 'out' && n.tag !== 'spare').map((n) => n.item);
+  ok(
+    'the products in the panel are the floor’s outputs, and the factory’s targets',
+    (await page.locator('.side .floor-io').count()) >= outs.length &&
+      plan.targets.every((x) => outs.includes(x.item)) &&
+      outs.every((i) => plan.targets.some((x) => x.item === i)),
+    `${outs.join(',')} / ${plan.targets.map((x) => x.item).join(',')}`,
+  );
 
   // ── A9: share ──
   section = 'A9';
@@ -602,7 +625,7 @@ const clash = (a, b) => a && b && a.x < b.x + b.width && b.x < a.x + a.width && 
   // ── B: building by hand ──
   section = 'B1';
   await open(blank);
-  await page.locator('.quick-head .text-button').click();
+  await page.locator('.quick-head .build-by-hand').click();
   await wait(600);
   ok('Build by hand opens an empty floor', (await page.locator('.floor-empty .primary-button').count()) === 1);
   await shot('b1-empty');
@@ -730,6 +753,34 @@ const clash = (a, b) => a && b && a.x < b.x + b.width && b.x < a.x + a.width && 
   const mine = m.nodes.find((n) => n.k === 'extract');
   ok('the miner added and joined', !!mine && m.links.some((l) => l.a === mine.id && l.b === sm));
   await page.keyboard.press('Escape');
+  // The player's line from the report: miner, smelter, plates, nothing after. It runs, sized to the miner.
+  ok('machines put down by hand size themselves', m.nodes.filter((n) => n.k === 'machine').every((n) => n.auto === true));
+  await page.click('.floor-controls .floor-button >> nth=-1');
+  await wait(500);
+  const chainStates = await page.$$eval('.react-flow__node .run-state', (l) => l.map((x) => x.textContent));
+  ok(
+    'miner → smelter → plates all run',
+    chainStates.length === 3 && chainStates.every((x) => x === 'Full speed'),
+    chainStates.join(', '),
+  );
+  const plateText = (await card(plate.id).innerText()).replace(/\s+/g, ' ');
+  ok('the plates come out of the last card', /\d+\/min/.test(await card(plate.id).locator('.port-spare').innerText()), plateText);
+  ok('the panel lists them as left over', /Left over[\s\S]*Iron Plate/.test(await page.locator('.side').innerText()));
+  await shot('b3-chain-runs');
+  await card(mine.id).click();
+  await wait();
+  const makes = page.locator('aside.inspector .inspector-row:has-text("Makes") input');
+  await makes.click();
+  await makes.fill('30');
+  await settle();
+  m = await model();
+  ok(
+    'typing what the miner makes sets its clock, and the line follows',
+    Math.abs((m.nodes.find((n) => n.id === mine.id).clock ?? 1) * (m.nodes.find((n) => n.id === mine.id).n ?? 1) - 0.5) < 1e-6 ||
+      (await card(sm).innerText()).includes('1'),
+    (await card(sm).innerText()).replace(/\s+/g, ' '),
+  );
+  await page.keyboard.press('Escape');
   // A belt let go on a card's body goes onto its free end that fits.
   const rod = await page.evaluate(() => null);
   void rod;
@@ -763,6 +814,8 @@ const clash = (a, b) => a && b && a.x < b.x + b.width && b.x < a.x + a.width && 
     'a belt let go on a card body joins its end',
     m.links.some((l) => l.a === split.id && l.b === rodNode.id && l.bp === 0),
   );
+  await page.click('.floor-controls .floor-button >> nth=-1');
+  await wait(500);
   await drag(await centre(end(split.id, 'o1')), await centre(card(plate.id).locator('.machine-body')));
   await settle();
   m = await model();
@@ -773,6 +826,9 @@ const clash = (a, b) => a && b && a.x < b.x + b.width && b.x < a.x + a.width && 
   await shot('b3-split');
 
   section = 'B4';
+  // Open outputs backing up as in the game: then every open output needs a belt.
+  await page.locator('.model-drain input').check();
+  await settle();
   const openText = await page
     .locator('.open-ends')
     .innerText()
@@ -801,6 +857,8 @@ const clash = (a, b) => a && b && a.x < b.x + b.width && b.x < a.x + a.width && 
     await page.keyboard.press('Escape');
   }
   ok('nothing left open', !(await page.locator('.open-ends').count()));
+  await page.locator('.model-drain input').uncheck();
+  await settle();
   const allStates = await page.$$eval('.react-flow__node .run-state', (l) => l.map((x) => x.textContent));
   ok(
     'everything runs',
@@ -885,26 +943,8 @@ const clash = (a, b) => a && b && a.x < b.x + b.width && b.x < a.x + a.width && 
   page.on('pageerror', (e) => errors.push(e.message));
   const low = (extra) => saved({ tier: 2, mode: 'factory', plans: [{ id: 'f1', name: 'Factory 1', targets: [] }], active: 'f1', ...extra });
   await open(low());
-  await page.locator('.quick-search').fill('motor');
-  await wait(200);
-  ok('off by default: Motor shows with its tier', (await page.locator('.quick-item.locked').count()) > 0);
-  await page.locator('.quick-search').fill('');
-  ok('off by default: the shortcuts show locked parts', (await page.locator('.quick-item.locked').count()) > 0);
-  await page.click('.chrome-button.settings');
-  await page.locator('.settings-nav button:has-text("Interface")').click();
-  const sw = page.locator('[role="switch"][aria-label="Hide what your tier can’t make"]');
-  ok('the setting is off at first', (await sw.getAttribute('aria-checked')) === 'false');
-  await sw.click();
-  await page.keyboard.press('Control+s');
-  await wait(200);
-  await page.keyboard.press('Escape');
-  await wait(300);
   ok(
-    'turned on and saved',
-    (await page.evaluate(() => JSON.parse(localStorage.getItem('ficsit-planner')).state.settings.hideLocked)) === true,
-  );
-  ok(
-    'the shortcuts keep only what this tier makes',
+    'hidden by default: the shortcuts keep only what this tier makes',
     (await page.locator('.quick-item').count()) > 0 && (await page.locator('.quick-item.locked').count()) === 0,
   );
   await page.locator('.quick-search').fill('motor');
@@ -919,7 +959,7 @@ const clash = (a, b) => a && b && a.x < b.x + b.width && b.x < a.x + a.width && 
   );
   await page.locator('.quick-search').fill('');
   // The build menu on a hand-built floor.
-  await page.locator('.quick-head .text-button').click();
+  await page.locator('.quick-head .build-by-hand').click();
   await wait(400);
   await page.locator('.floor-empty .primary-button').click();
   await wait(300);
@@ -931,10 +971,8 @@ const clash = (a, b) => a && b && a.x < b.x + b.width && b.x < a.x + a.width && 
   await wait(200);
   ok('Motor is not in the build menu', !(await page.locator('.chooser-list li:has-text("Motor")').count()));
   await page.keyboard.press('Escape');
-  // The product list in the panel.
-  await open(
-    low({ settings: { hideLocked: true }, plans: [{ id: 'f1', name: 'Factory 1', targets: [{ item: 'Desc_IronPlate_C', rate: 10 }] }] }),
-  );
+  // The product and on-hand lists in the panel.
+  await open(low({ plans: [{ id: 'f1', name: 'Factory 1', targets: [{ item: 'Desc_IronPlate_C', rate: 10 }] }] }));
   await page.locator('.side .add-button').first().click();
   await page.locator('.picker-search').fill('motor');
   await wait(200);
@@ -943,11 +981,53 @@ const clash = (a, b) => a && b && a.x < b.x + b.width && b.x < a.x + a.width && 
   await wait(200);
   ok('what this tier makes still is', (await page.locator('.picker-list li:has-text("Rotor")').count()) === 1);
   await page.keyboard.press('Escape');
+  await page.locator('.side .add-button').nth(1).click();
+  await page.locator('.picker-search').fill('motor');
+  await wait(200);
+  ok('Motor is not in Already on hand', (await page.locator('.picker-list li:has-text("Motor")').count()) === 0);
+  await page.keyboard.press('Escape');
+  // Recipes: nothing locked listed, and no button to list it.
+  await page.locator('.side .tabs button[role="tab"]:has-text("Recipes")').click();
+  await page.locator('.panel-body.recipes .segmented button:has-text("All")').click();
+  await wait(300);
+  ok(
+    'no locked recipes and no Show locked',
+    (await page.locator('.recipe-row').count()) > 0 &&
+      !(await page.locator('.recipe-row.locked').count()) &&
+      !(await page.locator('.locked-note').count()),
+  );
+  // Resources: miners not unlocked yet.
+  await page.locator('.side .tabs button[role="tab"]:has-text("Resources")').click();
+  await wait(300);
+  ok('only unlocked miners to pick', (await page.locator('.miner-picker button').count()) === 1);
   // Power: generators not unlocked yet.
-  await open(low({ settings: { hideLocked: true }, mode: 'power' }));
-  ok('no locked generators to pick', (await page.locator('.gen-card').count()) > 0 && !(await page.locator('.gen-card.locked').count()));
   await open(low({ mode: 'power' }));
-  ok('with the setting off they show', (await page.locator('.gen-card.locked').count()) > 0);
+  ok('no locked generators to pick', (await page.locator('.gen-card').count()) > 0 && !(await page.locator('.gen-card.locked').count()));
+  // Settings › Interface turns them back on.
+  await open(low());
+  await page.click('.chrome-button.settings');
+  await page.locator('.settings-nav button:has-text("Interface")').click();
+  const sw = page.locator('[role="switch"][aria-label="Show what your tier can’t make"]');
+  ok('the setting is off at first', (await sw.getAttribute('aria-checked')) === 'false');
+  await sw.click();
+  await page.keyboard.press('Control+s');
+  await wait(200);
+  await page.keyboard.press('Escape');
+  await wait(300);
+  ok(
+    'turned on and saved',
+    (await page.evaluate(() => JSON.parse(localStorage.getItem('ficsit-planner')).state.settings.showLocked)) === true,
+  );
+  await page.locator('.quick-search').fill('motor');
+  await wait(200);
+  ok('turned on: Motor shows with its tier', (await page.locator('.quick-item.locked').count()) > 0);
+  await page.locator('.quick-search').fill('');
+  await open(low({ settings: { showLocked: true }, mode: 'power' }));
+  ok('turned on: locked generators show', (await page.locator('.gen-card.locked').count()) > 0);
+  await open(low({ settings: { showLocked: true }, plans: [{ id: 'f1', name: 'Factory 1', targets: [{ item: 'Desc_IronPlate_C', rate: 10 }] }] }));
+  await page.locator('.side .tabs button[role="tab"]:has-text("Recipes")').click();
+  await wait(300);
+  ok('turned on: Recipes offers Show locked', (await page.locator('.locked-note').count()) === 1);
   await ctx.close();
 }
 
@@ -960,7 +1040,7 @@ const clash = (a, b) => a && b && a.x < b.x + b.width && b.x < a.x + a.width && 
   await open(
     saved({ mode: 'factory', plans: [{ id: 'f1', name: 'Factory 1', targets: [] }], active: 'f1', settings: { motion: 'system' } }),
   );
-  await page.locator('.quick-head .text-button').click();
+  await page.locator('.quick-head .build-by-hand').click();
   await wait(400);
   await page.locator('.floor-empty .primary-button').click();
   await page.keyboard.type('iron ingot');
@@ -997,7 +1077,7 @@ const clash = (a, b) => a && b && a.x < b.x + b.width && b.x < a.x + a.width && 
   };
 
   await open(blank);
-  await page.locator('.quick-head .text-button').tap();
+  await page.locator('.quick-head .build-by-hand').tap();
   await wait(500);
   await page.locator('.add-part').tap();
   await wait(300);

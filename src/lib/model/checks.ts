@@ -9,7 +9,7 @@ export interface OpenEnds {
 
 /**
  * The ends left open that matter. A machine stops with an input or output open (an output only while open outputs
- * aren't counted as left over); a splitter's spare outputs and a merger's spare inputs are fine as in the game, as
+ * stop it, as in the game); a splitter's spare outputs and a merger's spare inputs are fine as in the game, as
  * long as one on each side is used.
  */
 export function openEnds(m: Model): Map<string, OpenEnds> {
@@ -38,7 +38,7 @@ export function openEnds(m: Model): Map<string, OpenEnds> {
     } else if (n.k === 'unknown') {
       ins = ins.map(() => false);
       outs = outs.map(() => false);
-    } else if (m.drain && (n.k === 'machine' || n.k === 'gen' || n.k === 'extract')) outs = outs.map(() => false);
+    } else if (!m.stall && (n.k === 'machine' || n.k === 'gen' || n.k === 'extract')) outs = outs.map(() => false);
     open.set(n.id, { ins, outs });
   }
   return open;

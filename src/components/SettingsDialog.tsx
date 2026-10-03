@@ -675,8 +675,8 @@ function InterfaceSection() {
         </div>
       </div>
       <Percent k="uiScale" label={t('uiSize')} hint={t('uiSizeHint')} />
-      <Row label={t('hideLockedSetting')} hint={t('hideLockedSettingHint')}>
-        <Toggle label={t('hideLockedSetting')} on={s.hideLocked} onChange={(v) => set({ hideLocked: v })} />
+      <Row label={t('showLockedSetting')} hint={t('showLockedSettingHint')}>
+        <Toggle label={t('showLockedSetting')} on={s.showLocked} onChange={(v) => set({ showLocked: v })} />
       </Row>
       <Row label={t('decimals')} hint={t('decimalsHint', { example: (100 / 3).toFixed(s.decimals) })}>
         <Choice

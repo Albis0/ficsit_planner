@@ -263,7 +263,7 @@ export function PlantInspector({ result }: { result: SolveResult }) {
 
 /** No generators yet: every way to make power, one tap to start. */
 export function PowerQuickStart({ load }: { load: PowerLoad }) {
-  const hide = useStore((s) => s.settings.hideLocked);
+  const hide = useStore((s) => !s.settings.showLocked);
   const { t, name, num } = useT();
   const tier = useStore((s) => s.tier);
   const addPlant = useStore((s) => s.addPlant);

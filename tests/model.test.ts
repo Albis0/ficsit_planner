@@ -9,7 +9,7 @@ import { arrangeModel, portY } from '../src/lib/model/arrange';
 import { openCards, openEnds } from '../src/lib/model/checks';
 import { choicesFor, choiceWords, placeChoice, wantAt } from '../src/lib/model/choices';
 import { cardSize, freeSpot } from '../src/lib/model/layout';
-import { addNode, canConnect, connect, evenSpeed, fullSpeed, moveNodes, removeNodes } from '../src/lib/model/ops';
+import { addNode, canConnect, connect, evenSpeed, fullSpeed, minerFor, moveNodes, removeNodes } from '../src/lib/model/ops';
 import { portsOf } from '../src/lib/model/ports';
 import { cleanModel } from '../src/lib/model/sanitize';
 import { type MLink, type MNode, type Model, MODEL_VERSION } from '../src/lib/model/types';
@@ -83,13 +83,105 @@ describe('max flow', () => {
     expect(r.nodes.m.u).toBeCloseTo(0.5);
   });
 
-  test('a machine with nothing on its output stops, unless the model counts it as left over', () => {
+  test('what a machine makes on an open output is left over, unless open outputs back up as in the game', () => {
     const m = model([miner('m'), smelter('a')], [{ a: 'm', ap: 0, b: 'a', bp: 0 }]);
-    expect(run(m).nodes.a.status).toBe('noOutput');
-    expect(run(m).nodes.a.u).toBe(0);
-    const drained = run({ ...m, drain: true });
-    expect(drained.nodes.a.u).toBeCloseTo(1);
-    expect(adaptModel({ ...m, drain: true }, drained).result.surplus[0].rate).toBeCloseTo(30);
+    const r = run(m);
+    expect(r.nodes.a.u).toBeCloseTo(1);
+    expect(r.nodes.a.spare?.[0]).toBeCloseTo(30);
+    expect(adaptModel(m, r).result.surplus[0].rate).toBeCloseTo(30);
+    const stalled = run({ ...m, stall: true });
+    expect(stalled.nodes.a.status).toBe('noOutput');
+    expect(stalled.nodes.a.u).toBe(0);
+  });
+
+  test('a line built by hand follows its miner: machines set to Auto take as many as it keeps busy', () => {
+    // The miner → smelter → constructor line from the player's report, with nothing after the constructor.
+    const m = model(
+      [
+        { ...miner('m'), n: 2 },
+        { id: 's', ...at, k: 'machine', recipe: SMELT, auto: true },
+        { id: 'c', ...at, k: 'machine', recipe: 'Recipe_IronPlate_C', auto: true },
+      ],
+      [
+        { a: 'm', ap: 0, b: 's', bp: 0 },
+        { a: 's', ap: 0, b: 'c', bp: 0 },
+      ],
+    );
+    const r = run(m);
+    expect(r.nodes.m.u).toBeCloseTo(1);
+    expect(r.nodes.s.n).toBeCloseTo(8);
+    expect(r.nodes.s.status).toBe('full');
+    expect(r.nodes.c.n).toBeCloseTo(8);
+    expect(r.nodes.c.spare?.[0]).toBeCloseTo(160);
+    const { result } = adaptModel(m, r);
+    expect(result.surplus).toEqual([{ item: 'Desc_IronPlate_C', rate: expect.closeTo(160) }]);
+    expect(result.recipes.find((u) => u.node === 's')?.built).toBeCloseTo(8);
+    // A slower miner: the line follows it down.
+    const slow = run({ ...m, nodes: m.nodes.map((n) => (n.id === 'm' ? { ...n, clock: 0.5 } : n)) });
+    expect(slow.nodes.s.n).toBeCloseTo(4);
+    expect(slow.nodes.c.spare?.[0]).toBeCloseTo(80);
+  });
+
+  test('a splitter shares evenly between Auto machines, as in the game', () => {
+    const auto = (id: string, recipe: string): MNode => ({ id, ...at, k: 'machine', recipe, auto: true });
+    const m = model(
+      [miner('m'), { id: 's', ...at, k: 'logistic', kind: 'splitter' }, auto('a', SMELT), auto('b', SMELT)],
+      [
+        { a: 'm', ap: 0, b: 's', bp: 0 },
+        { a: 's', ap: 0, b: 'a', bp: 0 },
+        { a: 's', ap: 1, b: 'b', bp: 0 },
+      ],
+    );
+    const r = run(m);
+    expect(r.links.l1.rate).toBeCloseTo(60);
+    expect(r.links.l2.rate).toBeCloseTo(60);
+    expect(r.nodes.a.n).toBeCloseTo(2);
+    // Two different products: still half each, not all to whichever makes more items.
+    const two = run(
+      model(
+        [
+          miner('m'),
+          { id: 's', ...at, k: 'logistic', kind: 'splitter' },
+          auto('a', SMELT),
+          { id: 't', ...at, k: 'logistic', kind: 'splitter' },
+          auto('rod', 'Recipe_IronRod_C'),
+          auto('plate', 'Recipe_IronPlate_C'),
+          out('x'),
+          out('y'),
+        ],
+        [
+          { a: 'm', ap: 0, b: 'a', bp: 0 },
+          { a: 'a', ap: 0, b: 't', bp: 0 },
+          { a: 't', ap: 0, b: 'rod', bp: 0 },
+          { a: 't', ap: 1, b: 'plate', bp: 0 },
+          { a: 'rod', ap: 0, b: 'x', bp: 0 },
+          { a: 'plate', ap: 0, b: 'y', bp: 0 },
+        ],
+      ),
+    );
+    expect(two.links.l2.rate).toBeCloseTo(60);
+    expect(two.links.l3.rate).toBeCloseTo(60);
+    // One side holding back (a single smelter at 30): the other takes the rest.
+    const held = run({ ...m, nodes: m.nodes.map((n) => (n.id === 'b' ? smelter('b') : n)) });
+    expect(held.links.l2.rate).toBeCloseTo(30);
+    expect(held.links.l1.rate).toBeCloseTo(90);
+  });
+
+  test('an Auto machine fed from something with no limit takes all its belt carries, or the limit set', () => {
+    const m = model(
+      [{ id: 'i', ...at, k: 'in', item: ORE }, { id: 's', ...at, k: 'machine', recipe: SMELT, auto: true }, out('o')],
+      [
+        { a: 'i', ap: 0, b: 's', bp: 0 },
+        { a: 's', ap: 0, b: 'o', bp: 0 },
+      ],
+    );
+    const r = run(m);
+    expect(r.links.l0.status).toBe('capped');
+    expect(r.nodes.s.n).toBeCloseTo(40);
+    expect(r.nodes.o.ins[0]).toBeCloseTo(1200);
+    const capped = run({ ...m, nodes: m.nodes.map((n) => (n.k === 'in' ? { ...n, lim: 90 } : n)) });
+    expect(capped.unbounded).toBeUndefined();
+    expect(capped.nodes.s.n).toBeCloseTo(3);
   });
 
   test('two machines feeding each other with nothing from outside never start', () => {
@@ -106,7 +198,7 @@ describe('max flow', () => {
       (id === 'r' ? rubber : plastic)[side].findIndex((s) => s.item === item);
     links.push({ a: 'r', ap: port('r', 'Desc_Rubber_C', 'outputs'), b: 'p', bp: port('p', 'Desc_Rubber_C', 'inputs') });
     links.push({ a: 'p', ap: port('p', 'Desc_Plastic_C', 'outputs'), b: 'r', bp: port('r', 'Desc_Plastic_C', 'inputs') });
-    const r = run(model(nodes, links, { drain: true }));
+    const r = run(model(nodes, links));
     expect(r.nodes.r.u).toBe(0);
     expect(['deadlock', 'noInput']).toContain(r.nodes.r.status);
   });
@@ -272,8 +364,8 @@ describe('a manual factory tab', () => {
     const s = useStore.getState();
     const before = s.plans[0].model;
     s.editModel(plan.id, (m: Model) => ({ ...m, calc: 'off' }));
-    s.editModel(plan.id, (m: Model) => ({ ...m, drain: true }), 'drain');
-    s.editModel(plan.id, (m: Model) => ({ ...m, drain: undefined }), 'drain');
+    s.editModel(plan.id, (m: Model) => ({ ...m, stall: true }), 'stall');
+    s.editModel(plan.id, (m: Model) => ({ ...m, stall: undefined }), 'stall');
     s.undoModel(plan.id);
     expect(useStore.getState().plans[0].model.calc).toBe('off');
     s.undoModel(plan.id);
@@ -373,12 +465,13 @@ describe('open ends', () => {
     );
     const open = openEnds(m);
     expect(open.get('s')).toEqual({ ins: [false], outs: [false, false, false] });
-    expect(open.get('a')).toEqual({ ins: [false], outs: [true] });
+    // What the smelter makes is left over: its output needs no belt.
+    expect(open.get('a')).toEqual({ ins: [false], outs: [false] });
     expect(open.get('o')).toEqual({ ins: [true], outs: [] });
     expect(open.get('m')).toEqual({ ins: [], outs: [false] });
-    expect(openCards(m)).toEqual(['a', 'o'].sort((x, y) => m.nodes.findIndex((n) => n.id === x) - m.nodes.findIndex((n) => n.id === y)));
-    // Counting open outputs as left over: the smelter's output no longer needs a belt.
-    expect(openEnds({ ...m, drain: true }).get('a')).toEqual({ ins: [false], outs: [false] });
+    expect(openCards(m)).toEqual(['o']);
+    // With open outputs backing up as in the game, it does.
+    expect(openEnds({ ...m, stall: true }).get('a')).toEqual({ ins: [false], outs: [true] });
     // A splitter with nothing on it at all.
     expect(openEnds(model([{ id: 's', ...at, k: 'logistic', kind: 'splitter' }], [])).get('s')).toEqual({
       ins: [true],
@@ -482,6 +575,12 @@ describe('the same output another way', () => {
     expect(evenSpeed(6.65, 1)).toEqual({ n: 7, clock: 0.95 });
     expect(evenSpeed(2.5, 1)).toEqual({ n: 3, clock: 0.833333 });
     expect(evenSpeed(0.5, 1)).toEqual({ n: undefined, clock: 0.5 });
+  });
+  test('a miner making a rate typed in: another clock, more miners only past 250%', () => {
+    expect(minerFor(60, 120, 1)).toEqual({ n: undefined, clock: 0.5 });
+    expect(minerFor(240, 120, 2)).toEqual({ n: 2, clock: undefined });
+    expect(minerFor(600, 120, 1)).toEqual({ n: 2, clock: 2.5 });
+    expect(minerFor(30, 120, 3)).toEqual({ n: 3, clock: 0.083333 });
   });
   test('there and back gives the same output', () => {
     for (const [n, c] of [

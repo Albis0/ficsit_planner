@@ -126,6 +126,11 @@ function densest(nodes: Node[], v: Viewport, width: number, height: number): Vie
   return { x: width / 2 - best.x * v.zoom, y: height / 2 - best.y * v.zoom, zoom: v.zoom };
 }
 
+const REVEAL = 'ficsit-reveal-card';
+
+/** Moves the floor just enough to show a card, from outside the editor: the side panel adding one, or going to one. */
+export const revealCard = (id: string) => window.dispatchEvent(new CustomEvent(REVEAL, { detail: id }));
+
 /** What the panel shows: a node by its id, or a belt as "link:<id>". */
 export const linkKey = (id: string) => `link:${id}`;
 
@@ -338,6 +343,11 @@ function Canvas({ host, calc }: { host: ModelHost; calc?: CalcResult }) {
 
   // A card just put down that landed under the panel or off the floor's edge: the floor moves just enough to show it.
   const [reveal, setReveal] = useState<string>();
+  useEffect(() => {
+    const on = (e: Event) => setReveal((e as CustomEvent<string>).detail);
+    window.addEventListener(REVEAL, on);
+    return () => window.removeEventListener(REVEAL, on);
+  }, []);
   useEffect(() => {
     if (!reveal) return;
     let gone = false;

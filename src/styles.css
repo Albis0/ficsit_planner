@@ -1642,6 +1642,34 @@ button.slot:hover {
 
 /* ---------- Quick pick (empty state) ---------- */
 
+/* Next to "What do you want to make?": an empty floor to build on by hand, as a button that reads as one. */
+.build-by-hand {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 9px 18px 9px 14px;
+  background: var(--panel);
+  border: 1px solid var(--ficsit);
+  border-radius: var(--radius);
+  color: var(--paper);
+  font: 700 18px var(--font-display);
+  letter-spacing: 0.03em;
+  cursor: pointer;
+}
+
+.build-by-hand .glyph {
+  color: var(--ficsit);
+}
+
+.build-by-hand:hover {
+  background: var(--ficsit);
+  color: var(--ficsit-ink);
+}
+
+.build-by-hand:hover .glyph {
+  color: var(--ficsit-ink);
+}
+
 .quick-pick {
   position: absolute;
   inset: 0;
@@ -9883,6 +9911,91 @@ a.codex-flow:hover {
   white-space: nowrap;
 }
 
+/* A machine sizing itself to what comes in: a small tag after its count. */
+.run-with-auto {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+.auto-tag {
+  flex: none;
+  padding: 0 6px;
+  border: 1px solid var(--line-2);
+  color: var(--dim);
+  font: 600 12px / 1.5 var(--font-body);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+/* What comes out of an open output, beside it: left over, made all the same. */
+.react-flow__handle.port .port-spare {
+  position: absolute;
+  top: 50%;
+  left: calc(100% + 6px);
+  translate: 0 -50%;
+  padding: 1px 6px;
+  background: var(--raised);
+  border: 1px dashed var(--line-2);
+  color: var(--paper);
+  font: 700 14px var(--font-display);
+  white-space: nowrap;
+  pointer-events: none;
+}
+
+.port-spare small {
+  margin-left: 2px;
+  color: var(--dim);
+  font-size: 11px;
+}
+
+/* Count stepper and the Auto box side by side. */
+.count-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px 16px;
+}
+
+.check.auto-count {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font: 600 16px var(--font-body);
+  cursor: pointer;
+}
+
+/* Built in the game: a box to tick, green once ticked, as the card's corner tick. */
+.built-check {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 14px 8px 10px;
+  background: var(--bg);
+  border: 1px solid var(--line-2);
+  font: 600 16px var(--font-body);
+  cursor: pointer;
+}
+
+.built-check:hover {
+  border-color: var(--paper);
+}
+
+.built-check.on {
+  border-color: var(--supply);
+  color: var(--supply);
+}
+
+.app .built-check input[type='checkbox']:checked {
+  background: var(--supply);
+  border-color: var(--supply);
+}
+
+.inspector-actions {
+  align-items: center;
+}
+
 /* An end that's free and doesn't need a belt: a splitter's spare output. */
 .react-flow__handle.port.free {
   border-color: var(--line);
@@ -10125,4 +10238,27 @@ a.codex-flow:hover {
   .floor-view:has(> .inspector.manual) .floor-controls {
     right: 436px;
   }
+}
+
+/* Manual floor side panel: an output or input card's name goes to its card on the floor. */
+.floor-io-name {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+  padding: 0;
+  background: none;
+  border: 0;
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.floor-io-name:hover {
+  color: var(--ficsit);
+}
+
+.floor-io-now {
+  color: var(--power);
+  font: 600 14px var(--font-body);
 }

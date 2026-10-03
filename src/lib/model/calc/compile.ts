@@ -13,8 +13,10 @@ export interface CNode {
   ports: Ports;
   /** Machines, generators and extractors: one machine at 100%. */
   recipe?: Recipe;
-  /** Machines times clock: what the node does in 100% machines. */
+  /** Machines times clock: what the node does in 100% machines. For a node that sizes itself, one machine's worth. */
   units: number;
+  /** Sizes itself to what comes in: its busy share is how many machines, not a share of one. */
+  auto: boolean;
   /** Somersloop output boost. */
   amp: number;
   inArcs: (Arc | undefined)[];
@@ -42,6 +44,7 @@ export interface Net {
   byId: Map<string, CNode>;
   /** Parts that can start running: fed from a source through parts that can start too. */
   started: Set<string>;
+  /** What a machine makes on an output with nothing on it is left over, rather than stopping it. */
   drain: boolean;
 }
 
@@ -69,7 +72,8 @@ export function compile(m: Model, tier: number): Net {
     if (!isPart(node)) continue;
     const ports = portsOf(node);
     const recipe = isRunner(node) ? runnerRecipe(node) : undefined;
-    const n = isRunner(node) ? (node.n ?? 1) : 0;
+    const auto = node.k === 'machine' && node.auto === true;
+    const n = isRunner(node) ? (auto ? 1 : (node.n ?? 1)) : 0;
     const clock = isRunner(node) ? (node.clock ?? 1) : 1;
     const amp = node.k === 'machine' && recipe ? amplification(recipe, { clock, sloops: node.sloops ?? 0 }) : 1;
     const c: CNode = {
@@ -77,6 +81,7 @@ export function compile(m: Model, tier: number): Net {
       ports,
       recipe,
       units: n * clock,
+      auto,
       amp,
       inArcs: ports.ins.map(() => undefined),
       outArcs: ports.outs.map(() => undefined),
@@ -159,7 +164,7 @@ export function compile(m: Model, tier: number): Net {
     }
   }
 
-  return { nodes, arcs, byId, started, drain: m.drain === true };
+  return { nodes, arcs, byId, started, drain: m.stall !== true };
 }
 
 /** One machine's rate on each end at 100% and its node's clock, times the node's machines. */

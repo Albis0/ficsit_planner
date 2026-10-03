@@ -123,3 +123,14 @@ export function evenSpeed(n: number, clock: number): { n?: number; clock?: numbe
   const each = tidyNumber((n * clock) / count);
   return { n: count === 1 ? undefined : count, clock: each === 1 ? undefined : each };
 }
+
+/**
+ * Miners making a rate typed in: the same miners at another clock, or more of them once 250% can't reach it. Never
+ * fewer miners than are there, and the defaults left off.
+ */
+export function minerFor(rate: number, each: number, n: number): { n?: number; clock?: number } {
+  const units = rate / each;
+  const count = units / n > 2.5 + 1e-9 ? Math.ceil(units / 2.5 - 1e-9) : n;
+  const clock = Math.min(2.5, Math.max(0.01, tidyNumber(units / count)));
+  return { n: count === 1 ? undefined : count, clock: clock === 1 ? undefined : clock };
+}

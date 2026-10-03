@@ -21,7 +21,10 @@ export function RecipesPanel() {
   const set = useStore((s) => s.set);
   const [filter, setFilter] = useState<Filter>('alternate');
   const [q, setQ] = useState('');
-  const [showLocked, setShowLocked] = useState(false);
+  const [asked, setShowLocked] = useState(false);
+  // Off in Settings, what the tier can't use stays out entirely; on, it waits behind a button here.
+  const allowed = useStore((s) => s.settings.showLocked);
+  const showLocked = allowed && asked;
 
   const on = useMemo(() => new Set(plan.enabled), [plan.enabled]);
 
@@ -220,7 +223,7 @@ export function RecipesPanel() {
             </section>
           ))}
         </div>
-        {(hidden > 0 || showLocked) && (
+        {allowed && (hidden > 0 || showLocked) && (
           <p className="hint locked-note">
             {!showLocked && `${t('lockedHidden', { n: hidden })} `}
             <button type="button" className="text-button" onClick={() => setShowLocked(!showLocked)}>

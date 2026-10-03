@@ -236,7 +236,7 @@ export function cleanSettings(saved: unknown): Settings {
       FONTS.map((f) => f.id),
       d.font,
     ),
-    hideLocked: typeof s.hideLocked === 'boolean' ? s.hideLocked : d.hideLocked,
+    showLocked: typeof s.showLocked === 'boolean' ? s.showLocked : d.showLocked,
     summary: oneOf(s.summary, ['compact', 'full'] as const, d.summary),
     splitLines: oneOf(s.splitLines, ['each', 'one'] as const, d.splitLines),
     game: gameOf(s.game),

@@ -36,18 +36,18 @@ export function ModelToolbar({
           </button>
         ))}
       </div>
-      <label className="check model-drain" title={t('drainHint')}>
+      <label className="check model-drain" title={t('stallHint')}>
         <input
           type="checkbox"
-          checked={!!model.drain}
+          checked={!!model.stall}
           onChange={(e) =>
             host.edit((x) => {
-              const { drain: _, ...rest } = x;
-              return e.target.checked ? { ...rest, drain: true } : rest;
+              const { stall: _, ...rest } = x;
+              return e.target.checked ? { ...rest, stall: true } : rest;
             })
           }
         />
-        {t('drain')}
+        {t('stall')}
       </label>
       <div className="model-history">
         <button type="button" className="floor-button" disabled={!canUndo(host.key)} title={t('undoKey')} onClick={host.undo}>

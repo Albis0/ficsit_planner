@@ -37,8 +37,11 @@ export interface Settings {
   motion: 'system' | 'reduce' | 'full';
   /** Typeface for the whole interface. */
   font: FontId;
-  /** Lists leave out products, buildings and generators above the unlocked tier, instead of showing them marked. */
-  hideLocked: boolean;
+  /**
+   * Lists show products, recipes, buildings and generators above the unlocked tier, marked with their tier. Off (the
+   * default), the factory and power sides leave them out.
+   */
+  showLocked: boolean;
   /** The strip of totals over the floor: compact, or large figures. */
   summary: 'compact' | 'full';
   /** A line whose output goes to several places, on the graph: a card per place, or one card that says how to split it. */
@@ -89,7 +92,7 @@ export const DEFAULT_SETTINGS: Settings = {
   decimals: 2,
   motion: 'system',
   font: 'satisfactory',
-  hideLocked: false,
+  showLocked: false,
   summary: 'compact',
   splitLines: 'each',
   game: DEFAULT_GAME,

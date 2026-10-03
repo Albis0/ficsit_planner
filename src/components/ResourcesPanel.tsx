@@ -27,6 +27,7 @@ export function ResourcesPanel({ result }: { result?: SolveResult }) {
   const setCap = useStore((s) => s.setCap);
   const updatePlan = useStore((s) => s.updatePlan);
   const tier = useStore((s) => s.tier);
+  const showLocked = useStore((s) => s.settings.showLocked);
   const aim = useStore(aimOf);
   const set = useStore((s) => s.set);
   const ex = effectiveExtraction(plan.extraction, tier);
@@ -55,7 +56,7 @@ export function ResourcesPanel({ result }: { result?: SolveResult }) {
       <section className="stack extraction">
         <h3 className="section-title">{t('extraction')}</h3>
         <div className="miner-picker" role="radiogroup" aria-label={t('miner')}>
-          {MINERS.map((m) => (
+          {MINERS.filter((m) => showLocked || m.tier <= tier).map((m) => (
             <button
               key={m.id}
               type="button"

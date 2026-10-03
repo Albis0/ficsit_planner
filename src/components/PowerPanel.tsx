@@ -409,7 +409,7 @@ function AddPlant() {
     setOpen(false);
   };
 
-  const hide = useStore((s) => s.settings.hideLocked);
+  const hide = useStore((s) => !s.settings.showLocked);
   const groups = data.generators
     .filter((g) => !hide || g.tier <= tier)
     .map((g) => ({ g, options: PLANT_OPTIONS.filter((o) => o.generator === g) }));

@@ -39,6 +39,8 @@ export interface MachineNode extends Base {
   recipe: string;
   /** Machines, fractions allowed (2.5 is two full and one at half). Default 1. */
   n?: number;
+  /** As many machines as what comes in keeps busy; `n` is then unused. */
+  auto?: true;
   /** 1 = 100%, up to 2.5. Default 1. */
   clock?: number;
   /** Somersloops in each machine. */
@@ -162,8 +164,8 @@ export interface Model {
   links: MLink[];
   /** Next id to hand out, so ids stay short. */
   seq: number;
-  /** An output with nothing on it counts its output as left over instead of stopping the machine. */
-  drain?: true;
+  /** A machine with nothing on an output fills up and stops, as in the game; unset, what it makes there is left over. */
+  stall?: true;
 }
 
 export const emptyModel = (): Model => ({ v: MODEL_VERSION, calc: 'basic', nodes: [], links: [], seq: 1 });

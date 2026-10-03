@@ -5,11 +5,13 @@ import { cleanSettings } from '../src/lib/sanitize';
 import { DEFAULT_SETTINGS } from '../src/lib/settings';
 
 describe('hiding what the tier can’t make', () => {
-  test('off unless turned on, and the add choice defaults to a right click', () => {
-    expect(DEFAULT_SETTINGS.hideLocked).toBe(false);
-    expect(cleanSettings({}).hideLocked).toBe(false);
-    expect(cleanSettings({ hideLocked: true }).hideLocked).toBe(true);
-    expect(cleanSettings({ hideLocked: 'yes' }).hideLocked).toBe(false);
+  test('hidden unless shown in Settings, and the add choice defaults to a right click', () => {
+    expect(DEFAULT_SETTINGS.showLocked).toBe(false);
+    expect(cleanSettings({}).showLocked).toBe(false);
+    expect(cleanSettings({ showLocked: true }).showLocked).toBe(true);
+    expect(cleanSettings({ showLocked: 'yes' }).showLocked).toBe(false);
+    // The 0.13.1 preview's setting, saved off, doesn't bring them back.
+    expect(cleanSettings({ hideLocked: false }).showLocked).toBe(false);
     expect(cleanSettings({}).addWith).toBe('right');
     expect(cleanSettings({ addWith: 'double' }).addWith).toBe('double');
     expect(cleanSettings({ addWith: 'middle' }).addWith).toBe('right');

@@ -12,7 +12,9 @@ import { PlantInspector, PowerQuickStart, PowerSummary } from './components/Powe
 import { PowerPanel } from './components/PowerPanel';
 import { InstallButton, ClosedTab, Notice, PwaStatus } from './components/PwaStatus';
 import { useFactoryHost, useModelCalc } from './components/modeler/hosts';
+import { FloorPanel } from './components/modeler/FloorPanel';
 import { forgetCamera, ModelEditor } from './components/modeler/ModelEditor';
+import { floorEnds } from './lib/model/calc/adapter';
 import { arrangeModel } from './lib/model/arrange';
 import { ModelInspector } from './components/modeler/ModelInspector';
 import { ModelToolbar } from './components/modeler/Toolbar';
@@ -93,7 +95,7 @@ function useSolutions() {
   const hand = useModelCalc(manual ? (plan.model ?? emptyModel()) : undefined, tier, game, mode === 'factory' && manual);
   const power = useSolve(powerIn, mode === 'power');
   const probe = useSolve(probeIn, mode === 'power');
-  return { factory, power, probe: probe.result, draws, load, hand, manual, factoryIn };
+  return { factory, power, probe: probe.result, draws, load, hand, manual };
 }
 
 export default function App() {
@@ -101,7 +103,7 @@ export default function App() {
   const s = useStore();
   const plan = usePlan();
   const phone = useMediaQuery('(max-width: 900px)');
-  const { factory, power, probe, draws, load, hand, manual: manualPlan, factoryIn } = useSolutions();
+  const { factory, power, probe, draws, load, hand, manual: manualPlan } = useSolutions();
   const powerMode = s.mode === 'power';
   const manual = manualPlan && !powerMode && s.mode === 'factory';
   const host = useFactoryHost(plan.id);
@@ -142,13 +144,30 @@ export default function App() {
     setBuilt((n) => n + 1);
     s.setFloor(plan.id, 'manual', model);
   };
+  const exports = useExports(plan.id);
+  // Rebuilding a hand-built floor starts from what its panel lists: the floor's own outputs and inputs. Those become
+  // the factory's targets too, so Auto and Manual agree afterwards.
+  const ends = useMemo(
+    () => (manualPlan && plan.model ? floorEnds(plan.model, hand.calc) : undefined),
+    [manualPlan, plan.model, hand.calc],
+  );
+  const rebuildIn = useMemo(() => {
+    if (!ends || ends.targets.length === 0) return undefined;
+    // A supply taken from another factory tab stays taken from it.
+    const supplies = ends.supplies.map((x) => {
+      const from = plan.supplies.find((y) => y.item === x.item)?.from;
+      return from ? { ...x, from } : x;
+    });
+    return { input: factoryInput({ ...plan, targets: ends.targets, supplies }, s.tier, exports, aimOf(s), s.settings.game), supplies };
+  }, [ends, plan, s, exports]);
   const rebuild = async () => {
-    if (!factoryIn || !window.confirm(t('rebuildConfirm'))) return;
+    if (!rebuildIn?.input || !window.confirm(t('rebuildConfirm'))) return;
     try {
-      const r = await solveAsync(factoryIn);
+      const r = await solveAsync(rebuildIn.input);
       const model = await lay(() => modelFromSolve(r, s.tier, effectiveExtraction(plan.extraction, s.tier)));
       forgetCamera(plan.id);
       setBuilt((n) => n + 1);
+      s.updatePlan({ targets: ends?.targets ?? plan.targets, supplies: rebuildIn.supplies });
       s.setFloor(plan.id, 'manual', model);
     } catch {
       /* the Auto floor shows why it can't be solved */
@@ -184,13 +203,20 @@ export default function App() {
   }, [powerMode, pp.sizeBy, pp.want, pp.extra, load, chainLoad, generation, t]);
 
   const tabs = [
-    ['targets', powerMode ? t('powerTab') : t('targets'), powerMode ? pp.plants.length : plan.targets.length],
+    [
+      'targets',
+      powerMode ? t('powerTab') : t('targets'),
+      powerMode
+        ? pp.plants.length
+        : manual
+          ? (plan.model?.nodes.filter((n) => n.k === 'out' && n.tag !== 'spare').length ?? 0)
+          : plan.targets.length,
+    ],
     ['recipes', t('recipes'), plan.enabled.length],
     ['resources', t('resources'), null],
   ] as const;
 
   // Nothing planned yet: the whole floor asks what to make (or how to make power), and the panel waits.
-  const exports = useExports(plan.id);
   // The graph names the tabs this factory sends to and takes from.
   const links = useMemo<FactoryLinks | undefined>(() => {
     if (powerMode) return undefined;
@@ -308,6 +334,8 @@ export default function App() {
           s.tab === 'targets' &&
           (powerMode ? (
             <PowerPanel result={result} draws={draws} load={load} chainDraw={chainDraw} probe={probe} />
+          ) : manual ? (
+            <FloorPanel host={host} calc={hand.calc} result={result} />
           ) : (
             <TargetsPanel result={result} />
           ))}
@@ -403,7 +431,7 @@ export default function App() {
                       forgetCamera(plan.id);
                       setBuilt((n) => n + 1);
                     }}
-                    onRebuild={factoryIn ? rebuild : undefined}
+                    onRebuild={rebuildIn?.input ? rebuild : undefined}
                     unbounded={hand.calc?.unbounded}
                   />
                 </>

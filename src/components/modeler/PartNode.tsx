@@ -3,7 +3,7 @@ import { createContext, memo, useContext } from 'react';
 import { data } from '../../lib/data';
 import { useT } from '../../lib/i18n';
 import { LOGISTICS, SINK, STORAGE, STORAGE_NAME } from '../../lib/model/catalog';
-import type { NodeCalc, NodeStatus } from '../../lib/model/calc/result';
+import { countOf, type NodeCalc, type NodeStatus } from '../../lib/model/calc/result';
 import type { OpenEnds } from '../../lib/model/checks';
 import { extractorById, type Port, portsOf, runnerRecipe } from '../../lib/model/ports';
 import { evenSpeed, fullSpeed } from '../../lib/model/ops';
@@ -20,31 +20,50 @@ export const CalcNodes = createContext<Record<string, NodeCalc> | undefined>(und
 /** Changes a node from a button on its card. */
 export const EditCard = createContext<(id: string, patch: Record<string, unknown>) => void>(() => {});
 
-/** The same output another way: the machines at 100% with one slower, or every machine at one clock. */
+/**
+ * The same output another way: the machines at 100% with one slower, or every machine at one clock. On a card only the
+ * one that would change something shows; in the panel both always do, greyed out when there's nothing to change. A
+ * machine sizing itself keeps doing so: only its clock changes, and its count follows.
+ */
 export function SpeedButtons({
   n,
   clock,
+  auto,
   onChange,
   small,
 }: {
   n: number;
   clock: number;
+  auto?: boolean;
   onChange: (patch: { n?: number; clock?: number }) => void;
   small?: boolean;
 }) {
   const { t } = useT();
   const fill = Math.abs(clock - 1) > 1e-9;
   const even = Math.abs(n - Math.round(n)) > 1e-6 && n > 1;
-  if (!fill && !even) return null;
+  if (small && !fill && !even) return null;
+  const apply = (patch: { n?: number; clock?: number }) => onChange(auto ? { clock: patch.clock } : patch);
   return (
     <div className={`speed-buttons ${small ? 'small nodrag nopan' : ''}`}>
-      {fill && (
-        <button type="button" className="floor-button" title={t('fullSpeedHint')} onClick={() => onChange(fullSpeed(n, clock))}>
+      {(fill || !small) && (
+        <button
+          type="button"
+          className="floor-button"
+          title={t('fullSpeedHint')}
+          disabled={!fill}
+          onClick={() => apply(fullSpeed(n, clock))}
+        >
           {t('fullSpeed')}
         </button>
       )}
-      {even && (
-        <button type="button" className="floor-button" title={t('evenSpeedHint')} onClick={() => onChange(evenSpeed(n, clock))}>
+      {(even || !small) && (
+        <button
+          type="button"
+          className="floor-button"
+          title={t('evenSpeedHint')}
+          disabled={!even}
+          onClick={() => apply(evenSpeed(n, clock))}
+        >
           {t('evenSpeed')}
         </button>
       )}
@@ -85,9 +104,28 @@ export function useStatusText() {
   };
 }
 
-/** One end of a node: a square on its edge holding the item's icon, dashed in orange while it needs a belt. */
-function End({ side, i, of, port, wired, open }: { side: 'in' | 'out'; i: number; of: number; port: Port; wired: boolean; open: boolean }) {
-  const { name } = useT();
+/**
+ * One end of a node: a square on its edge holding the item's icon, dashed in orange while it needs a belt. An output
+ * with nothing on it says what comes out there, so a line that ends in a machine shows what it makes.
+ */
+function End({
+  side,
+  i,
+  of,
+  port,
+  wired,
+  open,
+  spare,
+}: {
+  side: 'in' | 'out';
+  i: number;
+  of: number;
+  port: Port;
+  wired: boolean;
+  open: boolean;
+  spare?: number;
+}) {
+  const { t, name, num } = useT();
   const item = port.item ? data.items[port.item] : undefined;
   return (
     <Handle
@@ -99,12 +137,19 @@ function End({ side, i, of, port, wired, open }: { side: 'in' | 'out'; i: number
       title={item ? name(item) : undefined}
     >
       {item && <Icon id={item.id} size={18} />}
+      {spare !== undefined && spare > 1e-9 && (
+        <span className="port-spare">
+          {num(spare)}
+          <small>{t('perMin')}</small>
+        </span>
+      )}
     </Handle>
   );
 }
 
 function Ends({ node, wired, open }: PartData) {
   const ports = portsOf(node);
+  const spare = useContext(CalcNodes)?.[node.id]?.spare;
   return (
     <>
       {ports.ins.map((p, i) => (
@@ -112,8 +157,17 @@ function Ends({ node, wired, open }: PartData) {
         <End key={`i${i}`} side="in" i={i} of={ports.ins.length} port={p} wired={wired.ins[i]} open={!!open?.ins[i]} />
       ))}
       {ports.outs.map((p, i) => (
-        // biome-ignore lint/suspicious/noArrayIndexKey: as above.
-        <End key={`o${i}`} side="out" i={i} of={ports.outs.length} port={p} wired={wired.outs[i]} open={!!open?.outs[i]} />
+        <End
+          // biome-ignore lint/suspicious/noArrayIndexKey: as above.
+          key={`o${i}`}
+          side="out"
+          i={i}
+          of={ports.outs.length}
+          port={p}
+          wired={wired.outs[i]}
+          open={!!open?.outs[i]}
+          spare={wired.outs[i] ? undefined : spare?.[i]}
+        />
       ))}
     </>
   );
@@ -127,14 +181,16 @@ function Status({ calc }: { calc?: NodeCalc }) {
 }
 
 function Machine({ data: d, selected }: { data: PartData; selected: boolean }) {
-  const { name, num } = useT();
+  const { t, name, num } = useT();
   const n = d.node;
   const calc = useContext(CalcNodes)?.[n.id];
   const edit = useContext(EditCard);
   if (n.k !== 'machine' && n.k !== 'gen') return null;
   const recipe = runnerRecipe(n);
   if (!recipe) return null;
-  const use = describeUse(recipe, { clock: n.clock ?? 1, sloops: n.k === 'machine' ? (n.sloops ?? 0) : 0 }, n.n ?? 1, true);
+  const auto = n.k === 'machine' && !!n.auto;
+  const count = countOf(n, calc);
+  const use = describeUse(recipe, { clock: n.clock ?? 1, sloops: n.k === 'machine' ? (n.sloops ?? 0) : 0 }, count || 1, true);
   const bar = modBar(use.shards, use.sloops);
   const ends = Math.max(recipe.inputs.length, recipe.outputs.length);
   return (
@@ -151,13 +207,26 @@ function Machine({ data: d, selected }: { data: PartData; selected: boolean }) {
         <span className="machine-product" title={recipeLabel(name(recipe), recipe.kind)}>
           {n.label ?? recipeLabel(name(recipe), recipe.kind)}
         </span>
-        {selected && <SpeedButtons n={n.n ?? 1} clock={n.clock ?? 1} onChange={(patch) => edit(n.id, patch)} small />}
+        {selected && count > 0 && <SpeedButtons n={count} clock={n.clock ?? 1} auto={auto} onChange={(patch) => edit(n.id, patch)} small />}
       </div>
       <div className="machine-body">
         <Icon id={recipe.machine} size={60} className="machine-icon" />
         <span className="machine-info">
           <span className="machine-type">{name(data.machines[recipe.machine] ?? { name: recipe.machine })}</span>
-          <RunLine clocks={use.clocks} />
+          {auto && count <= 1e-9 ? (
+            <span className="machine-run">
+              <span className="auto-tag">{t('autoCount')}</span>
+            </span>
+          ) : (
+            <span className="run-with-auto">
+              <RunLine clocks={use.clocks} />
+              {auto && (
+                <span className="auto-tag" title={t('autoCountHint')}>
+                  {t('autoCount')}
+                </span>
+              )}
+            </span>
+          )}
           <span className="machine-mods">
             {recipe.kind !== 'power' && calc && (
               <span className="machine-draw">
@@ -191,7 +260,8 @@ function Endpoint({ data: d, selected }: { data: PartData; selected: boolean }) 
     kind = 'raw';
     label = e ? minerLabel(name(e)) : '';
     if (e?.purity) label += ` · ${t(n.purity ?? 'normal')}`;
-    rate = calc?.outs[0] ?? 0;
+    // On a belt, or left over where the miner has none.
+    rate = (calc?.outs[0] ?? 0) + (calc?.spare?.[0] ?? 0);
     const built = Math.max(1, Math.ceil((n.n ?? 1) - 1e-6));
     note = `${built}× ${num((((n.clock ?? 1) * (n.n ?? 1)) / built) * 100)}%`;
   } else if (n.k === 'in') {

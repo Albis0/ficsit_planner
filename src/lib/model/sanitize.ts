@@ -86,7 +86,7 @@ function node(x: unknown): MNode | undefined {
         ...base,
         k: 'machine',
         recipe: recipe.id,
-        ...opt('n', count(o.n), 1),
+        ...(o.auto === true ? { auto: true as const } : opt('n', count(o.n), 1)),
         ...opt('clock', clock(o.clock), 1),
         ...opt('sloops', sloops, 0),
       };
@@ -253,6 +253,6 @@ export function cleanModel(saved: unknown): Model | undefined {
     nodes,
     links,
     seq: Math.max(top + 1, Math.round(within(m.seq, 1, 1e9, 1))),
-    ...(m.drain === true ? { drain: true as const } : {}),
+    ...(m.stall === true ? { stall: true as const } : {}),
   };
 }

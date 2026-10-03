@@ -3,6 +3,7 @@ import { craftableItems, data, itemLocked, itemTier } from '../lib/data';
 import { useT } from '../lib/i18n';
 import { searchKey } from '../lib/text';
 import { useStore } from '../store';
+import { Glyph } from './Glyph';
 import { Slot } from './Slot';
 
 const projectParts = Array.from({ length: 12 }, (_, i) => `Desc_SpaceElevatorPart_${i + 1}_C`).filter((id) => data.items[id]);
@@ -35,7 +36,7 @@ export function QuickPick() {
   const { t, name } = useT();
   const tier = useStore((s) => s.tier);
   // Set to hide what isn't unlocked yet: those leave the shortcuts and the search.
-  const hide = useStore((s) => s.settings.hideLocked);
+  const hide = useStore((s) => !s.settings.showLocked);
   const shown = (ids: string[]) => (hide ? ids.filter((id) => !itemLocked(id, tier)) : ids);
   const set = useStore((s) => s.set);
   const updatePlan = useStore((s) => s.updatePlan);
@@ -84,13 +85,14 @@ export function QuickPick() {
           {/* Or no targets at all: an empty floor to build on by hand. */}
           <button
             type="button"
-            className="text-button"
+            className="build-by-hand"
             title={t('manualHint')}
             onClick={() => {
               setFloor(active, 'manual');
               set({ view: 'graph' });
             }}
           >
+            <Glyph name="floor" size={20} />
             {t('buildByHand')}
           </button>
         </div>

@@ -1,4 +1,8 @@
-import type { CalcMode } from '../types';
+import type { CalcMode, MNode } from '../types';
+
+/** Machines on a node: the count set, or for one sizing itself to what comes in, what the numbers say it takes. */
+export const countOf = (n: MNode, calc?: NodeCalc): number =>
+  n.k === 'machine' && n.auto ? (calc?.n ?? 0) : n.k === 'machine' || n.k === 'gen' || n.k === 'extract' ? (n.n ?? 1) : 0;
 
 /**
  * Why a node runs below its limit, or doesn't run:
@@ -20,6 +24,8 @@ export interface NodeCalc {
   ins: number[];
   outs: number[];
   status: NodeStatus;
+  /** Machines it takes, for a machine that sizes itself to what comes in. */
+  n?: number;
   /** Its output left over where nothing is connected, when the model counts that instead of stopping. */
   spare?: number[];
 }
