@@ -1,4 +1,4 @@
-import { data, recipeById, recipeTier, SPECIAL_ITEMS } from '../data';
+import { data, rawTier, recipeById, recipeTier, SPECIAL_ITEMS } from '../data';
 import { type ExtractionSettings, effectiveExtraction } from '../extraction';
 import { compile } from './calc/compile';
 import type { NodeInit } from './ops';
@@ -12,9 +12,12 @@ import { cardSize, dirOf, endSpot, freeSpot } from './layout';
   end, and says which end of the new card the belt goes on.
 */
 
-/** Special: gear made in the factory (ammo, equipment, power shards), kept apart from the parts. */
-export type ChoiceTab = 'make' | 'raw' | 'logistic' | 'io' | 'special';
-export const CHOICE_TABS: ChoiceTab[] = ['make', 'raw', 'logistic', 'io', 'special'];
+/**
+ * Special: gear made in the factory (ammo, equipment, power shards), kept apart from the parts. What leaves the floor
+ * or comes into it is added in the side panel, not here.
+ */
+export type ChoiceTab = 'make' | 'raw' | 'logistic' | 'special';
+export const CHOICE_TABS: ChoiceTab[] = ['make', 'raw', 'logistic', 'special'];
 
 /** A belt end waiting for something: the side of the new card it goes on, and what it carries. */
 export interface Want {
@@ -143,7 +146,8 @@ export function choicesFor(want: Want | undefined, tier: number, rules: ChoiceRu
           y: 0,
         },
         port: 0,
-        tier: e.tier,
+        // Not before anything takes it.
+        tier: Math.max(e.tier, rawTier(item.id) ?? 0),
       });
     }
 
@@ -155,14 +159,6 @@ export function choicesFor(want: Want | undefined, tier: number, rules: ChoiceRu
   if (!want || (want.side === 'in' && want.medium === 'belt'))
     out.push({ key: 'sink', tab: 'logistic', init: { k: 'sink', x: 0, y: 0 }, ...(want ? { port: 0 } : {}), tier: 2 });
 
-  // Leaving the factory, or coming in from outside it.
-  if (!want || want.side === 'in')
-    out.push({ key: 'out', tab: 'io', init: { k: 'out', ...(want?.item ? { item: want.item } : {}), x: 0, y: 0 }, port: 0, tier: 0 });
-  if (!want || want.side === 'out')
-    for (const item of Object.values(data.items)
-      .filter((i) => fits(i.id))
-      .sort((a, b) => a.name.localeCompare(b.name)))
-      out.push({ key: `i:${item.id}`, tab: 'io', init: { k: 'in', item: item.id, x: 0, y: 0 }, port: 0, tier: 0 });
   return out;
 }
 

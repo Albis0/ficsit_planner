@@ -887,16 +887,21 @@ const clash = (a, b) => a && b && a.x < b.x + b.width && b.x < a.x + a.width && 
       (await page.locator('aside.inspector dd.run-state.bad').count()) > 0,
   );
   await page.keyboard.press('Escape');
-  // An output on each open machine output.
+  // An output on each open machine output: added as a product in the side panel, then joined with a belt.
   m = await model();
-  for (const n of [plate, rodNode]) {
+  for (const [n, item] of [
+    [plate, 'Iron Plate'],
+    [rodNode, 'Iron Rod'],
+  ]) {
+    await page.locator('.side .targets.manual .add-button').first().click();
+    await page.locator('.side .picker-search').fill(item);
+    await page.locator('.side .picker-search').press('Enter');
+    await settle();
     await page.click('.floor-controls .floor-button >> nth=-1');
     await wait(400);
-    at = await emptySpot('right');
-    await drag(await centre(end(n.id, 'o0')), at);
-    await wait(300);
-    await page.locator('.chooser-tabs button:has-text("In and out")').click();
-    await page.locator('.chooser-list li').first().dispatchEvent('mousedown');
+    const made = (await model()).nodes.find((x) => x.k === 'out' && !m.nodes.some((y) => y.id === x.id));
+    m = await model();
+    await drag(await centre(end(n.id, 'o0')), await centre(end(made.id, 'i0')));
     await settle();
     await page.keyboard.press('Escape');
   }
@@ -1453,6 +1458,170 @@ const clash = (a, b) => a && b && a.x < b.x + b.width && b.x < a.x + a.width && 
   const motorKinks = await kinked(m.links);
   ok('and its belts have no kinks', motorKinks.length === 0, motorKinks.slice(0, 5).join(', '));
   await shot('q-motor-down');
+
+  // ── R: 0.13.7 ──
+  section = 'R';
+  await open(
+    saved({
+      mode: 'factory',
+      plans: [{ id: 'f1', name: 'Factory 1', targets: [{ item: plate, rate: 30 }] }],
+      active: 'f1',
+    }),
+  );
+  await page.click('.floor-kind button >> nth=1');
+  await settle();
+  const targetsNow = () => page.evaluate(() => JSON.parse(localStorage.getItem('ficsit-planner')).state.plans[0].targets);
+  m = await model();
+  const outCard = m.nodes.find((n) => n.k === 'out' && n.item === plate);
+
+  // One list of targets: set in Auto, the floor's output follows; set on the floor, Auto follows.
+  await page.click('.floor-kind button >> nth=0');
+  await settle();
+  await page.locator('.side .targets .item-card input').first().fill('15');
+  await page.locator('.side .targets .item-card input').first().press('Enter');
+  await wait(300);
+  await page.click('.floor-kind button >> nth=1');
+  await settle();
+  ok('a target set in Auto is the Manual output’s amount', (await model()).nodes.find((n) => n.id === outCard.id)?.lim === 15);
+  await page.locator('.side .floor-io input').first().fill('7');
+  await page.locator('.side .floor-io input').first().press('Enter');
+  await settle();
+  ok('an amount set on the floor is the target in Auto', JSON.stringify(await targetsNow()) === JSON.stringify([{ item: plate, rate: 7 }]));
+  await page.click('.floor-kind button >> nth=0');
+  await settle();
+  ok('and Auto shows it', (await page.locator('.side .targets .item-card input').first().inputValue()) === '7');
+  await page.click('.floor-kind button >> nth=1');
+  await settle();
+  await fit();
+
+  // An output has no panel; its × takes it off, and the target with it. Undo brings both back.
+  await card(outCard.id).click();
+  await wait(500);
+  ok('an output opens no panel', !(await page.locator('aside.inspector').count()));
+  await card(outCard.id).hover();
+  ok(
+    'its × shows on hover',
+    (await card(outCard.id)
+      .locator('.card-x')
+      .evaluate((b) => getComputedStyle(b).opacity)) === '1',
+  );
+  await shot('r-out-x');
+  await card(outCard.id).locator('.card-x').click();
+  await settle();
+  ok('the × takes it off, and the target', !(await model()).nodes.some((n) => n.id === outCard.id) && (await targetsNow()).length === 0);
+  await page.keyboard.press('Control+z');
+  await settle();
+  ok('undo brings both back', (await model()).nodes.some((n) => n.id === outCard.id) && (await targetsNow()).length === 1);
+
+  // A double click on a belt takes it off, and opens nothing.
+  m = await model();
+  const victimBelt = m.links.find((l) => l.b === outCard.id);
+  await page.locator(`.react-flow__edge[data-id="${victimBelt.id}"] .belt-hit`).dblclick({ force: true });
+  await wait(500);
+  ok(
+    'a double click on a belt takes it off',
+    !(await model()).links.some((l) => l.id === victimBelt.id) && !(await page.locator('aside.inspector').count()),
+  );
+  await page.keyboard.press('Control+z');
+  await settle();
+
+  // Copy and paste, duplicate, and the menu on a right click.
+  m = await model();
+  const asm = m.nodes.find((n) => n.k === 'machine' && n.recipe === 'Recipe_IronPlateReinforced_C');
+  const count = m.nodes.length;
+  await card(asm.id).locator('.machine-body').click();
+  await wait(400);
+  await page.keyboard.press('Control+c');
+  await page.keyboard.press('Escape');
+  await page.keyboard.press('Escape');
+  const pasteAt = await emptySpot('right');
+  await page.mouse.move(pasteAt.x, pasteAt.y);
+  await page.keyboard.press('Control+v');
+  await settle();
+  m = await model();
+  const pasted = m.nodes.filter((n) => n.k === 'machine' && n.recipe === asm.recipe);
+  ok('Ctrl+C, Ctrl+V: a copy of the card', m.nodes.length === count + 1 && pasted.length === 2);
+  ok('the copy lies on no card', (await overlaps()).length === 0);
+  ok('the copy comes up picked', (await page.locator('.react-flow__node.selected').count()) === 1);
+  await page.keyboard.press('Control+d');
+  await settle();
+  ok(
+    'Ctrl+D duplicates it',
+    (await model()).nodes.length === count + 2 &&
+      (await overlaps()).length === 0 &&
+      (await page.locator('.react-flow__node.selected').count()) === 1,
+    `${(await model()).nodes.length - count} new, ${await page.locator('.react-flow__node.selected').count()} picked`,
+  );
+  await fit();
+  await card(asm.id).locator('.machine-body').click({ button: 'right' });
+  await wait(300);
+  const menuItems = await page.locator('.card-menu button').allInnerTexts();
+  ok(
+    'a right click on a card: Duplicate, Copy, Paste, Mark built, Remove',
+    ['Duplicate', 'Copy', 'Paste', 'Mark built', 'Remove'].every((x) => menuItems.some((y) => y.startsWith(x))),
+    menuItems.map((x) => x.replace(/\s+/g, ' ')).join(' | '),
+  );
+  await shot('r-menu');
+  await page.locator('.card-menu button', { hasText: 'Mark built' }).click();
+  await settle();
+  ok('Mark built from the menu', (await model()).nodes.find((n) => n.id === asm.id)?.done === true);
+  await card(asm.id).locator('.machine-body').click({ button: 'right' });
+  await page.locator('.card-menu button', { hasText: 'Remove' }).click();
+  await settle();
+  ok('Remove from the menu', !(await model()).nodes.some((n) => n.id === asm.id));
+  ok('no menu left over', !(await page.locator('.card-menu').count()));
+
+  // Tips: none where the button says it already, and none at once.
+  await page.locator('.mode-switch button', { hasText: 'Power' }).hover();
+  await wait(1100);
+  ok('no tip on a button that reads the same', !(await page.locator('.tip').count()));
+  await page.locator('.tool-button[aria-label="Undo"]').hover();
+  await wait(350);
+  ok('no tip at once', !(await page.locator('.tip').count()));
+  await wait(800);
+  ok('a tip once the pointer rests', (await page.locator('.tip').count()) === 1);
+  await page.mouse.move(5, 400);
+
+  // The build menu: four tabs, no In and out; at tier 4 no uranium miner.
+  await page.evaluate(() => {
+    const s = JSON.parse(localStorage.getItem('ficsit-planner'));
+    s.state.tier = 4;
+    localStorage.setItem('ficsit-planner', JSON.stringify(s));
+  });
+  await page.reload();
+  await page.waitForFunction(() => !document.querySelector('.boot') && !document.querySelector('.busy'), null, { timeout: 30000 });
+  await wait(600);
+  await addHere();
+  const fourTabs = await page.locator('.chooser-tabs button').allInnerTexts();
+  ok(
+    'the build menu: Production, Resources, Logistics, Special',
+    fourTabs.join('|').replace(/\s+/g, '') === 'Production|Resources|Logistics|Special',
+    fourTabs.join(' | '),
+  );
+  await page.locator('.chooser-tabs button', { hasText: 'Resources' }).click();
+  const resources = await page.locator('.chooser-list li .chooser-title').allInnerTexts();
+  ok('tier 4: no uranium to mine', !resources.includes('Uranium') && resources.includes('Iron Ore'), resources.join(', '));
+  await page.keyboard.press('Escape');
+
+  // A card's panel open on a laptop: the buttons along the bottom clear of each other.
+  await page.setViewportSize({ width: 1280, height: 720 });
+  await wait(300);
+  m = await model();
+  await fit();
+  const someMachine = m.nodes.find((n) => n.k === 'machine');
+  await card(someMachine.id).locator('.machine-body').click();
+  await wait(600);
+  const ctrls = await page.locator('.floor-controls').boundingBox();
+  const fbar = await page.locator('.floor-bar').boundingBox();
+  const kindsBox = await page.locator('.floor-kind').boundingBox();
+  const viewsBox = await page.locator('.floor-bar .segmented:not(.floor-kind)').boundingBox();
+  ok(
+    'a panel open: the bottom buttons clear of each other',
+    !clash(ctrls, kindsBox) && !clash(ctrls, viewsBox) && !clash(ctrls, await page.locator('aside.inspector').boundingBox()),
+    JSON.stringify({ ctrls, fbar }),
+  );
+  await shot('r-panel-bottom');
+  await page.setViewportSize({ width: 1366, height: 768 });
   await ctx.close();
 }
 

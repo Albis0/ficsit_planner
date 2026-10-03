@@ -420,10 +420,11 @@ describe('the chooser', () => {
       expect(r.inputs[c.port!].item).toBe(ORE);
     }
     expect(make.some((c) => c.init.k === 'machine' && c.init.recipe === SMELT)).toBe(true);
-    // No miners for a belt that's already carrying something; a splitter, merger, sink and an output.
+    // No miners for a belt that's already carrying something; a splitter, merger and sink. Outputs come from the
+    // side panel, not the build menu.
     expect(list.some((c) => c.tab === 'raw')).toBe(false);
     expect(list.filter((c) => c.tab === 'logistic').map((c) => c.key)).toEqual(['l:splitter', 'l:merger', 'sink']);
-    expect(list.find((c) => c.tab === 'io')?.init).toEqual({ k: 'out', item: ORE, x: 0, y: 0 });
+    expect(list.some((c) => c.init.k === 'out' || c.init.k === 'in')).toBe(false);
   });
 
   test('an input wanting iron ore lists the miner and what makes it', () => {
@@ -434,7 +435,13 @@ describe('the chooser', () => {
     expect(raw[0].init).toMatchObject({ k: 'extract', item: ORE, extractor: 'Build_MinerMk3_C' });
     // At tier 3 the best miner is Mk.1.
     expect(choicesFor(wantAt(m, 3, 's', 'in', 0), 3).find((c) => c.tab === 'raw')?.init).toMatchObject({ extractor: 'Build_MinerMk1_C' });
-    expect(list.find((c) => c.tab === 'io')?.init).toEqual({ k: 'in', item: ORE, x: 0, y: 0 });
+  });
+
+  test('a resource nothing at the tier takes waits for that tier: no uranium before nuclear power', () => {
+    const tierOf = (tier: number, item: string) =>
+      choicesFor(undefined, tier).find((c) => c.tab === 'raw' && c.init.k === 'extract' && c.init.item === item)?.tier;
+    expect(tierOf(4, 'Desc_OreUranium_C')).toBeGreaterThan(4);
+    expect(tierOf(4, 'Desc_OreIron_C')).toBeLessThanOrEqual(4);
   });
 
   test("a splitter's output carries what reaches the splitter", () => {

@@ -1578,6 +1578,7 @@ button.slot:hover {
   position: relative;
   flex: 1;
   min-height: 0;
+  container: floor / inline-size;
 }
 
 .floor-message {
@@ -9887,6 +9888,90 @@ a.codex-flow:hover {
   --edge-l: 5px;
 }
 
+/* An output or input comes off the floor with the × on its corner, opposite the built tick; there's nothing else to
+   set on it there. */
+.card-x {
+  position: absolute;
+  top: -12px;
+  right: -12px;
+  z-index: 3;
+  width: 24px;
+  height: 24px;
+  display: grid;
+  place-items: center;
+  padding: 0 0 2px;
+  border: 1px solid var(--line-2);
+  border-radius: 50%;
+  background: var(--raised);
+  color: var(--dim);
+  font: 500 18px / 1 var(--font-body);
+  cursor: pointer;
+  opacity: 0;
+  transition: opacity 0.12s;
+}
+
+.react-flow__node:hover .card-x,
+.react-flow__node.selected .card-x,
+.card-x:focus-visible {
+  opacity: 1;
+}
+
+.card-x:hover {
+  border-color: var(--alert);
+  color: var(--alert);
+}
+
+@media (hover: none) {
+  .card-x {
+    opacity: 1;
+  }
+}
+
+/* A right click on a card: Duplicate, Copy, Paste, Built, Remove, with their keys. */
+.card-menu {
+  position: absolute;
+  z-index: 9;
+  min-width: 200px;
+  padding: 4px;
+  display: flex;
+  flex-direction: column;
+  background: var(--panel);
+  border: 1px solid var(--line-2);
+  border-radius: var(--radius);
+  box-shadow: 0 12px 30px rgb(0 0 0 / 55%);
+}
+
+.card-menu button {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px;
+  padding: 7px 10px;
+  border: 0;
+  border-radius: 3px;
+  background: none;
+  color: var(--paper);
+  font: 500 15px var(--font-body);
+  text-align: left;
+  cursor: pointer;
+}
+
+.card-menu button:hover,
+.card-menu button:focus-visible {
+  background: var(--raised);
+  outline: none;
+  box-shadow: inset 3px 0 var(--ficsit);
+}
+
+.card-menu button.danger {
+  color: var(--alert);
+}
+
+.card-menu kbd {
+  color: var(--faint);
+  font: 500 12px var(--font-body);
+}
+
 /* Goes against the side panel (a recipe turned off, above the tier, past a resource limit): a tag over the card. */
 .card-flag {
   position: absolute;
@@ -10504,10 +10589,19 @@ a.codex-flow:hover {
   background: none;
 }
 
-/* A card's panel open on a wide screen: + Add and Fit step left of it instead of going under it. */
+/* A card's panel open on a wide screen: the buttons along the bottom right step left of it instead of going under
+   it, and up a row where they'd run into Auto | Manual and the views on the left. */
 @media (min-width: 901px) {
   .floor-view:has(> .inspector.manual) .floor-controls {
     right: 436px;
+  }
+}
+
+@media (min-width: 901px) {
+  @container floor (max-width: 1400px) {
+    .floor-view:has(> .inspector.manual) .floor-controls {
+      bottom: 76px;
+    }
   }
 }
 

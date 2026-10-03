@@ -263,6 +263,15 @@ export function itemTier(id: string): number | undefined {
   return tiers.length ? Math.min(...tiers) : undefined;
 }
 
+/**
+ * Earliest tier at which anything takes a raw resource: its first standard recipe (or generator) using it. Uranium
+ * waits for nuclear power, though a miner can dig it up from the start. Undefined when nothing does.
+ */
+export function rawTier(id: string): number | undefined {
+  const tiers = data.recipes.filter((r) => r.kind !== 'alternate' && r.inputs.some((s) => s.item === id)).map(recipeTier);
+  return tiers.length ? Math.min(...tiers) : undefined;
+}
+
 /** Not makeable yet at this tier: its first standard recipe opens up later. Items nothing standard makes never are. */
 export function itemLocked(id: string, tier: number): boolean {
   const needs = itemTier(id);

@@ -106,6 +106,40 @@ export function connect(m: Model, a: string, ap: number, b: string, bp: number, 
   return { model: { ...m, seq, links: [...links, { ...extra, id: ids[0], a, ap, b, bp }] }, id: ids[0] };
 }
 
+/** Cards and the belts between them, as copied: apart from any floor until pasted. */
+export interface Clip {
+  nodes: MNode[];
+  links: MLink[];
+}
+
+/** The picked cards and every belt running between two of them; not ticked built, belts without bends. */
+export function copyNodes(m: Model, ids: Iterable<string>): Clip | undefined {
+  const keep = new Set(ids);
+  const nodes = m.nodes
+    .filter((n) => keep.has(n.id))
+    .map((n) => {
+      const { done: _, ...rest } = n;
+      return rest as MNode;
+    });
+  if (!nodes.length) return undefined;
+  const links = m.links
+    .filter((l) => keep.has(l.a) && keep.has(l.b))
+    .map((l) => {
+      const { pts: _, lbl: __, ...rest } = l;
+      return rest;
+    });
+  return { nodes, links };
+}
+
+/** Puts a copy down with its top left card corner moved by `dx`, `dy`; new ids throughout. Returns the new cards. */
+export function pasteClip(m: Model, clip: Clip, dx: number, dy: number): { model: Model; ids: string[] } {
+  const { ids, seq } = nextIds(m, clip.nodes.length + clip.links.length);
+  const to = new Map(clip.nodes.map((n, i) => [n.id, ids[i]]));
+  const nodes = clip.nodes.map((n) => ({ ...n, id: to.get(n.id)!, x: Math.round(n.x + dx), y: Math.round(n.y + dy) }) as MNode);
+  const links = clip.links.map((l, i) => ({ ...l, id: ids[clip.nodes.length + i], a: to.get(l.a)!, b: to.get(l.b)! }));
+  return { model: { ...m, seq, nodes: [...m.nodes, ...nodes], links: [...m.links, ...links] }, ids: nodes.map((n) => n.id) };
+}
+
 const tidyNumber = (x: number) => Math.round(x * 1e6) / 1e6;
 
 /**

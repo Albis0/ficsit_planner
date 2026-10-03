@@ -9,6 +9,18 @@ export type UpdateNote = [UpdateKind, string];
 
 export const UPDATES: { version: string; date: string; title?: string; notes: UpdateNote[] }[] = [
   {
+    version: '0.13.7',
+    date: '2026-10-03',
+    notes: [
+      ['changed', 'Auto and Manual share their targets: change a product on one and the other follows.'],
+      ['added', 'Right-click a card to duplicate, copy, paste, mark built or remove it; Ctrl+C, Ctrl+V and Ctrl+D work too.'],
+      ['added', 'Double-click a belt to remove it.'],
+      ['changed', 'Outputs and inputs open no panel; the × on the card removes them.'],
+      ['changed', 'The build menu has four tabs, and Resources lists only what your tier can use.'],
+      ['fixed', 'With a card’s panel open, the buttons along the bottom no longer run into each other.'],
+    ],
+  },
+  {
     version: '0.13.6',
     date: '2026-10-03',
     title: 'Manual floor',

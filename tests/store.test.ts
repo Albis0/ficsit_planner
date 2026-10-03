@@ -298,3 +298,56 @@ describe('taking from another factory', () => {
     expect(merged.plans[1].supplies).toEqual([{ item: 'Desc_IronPlate_C', rate: 5 }]);
   });
 });
+
+describe('Auto and Manual share their targets', () => {
+  const at = { x: 0, y: 0 };
+  const plateModel = (lim?: number) => ({
+    v: 1 as const,
+    calc: 'basic' as const,
+    seq: 10,
+    nodes: [
+      { id: 'm', ...at, k: 'machine' as const, recipe: 'Recipe_IronPlate_C', auto: true as const },
+      { id: 'o', x: 400, y: 0, k: 'out' as const, item: 'Desc_IronPlate_C', ...(lim !== undefined ? { lim } : {}) },
+    ],
+    links: [{ id: 'l', a: 'm', ap: 0, b: 'o', bp: 0 }],
+  });
+  const setUp = (lim?: number) => {
+    const p = { ...newPlan('Plates'), targets: [{ item: 'Desc_IronPlate_C', rate: 30 }], floor: 'manual' as const, model: plateModel(lim) };
+    useStore.setState({ mode: 'factory', plans: [p], active: p.id });
+    return p.id;
+  };
+  const plan = () => current().plans[0];
+
+  test('a target changed on the Auto side reaches the floor’s output card, one undo puts it back', () => {
+    const id = setUp(30);
+    current().setTarget(0, 5);
+    expect(plan().model?.nodes.find((n) => n.id === 'o')).toMatchObject({ lim: 5 });
+    current().undoModel(id);
+    expect(plan().model?.nodes.find((n) => n.id === 'o')).toMatchObject({ lim: 30 });
+  });
+
+  test('an output card’s amount set on the floor is the factory’s target', () => {
+    const id = setUp(30);
+    current().editModel(id, (m) => ({ ...m, nodes: m.nodes.map((n) => (n.id === 'o' ? { ...n, lim: 12 } : n)) }));
+    expect(plan().targets).toEqual([{ item: 'Desc_IronPlate_C', rate: 12 }]);
+  });
+
+  test('a new target gets an output card; a removed one takes its card off; a floor without limits keeps its amounts', () => {
+    const id = setUp();
+    // Moving a card on a floor converted before limits were kept changes no target.
+    current().editModel(id, (m) => ({ ...m, nodes: m.nodes.map((n) => (n.id === 'm' ? { ...n, x: 40 } : n)) }));
+    expect(plan().targets).toEqual([{ item: 'Desc_IronPlate_C', rate: 30 }]);
+    current().addTarget('Desc_IronRod_C');
+    expect(
+      plan()
+        .model?.nodes.filter((n) => n.k === 'out')
+        .map((n) => n.k === 'out' && [n.item, n.lim]),
+    ).toEqual([
+      ['Desc_IronPlate_C', 30],
+      ['Desc_IronRod_C', 10],
+    ]);
+    current().removeTarget(0);
+    expect(plan().model?.nodes.some((n) => n.id === 'o')).toBe(false);
+    expect(plan().model?.links).toEqual([]);
+  });
+});

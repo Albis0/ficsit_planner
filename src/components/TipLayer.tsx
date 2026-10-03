@@ -4,13 +4,12 @@ import { createPortal } from 'react-dom';
 /*
   The app's own hover tips, in place of the browser's plain ones. Anything with a title gets one: on the first hover
   the title moves to data-tip (so the browser's own never shows) and a dark box with an arrow comes up under it, or
-  over it near the bottom of the screen. Keyboard focus shows it too; a touch never does. Moving straight on to the
-  next button shows its tip at once, as a toolbar's should.
+  over it near the bottom of the screen, once the pointer has rested a moment. Keyboard focus shows it too; a touch
+  never does. Something whose own words already say it (a button reading Power) shows none.
 */
 
-/** How long a pointer rests before the tip comes up, and how long after one goes the next comes up at once. */
-const WAIT = 400;
-const WARM = 600;
+/** How long a pointer rests before the tip comes up. */
+const WAIT = 800;
 /** Kept this far from the screen's edges. */
 const EDGE = 8;
 
@@ -39,6 +38,14 @@ function tipOf(el: Element): string | undefined {
   return el.getAttribute('data-tip') || undefined;
 }
 
+/** The words shown on an element, leaving out text there only for screen readers. */
+function wordsOn(el: Element): string {
+  let words = '';
+  const walk = document.createTreeWalker(el, NodeFilter.SHOW_TEXT);
+  for (let n = walk.nextNode(); n; n = walk.nextNode()) if (!n.parentElement?.closest('.sr-only')) words += ` ${n.textContent}`;
+  return words.replace(/\s+/g, ' ').trim().toLowerCase();
+}
+
 export function TipLayer() {
   const [shown, setShown] = useState<Shown>();
   const box = useRef<HTMLDivElement>(null);
@@ -47,19 +54,19 @@ export function TipLayer() {
   useEffect(() => {
     let timer = 0;
     let over: Element | undefined;
-    let lastHidden = 0;
     const hide = () => {
       clearTimeout(timer);
       over = undefined;
-      setShown((s) => {
-        if (s) lastHidden = performance.now();
-        return undefined;
-      });
+      setShown(undefined);
     };
     const show = (el: Element) => {
       const text = tipOf(el);
-      if (!text) return;
       clearTimeout(timer);
+      // Nothing the element doesn't already say.
+      if (!text || wordsOn(el).includes(text.replace(KEYED, '$1').toLowerCase())) {
+        over = el;
+        return;
+      }
       over = el;
       const open = () => {
         if (over !== el || !el.isConnected) return;
@@ -68,8 +75,7 @@ export function TipLayer() {
         const m = KEYED.exec(text);
         setShown({ text: m ? m[1] : text, key: m?.[2], x: r.left + r.width / 2, y: below ? r.bottom : r.top, below });
       };
-      if (performance.now() - lastHidden < WARM) open();
-      else timer = window.setTimeout(open, WAIT);
+      timer = window.setTimeout(open, WAIT);
     };
     const target = (e: Event) => (e.target instanceof Element ? e.target.closest('[title], [data-tip]') : null);
     // A screen with no pointer to rest (a phone) shows none.
@@ -82,13 +88,7 @@ export function TipLayer() {
         if (over) hide();
         return;
       }
-      if (over) {
-        // From one tip straight to the next.
-        setShown((s) => {
-          if (s) lastHidden = performance.now();
-          return undefined;
-        });
-      }
+      if (over) setShown(undefined);
       show(el);
     };
     const onFocus = (e: FocusEvent) => {

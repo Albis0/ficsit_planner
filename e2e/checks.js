@@ -128,8 +128,9 @@ export function inspectPage(opts) {
     const scrollsY = /auto|scroll/.test(cs.overflowY);
     for (const el of card.querySelectorAll('*')) {
       if (!shown(el) || !(text(el) || el.tagName === 'IMG')) continue;
-      // A machine's ends on the hand-built floor sit on its edge on purpose, half outside.
-      if (el.closest('.react-flow__handle')) continue;
+      // A machine's ends on the hand-built floor sit on its edge on purpose, half outside; so do the × on an output's
+      // corner and the tag over a card that goes against the side panel.
+      if (el.closest('.react-flow__handle, .card-x, .card-flag')) continue;
       const r = el.getBoundingClientRect();
       const over = Math.max(c.left - r.left, r.right - c.right, scrollsY ? 0 : c.top - r.top, scrollsY ? 0 : r.bottom - c.bottom);
       if (over > 3) {

@@ -2,6 +2,32 @@
 
 All notable changes to FICSIT Planner. Dates are when the version was finished.
 
+## 0.13.7 — 2026-10-03
+
+### Changed
+
+- **Auto and Manual share their targets.** A product's amount set on the Manual floor is the factory's target in
+  Auto, and a target changed in Auto sets the Manual output card (a new target gets a card of its own, a removed one
+  takes its card off; one undo puts it back). What the floor is built from stays the floor's own.
+- **Outputs and inputs on the Manual floor open no panel**: their amounts are in the side panel, and a × in the
+  card's corner takes them off.
+- **The build menu has four tabs**: Production, Resources, Logistics, Special. Outputs and inputs come from the side
+  panel. Resources lists only what something at your tier takes (no uranium before nuclear power).
+- **Tips** come up after the pointer rests a little longer, one at a time, and not on a button whose own words say
+  the same.
+
+### Added
+
+- **A right click on a card**: Duplicate, Copy, Paste, Mark built, Remove, with their keys.
+- **Ctrl+C, Ctrl+V and Ctrl+D** on the Manual floor: copied cards keep the belts between them; a copy goes where the
+  pointer is, or beside the cards copied, on no other card.
+- **A double click on a belt takes it off.**
+
+### Fixed
+
+- **With a card's panel open on a laptop**, the buttons along the bottom right ran into Auto | Manual and the views.
+  They move up a row when there isn't room.
+
 ## 0.13.6 — 2026-10-03
 
 ### Fixed

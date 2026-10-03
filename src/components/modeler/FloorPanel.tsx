@@ -1,9 +1,9 @@
 import { craftableItems, data, itemLocked } from '../../lib/data';
 import { useT } from '../../lib/i18n';
 import type { CalcResult } from '../../lib/model/calc/result';
-import { cardSize, dirOf, freeSpot } from '../../lib/model/layout';
 import { addNode, removeNodes, updateNode } from '../../lib/model/ops';
-import { isPart, type IoNode, type Model } from '../../lib/model/types';
+import { ioSpot } from '../../lib/model/targets';
+import type { IoNode, Model } from '../../lib/model/types';
 import type { SolveResult } from '../../lib/solver';
 import { useStore } from '../../store';
 import { ItemPicker } from '../ItemPicker';
@@ -28,23 +28,6 @@ function arriving(model: Model, calc: CalcResult | undefined, id: string): { rat
   return { rate, item };
 }
 
-/** A new card past the floor's end (its start, for an input), where it lies on nothing: off to the right, or below. */
-function spotFor(model: Model, kind: 'in' | 'out'): { x: number; y: number } {
-  const parts = model.nodes.filter(isPart);
-  if (!parts.length) return { x: 0, y: 0 };
-  const dir = dirOf(model);
-  const size = cardSize({ id: '', k: kind, x: 0, y: 0 }, dir);
-  const box = parts.map((n) => ({ ...n, ...cardSize(n, dir) }));
-  if (dir === 'TB') {
-    const left = Math.min(...box.map((n) => n.x));
-    const y = kind === 'out' ? Math.max(...box.map((n) => n.y + n.h)) + 120 : Math.min(...box.map((n) => n.y)) - size.h - 120;
-    return freeSpot(model.nodes, { x: left, y, ...size }, dir);
-  }
-  const top = Math.min(...box.map((n) => n.y));
-  const x = kind === 'out' ? Math.max(...box.map((n) => n.x + n.w)) + 120 : Math.min(...box.map((n) => n.x)) - size.w - 120;
-  return freeSpot(model.nodes, { x, y: top, ...size }, dir);
-}
-
 /**
  * The side panel on a hand-built floor: what the floor puts out and what comes into it, read from the floor itself, so
  * the two always agree. Amounts set here are the most each output takes or each input brings; adding one puts its
@@ -63,11 +46,12 @@ export function FloorPanel({ host, calc, result }: { host: ModelHost; calc?: Cal
   const add = (kind: 'in' | 'out', item: string) => {
     let made = '';
     host.edit((m) => {
-      const added = addNode(m, { k: kind, item, ...spotFor(m, kind) });
+      const added = addNode(m, { k: kind, item, ...ioSpot(m, kind) });
       made = added.id;
       return added.model;
     });
-    set({ inspect: made });
+    // Outputs and inputs have no panel of their own: their amount is set here.
+    set({ inspect: undefined });
     revealCard(made);
   };
 
@@ -85,7 +69,7 @@ export function FloorPanel({ host, calc, result }: { host: ModelHost; calc?: Cal
           type="button"
           className="item-card-name floor-io-name"
           onClick={() => {
-            set({ inspect: n.id });
+            set({ inspect: undefined });
             revealCard(n.id);
           }}
         >

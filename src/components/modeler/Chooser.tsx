@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { data, itemLocked, recipeById, type Stack } from '../../lib/data';
+import { data, recipeById, type Stack } from '../../lib/data';
 import { useT } from '../../lib/i18n';
 import { LOGISTICS, SINK } from '../../lib/model/catalog';
 import { CHOICE_TABS, type Choice, type ChoiceRules, type ChoiceTab, choicesFor, choiceWords, type Want } from '../../lib/model/choices';
@@ -39,17 +39,14 @@ export function Chooser({
   const on = rules?.on;
   const extraction = rules?.extraction;
   // Only recipes turned on in Recipes. Set to hide what isn't unlocked yet: only what can be built at this tier, and
-  // no ends for parts it can't make.
+  // no miner for a resource nothing at this tier takes.
   const all = useMemo(
-    () =>
-      choicesFor(want, tier, { on, extraction }).filter(
-        (c) => !hide || (c.tier <= tier && !('item' in c.init && c.init.item && c.tab === 'io' && itemLocked(c.init.item, tier))),
-      ),
+    () => choicesFor(want, tier, { on, extraction }).filter((c) => !hide || c.tier <= tier),
     [want, tier, on, extraction, hide],
   );
   // An input wanting ore or water starts on the miners and pumps.
   const order: ChoiceTab[] =
-    want?.side === 'out' && want.item && data.items[want.item]?.raw ? ['raw', 'make', 'logistic', 'io', 'special'] : CHOICE_TABS;
+    want?.side === 'out' && want.item && data.items[want.item]?.raw ? ['raw', 'make', 'logistic', 'special'] : CHOICE_TABS;
   const tabs = order.filter((x) => all.some((c) => c.tab === x));
   const [tab, setTab] = useState<ChoiceTab>(tabs[0] ?? 'make');
   const [q, setQ] = useState('');
@@ -129,8 +126,6 @@ export function Chooser({
     }
     if (n.k === 'logistic') return { icon: LOGISTICS[n.kind].icon, title: LOGISTICS[n.kind].name };
     if (n.k === 'sink') return { icon: SINK.icon, title: SINK.name };
-    if (n.k === 'out') return { icon: n.item ?? '', title: t('output'), sub: n.item ? name(data.items[n.item]) : t('anything') };
-    if (n.k === 'in') return { icon: n.item ?? '', title: n.item ? name(data.items[n.item]) : '', sub: t('comesIn') };
     return { icon: '', title: '' };
   };
 

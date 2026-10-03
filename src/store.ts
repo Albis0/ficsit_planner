@@ -11,6 +11,7 @@ import { DEFAULT_SETTINGS, type Settings } from './lib/settings';
 import type { RecipeMod, Target } from './lib/solver';
 import { cleanMapFilter, DEFAULT_MAP_FILTER, type MapFilter } from './lib/world';
 import { forget, record, redo, undo } from './lib/model/history';
+import { floorTargets, sameTargets, withTargets } from './lib/model/targets';
 import { emptyModel, type Model } from './lib/model/types';
 import type { Carrier } from './lib/transport';
 
@@ -332,7 +333,26 @@ export const useStore = create<State>()(
       // Plan edits go to whatever is on screen: the active factory, or the power plant's fuel plan.
       const update = (fn: (p: Plan) => Partial<Plan>) => {
         if (get().mode === 'power') return power((pp) => ({ chain: { ...pp.chain, ...fn(pp.chain) } }));
-        set({ plans: get().plans.map((p) => (p.id === get().active ? { ...p, ...fn(p) } : p)) });
+        set({
+          plans: get().plans.map((p) => {
+            if (p.id !== get().active) return p;
+            const patch = fn(p);
+            // Targets and a hand-built floor's products are one list: new targets reach its output cards, one step to undo.
+            if (patch.targets && p.model && !patch.model) {
+              const model = withTargets(p.model, patch.targets);
+              if (model !== p.model) {
+                record(p.id, p.model, 'targets');
+                return { ...p, ...patch, model };
+              }
+            }
+            return { ...p, ...patch };
+          }),
+        });
+      };
+      /** A hand-built floor changed: its output cards are the factory's targets from here on. */
+      const withFloor = (p: Plan, model: Model): Plan => {
+        const targets = floorTargets(model, p.targets);
+        return sameTargets(targets, p.targets) ? { ...p, model } : { ...p, model, targets };
       };
       const plants = (fn: (list: Plant[]) => Plant[]) => power((pp) => ({ plants: fn(pp.plants) }));
 
@@ -570,17 +590,17 @@ export const useStore = create<State>()(
           const next = fn(model);
           if (next === model) return;
           record(id, model, merge);
-          set({ plans: get().plans.map((p) => (p.id === id ? { ...p, model: next } : p)) });
+          set({ plans: get().plans.map((p) => (p.id === id ? withFloor(p, next) : p)) });
         },
         undoModel: (id) => {
           const plan = get().plans.find((p) => p.id === id);
           const prev = undo(id, plan?.model);
-          if (prev) set({ plans: get().plans.map((p) => (p.id === id ? { ...p, model: prev } : p)) });
+          if (prev) set({ plans: get().plans.map((p) => (p.id === id ? withFloor(p, prev) : p)) });
         },
         redoModel: (id) => {
           const plan = get().plans.find((p) => p.id === id);
           const next = redo(id, plan?.model);
-          if (next) set({ plans: get().plans.map((p) => (p.id === id ? { ...p, model: next } : p)) });
+          if (next) set({ plans: get().plans.map((p) => (p.id === id ? withFloor(p, next) : p)) });
         },
       };
     },

@@ -56,6 +56,9 @@ function FlagTag({ id }: { id: string }) {
 /** Changes a node from a button on its card. */
 export const EditCard = createContext<(id: string, patch: Record<string, unknown>) => void>(() => {});
 
+/** Takes a card off the floor, from the × on an output or input. */
+export const RemoveCard = createContext<(id: string) => void>(() => {});
+
 /**
  * The same output another way: the machines at 100% with one slower, or every machine at one clock. On a card only the
  * one that would change something shows; in the panel both always do, greyed out when there's nothing to change. A
@@ -298,6 +301,7 @@ function Machine({ data: d, selected }: { data: PartData; selected: boolean }) {
 /** Sources and ends of the line, in the Auto floor's endpoint look: miners and pumps, inputs from outside, outputs. */
 function Endpoint({ data: d, selected }: { data: PartData; selected: boolean }) {
   const dir = useContext(FloorDir);
+  const remove = useContext(RemoveCard);
   const { t, name, num } = useT();
   const n = d.node;
   const calc = useContext(CalcNodes)?.[n.id];
@@ -339,6 +343,16 @@ function Endpoint({ data: d, selected }: { data: PartData; selected: boolean }) 
     >
       <FlagTag id={n.id} />
       <Ends {...d} />
+      {(n.k === 'in' || n.k === 'out') && (
+        <button
+          type="button"
+          className="card-x nodrag nopan"
+          aria-label={`${t('remove')} ${it ? name(it) : t('anything')}`}
+          onClick={() => remove(n.id)}
+        >
+          ×
+        </button>
+      )}
       {it ? <Slot id={it.id} size={60} tone={kind === 'target' ? 'target' : 'default'} /> : <span className="slot-empty" />}
       <span className="endpoint-text">
         <span className="endpoint-kind">{n.label ?? label}</span>
