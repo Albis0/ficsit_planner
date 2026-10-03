@@ -1,4 +1,5 @@
 import { data, recipeById, recipeTier } from '../data';
+import { type ExtractionSettings, effectiveExtraction } from '../extraction';
 import { compile } from './calc/compile';
 import type { NodeInit } from './ops';
 import { extractorById, type Medium, mediumOf, portsOf } from './ports';
@@ -34,8 +35,14 @@ export interface Choice {
   port?: number;
   /** Milestone tier it opens at. */
   tier: number;
-  /** Recipes the planner has on for this factory. */
-  marked?: boolean;
+}
+
+/** What the factory's side panel says about what goes down: the recipes it has on, and the miner it counts with. */
+export interface ChoiceRules {
+  /** Recipes turned on in Recipes; unset lists every recipe. */
+  on?: ReadonlySet<string>;
+  /** Miner, node purity and clock from Resources; unset is the best miner unlocked, on a normal node, at 100%. */
+  extraction?: ExtractionSettings;
 }
 
 /** The belt end at a node's port, as something waiting for a card. */
@@ -63,24 +70,33 @@ const LOGISTIC: { kind: LogisticKind; medium: Medium }[] = [
   { kind: 'junction', medium: 'pipe' },
 ];
 
-/** The extractor a resource is usually got with at this tier: the best one unlocked, a node pump before a well. */
-function extractorOf(item: string, tier: number) {
+/**
+ * The extractor a resource is got with at this tier: the miner picked in Resources (or the best one unlocked when that
+ * isn't yet), a node pump before a well.
+ */
+function extractorOf(item: string, tier: number, ex?: ExtractionSettings) {
   const solid = data.items[item]?.form === 'solid';
+  if (solid && ex) {
+    const miner = data.extractors.find((e) => e.id === effectiveExtraction(ex, tier).miner);
+    if (miner) return miner;
+  }
   const options = data.extractors.filter((e) => (e.resources.length ? e.resources.includes(item) : solid));
   const pumps = options.filter((e) => e.id !== 'Build_FrackingExtractor_C');
   const pool = (pumps.length ? pumps : options).sort((a, b) => a.tier - b.tier);
   return pool.filter((e) => e.tier <= tier).at(-1) ?? pool[0];
 }
 
-/** Everything that fits, in the order the chooser shows it: what's on and unlocked first. */
-export function choicesFor(want: Want | undefined, tier: number, marked: ReadonlySet<string> = new Set()): Choice[] {
+/** Everything that fits and is turned on, in the order the chooser shows it: what's unlocked first. */
+export function choicesFor(want: Want | undefined, tier: number, rules: ChoiceRules = {}): Choice[] {
+  const { on, extraction: ex } = rules;
   const out: Choice[] = [];
   const fits = (item: string) => !want || (want.item ? item === want.item : mediumOf(item) === want.medium);
 
   // Recipes: what takes the belt's item (or makes what the input wants).
   const recipes: Choice[] = [];
   for (const r of data.recipes) {
-    if (r.kind === 'power') continue;
+    // Turned off in Recipes: off here too, as on the Auto floor.
+    if (r.kind === 'power' || (on && !on.has(r.id))) continue;
     const ends = want ? (want.side === 'in' ? r.inputs : r.outputs) : undefined;
     const port = ends ? ends.findIndex((s) => fits(s.item)) : undefined;
     if (port === -1) continue;
@@ -90,10 +106,9 @@ export function choicesFor(want: Want | undefined, tier: number, marked: Readonl
       init: { k: 'machine', recipe: r.id, auto: true, x: 0, y: 0 },
       ...(port !== undefined ? { port } : {}),
       tier: recipeTier(r),
-      ...(marked.has(r.id) ? { marked: true } : {}),
     });
   }
-  const rank = (c: Choice) => (c.tier <= tier ? 0 : 2) + (c.marked ? 0 : 1);
+  const rank = (c: Choice) => (c.tier <= tier ? 0 : 1);
   const nameOf = (c: Choice) => (c.init.k === 'machine' ? (recipeById.get(c.init.recipe)?.name ?? '') : '');
   // Then standard recipes before alternates, and converters last. For a belt, the earliest ones first (Iron Plate
   // before Ficsite Ingot); for the whole list, by name.
@@ -109,12 +124,23 @@ export function choicesFor(want: Want | undefined, tier: number, marked: Readonl
     for (const item of Object.values(data.items)
       .filter((i) => i.raw && fits(i.id))
       .sort((a, b) => a.name.localeCompare(b.name))) {
-      const e = extractorOf(item.id, tier);
+      const e = extractorOf(item.id, tier, ex);
       if (!e) continue;
+      // The node purity and clock Resources counts with.
+      const purity = e.purity ? ex?.purity : undefined;
+      const clock = ex ? (ex.overclock?.[item.id] ?? ex.clock) : 1;
       out.push({
         key: `x:${item.id}`,
         tab: 'raw',
-        init: { k: 'extract', extractor: e.id, item: item.id, x: 0, y: 0 },
+        init: {
+          k: 'extract',
+          extractor: e.id,
+          item: item.id,
+          ...(purity && purity !== 'normal' ? { purity } : {}),
+          ...(Math.abs(clock - 1) > 1e-12 ? { clock } : {}),
+          x: 0,
+          y: 0,
+        },
         port: 0,
         tier: e.tier,
       });

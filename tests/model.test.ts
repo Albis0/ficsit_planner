@@ -6,7 +6,7 @@ import { adaptModel } from '../src/lib/model/calc/adapter';
 import { calcKey, calcModel } from '../src/lib/model/calc';
 import { modelFromSolve } from '../src/lib/model/fromAuto';
 import { arrangeModel, portY } from '../src/lib/model/arrange';
-import { openCards, openEnds } from '../src/lib/model/checks';
+import { openCards, openEnds, ruleFlags } from '../src/lib/model/checks';
 import { choicesFor, choiceWords, placeChoice, wantAt } from '../src/lib/model/choices';
 import { cardSize, freeSpot } from '../src/lib/model/layout';
 import { addNode, canConnect, connect, evenSpeed, fullSpeed, minerFor, moveNodes, removeNodes } from '../src/lib/model/ops';
@@ -422,15 +422,50 @@ describe('the chooser', () => {
     expect(list.filter((c) => c.tab === 'logistic').map((c) => c.key)).toEqual(['l:junction']);
   });
 
-  test('with nothing waiting it lists everything, turned on and unlocked first', () => {
-    const list = choicesFor(undefined, 2, new Set([SMELT]));
+  test('with nothing waiting it lists everything, unlocked first', () => {
+    const list = choicesFor(undefined, 2);
     const make = list.filter((c) => c.tab === 'make');
-    expect(make[0].init).toMatchObject({ recipe: SMELT });
+    expect(make.some((c) => c.init.k === 'machine' && c.init.recipe === SMELT)).toBe(true);
     const firstLocked = make.findIndex((c) => c.tier > 2);
     expect(make.slice(firstLocked).every((c) => c.tier > 2)).toBe(true);
     expect(list.some((c) => c.tab === 'raw' && c.init.k === 'extract' && c.init.item === 'Desc_Water_C')).toBe(true);
     expect(new Set(list.map((c) => c.key)).size).toBe(list.length);
-    expect(choiceWords(make[0])).toContain('Iron Ore');
+    const smelt = make.find((c) => c.init.k === 'machine' && c.init.recipe === SMELT)!;
+    expect(choiceWords(smelt)).toContain('Iron Ore');
+  });
+
+  test('recipes turned off in Recipes stay out, alternates and standard ones alike', () => {
+    const want = wantAt(model([miner('m')], []), 9, 'm', 'out', 0);
+    const recipes = (on?: Set<string>) =>
+      choicesFor(want, 9, { on })
+        .filter((c) => c.init.k === 'machine')
+        .map((c) => (c.init.k === 'machine' ? c.init.recipe : ''));
+    const kinds = (ids: string[]) => new Set(ids.map((id) => data.recipes.find((r) => r.id === id)?.kind));
+    // Every alternate off: none listed, though some take iron ore.
+    expect(kinds(recipes()).has('alternate')).toBe(true);
+    const standard = new Set(data.recipes.filter((r) => r.kind === 'standard').map((r) => r.id));
+    expect(kinds(recipes(standard))).toEqual(new Set(['standard']));
+    // One alternate turned on: that one, and no other.
+    const alt = data.recipes.find((r) => r.kind === 'alternate' && r.inputs.some((s) => s.item === ORE))!;
+    const withAlt = recipes(new Set([...standard, alt.id]));
+    expect(withAlt.filter((id) => !standard.has(id))).toEqual([alt.id]);
+    // The standard iron ingot turned off too: gone from the list.
+    expect(recipes(new Set([...standard].filter((id) => id !== SMELT)))).not.toContain(SMELT);
+  });
+
+  test('a new miner comes with the miner, purity and clock picked in Resources', () => {
+    const want = wantAt(model([smelter('s')], []), 9, 's', 'in', 0);
+    const ex = { miner: 'Build_MinerMk1_C', purity: 'impure' as const, clock: 1.5 };
+    const minerOf = (tier: number, extraction = ex) => choicesFor(want, tier, { extraction }).find((c) => c.tab === 'raw')?.init;
+    expect(minerOf(9)).toMatchObject({ k: 'extract', extractor: 'Build_MinerMk1_C', purity: 'impure', clock: 1.5 });
+    // A Mk.3 picked, at a tier that hasn't one yet: the best there is.
+    expect(minerOf(3, { ...ex, miner: 'Build_MinerMk3_C' })).toMatchObject({ extractor: 'Build_MinerMk1_C' });
+    // A normal node at 100% stays unset, as on any card.
+    const plain = minerOf(9, { miner: 'Build_MinerMk2_C', purity: 'normal', clock: 1 }) as Record<string, unknown>;
+    expect(plain.extractor).toBe('Build_MinerMk2_C');
+    expect('purity' in plain || 'clock' in plain).toBe(false);
+    // A clock set for this resource beats the usual one.
+    expect(minerOf(9, { ...ex, overclock: { [ORE]: 2 } } as never)).toMatchObject({ clock: 2 });
   });
 
   test('a new card sits with its end where the belt was let go, off the cards already there', () => {
@@ -453,6 +488,30 @@ describe('the chooser', () => {
   test('a free spot is the spot itself on an empty floor, on the grid', () => {
     expect(freeSpot([], { x: 13, y: 27, w: 80, h: 160 })).toEqual({ x: 0, y: 40 });
     expect(freeSpot([], { x: 61, y: 99, w: 80, h: 160 })).toEqual({ x: 80, y: 80 });
+  });
+});
+
+describe('going against the side panel', () => {
+  test('a recipe turned off, a card above the tier, and a resource past its limit each say so', async () => {
+    const alt = data.recipes.find((r) => r.kind === 'alternate' && r.inputs.some((s) => s.item === ORE))!;
+    const m = model(
+      [miner('m', 2), smelter('s'), { id: 'a', ...at, k: 'machine', recipe: alt.id }, out('o', INGOT)],
+      [
+        { a: 'm', ap: 0, b: 's', bp: 0 },
+        { a: 's', ap: 0, b: 'o', bp: 0 },
+      ],
+    );
+    const standard = new Set(data.recipes.filter((r) => r.kind === 'standard').map((r) => r.id));
+    expect(ruleFlags(m, { tier: 9, on: standard }).get('a')).toEqual({ k: 'off' });
+    expect(ruleFlags(m, { tier: 9, on: standard }).has('s')).toBe(false);
+    // Nothing said about recipes when the home has no list.
+    expect(ruleFlags(m, { tier: 9 }).size).toBe(0);
+    // Mk.2 miners open at tier 4.
+    expect(ruleFlags(m, { tier: 3 }).get('m')).toEqual({ k: 'tier', tier: 4 });
+    // The smelter draws 30 a minute from the miners: over a limit of 20, under one of 500.
+    const calc = await run(m);
+    expect(ruleFlags(m, { tier: 9, caps: { [ORE]: 20 } }, calc).get('m')).toMatchObject({ k: 'cap', item: ORE, rate: 30, cap: 20 });
+    expect(ruleFlags(m, { tier: 9, caps: { [ORE]: 500 } }, calc).has('m')).toBe(false);
   });
 });
 

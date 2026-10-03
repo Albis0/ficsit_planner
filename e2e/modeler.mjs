@@ -920,6 +920,8 @@ const clash = (a, b) => a && b && a.x < b.x + b.width && b.x < a.x + a.width && 
       `${tag}: every belt laid out with a spot for its label`,
       mm.links.every((l) => l.lbl),
     );
+    // Made from the plan's own recipes, tier and limits: nothing on it goes against the side panel.
+    ok(`${tag}: no card goes against the side panel`, !(await page.locator('.card-flag').count()));
     const states2 = await page.$$eval('.react-flow__node .machine-node .run-state', (l) => l.map((x) => x.textContent));
     ok(
       `${tag}: every machine at full speed`,
@@ -1029,6 +1031,130 @@ const clash = (a, b) => a && b && a.x < b.x + b.width && b.x < a.x + a.width && 
   await page.locator('.side .tabs button[role="tab"]:has-text("Recipes")').click();
   await wait(300);
   ok('turned on: Recipes offers Show locked', (await page.locator('.locked-note').count()) === 1);
+  await ctx.close();
+}
+
+// ───────────────────────────── The side panel holds on the floor ─────────────────────────────
+{
+  section = 'P';
+  const ctx = await browser.newContext({ viewport: { width: 1366, height: 768 }, reducedMotion: 'reduce', serviceWorkers: 'block' });
+  page = await ctx.newPage();
+  page.on('pageerror', (e) => errors.push(e.message));
+  // A miner and a smelter put down by hand; the plan's recipes as they come, every alternate off.
+  await open(
+    saved({
+      mode: 'factory',
+      plans: [
+        {
+          id: 'f1',
+          name: 'Factory 1',
+          targets: [],
+          floor: 'manual',
+          model: {
+            v: 1,
+            calc: 'basic',
+            seq: 10,
+            nodes: [
+              { id: 'm', x: 0, y: 0, k: 'extract', extractor: 'Build_MinerMk2_C', item: 'Desc_OreIron_C' },
+              { id: 's', x: 480, y: 0, k: 'machine', recipe: 'Recipe_IngotIron_C', auto: true },
+            ],
+            links: [{ id: 'l1', a: 'm', ap: 0, b: 's', bp: 0 }],
+          },
+        },
+      ],
+      active: 'f1',
+    }),
+  );
+  const tab = (name) => page.locator(`.side .tabs button[role="tab"]:has-text("${name}")`).click();
+  const fromMiner = async () => {
+    await fit();
+    await drag(await centre(end('m', 'o0')), await emptySpot('right'));
+    await wait(300);
+  };
+  await fromMiner();
+  ok('a belt from the miner opens the menu', await page.locator('.chooser').isVisible());
+  ok(
+    'every alternate off in Recipes: none in the menu',
+    (await page.locator('.chooser-list li').count()) > 0 && !(await page.locator('.chooser-list .kind.alternate').count()),
+    (await page.locator('.chooser-list li .chooser-title').allInnerTexts()).join(' | '),
+  );
+  await shot('p-no-alternates');
+  await page.keyboard.press('Escape');
+  // One alternate turned on in Recipes: that one comes, and no other.
+  await tab('Recipes');
+  await page.locator('.panel-body.recipes .segmented button:has-text("Alternate")').click();
+  await page.locator('.panel-body.recipes .search').fill('Iron Alloy');
+  await wait(300);
+  await page.locator('.recipe-row input').first().check();
+  await wait(300);
+  await fromMiner();
+  const alts = await page.locator('.chooser-list li:has(.kind.alternate) .chooser-title').allInnerTexts();
+  ok('one alternate turned on: only that one', alts.length === 1 && alts[0].includes('Iron Alloy'), alts.join(' | '));
+  await page.keyboard.press('Escape');
+  // The standard Iron Ingot turned off: the smelter on the floor says so, and stays.
+  await page.locator('.panel-body.recipes .segmented button:has-text("Standard")').click();
+  await page.locator('.panel-body.recipes .search').fill('Iron Ingot');
+  await wait(300);
+  await page
+    .locator('.recipe-row')
+    .filter({ hasText: /^Iron Ingot/ })
+    .locator('input')
+    .uncheck();
+  await wait(500);
+  ok('a card on a recipe turned off says so', (await card('s').locator('.card-flag').innerText()).toLowerCase() === 'off in recipes');
+  ok(
+    'and is still on the floor',
+    (await model()).nodes.some((n) => n.id === 's'),
+  );
+  await shot('p-recipe-off');
+  await fromMiner();
+  ok(
+    'nor does the menu offer it',
+    !(await page.locator('.chooser-list li .chooser-title').allInnerTexts()).some((x) => x === 'Iron Ingot'),
+  );
+  await page.keyboard.press('Escape');
+  await page
+    .locator('.recipe-row')
+    .filter({ hasText: /^Iron Ingot/ })
+    .locator('input')
+    .check();
+  await wait(400);
+  ok('turned back on: the tag goes', !(await card('s').locator('.card-flag').count()));
+  // The tier lowered below the Mk.2 miner.
+  await page.locator('.tier-steps button:text-is("3")').click();
+  await wait(400);
+  ok('a miner above the tier says so', (await card('m').locator('.card-flag').innerText()).toLowerCase() === 'needs tier 4');
+  await page.locator('.tier-steps button:text-is("9")').click();
+  await wait(300);
+  // Resources: a new miner comes as picked there.
+  await tab('Resources');
+  await page.locator('.miner-picker button:has-text("Mk.1")').click();
+  await page.locator('.panel-body.resources .segmented button:has-text("Impure")').click();
+  await wait(200);
+  const spot = await emptySpot('left');
+  await page.mouse.click(spot.x, spot.y, { button: 'right' });
+  await wait(300);
+  await page.locator('.chooser-tabs button:has-text("Resources")').click();
+  await page.locator('.chooser input').fill('Iron Ore');
+  await wait(200);
+  await page.locator('.chooser-list li').first().dispatchEvent('mousedown');
+  await settle();
+  const added = (await model()).nodes.find((n) => n.k === 'extract' && n.id !== 'm');
+  ok(
+    'a new miner comes with the Mk and purity from Resources',
+    added?.extractor === 'Build_MinerMk1_C' && added?.purity === 'impure',
+    JSON.stringify(added),
+  );
+  ok('its card says so', (await card(added.id).innerText()).includes('Mk.1 · Impure'));
+  ok('an iron ore miner, as searched', added?.item === 'Desc_OreIron_C');
+  await page.keyboard.press('Escape');
+  // A limit in Resources under what the floor mines: the miners and the panel say so.
+  await page.locator('.resource-card').filter({ hasText: 'Iron Ore' }).locator('input').first().fill('10');
+  await page.keyboard.press('Enter');
+  await wait(800);
+  ok('mined past the limit: the miner says so', (await card('m').locator('.card-flag').innerText()).toLowerCase() === 'over the limit');
+  ok('and Resources too', (await page.locator('.resource-card .over-cap').count()) === 1);
+  await shot('p-over-limit');
   await ctx.close();
 }
 

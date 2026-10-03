@@ -6,6 +6,18 @@ export type UpdateKind = 'added' | 'fixed' | 'changed';
 
 export const UPDATES: { version: string; date: string; notes: [UpdateKind, string][] }[] = [
   {
+    version: '0.13.3',
+    date: '2026-10-03',
+    notes: [
+      ['fixed', 'Manual floor: the build menu lists only the recipes turned on in Recipes.'],
+      ['changed', 'Manual floor: a new miner comes with the miner, purity and clock picked in Resources.'],
+      [
+        'changed',
+        'Manual floor: a card says when its recipe is off in Recipes, when it needs a higher tier, or when miners take more than the limit in Resources.',
+      ],
+    ],
+  },
+  {
     version: '0.13.2',
     date: '2026-10-03',
     notes: [

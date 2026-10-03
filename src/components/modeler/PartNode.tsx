@@ -4,7 +4,7 @@ import { data } from '../../lib/data';
 import { useT } from '../../lib/i18n';
 import { LOGISTICS, SINK, STORAGE, STORAGE_NAME } from '../../lib/model/catalog';
 import { countOf, type NodeCalc, type NodeStatus } from '../../lib/model/calc/result';
-import type { OpenEnds } from '../../lib/model/checks';
+import type { Flag, OpenEnds } from '../../lib/model/checks';
 import { cardSize, portY } from '../../lib/model/layout';
 import { extractorById, type Port, portsOf, runnerRecipe } from '../../lib/model/ports';
 import { evenSpeed, fullSpeed } from '../../lib/model/ops';
@@ -23,6 +23,32 @@ const grid = (n: MNode) => {
 
 /** The numbers for every node, by id; one context so a card re-renders only when its own numbers change. */
 export const CalcNodes = createContext<Record<string, NodeCalc> | undefined>(undefined);
+
+/** Cards that go against the side panel, by id. */
+export const CardFlags = createContext<Map<string, Flag> | undefined>(undefined);
+
+/** What a flag says: short on a card, in full in the panel. */
+export function useFlagText() {
+  const { t, num, name } = useT();
+  return (f: Flag, long = false): string => {
+    if (f.k === 'off') return t('flagOff');
+    if (f.k === 'tier') return t('needsTier', { tier: f.tier });
+    if (!long) return t('flagCap');
+    return t(f.world ? 'flagWorldLong' : 'flagCapLong', { item: name(data.items[f.item]), rate: num(f.rate), cap: num(f.cap) });
+  };
+}
+
+/** A tag over a card that goes against the side panel. */
+function FlagTag({ id }: { id: string }) {
+  const flag = useContext(CardFlags)?.get(id);
+  const text = useFlagText();
+  if (!flag) return null;
+  return (
+    <span className="card-flag" title={text(flag, true)}>
+      {text(flag)}
+    </span>
+  );
+}
 
 /** Changes a node from a button on its card. */
 export const EditCard = createContext<(id: string, patch: Record<string, unknown>) => void>(() => {});
@@ -209,6 +235,7 @@ function Machine({ data: d, selected }: { data: PartData; selected: boolean }) {
       className={`machine-node manual ${recipe.kind} ${selected ? 'selected' : ''} ${n.done ? 'done' : ''}`}
       style={{ ...grid(n), ...(bar ? { ['--mod-bar' as string]: bar } : {}) }}
     >
+      <FlagTag id={n.id} />
       <Ends {...d} />
       <div className="machine-strip">
         <Icon id={recipe.outputs[0]?.item ?? recipe.machine} size={30} className="strip-icon" />
@@ -291,6 +318,7 @@ function Endpoint({ data: d, selected }: { data: PartData; selected: boolean }) 
       className={`endpoint-node manual ${kind} ${selected ? 'selected' : ''} ${n.done ? 'done' : ''}`}
       style={{ ...grid(n), ...(it && it.form !== 'solid' ? { ['--fluid-color' as string]: it.color ?? 'var(--fluid)' } : {}) }}
     >
+      <FlagTag id={n.id} />
       <Ends {...d} />
       {it ? <Slot id={it.id} size={60} tone={kind === 'target' ? 'target' : 'default'} /> : <span className="slot-empty" />}
       <span className="endpoint-text">

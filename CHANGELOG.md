@@ -2,6 +2,24 @@
 
 All notable changes to FICSIT Planner. Dates are when the version was finished.
 
+## 0.13.3 — 2026-10-03
+
+### Fixed
+
+- **Manual floor build menu listed recipes turned off in Recipes.** With every alternate off it still offered
+  Basic Iron Ingot, Iron Alloy Ingot and the rest. It now lists only the recipes on in Recipes, standard ones
+  included, as the Auto floor uses them.
+
+### Changed
+
+- **Manual floor follows Resources**: a miner put down by hand comes with the miner, node purity and clock picked
+  there (the best miner unlocked when the picked one isn't yet).
+- **Manual floor cards say when they go against the side panel**, without being changed or removed: a recipe turned
+  off in Recipes ("Off in Recipes"), a recipe or miner above the tier picked ("Needs tier N"), or miners taking more
+  of a resource than its limit in Resources or than the whole map has ("Over the limit"). The card's panel says the
+  same in full. Resources shows the amount over the limit under the resource, and a belt picked above the tier says
+  so in its panel.
+
 ## 0.13.2 — 2026-10-03
 
 ### Changed

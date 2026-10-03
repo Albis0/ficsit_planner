@@ -4,7 +4,7 @@ import { useT } from '../../lib/i18n';
 import { LOGISTICS, SINK, STORAGE_NAME } from '../../lib/model/catalog';
 import { linkMedium, transportOf } from '../../lib/model/calc/compile';
 import { type CalcResult, countOf, type NodeCalc } from '../../lib/model/calc/result';
-import { type OpenEnds, openEnds } from '../../lib/model/checks';
+import { type OpenEnds, openEnds, ruleFlags } from '../../lib/model/checks';
 import { minerFor, removeLinks, removeNodes, updateLink, updateNode } from '../../lib/model/ops';
 import { extractorById, extractorRate, portsOf, runnerRecipe } from '../../lib/model/ports';
 import type { MLink, MNode } from '../../lib/model/types';
@@ -14,7 +14,7 @@ import { useStore } from '../../store';
 import { Icon } from '../Icon';
 import { RateInput } from '../RateInput';
 import { linkKey, type ModelHost } from './ModelEditor';
-import { SpeedButtons, useStatusText } from './PartNode';
+import { SpeedButtons, useFlagText, useStatusText } from './PartNode';
 
 const MAX_CLOCK = 2.5;
 
@@ -203,7 +203,9 @@ function NodePanel({ host, node, calc }: { host: ModelHost; node: MNode; calc?: 
   const { t, name, num } = useT();
   const tier = useStore((s) => s.tier);
   const statusText = useStatusText();
+  const flagText = useFlagText();
   const c = calc?.nodes[node.id];
+  const flag = ruleFlags(host.model, { tier, on: host.on, caps: host.caps }, calc).get(node.id);
   const status = c && (node.k === 'machine' || node.k === 'gen' || node.k === 'extract') ? statusText(c.status, c.u) : undefined;
   const count = countOf(node, c);
   const change = (patch: Record<string, unknown>, key?: string) =>
@@ -352,6 +354,11 @@ function NodePanel({ host, node, calc }: { host: ModelHost; node: MNode; calc?: 
           {status.text}
         </p>
       )}
+      {flag && (
+        <p className="run-state big warn card-flag-line" role="status">
+          {flagText(flag, true)}
+        </p>
+      )}
       {body}
       <Flows node={node} calc={calc} open={openEnds(host.model).get(node.id)} />
       <Remove host={host} node={node} />
@@ -397,6 +404,8 @@ function LinkPanel({ host, link, calc }: { host: ModelHost; link: MLink; calc?: 
         )}
       </dl>
       {c?.status === 'jam' && <p className="run-state big bad">{t('beltJam')}</p>}
+      {/* Picked before the tier was lowered in Recipes. */}
+      {transport.tier > tier && <p className="run-state big warn">{t('needsTier', { tier: transport.tier })}</p>}
       {c?.status === 'capped' && (
         <p className="run-state big warn">
           {/* The player's own limit reached, or the belt itself full. */}

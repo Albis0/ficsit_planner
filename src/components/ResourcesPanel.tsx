@@ -149,6 +149,10 @@ export function ResourcesPanel({ result }: { result?: SolveResult }) {
                     <div className="meter" aria-hidden>
                       <span style={{ width: `${share * 100}%` }} className={share > 0.999 ? 'full' : undefined} />
                     </div>
+                    {/* A hand-built floor can mine past the limit; the Auto floor never does. */}
+                    {cap != null && use.rate > cap + 1e-6 && (
+                      <p className="run-state bad over-cap">{t('overCap', { rate: num(use.rate), cap: num(cap) })}</p>
+                    )}
                     <ExtractRow item={item.id} use={use} ex={ex} setEx={setEx} />
                   </>
                 )}

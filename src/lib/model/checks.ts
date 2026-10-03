@@ -1,4 +1,6 @@
-import { portsOf } from './ports';
+import { data, recipeById, recipeTier } from '../data';
+import type { CalcResult } from './calc/result';
+import { extractorById, portsOf } from './ports';
 import { isPart, type Model } from './types';
 
 /** Per end of a card: true where it needs a belt and has none. */
@@ -53,4 +55,46 @@ export function openCards(m: Model, open = openEnds(m)): string[] {
     })
     .sort((a, b) => a.x - b.x || a.y - b.y)
     .map((n) => n.id);
+}
+
+/**
+ * Where a card goes against the factory's side panel: its recipe turned off in Recipes, above the tier picked there,
+ * or a resource mined past its limit in Resources (or past what the world has).
+ */
+export type Flag = { k: 'off' } | { k: 'tier'; tier: number } | { k: 'cap'; item: string; rate: number; cap: number; world?: true };
+
+export interface FlagRules {
+  tier: number;
+  /** Recipes turned on in Recipes; unset leaves recipes alone. */
+  on?: ReadonlySet<string>;
+  /** Most of each resource a minute, from Resources. */
+  caps?: Record<string, number>;
+}
+
+/** The cards that go against the side panel, and how. Nothing is changed or taken off the floor: the card says so. */
+export function ruleFlags(m: Model, rules: FlagRules, calc?: CalcResult): Map<string, Flag> {
+  const flags = new Map<string, Flag>();
+  const mined = new Map<string, number>();
+  for (const n of m.nodes) {
+    if (n.k === 'machine') {
+      const r = recipeById.get(n.recipe);
+      if (!r) continue;
+      const tier = recipeTier(r);
+      if (tier > rules.tier) flags.set(n.id, { k: 'tier', tier });
+      else if (rules.on && !rules.on.has(r.id)) flags.set(n.id, { k: 'off' });
+    } else if (n.k === 'extract') {
+      const e = extractorById.get(n.extractor);
+      if (e && e.tier > rules.tier) flags.set(n.id, { k: 'tier', tier: e.tier });
+      const c = calc?.nodes[n.id];
+      if (c) mined.set(n.item, (mined.get(n.item) ?? 0) + (c.outs[0] ?? 0) + (c.spare?.[0] ?? 0));
+    }
+  }
+  for (const [item, rate] of mined) {
+    const own = rules.caps?.[item];
+    const cap = own ?? data.worldLimits[item];
+    if (cap == null || rate <= cap + 1e-6) continue;
+    const flag: Flag = { k: 'cap', item, rate, cap, ...(own === undefined ? { world: true as const } : {}) };
+    for (const n of m.nodes) if (n.k === 'extract' && n.item === item && !flags.has(n.id)) flags.set(n.id, flag);
+  }
+  return flags;
 }

@@ -1419,6 +1419,11 @@ button.slot:hover {
   background: var(--alert);
 }
 
+.over-cap {
+  margin: 0;
+  font-size: 13px;
+}
+
 .extract-row {
   display: flex;
   align-items: center;
@@ -9719,6 +9724,22 @@ a.codex-flow:hover {
 
 .endpoint-node.manual {
   position: relative;
+}
+
+/* Goes against the side panel (a recipe turned off, above the tier, past a resource limit): a tag over the card. */
+.card-flag {
+  position: absolute;
+  right: 0;
+  bottom: calc(100% + 4px);
+  z-index: 2;
+  padding: 2px 8px;
+  background: var(--power);
+  color: var(--ficsit-ink);
+  font: 700 13px / 1.3 var(--font-display);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  pointer-events: auto;
 }
 
 .slot-empty {
