@@ -4,6 +4,11 @@ on:
   push:
   pull_request:
 
+# A newer push to the same branch stops the run still going for the one before.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   check:
     runs-on: ubuntu-latest
@@ -21,11 +26,14 @@ jobs:
       - run: node node_modules/playwright-core/cli.js install --with-deps chromium webkit firefox
       - run: node e2e/sweep.mjs --quick
       # The same sample in Safari's engine (every browser on an iPhone uses it) and in Firefox. Linux's WebKit build
-      # drops page loads now and then, so these report (in the artifact) without failing the run.
+      # drops page loads now and then, and can hang outright, so these report (in the artifact) without failing the run
+      # and give up after a while.
       - run: node e2e/sweep.mjs --quick --browser=webkit --name=webkit
         continue-on-error: true
+        timeout-minutes: 12
       - run: node e2e/sweep.mjs --quick --sizes=laptop --browser=firefox --name=firefox
         continue-on-error: true
+        timeout-minutes: 12
       - uses: actions/upload-artifact@v4
         with:
           name: other-browsers
