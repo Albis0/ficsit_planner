@@ -267,19 +267,38 @@ async function place(m: Model, variant: Record<string, string>, engine: ELK): Pr
  * with square turns and a spot of its own for its label. Notes and boxes stay where they are.
  */
 export async function arrangeModel(m: Model): Promise<Model> {
-  if (!m.nodes.some(isPart)) return m;
+  return applyArrangement(m, await arrangement(m));
+}
+
+/** Where each card goes and each belt's bends, label spot and ends: a layout worked out, before it's put on a model. */
+export type Arrangement = Pick<Laid, 'pos' | 'routes'>;
+
+/** The model laid out afresh, as `arrangeModel` does, without putting it on the model yet. */
+export async function arrangement(m: Model): Promise<Arrangement> {
+  if (!m.nodes.some(isPart)) return { pos: new Map(), routes: new Map() };
   const pool = await elk();
   const tries = await Promise.all(VARIANTS.map((v, i) => place(m, v, pool[i % pool.length])));
   const best = tries.reduce((a, b) => (b.score < a.score ? b : a));
+  return { pos: best.pos, routes: best.routes };
+}
+
+/**
+ * A layout put on the model as it is by now, which may have changed while the layout was worked out: cards it placed
+ * move there and their belts take its bends. Cards and belts it doesn't know (added meanwhile) stay as they are, but a
+ * belt between cards that moved loses its old bends, which would lead nowhere now.
+ */
+export function applyArrangement(m: Model, a: Arrangement): Model {
+  if (a.pos.size === 0) return m;
   return {
     ...m,
     nodes: m.nodes.map((n) => {
-      const p = best.pos.get(n.id);
+      const p = a.pos.get(n.id);
       return p ? { ...n, x: p.x, y: p.y } : n;
     }),
     links: m.links.map((l): MLink => {
+      const r = a.routes.get(l.id);
+      if (!r && !a.pos.has(l.a) && !a.pos.has(l.b)) return l;
       const { pts: _, lbl: __, ...rest } = l;
-      const r = best.routes.get(l.id);
       if (!r) return rest;
       return { ...rest, ap: r.ap, bp: r.bp, ...(r.pts.length ? { pts: r.pts } : {}), ...(r.lbl ? { lbl: r.lbl } : {}) };
     }),

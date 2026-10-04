@@ -15,7 +15,7 @@ import { useFactoryHost, useModelCalc } from './components/modeler/hosts';
 import { FloorPanel } from './components/modeler/FloorPanel';
 import { forgetCamera, ModelEditor } from './components/modeler/ModelEditor';
 import { floorEnds } from './lib/model/calc/adapter';
-import { arrangeModel } from './lib/model/arrange';
+import { applyArrangement, arrangement } from './lib/model/arrange';
 import { dirOf } from './lib/model/layout';
 import { ModelInspector } from './components/modeler/ModelInspector';
 import { ModelToolbar } from './components/modeler/Toolbar';
@@ -184,9 +184,15 @@ export default function App() {
   };
 
   // Tidying up, or turning the floor the other way: laid out afresh, one step to undo, the whole floor in view.
+  // A second click while one is still being worked out does nothing, and the layout goes onto the floor as it is by
+  // then, so a card moved meanwhile isn't lost.
   const arrange = async (m: Model) => {
-    const tidy = await lay(() => arrangeModel(m));
-    host.edit(() => tidy);
+    if (laying) return;
+    const laid = await lay(() => arrangement(m));
+    host.edit((now) => {
+      const { dir: _, ...rest } = now;
+      return applyArrangement(dirOf(m) === 'TB' ? { ...rest, dir: 'TB' } : rest, laid);
+    });
     forgetCamera(plan.id);
     setBuilt((n) => n + 1);
   };

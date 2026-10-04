@@ -6,7 +6,7 @@ import { adaptModel } from '../src/lib/model/calc/adapter';
 import { calcKey, calcModel } from '../src/lib/model/calc';
 import { builtTransport } from '../src/lib/model/calc/compile';
 import { modelFromSolve } from '../src/lib/model/fromAuto';
-import { arrangeModel } from '../src/lib/model/arrange';
+import { applyArrangement, arrangeModel, arrangement } from '../src/lib/model/arrange';
 import { openCards, openEnds, ruleFlags } from '../src/lib/model/checks';
 import { choicesFor, choiceWords, placeChoice, wantAt } from '../src/lib/model/choices';
 import { cardSize, endSpot, freeSpot } from '../src/lib/model/layout';
@@ -757,6 +757,34 @@ describe('tidy up', () => {
       expect((await arrangeModel(moved)).nodes).toEqual(m.nodes);
       // Three layouts of a big factory.
     }, 30000);
+
+  test('what changes on the floor while it is laid out stays: a card added, its belt, a card taken off', async () => {
+    const auto = solve(highs, {
+      targets: [{ item: 'Desc_Motor_C', rate: 10 }],
+      supplies: [],
+      enabledRecipes: standard(),
+      resourceCaps: {},
+      objective: 'resources',
+    });
+    const m = await modelFromSolve(auto, 9, DEFAULT_EXTRACTION);
+    const moved = { ...m, nodes: m.nodes.map((n, i) => (i === 0 ? { ...n, x: n.x + 999 } : n)) };
+    const laid = await arrangement(moved);
+    // Meanwhile: a card put down and joined to the floor, and the last card taken off with its belts.
+    const machine = m.nodes.find((n) => n.k === 'machine')!;
+    const gone = m.nodes[m.nodes.length - 1].id;
+    let now = addNode(moved, { k: 'out', item: 'Desc_Motor_C', x: 5000, y: 5000 }).model;
+    const added = now.nodes[now.nodes.length - 1].id;
+    now = { ...now, links: [...now.links, { id: 'late', a: machine.id, ap: 0, b: added, bp: 0, pts: [[1, 1]] }] };
+    now = removeNodes(now, [gone]);
+    const put = applyArrangement(now, laid);
+    expect(put.nodes.find((n) => n.id === added)).toMatchObject({ x: 5000, y: 5000 });
+    expect(put.nodes.some((n) => n.id === gone)).toBe(false);
+    // The moved card goes back as Tidy up would put it; a belt the layout didn't know loses bends that lead nowhere.
+    expect(put.nodes[0]).toEqual((await arrangeModel(m)).nodes[0]);
+    expect(put.links.find((l) => l.id === 'late')?.pts).toBeUndefined();
+    // Nothing changed meanwhile: the same as tidying at once.
+    expect(applyArrangement(moved, laid)).toEqual(await arrangeModel(moved));
+  }, 30000);
 });
 
 describe('the same output another way', () => {
