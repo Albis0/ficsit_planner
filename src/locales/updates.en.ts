@@ -9,6 +9,11 @@ export type UpdateNote = [UpdateKind, string];
 
 export const UPDATES: { version: string; date: string; title?: string; notes: UpdateNote[] }[] = [
   {
+    version: '0.13.8',
+    date: '2026-10-05',
+    notes: [['fixed', 'Manual floor: a card moved or removed while Tidy up is working stays as you left it. Thanks to dberlin.']],
+  },
+  {
     version: '0.13.7',
     date: '2026-10-03',
     notes: [

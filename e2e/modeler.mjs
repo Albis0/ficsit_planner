@@ -1622,6 +1622,36 @@ const clash = (a, b) => a && b && a.x < b.x + b.width && b.x < a.x + a.width && 
   );
   await shot('r-panel-bottom');
   await page.setViewportSize({ width: 1366, height: 768 });
+
+  // ── S: 0.13.8 ──
+  section = 'S';
+  await open(
+    saved({
+      mode: 'factory',
+      plans: [{ id: 'f1', name: 'Factory 1', targets: [{ item: 'Desc_Motor_C', rate: 10 }] }],
+      active: 'f1',
+    }),
+  );
+  await page.click('.floor-kind button >> nth=1');
+  await settle();
+  // Turned one way and straight back before the first is laid out: the second click waits its turn and does nothing.
+  await page.locator('.floor-dir button[aria-checked="false"]').click();
+  await page.locator('.floor-dir button[aria-checked="true"]').click({ force: true });
+  await settle();
+  ok('a second turn while laying out does nothing', (await model()).dir === 'TB' && (await overlaps()).length === 0);
+  // A card taken off while Tidy up is worked out stays off.
+  m = await model();
+  const motorOut = m.nodes.find((n) => n.k === 'out' && n.item === 'Desc_Motor_C');
+  await card(motorOut.id).hover();
+  await page.locator('.tool-button[aria-label="Tidy up"]').click();
+  const midway = (await page.locator('.busy').count()) > 0;
+  await card(motorOut.id).locator('.card-x').click({ force: true });
+  await settle();
+  ok(
+    'a card taken off while Tidy up runs stays off',
+    midway && !(await model()).nodes.some((n) => n.id === motorOut.id),
+    `laying out when taken off: ${midway}`,
+  );
   await ctx.close();
 }
 

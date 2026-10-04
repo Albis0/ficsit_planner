@@ -27,6 +27,8 @@ export function inspectPage(opts) {
   const shown = (el) => {
     const r = el.getBoundingClientRect();
     if (r.width < 1 || r.height < 1) return false;
+    // Inside a closed <details> the browser keeps a box but draws nothing.
+    if (el.checkVisibility && !el.checkVisibility()) return false;
     const s = style(el);
     return s.visibility !== 'hidden' && s.opacity !== '0';
   };

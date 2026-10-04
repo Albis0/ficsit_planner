@@ -279,6 +279,11 @@ Commit the changed files under `src/data` and `public/icons` afterwards.
   its current numbers on 2026-09-24 and were unchanged.
 - Somersloop slot counts come from the game data, not the wiki. The current build gives Smelters 0 slots.
 
+## Thanks
+
+- [@dberlin](https://github.com/dberlin): the fix that keeps changes made while the Manual floor is being laid out.
+- Everyone who reported bugs and asked for features on Reddit; they're named in Settings › Updates.
+
 ## License
 
 The planner's code is free software under the **GNU General Public License v3.0 or later**. See

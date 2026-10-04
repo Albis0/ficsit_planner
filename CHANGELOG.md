@@ -2,6 +2,16 @@
 
 All notable changes to FICSIT Planner. Dates are when the version was finished.
 
+## 0.13.8 — 2026-10-05
+
+### Fixed
+
+- **Tidy up and turning the Manual floor no longer undo what you do meanwhile.** On a big floor the layout takes a
+  moment; a card moved, added or taken off in that time used to be put back as it was when you clicked. Now the layout
+  goes onto the floor as it is by then, and a second click while one is still being worked out does nothing (two
+  quick turns could leave the floor facing the wrong way). Thanks to [@dberlin](https://github.com/dberlin), whose
+  pull request #5 had the fix.
+
 ## 0.13.7 — 2026-10-03
 
 ### Changed
