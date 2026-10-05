@@ -34,12 +34,12 @@ export function BeltChevrons({ path, width, speed }: { path: string; width: numb
   const offsetPath = `path("${path}")`;
   return (
     <g className="belt-chevrons">
-      {Array.from({ length: count }, (_, i) => (
+      {Array.from({ length: count }, (_, i) => i / count).map((at) => (
         <path
-          key={i}
+          key={at}
           d={d}
           className="belt-chev"
-          style={{ offsetPath, offsetDistance: `${(i / count) * 100}%`, animationDuration: `${seconds}s`, animationDelay: `${-(i / count) * seconds}s` }}
+          style={{ offsetPath, offsetDistance: `${at * 100}%`, animationDuration: `${seconds}s`, animationDelay: `${-at * seconds}s` }}
         />
       ))}
     </g>
