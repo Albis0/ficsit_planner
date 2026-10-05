@@ -1,0 +1,53 @@
+/* ---------- Crash screen ---------- */
+
+.crash {
+  height: 100dvh;
+  overflow-y: auto;
+  display: grid;
+  align-items: safe center;
+  justify-items: center;
+  padding: 24px;
+  background: var(--bg);
+}
+
+.crash-box {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  max-width: 560px;
+  padding: 28px 30px;
+  background: var(--panel);
+  border: 1px solid var(--line-2);
+  border-top: 4px solid var(--alert);
+}
+
+.crash-box .brand-mark {
+  --mode: var(--ficsit);
+  width: 56px;
+  height: 20px;
+}
+
+.crash-title {
+  margin: 0;
+  font: 700 30px var(--font-display);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.crash-detail {
+  padding: 8px 10px;
+  background: var(--bg);
+  border: 1px solid var(--line);
+  font:
+    13px / 1.4 ui-monospace,
+    Consolas,
+    monospace;
+  color: var(--dim);
+  overflow-wrap: anywhere;
+}
+
+.crash-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}

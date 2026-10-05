@@ -1,0 +1,91 @@
+/* ---------- Tier button and first-run dialog ---------- */
+
+.tier-button {
+  border: 1px solid var(--line-2);
+  background: var(--bg);
+  padding: 6px 12px;
+  font: 600 16px var(--font-display);
+  color: var(--dim);
+}
+
+.tier-button b {
+  color: var(--ficsit);
+  font-size: 18px;
+}
+
+.tier-button:hover {
+  border-color: var(--ficsit);
+}
+
+.tier-dialog {
+  width: min(1100px, 92vw);
+  max-height: 88vh;
+  padding: 32px 36px 36px;
+  background: var(--panel);
+  color: var(--paper);
+  border: 1px solid var(--line-2);
+  border-top: 4px solid var(--ficsit);
+  box-shadow: 0 30px 80px rgb(0 0 0 / 0.6);
+}
+
+.tier-dialog::backdrop {
+  background: rgb(8 9 10 / 0.75);
+}
+
+.phase-list {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  margin-top: 18px;
+}
+
+/* Each phase is a row: its name on the left, its tiers beside it, so short phases leave no hole. */
+.phase {
+  display: grid;
+  grid-template-columns: 150px minmax(0, 1fr);
+  align-items: center;
+  gap: 8px 16px;
+}
+
+.tier-dialog > .hint {
+  max-width: 70ch;
+  margin-top: 8px;
+}
+
+.phase-tiers {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+}
+
+.tier-card {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  min-height: 64px;
+  padding: 10px 14px;
+  background: var(--raised);
+  border: 1px solid var(--line);
+  text-align: left;
+}
+
+.tier-card:hover {
+  border-color: var(--ficsit);
+}
+
+.tier-card.current {
+  border-color: var(--ficsit);
+  box-shadow: inset 4px 0 var(--ficsit);
+}
+
+.tier-card-num {
+  flex: none;
+  min-width: 70px;
+  font: 700 22px var(--font-display);
+}
+
+.tier-card-unlocks {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}

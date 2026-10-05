@@ -1,0 +1,880 @@
+/* ---------- Tablet and phone ---------- */
+
+.app {
+  height: 100dvh;
+  padding: 0 env(safe-area-inset-right) 0 env(safe-area-inset-left);
+}
+
+.topbar {
+  padding-top: env(safe-area-inset-top);
+}
+
+/* Readouts sit directly in the summary on wide screens and become one scrolling strip on phones. */
+.readouts {
+  display: contents;
+}
+
+/* Phone-only chrome. */
+.menu-button,
+.mobile-nav {
+  display: none;
+}
+
+.sheet {
+  width: 100%;
+  max-width: 520px;
+  margin: auto auto 0;
+  padding: 0;
+  background: var(--panel);
+  color: var(--paper);
+  border: 1px solid var(--line-2);
+  border-top: 4px solid var(--ficsit);
+}
+
+.sheet::backdrop {
+  background: rgb(8 9 10 / 0.7);
+}
+
+.sheet-body {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  padding: 20px 20px calc(20px + env(safe-area-inset-bottom));
+}
+
+.sheet-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.sheet-row.column {
+  flex-direction: column;
+  align-items: stretch;
+}
+
+.sheet-group {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 8px;
+}
+
+.sheet-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  background: var(--panel-2);
+  border: 1px solid var(--line);
+}
+
+.sheet-actions .menu-item {
+  flex: 1;
+  justify-content: center;
+  min-height: 48px;
+}
+
+.sheet-actions .menu-item.delete {
+  margin-top: 0;
+  border-top: 0;
+}
+
+.sheet .install {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.sheet .install-hint {
+  position: static;
+  width: auto;
+}
+
+.sheet-close {
+  align-self: center;
+}
+
+@media (max-width: 1100px) {
+  .item-card {
+    gap: 10px;
+  }
+
+  .item-card-name {
+    font-size: 18px;
+    overflow-wrap: anywhere;
+  }
+
+  .recipe-tools,
+  .panel-body.resources > .extraction {
+    width: 340px;
+  }
+
+  .topbar {
+    gap: 12px;
+    padding-right: 12px;
+  }
+
+  .topbar-controls {
+    gap: 10px;
+  }
+
+  .topbar-controls .control-label,
+  .floor-hint {
+    display: none;
+  }
+
+  .brand-name {
+    font-size: 24px;
+  }
+
+  .panel-body {
+    padding: 16px;
+  }
+
+  .tabs button {
+    font-size: 17px;
+    padding-inline: 20px;
+  }
+
+  .inspector {
+    width: 360px;
+  }
+}
+
+@media (max-width: 900px) {
+  .app {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: auto minmax(0, 1fr) auto;
+  }
+
+  .app[data-pane='floor'] .side,
+  .app[data-pane='side'] .floor {
+    display: none;
+  }
+
+  .app[data-empty][data-pane] .floor {
+    display: flex;
+  }
+
+  .app[data-empty] .mobile-nav,
+  .splitter {
+    display: none;
+  }
+
+  .app[data-empty] {
+    grid-template-rows: auto minmax(0, 1fr);
+  }
+
+  /* A panel folded on a wider screen doesn't fold on a phone: the one-pane rows stay. */
+  .app[data-deck='closed']:not([data-empty]) {
+    grid-template-rows: auto minmax(0, 1fr) auto;
+  }
+
+  /* One pane at a time: the panel is a full-height page again, laid out in a single column. */
+  .app[data-deck='closed'] .side > :not(.tabs) {
+    display: flex;
+  }
+
+  .panel-body.targets {
+    display: flex;
+    align-items: stretch;
+  }
+
+  .panel-body.recipes,
+  .panel-body.resources {
+    flex-direction: column;
+    overflow-y: auto;
+  }
+
+  .recipe-tools,
+  .panel-body.resources > .extraction {
+    width: auto;
+    border-right: 0;
+    overflow: visible;
+  }
+
+  .recipe-tools {
+    border-bottom: 1px solid var(--line);
+  }
+
+  /* Full height each, the panel scrolling as one page: shrunk to fit, a card would let its list spill out of it. */
+  .recipe-tools,
+  .recipe-list,
+  .panel-body.resources > .stack {
+    flex: none;
+    overflow: visible;
+  }
+
+  .recipe-list {
+    padding-bottom: 24px;
+  }
+
+  .recipe-flow {
+    column-width: auto;
+  }
+
+  .panel-body.resources > .stack {
+    padding: 16px 14px 24px;
+  }
+
+  .resource-cards {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  /* Top bar: small mark, scrolling factory tabs, everything else in the menu. */
+  .topbar {
+    gap: 4px;
+    padding-right: 4px;
+    min-height: 52px;
+  }
+
+  .brand {
+    gap: 0;
+  }
+
+  .brand-mark {
+    width: 30px;
+    clip-path: polygon(0 0, 100% 0, calc(100% - 10px) 100%, 0 100%);
+  }
+
+  .brand-name,
+  .topbar-controls,
+  .topbar .tab-menu {
+    display: none;
+  }
+
+  .plan-tab {
+    padding: 0 4px 0 0;
+    font-size: 17px;
+  }
+
+  .plan-tab-name {
+    padding-left: 14px;
+  }
+
+  .plan-tab.editing {
+    width: 160px;
+  }
+
+  .menu-button {
+    display: block;
+    flex: none;
+    width: 48px;
+    align-self: stretch;
+    border: 0;
+    background: transparent;
+    color: var(--paper);
+    font-size: 28px;
+    line-height: 1;
+  }
+
+  /* Bottom navigation replaces the side panel's own tabs. */
+  .side > .tabs {
+    display: none;
+  }
+
+  .side {
+    border-bottom: 0;
+  }
+
+  .mobile-nav {
+    display: flex;
+    background: var(--panel);
+    border-top: 1px solid var(--line);
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+
+  .mobile-nav button {
+    flex: 1;
+    position: relative;
+    min-height: 56px;
+    padding: 6px 2px;
+    border: 0;
+    background: transparent;
+    font: 700 15px / 1.1 var(--font-display);
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: var(--faint);
+  }
+
+  .mobile-nav button.factory {
+    color: var(--dim);
+    border-left: 1px solid var(--line);
+  }
+
+  .mobile-nav button[aria-current='page'] {
+    color: var(--paper);
+    background: var(--panel-2);
+  }
+
+  .mobile-nav button[aria-current='page']::before {
+    content: '';
+    position: absolute;
+    inset: -1px 0 auto;
+    height: 3px;
+    background: var(--ficsit);
+  }
+
+  .mobile-nav .tab-badge {
+    margin-left: 4px;
+  }
+
+  .panel-body {
+    padding: 16px 14px 24px;
+    gap: 22px;
+  }
+
+  /* Summary: one strip of readouts that scrolls sideways; banners stay full width below it. */
+  .summary {
+    flex-direction: column;
+    flex-wrap: nowrap;
+  }
+
+  .readouts {
+    flex: none;
+    display: flex;
+    gap: 1px;
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+
+  /* In a column the desktop's full-width basis would read as full height and squeeze the readouts. */
+  .summary > .missing-banner,
+  .summary > .scaled {
+    flex: none;
+  }
+
+  .readout,
+  .readout.wide {
+    flex: none;
+    min-width: 0;
+    padding: 8px 14px;
+  }
+
+  /* The strip scrolls sideways here, so the raw inputs keep their own width. */
+  .app[data-summary] .readout.wide {
+    order: 0;
+    flex-basis: auto;
+    min-width: 0;
+  }
+
+  .readout-label {
+    font-size: 13px;
+  }
+
+  .readout-value {
+    font-size: 28px;
+  }
+
+  .readout-value small {
+    font-size: 16px;
+  }
+
+  .readouts .slots,
+  .readouts .raw-inputs {
+    flex-wrap: nowrap;
+  }
+
+  .readouts .slot {
+    width: 40px !important;
+    height: 40px !important;
+    --slot-size: 40px !important;
+  }
+
+  .readouts .slot .icon {
+    width: 30px;
+    height: 30px;
+  }
+
+  .missing-banner,
+  .scaled {
+    padding: 10px 14px;
+    font-size: 15px;
+  }
+
+  /* Floor controls. */
+  .floor-bar {
+    left: 10px;
+    bottom: 10px;
+  }
+
+  /* Auto / Manual sits over the view switch, so both fit beside Fit. */
+  .floor-bar:has(.floor-kind) {
+    flex-direction: column-reverse;
+    align-items: flex-start;
+    gap: 6px;
+  }
+
+  .floor-hint {
+    display: none;
+  }
+
+  /* Bottom right like on desktop, with Fit as an icon so it fits beside Factory / List. */
+  .floor-controls {
+    right: 10px;
+    bottom: 10px;
+    gap: 6px;
+  }
+
+  .fit-label {
+    display: none;
+  }
+
+  .fit-icon {
+    display: inline;
+  }
+
+  /* A phone runs the line top to bottom; the other way stays in Settings, off the small floor. */
+  .floor-controls .segmented {
+    display: none;
+  }
+
+  /* A floor built by hand keeps its way with it, so the switch stays. */
+  .floor-controls .segmented.floor-dir {
+    display: flex;
+  }
+
+  /* Clear of Auto and Manual on the left: on a narrow phone what doesn't fit goes on a row above. */
+  .floor-view:has(.floor-dir) .floor-controls {
+    max-width: calc(100% - 190px);
+    flex-wrap: wrap-reverse;
+    justify-content: flex-end;
+  }
+
+  .busy {
+    left: 12px;
+    top: 10px;
+  }
+
+  .floor-message {
+    padding: 24px;
+    font-size: 20px;
+  }
+
+  /* Inspector becomes a sheet along the bottom of the floor. */
+  .inspector {
+    top: auto;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    width: auto;
+    max-height: 70%;
+    gap: 14px;
+    padding: 14px 16px 18px;
+    border-left: 0;
+    border-right: 0;
+    box-shadow: 0 -16px 40px rgb(0 0 0 / 0.55);
+  }
+
+  .quick-pick {
+    padding: 22px 14px 40px;
+  }
+
+  .quick-title {
+    font-size: 32px;
+  }
+
+  .quick-grid {
+    grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+    gap: 8px;
+  }
+
+  /* Table: every recipe becomes a labelled card. */
+  .table-wrap {
+    padding: 10px 10px 76px;
+  }
+
+  .plan-table,
+  .plan-table tbody {
+    display: block;
+  }
+
+  .plan-table thead {
+    display: none;
+  }
+
+  .plan-table tbody tr {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 10px 12px;
+    margin-bottom: 10px;
+    padding: 12px;
+    background: var(--panel);
+    border: 1px solid var(--line);
+  }
+
+  .plan-table tbody tr.selected {
+    border-color: var(--ficsit);
+  }
+
+  .plan-table td {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    padding: 0;
+    border: 0;
+    text-align: left;
+    background: transparent !important;
+  }
+
+  .plan-table td::before {
+    content: attr(data-label);
+    font: 700 12px var(--font-display);
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--faint);
+  }
+
+  .plan-table td.recipe-cell,
+  .plan-table td.dim {
+    grid-column: 1 / -1;
+  }
+
+  .plan-table td.recipe-cell {
+    font: 700 19px / 1.2 var(--font-display);
+  }
+
+  .plan-table td.recipe-cell::before {
+    content: none;
+  }
+
+  .plan-table td.clocks {
+    white-space: normal;
+  }
+
+  .plan-table td:nth-last-child(-n + 2) {
+    grid-column: 1 / -1;
+  }
+
+  /* A line's groups by destination hang under its card, indented. */
+  .plan-table tbody tr.split-row {
+    margin: -6px 0 10px 18px;
+    padding: 8px 12px;
+    border-left: 3px solid var(--supply);
+  }
+
+  .plan-table tbody tr.split-row td.dim {
+    display: none;
+  }
+
+  .plan-table tbody tr.split-row td.recipe-cell {
+    padding-left: 0;
+    font-size: 16px;
+  }
+
+  .bill {
+    margin-top: 16px;
+  }
+
+  /* Tier dialog fills the screen. */
+  .tier-dialog {
+    width: 100vw;
+    max-width: none;
+    height: 100dvh;
+    max-height: none;
+    margin: 0;
+    padding: calc(20px + env(safe-area-inset-top)) 16px calc(24px + env(safe-area-inset-bottom));
+    border: 0;
+    border-top: 4px solid var(--ficsit);
+  }
+
+  .phase {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .phase-tiers {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  /* Along the top, under the bar: the bottom of a phone is where the thumbs and the buttons are. */
+  .toast {
+    top: calc(76px + env(safe-area-inset-top));
+    right: 12px;
+    left: 12px;
+    bottom: auto;
+    white-space: normal;
+  }
+
+  .toast + .toast {
+    translate: 0 calc(100% + 10px);
+  }
+
+  .toast + .toast + .toast {
+    translate: 0 calc(200% + 20px);
+  }
+}
+
+/*
+  Phones, and touch screens where the amount has finger-sized − and + beside it: the target card
+  puts the name over the amount so neither gets squeezed.
+*/
+@media (max-width: 900px), (pointer: coarse) {
+  /* Card: slot on the left, the name over the amount and its buttons. */
+  .item-card:not(.flat) {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    grid-template-areas:
+      'slot name remove'
+      'slot rate rate';
+    gap: 6px 12px;
+  }
+
+  .item-card:not(.flat) > .slot {
+    grid-area: slot;
+  }
+
+  .item-card:not(.flat) > .item-card-name {
+    grid-area: name;
+  }
+
+  .item-card:not(.flat) > .item-card-rate {
+    grid-area: rate;
+  }
+
+  .item-card:not(.flat) > .icon-button {
+    grid-area: remove;
+  }
+}
+
+/* Touch screens: finger-sized targets. */
+@media (pointer: coarse) {
+  .rate-step {
+    display: contents;
+  }
+
+  .rate-field .rate-input {
+    border-right: 1px solid var(--line-2);
+    border-left: 0;
+    width: 76px;
+  }
+
+  .rate-step button {
+    width: 44px;
+    border: 1px solid var(--line-2);
+  }
+
+  .rate-step button + button {
+    border-top: 1px solid var(--line-2);
+  }
+
+  .step-down {
+    order: -1;
+  }
+
+  .step-up span::before,
+  .step-down span::before {
+    font: 700 24px / 1 var(--font-display);
+  }
+
+  .step-up span::before {
+    content: '+';
+  }
+
+  .step-down span::before {
+    content: '\2212';
+  }
+
+  .segmented button,
+  .tier-button,
+  .install-button,
+  .floor-button,
+  .rate-input {
+    min-height: 44px;
+  }
+
+  .icon-button,
+  .sloop-slots button,
+  .stepper button {
+    width: 44px;
+    height: 44px;
+  }
+
+  .text-button {
+    min-height: 44px;
+    padding: 0 4px;
+  }
+}
+
+/* ---------- New chrome on smaller screens ---------- */
+
+/* Four stops on the switch: tighter under 1500 px so the plan tabs keep their room. */
+@media (max-width: 1500px) {
+  .mode-switch button {
+    min-width: 0;
+    gap: 6px;
+    padding: 0 11px;
+    font-size: 14px;
+    letter-spacing: 0.06em;
+  }
+}
+
+/* Under 1500 px Share, Settings and Feedback are their icons alone, so the plan tabs keep their room. */
+@media (max-width: 1500px) {
+  .chrome-label {
+    display: none;
+  }
+
+  .chrome-button {
+    padding: 0 9px;
+  }
+}
+
+@media (max-width: 1280px) {
+  .mode-switch button {
+    padding: 0 9px;
+  }
+}
+
+@media (max-width: 1100px) {
+  .mode-label {
+    display: none;
+  }
+
+  .mode-switch button {
+    min-width: 52px;
+    padding: 0 10px;
+  }
+
+  .settings-preview {
+    display: none;
+  }
+}
+
+@media (max-width: 900px) {
+  .chrome-button {
+    display: none;
+  }
+
+  .mode-switch {
+    height: 38px;
+    margin-left: 2px;
+  }
+
+  .mode-switch button {
+    min-width: 44px;
+  }
+
+  /* Settings and Feedback share the row evenly, the way Share above spans it. */
+  .sheet-links {
+    gap: 10px;
+  }
+
+  .sheet-links > * {
+    flex: 1;
+    justify-content: center;
+  }
+
+  .readout.mix {
+    min-width: 260px;
+  }
+
+  /* Dialogs fill the phone screen; settings sections become tabs across the top. */
+  .modal {
+    width: calc(100vw / var(--ui-scale, 1));
+    max-width: calc(100vw / var(--ui-scale, 1));
+    height: calc(100dvh / var(--ui-scale, 1));
+    max-height: calc(100dvh / var(--ui-scale, 1));
+    margin: 0;
+    clip-path: none;
+    border: 0;
+  }
+
+  .modal-head {
+    height: calc(54px + env(safe-area-inset-top) / var(--ui-scale, 1));
+    padding-top: calc(env(safe-area-inset-top) / var(--ui-scale, 1));
+    padding-right: 10px;
+  }
+
+  .settings-body {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: auto minmax(0, 1fr);
+  }
+
+  .settings-nav {
+    flex-direction: row;
+    overflow-x: auto;
+    padding: 6px;
+    border-right: 0;
+    border-bottom: 1px solid var(--line);
+    scrollbar-width: none;
+  }
+
+  .settings-nav button {
+    flex: none;
+    padding: 9px 12px;
+    font-size: 16px;
+  }
+
+  .settings-nav button[aria-current='page'] {
+    box-shadow: inset 0 -3px var(--ficsit);
+  }
+
+  .settings-controls {
+    padding: 12px 16px calc(24px + env(safe-area-inset-bottom));
+  }
+
+  .setting-range {
+    width: min(200px, 44vw);
+  }
+
+  .panel-sides {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .panel-diagram {
+    width: 100%;
+  }
+
+  .report-form {
+    padding: 16px 16px calc(20px + env(safe-area-inset-bottom));
+  }
+
+  .report-kinds {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .report-foot {
+    flex-direction: column;
+    align-items: stretch;
+    bottom: calc(-20px - env(safe-area-inset-bottom));
+    margin: 0 -16px calc(-20px - env(safe-area-inset-bottom));
+    padding: 14px 16px calc(16px + env(safe-area-inset-bottom));
+  }
+
+  .gen-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+.kind.power {
+  color: var(--power);
+  border: 1px solid color-mix(in srgb, var(--power) 50%, transparent);
+}
+
+.plan-table td.made {
+  color: var(--power);
+  font-weight: 700;
+}
+
+/* Narrow phones: the control goes under its text, every row the same way. */
+@media (max-width: 600px) {
+  .setting {
+    grid-template-columns: minmax(0, 1fr);
+    min-height: 0;
+  }
+
+  .setting-control {
+    justify-self: start;
+    flex-wrap: wrap;
+  }
+
+  /* Controls start at the left edge here, so the reset button goes after them and takes no room until needed. */
+  .setting-reset {
+    order: 1;
+  }
+
+  .setting-reset[data-idle] {
+    display: none;
+  }
+}

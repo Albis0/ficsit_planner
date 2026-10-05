@@ -1,0 +1,128 @@
+/* ---------- Graph edges: belts move, pipes flow ---------- */
+
+.react-flow__edge-path.belt {
+  stroke: #98a0a8;
+  stroke-width: 4;
+  stroke-dasharray: 12 7;
+  animation: belt 0.9s linear infinite;
+}
+
+.react-flow__edge-path.pipe {
+  stroke-width: 7;
+  stroke-linecap: round;
+  opacity: 0.85;
+}
+
+.react-flow__edge-path.faded {
+  opacity: 0.1;
+}
+
+.react-flow__edge-path.belt.lit {
+  stroke: var(--ficsit);
+}
+
+.react-flow__edge-path.pipe.lit {
+  stroke-width: 9;
+  opacity: 1;
+}
+
+@keyframes belt {
+  to {
+    stroke-dashoffset: -19;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .app:not([data-motion='full']) .react-flow__edge-path.belt {
+    animation: none;
+  }
+}
+
+.edge-anchor {
+  position: absolute;
+  pointer-events: none;
+}
+
+.edge-anchor:has(.lit) {
+  z-index: 10;
+}
+
+/* A belt's label can be clicked to say which machines the belt joins. */
+.edge-anchor:has(.pickable) {
+  pointer-events: none;
+}
+
+.edge-label.pickable {
+  pointer-events: all;
+  cursor: pointer;
+  color: inherit;
+  font-family: inherit;
+  text-align: left;
+}
+
+.edge-label.picked {
+  flex-wrap: wrap;
+  max-width: 360px;
+  border-color: var(--ficsit);
+}
+
+.edge-route {
+  flex-basis: 100%;
+  padding: 2px 0 1px 3px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--paper);
+  white-space: normal;
+}
+
+.edge-label {
+  zoom: var(--card-text, 1);
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 4px 9px 4px 5px;
+  background: var(--bg);
+  border: 1px solid var(--line);
+  font-size: 14px;
+  white-space: nowrap;
+  pointer-events: none;
+  transition: opacity 120ms;
+}
+
+.edge-label.lit {
+  border-color: var(--ficsit);
+}
+
+.edge-text {
+  display: flex;
+  flex-direction: column;
+  line-height: 1.1;
+}
+
+.edge-item {
+  font-size: 13px;
+  color: var(--dim);
+}
+
+.edge-meta {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.edge-rate {
+  font: 700 18px var(--font-display);
+}
+
+.edge-tier {
+  font: 700 14px var(--font-display);
+  color: var(--ficsit);
+}
+
+.edge-label.pipe .edge-tier {
+  color: var(--fluid);
+}
+
+.react-flow__pane {
+  cursor: grab;
+}

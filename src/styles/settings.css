@@ -1,0 +1,496 @@
+/* ---------- Settings ---------- */
+
+.settings-body {
+  flex: 1;
+  min-height: 0;
+  display: grid;
+  grid-template-columns: 230px minmax(0, 1fr);
+}
+
+.settings-nav {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 14px 10px;
+  background: var(--panel-2);
+  border-right: 1px solid var(--line);
+  overflow-y: auto;
+}
+
+.settings-nav button {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 11px 14px;
+  border: 0;
+  background: transparent;
+  color: var(--faint);
+  font: 600 18px var(--font-display);
+  letter-spacing: 0.03em;
+  text-align: left;
+}
+
+.settings-nav button:hover {
+  color: var(--paper);
+  background: var(--raised);
+}
+
+.settings-nav button[aria-current='page'] {
+  color: var(--paper);
+  background: var(--raised);
+  box-shadow: inset 4px 0 var(--ficsit);
+}
+
+.settings-nav button[aria-current='page'] .glyph {
+  color: var(--ficsit);
+}
+
+.settings-main {
+  min-height: 0;
+  display: flex;
+  align-items: flex-start;
+  overflow-y: auto;
+}
+
+.settings-controls {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  padding: 20px 28px 30px;
+}
+
+.settings-heading {
+  margin: 0 0 4px;
+  font: 700 15px var(--font-display);
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--faint);
+}
+
+.settings-dialog {
+  /* One size for every section, so switching sections never resizes the window. */
+  height: min(calc(88vh / var(--ui-scale, 1)), 780px);
+}
+
+/*
+  Every setting is the same two columns: what it does on the left, the control on the right, with
+  all controls ending on one line. The text wraps inside its column; the control never drops under it.
+*/
+.setting {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 12px 32px;
+  min-height: 82px;
+  padding: 14px 0;
+  border-bottom: 1px solid var(--line);
+}
+
+.setting.column {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.setting-text {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 0;
+}
+
+.setting-label {
+  font: 600 19px / 1.2 var(--font-display);
+  letter-spacing: 0.01em;
+}
+
+.setting-hint {
+  font-size: 14px;
+  color: var(--faint);
+}
+
+.setting-control {
+  justify-self: end;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.setting-range {
+  width: 200px;
+  height: 8px;
+  appearance: none;
+  background: linear-gradient(90deg, var(--ficsit) var(--fill), var(--raised) var(--fill));
+  cursor: pointer;
+}
+
+.setting-range::-webkit-slider-thumb {
+  appearance: none;
+  width: 14px;
+  height: 26px;
+  background: var(--paper);
+  border: 2px solid var(--ficsit);
+}
+
+.setting-range::-moz-range-thumb {
+  width: 12px;
+  height: 24px;
+  border-radius: 0;
+  background: var(--paper);
+  border: 2px solid var(--ficsit);
+}
+
+.setting-value {
+  min-width: 64px;
+  text-align: right;
+  font: 700 20px var(--font-display);
+  color: var(--ficsit);
+}
+
+.setting-reset {
+  width: 30px;
+  height: 30px;
+  display: grid;
+  place-items: center;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--faint);
+}
+
+.setting-reset[data-idle] {
+  visibility: hidden;
+}
+
+/* Buttons in a column of settings share one width, so they line up like the other controls. */
+.setting-control > .ghost-button {
+  min-width: 170px;
+  justify-content: center;
+}
+
+.setting-reset:hover {
+  color: var(--ficsit);
+}
+
+.setting-note {
+  margin: 6px 0 0;
+  padding: 8px 12px;
+  font-size: 15px;
+  border-left: 4px solid var(--supply);
+  background: color-mix(in srgb, var(--supply) 10%, transparent);
+}
+
+.setting-note.bad {
+  border-color: var(--alert);
+  background: color-mix(in srgb, var(--alert) 10%, transparent);
+}
+
+.setting-foot {
+  padding-top: 14px;
+}
+
+/* On/off: a square knob in a dark slot, sliding over and lighting up. */
+.toggle {
+  position: relative;
+  width: 54px;
+  height: 28px;
+  padding: 0;
+  background: var(--bg);
+  border: 1px solid var(--line-2);
+  transition:
+    background 180ms,
+    border-color 180ms;
+}
+
+.toggle-knob {
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  width: 20px;
+  height: 20px;
+  background: var(--faint);
+  transition:
+    transform 140ms ease-out,
+    background 140ms;
+}
+
+.toggle[aria-checked='true'] {
+  background: color-mix(in srgb, var(--ficsit) 22%, var(--bg));
+  border-color: var(--ficsit);
+}
+
+.toggle[aria-checked='true'] .toggle-knob {
+  transform: translateX(26px);
+  background: var(--ficsit);
+}
+
+.panel-sides {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+}
+
+.panel-side {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  padding: 14px 10px 12px;
+  background: var(--raised);
+  border: 1px solid var(--line);
+  color: var(--dim);
+  font: 600 17px var(--font-display);
+  letter-spacing: 0.03em;
+}
+
+.panel-side:hover {
+  border-color: var(--line-2);
+  color: var(--paper);
+}
+
+.panel-side[aria-checked='true'] {
+  border-color: var(--ficsit);
+  box-shadow: inset 0 0 0 1px var(--ficsit);
+  color: var(--paper);
+}
+
+/* A miniature window: top bar, the panel, and the floor with three machines. */
+.panel-diagram {
+  width: 128px;
+  height: 82px;
+  display: grid;
+  gap: 3px;
+  padding: 4px;
+  background: var(--bg);
+  border: 1px solid var(--line-2);
+}
+
+.panel-diagram.top {
+  grid-template: 9px 20px 1fr / 1fr;
+  grid-template-areas: 'bar' 'panel' 'floor';
+}
+
+.panel-diagram.left {
+  grid-template: 9px 1fr / 38px 1fr;
+  grid-template-areas: 'bar bar' 'panel floor';
+}
+
+.panel-diagram.right {
+  grid-template: 9px 1fr / 1fr 38px;
+  grid-template-areas: 'bar bar' 'floor panel';
+}
+
+.pd-top {
+  grid-area: bar;
+  background: var(--line-2);
+}
+
+.pd-panel {
+  grid-area: panel;
+  background: color-mix(in srgb, var(--ficsit) 55%, var(--raised));
+  transition: background 200ms;
+}
+
+.panel-side[aria-checked='true'] .pd-panel {
+  background: var(--ficsit);
+}
+
+.pd-floor {
+  grid-area: floor;
+  display: flex;
+  align-items: center;
+  justify-content: space-evenly;
+  background: var(--floor);
+}
+
+.pd-floor span {
+  width: 14px;
+  height: 9px;
+  background: var(--line-2);
+  box-shadow: inset 0 3px var(--ficsit);
+}
+
+.swatches {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.swatch {
+  position: relative;
+  width: 42px;
+  height: 42px;
+  padding: 0;
+  background: var(--swatch);
+  border: 2px solid rgb(0 0 0 / 0.4);
+  transition: transform 140ms;
+}
+
+.swatch:hover {
+  border-color: var(--paper);
+}
+
+.swatch[aria-checked='true'] {
+  box-shadow:
+    0 0 0 2px var(--panel),
+    0 0 0 4px var(--paper);
+}
+
+.swatch.custom {
+  display: grid;
+  place-items: center;
+  background: conic-gradient(from 90deg, #f55, #fb4, #ee5, #5d7, #4be, #86f, #f5c, #f55);
+  color: #111;
+  cursor: pointer;
+}
+
+.swatch.custom input {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  cursor: pointer;
+}
+
+.swatch.custom:focus-within {
+  outline: 2px solid var(--paper);
+  outline-offset: 3px;
+}
+
+.swatch.custom[data-checked] {
+  box-shadow:
+    0 0 0 2px var(--panel),
+    0 0 0 4px var(--paper);
+}
+
+.color-pick {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  cursor: pointer;
+}
+
+.color-pick input[type='color'] {
+  width: 46px;
+  height: 32px;
+  padding: 0;
+  border: 1px solid var(--line-2);
+  background: var(--swatch);
+  cursor: pointer;
+}
+
+.color-pick input[type='color']::-webkit-color-swatch-wrapper {
+  padding: 0;
+}
+
+.color-pick input[type='color']::-webkit-color-swatch {
+  border: 0;
+}
+
+.color-pick code {
+  min-width: 70px;
+  font:
+    500 14px ui-monospace,
+    Consolas,
+    monospace;
+  color: var(--dim);
+}
+
+/*
+  Live preview on top of the floor and colour settings, the full width of the rows, staying in view
+  while the rows scroll under it.
+*/
+.settings-preview {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  margin: 6px 0 0;
+  padding: 6px 0 10px;
+  background: var(--panel);
+}
+
+.settings-preview figcaption {
+  position: absolute;
+  top: 14px;
+  left: 10px;
+  z-index: 1;
+  font: 700 13px var(--font-display);
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--faint);
+}
+
+.preview-floor {
+  position: relative;
+  height: 170px;
+  overflow: hidden;
+  display: grid;
+  place-items: center;
+  background: var(--floor);
+  border: 1px solid var(--line);
+}
+
+.preview-floor.lines {
+  background-image:
+    linear-gradient(#3b3b3b 1px, transparent 1px), linear-gradient(90deg, #3b3b3b 1px, transparent 1px),
+    linear-gradient(#2f2f2f 1px, transparent 1px), linear-gradient(90deg, #2f2f2f 1px, transparent 1px);
+  background-size:
+    96px 96px,
+    96px 96px,
+    24px 24px,
+    24px 24px;
+}
+
+.preview-stage {
+  zoom: 0.6;
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+/* A card for each place the screws go: stacked, the belt leaves from the top one. */
+.preview-floor:has(.preview-stage.split) {
+  height: 230px;
+}
+
+.preview-stage.split {
+  --card-h: calc((130px + 32px) * (0.3 + 0.7 * var(--card-text, 1)));
+  align-items: flex-start;
+}
+
+.preview-split {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.preview-stage.split .preview-belt {
+  margin-top: calc(var(--card-h) / 2 - 10px);
+}
+
+.preview-stage.split .preview-label {
+  top: calc(var(--card-h) / 2);
+}
+
+.preview-stage.split .preview-card.b {
+  margin-top: calc(var(--card-h) / 2 - 65px * (0.3 + 0.7 * var(--card-text, 1)));
+}
+
+.preview-card .machine-node:has(.mod-badge.split) {
+  --run-extra: 1;
+}
+
+.preview-belt {
+  width: 240px;
+  height: 20px;
+  overflow: visible;
+}
+
+.preview-belt path {
+  fill: none;
+}
+
+.preview-label {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+}

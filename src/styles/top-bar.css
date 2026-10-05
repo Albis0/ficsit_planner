@@ -1,0 +1,103 @@
+/* ---------- Top bar: settings and feedback ---------- */
+
+.chrome-button {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  height: 38px;
+  padding: 0 12px;
+  border: 1px solid var(--line-2);
+  background: var(--bg);
+  color: var(--dim);
+  font: 600 16px var(--font-display);
+  letter-spacing: 0.02em;
+}
+
+.chrome-button:hover {
+  border-color: var(--ficsit);
+  color: var(--paper);
+}
+
+.chrome-button:hover .glyph {
+  color: var(--ficsit);
+}
+
+.ghost-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 14px;
+  border: 1px solid var(--line-2);
+  background: transparent;
+  color: var(--paper);
+  font: 600 16px var(--font-display);
+  letter-spacing: 0.02em;
+  white-space: nowrap;
+}
+
+.ghost-button:hover {
+  border-color: var(--ficsit);
+  color: var(--ficsit);
+}
+
+.ghost-button.small {
+  padding: 4px 10px;
+  font-size: 15px;
+}
+
+.ghost-button.danger {
+  border-color: var(--alert);
+  color: var(--alert);
+}
+
+/* Checkboxes drawn like the game's: a square box, filled with a tick when on. */
+.app input[type='checkbox'] {
+  appearance: none;
+  flex: none;
+  width: 22px;
+  height: 22px;
+  margin: 0;
+  display: grid;
+  place-items: center;
+  background: var(--bg);
+  border: 1px solid var(--line-2);
+  cursor: pointer;
+}
+
+.app input[type='checkbox']::after {
+  content: '';
+  width: 12px;
+  height: 7px;
+  margin-top: -3px;
+  border: solid var(--ficsit-ink);
+  border-width: 0 0 3px 3px;
+  transform: rotate(-45deg) scale(0);
+  transition: transform 140ms;
+}
+
+.app input[type='checkbox']:checked {
+  background: var(--ficsit);
+  border-color: var(--ficsit);
+}
+
+.app input[type='checkbox']:checked::after {
+  transform: rotate(-45deg) scale(1);
+}
+
+.check-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  cursor: pointer;
+}
+
+.check-row > span {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.check-row b {
+  font: 600 17px var(--font-display);
+  letter-spacing: 0.01em;
+}

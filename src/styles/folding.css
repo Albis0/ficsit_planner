@@ -1,0 +1,442 @@
+/* ---------- Panel beside the floor: folding and narrow widths ---------- */
+
+@media (min-width: 901px) {
+  /* The fold button is a dark game button on the metal, so it reads over the tabs scrolled under it. */
+  .app:is([data-panel='left'], [data-panel='right']) .side .tabs .deck-toggle {
+    align-self: center;
+    height: 34px;
+    margin: 0 6px 0 auto;
+    padding: 0 12px;
+    color: var(--paper);
+    text-shadow: none;
+    background: linear-gradient(180deg, var(--button-top), var(--button-bottom));
+    border: 1px solid var(--button-edge);
+    border-radius: var(--radius);
+    box-shadow:
+      inset 0 1px 0 rgb(255 255 255 / 0.12),
+      -8px 0 10px -4px rgb(0 0 0 / 0.45);
+  }
+
+  .app:is([data-panel='left'], [data-panel='right']) .side .tabs .deck-toggle:hover {
+    color: var(--ficsit);
+  }
+
+  /* Folded: a fixed strip the height of the floor, holding only the tabs and the unfold button. */
+  .app[data-panel='left'][data-deck='closed']:not([data-empty]) {
+    grid-template-columns: 50px minmax(0, 1fr);
+    grid-template-rows: var(--top-h) minmax(0, 1fr);
+  }
+
+  .app[data-panel='right'][data-deck='closed']:not([data-empty]) {
+    grid-template-columns: minmax(0, 1fr) 50px;
+    grid-template-rows: var(--top-h) minmax(0, 1fr);
+  }
+
+  .app:is([data-panel='left'], [data-panel='right'])[data-deck='closed'] .side > :not(.tabs) {
+    display: none;
+  }
+
+  .app:is([data-panel='left'], [data-panel='right'])[data-deck='closed'] .side .tabs {
+    align-items: center;
+    gap: 4px;
+    padding: 14px 0 10px;
+    overflow: hidden;
+  }
+
+  .app:is([data-panel='left'], [data-panel='right'])[data-deck='closed'] .side .tabs button:not(.deck-toggle) {
+    padding: 14px 12px;
+  }
+
+  .app:is([data-panel='left'], [data-panel='right'])[data-deck='closed'] .side .tab-badge {
+    margin: 0;
+    margin-inline-start: 6px;
+  }
+
+  .app:is([data-panel='left'], [data-panel='right'])[data-deck='closed'] .side .tabs .deck-toggle {
+    order: -1;
+    margin: 0 0 8px;
+    width: 36px;
+    height: 36px;
+    padding: 0;
+    justify-content: center;
+  }
+}
+
+/* A narrow panel (beside the floor, or a phone): cards put the amount under the name instead of over it. */
+.side {
+  container: side / inline-size;
+}
+
+@container side (max-width: 480px) {
+  .item-card:not(.flat) {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    grid-template-areas:
+      'slot name remove'
+      'slot rate rate';
+    gap: 6px 12px;
+  }
+
+  .item-card:not(.flat) > .slot {
+    grid-area: slot;
+  }
+
+  .item-card:not(.flat) > .item-card-name {
+    grid-area: name;
+  }
+
+  .item-card:not(.flat) > .item-card-rate {
+    grid-area: rate;
+  }
+
+  .item-card:not(.flat) > .icon-button {
+    grid-area: remove;
+  }
+
+  .item-card-name {
+    font-size: 18px;
+  }
+
+  .resource-card .item-card.flat {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr);
+    grid-template-areas:
+      'slot name'
+      'slot rate';
+    gap: 4px 12px;
+  }
+
+  .resource-card .item-card.flat > .slot {
+    grid-area: slot;
+  }
+
+  .resource-card .item-card.flat > .item-card-name {
+    grid-area: name;
+  }
+
+  .resource-card .item-card.flat > .item-card-rate {
+    grid-area: rate;
+  }
+
+  .extract-row {
+    flex-wrap: wrap;
+  }
+
+  .extract-name {
+    flex-basis: calc(100% - 40px);
+  }
+
+  .section-head {
+    flex-wrap: wrap;
+  }
+
+  .inventory-row.item-card.flat {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr);
+    grid-template-areas:
+      'slot name'
+      'slot rate';
+    gap: 4px 12px;
+  }
+
+  .inventory-row > .slot {
+    grid-area: slot;
+  }
+
+  .inventory-row > .item-card-name {
+    grid-area: name;
+    flex-direction: row;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: 0 10px;
+    font-size: 17px;
+  }
+
+  .inventory-row > .rate-field {
+    grid-area: rate;
+    justify-self: start;
+  }
+}
+
+/* The same for a column of the panel across the top: a long one-word name ("Supercomputer") needs the whole width. */
+.panel-body.targets > .stack {
+  container: card-column / inline-size;
+}
+
+@container card-column (max-width: 440px) {
+  .item-card:not(.flat) {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    grid-template-areas:
+      'slot name remove'
+      'slot rate rate';
+    gap: 6px 12px;
+  }
+
+  .item-card:not(.flat) > .slot {
+    grid-area: slot;
+  }
+
+  .item-card:not(.flat) > .item-card-name {
+    grid-area: name;
+  }
+
+  .item-card:not(.flat) > .item-card-rate {
+    grid-area: rate;
+  }
+
+  .item-card:not(.flat) > .icon-button {
+    grid-area: remove;
+  }
+}
+
+@container side (max-width: 360px) {
+  .add-button {
+    font-size: 16px;
+  }
+}
+
+/* A generator's strip names its fuel beside the megawatts: a long one ("Packaged Liquid Biofuel") takes two lines. */
+.machine-node.power .machine-product {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  white-space: normal;
+  font-size: calc(15px * var(--t));
+  line-height: 1.05;
+}
+
+/* Fingers: everything that's pressed gets at least a 32 px target. */
+@media (pointer: coarse) {
+  .plan-tab-close,
+  .gen-row-remove {
+    width: 32px;
+    height: 32px;
+  }
+
+  .codex-crumbs a,
+  .codex-home-link,
+  .codex-table .codex-machine,
+  .codex-recipe-foot .codex-machine,
+  .codex-recipe-foot .codex-unlock,
+  .codex-flow,
+  .codex-tier-label {
+    display: inline-flex;
+    align-items: center;
+    min-height: 32px;
+  }
+}
+
+/*
+  The top bar measured in its own size, so a big interface size on a small screen gets the same treatment as a small
+  screen: the wordmark goes first, then the mode names, so the tabs keep room for at least one name.
+*/
+.topbar {
+  container: topbar / inline-size;
+}
+
+@container topbar (max-width: 1000px) {
+  .topbar .brand-name {
+    display: none;
+  }
+}
+
+@container topbar (max-width: 1250px) {
+  .topbar .mode-label {
+    display: none;
+  }
+
+  .topbar .chrome-label {
+    display: none;
+  }
+}
+
+/* A narrow panel (or a big interface size): the three tabs close up so they and the fold button fit on one row. */
+.side .tabs button:not(.deck-toggle) {
+  flex: 0 1 auto;
+  min-width: 0;
+  white-space: nowrap;
+  padding-inline: clamp(8px, 2.6cqi, 30px);
+  font-size: clamp(14px, 4cqi, 18px);
+}
+
+/* Ten tier buttons are too thin for a finger in a narrow panel: two rows of five. */
+@media (pointer: coarse) {
+  .tier-steps {
+    grid-template-columns: repeat(5, 1fr);
+  }
+}
+
+/* An amount box and its unit may wrap under the name in the narrowest cards rather than run past the edge. */
+.item-card-rate {
+  flex-wrap: wrap;
+  min-width: 0;
+}
+
+/* A pick's highlight gliding over to the next one in its row (lib/slide.ts). */
+.sliding {
+  isolation: isolate;
+}
+
+.slide-anchor {
+  position: relative;
+}
+
+.slide-ghost {
+  position: absolute;
+  z-index: -1;
+  transform-origin: 0 0;
+  pointer-events: none;
+}
+
+.slide-to {
+  background: transparent !important;
+  box-shadow: none !important;
+}
+
+/* The label's colour follows the highlight in instead of flipping ahead of it. */
+.segmented button,
+.side > .tabs [role='tab'],
+.settings-nav button {
+  transition: color 0.15s ease-out;
+}
+
+/* Folding the totals away: the folded strip as one line. */
+.summary.closed {
+  padding-block: 4px;
+}
+
+.summary-line {
+  flex: 1;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 4px 22px;
+  padding: 4px 12px;
+  border: 0;
+  background: transparent;
+  color: var(--faint);
+  font: 600 14px var(--font-display);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  text-align: left;
+}
+
+.summary-line b {
+  margin-left: 4px;
+  color: var(--paper);
+  font-size: 18px;
+  letter-spacing: 0;
+}
+
+.summary-line b.power {
+  color: var(--power);
+}
+
+.summary-line-more {
+  margin-left: auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.summary-line:hover .summary-line-more {
+  color: var(--ficsit);
+}
+
+/* ---------- Folding: the buttons and the folded strips ---------- */
+
+/* The totals' fold handle: a small metal tab hanging from the middle of the strip, over the top of the floor. */
+.summary-handle {
+  position: absolute;
+  top: 0;
+  left: 50%;
+  z-index: 6;
+  translate: -50% 0;
+  display: grid;
+  place-items: center;
+  width: 76px;
+  height: 24px;
+  padding: 0;
+  border: 1px solid #2c2c2c;
+  border-top: 0;
+  border-radius: 0 0 6px 6px;
+  background: var(--metal);
+  box-shadow: 0 3px 6px rgb(0 0 0 / 0.35);
+  color: var(--painted);
+}
+
+.summary-handle:hover {
+  color: var(--ficsit);
+}
+
+/* Big enough for a finger on touch screens. */
+@media (pointer: coarse) {
+  .summary-handle {
+    width: 84px;
+    height: 32px;
+  }
+}
+
+/* Folded totals: one screen on the metal, like the readouts it stands for. */
+.summary.closed {
+  padding: 6px 10px;
+}
+
+.summary-line {
+  padding: 7px 14px;
+  border-radius: 6px;
+  background: var(--glass);
+  box-shadow: var(--glass-edge);
+}
+
+@media (min-width: 901px) {
+  /* The panel's fold button sits flat on the tab strip. */
+  .app:is([data-panel='left'], [data-panel='right']) .side .tabs .deck-toggle {
+    box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.12);
+  }
+
+  /* Folded beside the floor: the unfold button on top, then the three tabs evenly down the strip, all alike. */
+  .app:is([data-panel='left'], [data-panel='right'])[data-deck='closed'] .side .tabs {
+    gap: 0;
+    padding: 8px 0;
+  }
+
+  .app:is([data-panel='left'], [data-panel='right'])[data-deck='closed'] .side .tabs .deck-toggle {
+    margin: 0 0 6px;
+    width: 34px;
+    height: 34px;
+  }
+
+  .app:is([data-panel='left'], [data-panel='right'])[data-deck='closed'] .side .tabs button:not(.deck-toggle) {
+    width: 100%;
+    padding: 14px 0;
+    font-size: 15px;
+    letter-spacing: 0.06em;
+  }
+
+  .app:is([data-panel='left'], [data-panel='right'])[data-deck='closed'] .side .tabs button[aria-selected='true'] {
+    color: var(--painted);
+    text-shadow: 0 1px 0 rgb(255 255 255 / 0.28);
+  }
+
+  .app:is([data-panel='left'], [data-panel='right'])[data-deck='closed'] .side .tabs button:not(.deck-toggle):hover {
+    color: #000;
+  }
+}
+
+/* A long amount (20533.33) widens its own box where the browser can size a field to its text; short ones stay put. */
+@supports (field-sizing: content) {
+  .raw-chip .rate-input {
+    field-sizing: content;
+    min-width: 84px;
+    width: auto;
+    max-width: 130px;
+  }
+
+  .app[data-summary='compact'] .raw-chip .rate-input {
+    min-width: 72px;
+    width: auto;
+  }
+}

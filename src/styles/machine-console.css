@@ -1,0 +1,218 @@
+/* ---------- Machine console ---------- */
+
+/*
+  The frame is built the way the game builds its machine windows (TXUI_Manufacturer_BG,
+  GeneratorBG): a grey metal casing, and dark glass screens set into it
+  where the numbers are. Words painted on the metal are dark; on the glass they're light.
+*/
+:root {
+  --metal: linear-gradient(180deg, #727272, #5f5f5f);
+  --metal-edge: inset 0 1px 0 rgb(255 255 255 / 0.3), inset 0 -2px 0 rgb(0 0 0 / 0.28);
+  --glass: linear-gradient(118deg, #1b1b1b 0 36%, #202020 36% 50%, #1b1b1b 50%);
+  --glass-edge: inset 0 2px 6px rgb(0 0 0 / 0.7), 0 1px 0 rgb(255 255 255 / 0.25);
+  --painted: #242424;
+}
+
+/* The top bar is the casing's own header screen. */
+.topbar {
+  background: linear-gradient(118deg, #161616 0 30%, #1c1c1c 30% 44%, #161616 44%);
+  border-bottom: 2px solid #4a4a4a;
+}
+
+/* The panel: metal with the tabs painted on it and glass for each column. */
+.side {
+  background: var(--metal);
+  box-shadow: var(--metal-edge);
+  border-color: #2c2c2c;
+}
+
+.side .tabs {
+  background: transparent;
+  border-bottom-color: rgb(0 0 0 / 0.25);
+  box-shadow: 0 1px 0 rgb(255 255 255 / 0.18);
+}
+
+.side .tabs button,
+.side .deck-toggle {
+  color: var(--painted);
+  text-shadow: 0 1px 0 rgb(255 255 255 / 0.28);
+}
+
+/* The open tab is a lit screen label on the metal. */
+.side .tabs button[aria-selected='true'] {
+  color: var(--paper);
+  text-shadow: none;
+  background: linear-gradient(118deg, #1b1b1b 0 36%, #202020 36% 50%, #1b1b1b 50%);
+  border-radius: 6px 6px 0 0;
+}
+
+.side .tabs button[aria-selected='true'] .tab-badge {
+  color: var(--faint);
+}
+
+.side .tabs button:not([aria-selected='true']):hover {
+  color: #000;
+}
+
+.side .tab-badge {
+  color: rgb(0 0 0 / 0.55);
+}
+
+/* Panel on top: each column is its own screen. */
+.app[data-panel='top'] .panel-body.targets {
+  padding: 12px 14px 14px;
+  gap: 12px;
+}
+
+.app[data-panel='top'] .panel-body.targets > .stack,
+.app[data-panel='top'] .recipe-tools,
+.app[data-panel='top'] .recipe-list,
+.app[data-panel='top'] .panel-body.resources > .stack {
+  align-self: stretch;
+  padding: 14px 16px 16px;
+  border-radius: 8px;
+  background: var(--glass);
+  box-shadow: var(--glass-edge);
+}
+
+.app[data-panel='top'] :is(.panel-body.recipes, .panel-body.resources) {
+  padding: 12px 14px 14px;
+  gap: 12px;
+}
+
+.app[data-panel='top'] .recipe-tools,
+.app[data-panel='top'] .panel-body.resources > .extraction {
+  border-right: 0;
+}
+
+/* Panel beside the floor (and the Codex's index, the map's filter): one tall screen. */
+.app:is([data-panel='left'], [data-panel='right']) .side > .panel-body {
+  margin: 0 10px 10px;
+  border-radius: 8px;
+  background: var(--glass);
+  box-shadow: var(--glass-edge);
+}
+
+.app[data-mode='codex'] .side > .panel-body,
+.app[data-mode='map'] .side > .panel-body {
+  margin-top: 10px;
+}
+
+/* The totals: small displays along a metal strip. */
+.summary {
+  gap: 8px;
+  padding: 8px 10px;
+  background: var(--metal);
+  box-shadow: var(--metal-edge);
+  border-bottom-color: #2c2c2c;
+}
+
+.summary .readout {
+  border: 0;
+  border-radius: 6px;
+  background: var(--glass);
+  box-shadow: var(--glass-edge);
+}
+
+/* Windows: a metal casing, the title on a screen along the top, the content on glass. */
+.modal,
+.tier-dialog,
+.sheet {
+  background: var(--metal);
+  border-color: #2c2c2c;
+  box-shadow:
+    var(--metal-edge),
+    0 24px 60px rgb(0 0 0 / 0.6);
+}
+
+.modal-head {
+  margin: 12px 14px 0;
+  padding-left: 16px;
+  border: 0;
+  border-radius: 6px;
+  background: linear-gradient(118deg, #161616 0 36%, #1c1c1c 36% 50%, #161616 50%);
+  box-shadow: var(--glass-edge);
+}
+
+.modal > :not(.modal-head) {
+  margin: 10px 14px 0;
+  border-radius: 8px;
+  background: var(--glass);
+  box-shadow: var(--glass-edge);
+}
+
+.modal > :last-child {
+  margin-bottom: 14px;
+}
+
+.settings-foot,
+.report-foot {
+  border-top: 0;
+}
+
+.tier-dialog > .quick-title,
+.tier-dialog > .hint,
+.tier-dialog .section-title {
+  color: #151515;
+  text-shadow: 0 1px 0 rgb(255 255 255 / 0.3);
+}
+
+.tier-card {
+  border: 0;
+  background: var(--glass);
+  box-shadow: var(--glass-edge);
+}
+
+.tier-card.current {
+  box-shadow:
+    var(--glass-edge),
+    inset 0 0 0 2px var(--ficsit);
+}
+
+/* The machine panel on the floor: the game's machine window in small. */
+.inspector {
+  border: 1px solid #2c2c2c;
+  background: var(--metal);
+  box-shadow:
+    var(--metal-edge),
+    0 18px 44px rgb(0 0 0 / 0.55);
+}
+
+.inspector > * {
+  padding: 12px 14px;
+  border-radius: 8px;
+  background: var(--glass);
+  box-shadow: var(--glass-edge);
+}
+
+.inspector > .inspector-head {
+  background: none;
+  box-shadow: none;
+  padding: 0 4px;
+}
+
+.inspector-head .inspector-recipe,
+.inspector-head .modal-close,
+.inspector-head .icon-button {
+  color: #141414;
+  text-shadow: 0 1px 0 rgb(255 255 255 / 0.3);
+}
+
+.inspector-head .inspector-machine {
+  color: #3a1d05;
+}
+
+/* Words painted straight on the metal (the phone menu, the machine panel's title): dark, like stencils. */
+.sheet .control-label,
+.sheet-row > .control-label {
+  color: #1c1c1c;
+  text-shadow: 0 1px 0 rgb(255 255 255 / 0.3);
+}
+
+.inspector-head .inspector-machine {
+  color: #3a1d05;
+}
+
+.mobile-nav {
+  background: linear-gradient(118deg, #161616 0 30%, #1c1c1c 30% 44%, #161616 44%);
+}

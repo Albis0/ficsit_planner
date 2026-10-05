@@ -1,0 +1,346 @@
+/* ---------- Graph nodes ---------- */
+
+.react-flow__handle {
+  width: 10px;
+  height: 18px;
+  border-radius: 0;
+  border: 0;
+  background: var(--line-2);
+}
+
+/* Phones run the line top to bottom; the same handle lies on its side. */
+.react-flow__handle-top,
+.react-flow__handle-bottom {
+  width: 18px;
+  height: 10px;
+}
+
+.react-flow__node-machine {
+  cursor: pointer;
+}
+
+/*
+  A machine, in the game's build-menu look: a panel with a cut corner and a coloured strip along the
+  top (orange standard, teal alternate, violet converter) holding the product and the power draw, then
+  the building itself with the recipe and "3 × 83.33%" beside it.
+*/
+.machine-node {
+  --kind: var(--kind-standard, var(--ficsit));
+  --kind-ink: var(--standard-ink, var(--ficsit-ink));
+  --t: var(--card-text, 1);
+  zoom: var(--card-scale, 1);
+  position: relative;
+  width: calc(310px * (0.6 + 0.4 * var(--t)));
+  /* Extra clock groups each add a line (RUN_LINE in the layout). */
+  height: calc((130px + var(--run-extra, 0) * 32px) * (0.3 + 0.7 * var(--t)));
+  display: flex;
+  flex-direction: column;
+  background: var(--raised);
+  border: 1px solid var(--line-2);
+  clip-path: polygon(0 0, calc(100% - 20px) 0, 100% 20px, 100% 100%, 0 100%);
+  transition: opacity 120ms;
+}
+
+.machine-node.alternate {
+  --kind: var(--alt);
+  --kind-ink: var(--alt-ink, var(--ficsit-ink));
+}
+
+.machine-node.converter {
+  --kind: var(--converter);
+  --kind-ink: var(--converter-ink, var(--ficsit-ink));
+}
+
+.machine-node.power {
+  --kind: var(--power);
+  --kind-ink: var(--power-ink, var(--ficsit-ink));
+}
+
+.react-flow__node:hover .machine-node,
+.machine-node.selected {
+  border-color: var(--kind);
+}
+
+.machine-node.selected {
+  box-shadow: inset 0 0 0 2px var(--kind);
+}
+
+.machine-strip {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 3px 22px 3px 8px;
+  background: var(--kind);
+  color: var(--kind-ink);
+  font: 700 calc(18px * var(--t)) / 1.2 var(--font-display);
+}
+
+.strip-icon {
+  flex: none;
+  filter: drop-shadow(0 1px 1px rgb(0 0 0 / 0.45));
+}
+
+.machine-product {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Power draw on a dark tag in the game's power yellow: wide, plain digits read at any zoom. */
+.machine-power {
+  flex: none;
+  display: flex;
+  align-items: baseline;
+  gap: 3px;
+  padding: 1px 7px 2px;
+  background: rgb(18 20 22 / 0.9);
+  color: var(--power);
+  font: 700 calc(17px * var(--t)) / 1.25 var(--font-body);
+  letter-spacing: 0;
+  text-transform: none;
+}
+
+.machine-power small {
+  font-size: calc(12px * var(--t));
+  font-weight: 600;
+  color: var(--dim);
+}
+
+/* Shards and somersloops: a blue, pink or half-and-half edge along the bottom. */
+.machine-node::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 6px;
+  background: var(--mod-bar, transparent);
+}
+
+.machine-body {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 0 12px 6px 8px;
+}
+
+/* A machine's draw, under its count: the strip is left to the product's name. */
+.machine-draw {
+  font: 700 calc(16px * var(--t)) / 1.2 var(--font-body);
+  color: var(--power);
+  white-space: nowrap;
+}
+
+.machine-draw small {
+  margin-left: 3px;
+  font-size: calc(11px * var(--t));
+  font-weight: 600;
+  color: var(--dim);
+}
+
+.machine-icon {
+  flex: none;
+  filter: drop-shadow(0 3px 4px rgb(0 0 0 / 0.55));
+}
+
+.machine-info {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  min-width: 0;
+}
+
+.machine-type {
+  font: 600 calc(21px * var(--t)) / 1.15 var(--font-display);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Generators have long names ("Coal-Powered Generator") and no draw line under them: two lines are free. */
+.machine-node.power .machine-type {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  white-space: normal;
+  font-size: calc(19px * var(--t));
+}
+
+/* "3 × 88.89%": plain (not condensed) digits, the clock nearly as big as the count. Each group on its own line. */
+.machine-run {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  font: 600 calc(20px * var(--t)) / 1.2 var(--font-body);
+  color: var(--paper);
+}
+
+.machine-run > span {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 5px;
+}
+
+.machine-run b {
+  font-size: calc(26px * var(--t));
+  font-weight: 700;
+}
+
+.machine-run .times {
+  font-size: calc(16px * var(--t));
+  color: var(--faint);
+}
+
+.machine-run .over {
+  color: var(--shard);
+}
+
+.machine-run .over b {
+  color: var(--shard);
+}
+
+.machine-run .plus {
+  margin-right: 3px;
+  color: var(--faint);
+}
+
+.machine-mods {
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+}
+
+.mod-badge {
+  font: 700 15px var(--font-display);
+}
+
+.placements .mod-badge,
+.plan-table .mod-badge {
+  margin-left: 8px;
+}
+
+.mod-badge.shard {
+  color: var(--shard);
+}
+
+.mod-badge.sloop {
+  color: var(--sloop);
+}
+
+.endpoint-node {
+  --accent: var(--line-2);
+  --t: var(--card-text, 1);
+  zoom: var(--card-scale, 1);
+  width: calc(330px * (0.6 + 0.4 * var(--t)));
+  height: calc(100px * (0.3 + 0.7 * var(--t)));
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 14px 8px 10px;
+  background: var(--panel);
+  border: 1px solid var(--line-2);
+  border-left: 5px solid var(--fluid-color, var(--accent));
+  transition: opacity 120ms;
+}
+
+.endpoint-node.target {
+  --accent: var(--ficsit);
+  border-color: var(--ficsit);
+  background: color-mix(in srgb, var(--ficsit) 12%, var(--panel));
+}
+
+.endpoint-node.missing {
+  --accent: var(--alert);
+  border-color: var(--alert);
+}
+
+.endpoint-node.surplus {
+  border-style: dashed;
+}
+
+/* Already on hand: delivered, not built, so it looks like a different kind of thing. */
+.endpoint-node.supply {
+  --accent: var(--supply);
+  border-color: color-mix(in srgb, var(--supply) 55%, transparent);
+  background: color-mix(in srgb, var(--supply) 11%, var(--panel));
+}
+
+.endpoint-node.supply .endpoint-kind {
+  color: var(--supply);
+}
+
+.endpoint-text {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.endpoint-kind {
+  font: 700 calc(13px * var(--t)) / 1.2 var(--font-display);
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  color: var(--faint);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.endpoint-node.target .endpoint-kind {
+  color: var(--ficsit);
+}
+
+.endpoint-name {
+  font: 600 calc(19px * var(--t)) / 1.15 var(--font-display);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Long names (Electromagnetic Control Rod) step down a size rather than lose their end. */
+.endpoint-name.long {
+  font-size: calc(16px * var(--t));
+}
+
+/* The extractors go under the amount when both don't fit on one line. */
+.endpoint-line {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0 8px;
+  min-width: 0;
+}
+
+.endpoint-extract {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  min-width: 0;
+  overflow: hidden;
+  font-size: calc(13px * var(--t));
+  color: var(--dim);
+  white-space: nowrap;
+}
+
+.endpoint-rate {
+  align-self: flex-start;
+  font: 700 calc(20px * var(--t)) / 1.15 var(--font-display);
+  white-space: nowrap;
+}
+
+.endpoint-rate small {
+  font-size: 14px;
+  color: var(--dim);
+  margin-left: 2px;
+}
+
+.machine-node.faded,
+.endpoint-node.faded,
+.edge-label.faded {
+  opacity: 0.2;
+}

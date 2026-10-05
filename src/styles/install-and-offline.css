@@ -1,0 +1,68 @@
+/* ---------- Install and offline ---------- */
+
+.install {
+  position: relative;
+}
+
+.install-button {
+  border: 1px solid var(--ficsit);
+  background: transparent;
+  padding: 6px 12px;
+  font: 600 16px var(--font-display);
+  color: var(--ficsit);
+}
+
+.install-button:hover {
+  background: color-mix(in srgb, var(--ficsit) 14%, transparent);
+}
+
+.install-hint {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  z-index: 30;
+  width: 240px;
+  padding: 10px 12px;
+  background: var(--raised);
+  border: 1px solid var(--line-2);
+  font-size: 14px;
+  color: var(--paper);
+}
+
+/* Bottom centre, between the view switch and the floor controls, clear of the tabs and readouts. */
+/* Above the floor's own buttons along the bottom edge, so it never covers them. */
+/* A corner note above the floor's own buttons, clear of the machine panel on the right. */
+.toast {
+  position: fixed;
+  left: 18px;
+  white-space: nowrap;
+  bottom: calc(84px + env(safe-area-inset-bottom));
+  z-index: 40;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 10px 12px 10px 16px;
+  background: var(--raised);
+  border: 1px solid var(--line-2);
+  border-left: 4px solid var(--ficsit);
+  box-shadow: 0 12px 30px rgb(0 0 0 / 0.5);
+  font-size: 15px;
+}
+
+.toast.bad {
+  border-left-color: var(--alert);
+}
+
+.toast .text-button.quiet {
+  margin-left: -8px;
+  color: var(--dim);
+}
+
+/* A second message while the first is up sits above it. */
+.toast + .toast {
+  translate: 0 calc(-100% - 10px);
+}
+
+.toast + .toast + .toast {
+  translate: 0 calc(-200% - 20px);
+}

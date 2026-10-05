@@ -1,0 +1,72 @@
+/* ---------- Pinned raw inputs ---------- */
+
+.pin {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.endpoint-rate.editable {
+  border: 1px dashed var(--line-2);
+  background: transparent;
+  padding: 0 6px;
+  color: var(--paper);
+  cursor: text;
+}
+
+.endpoint-rate.editable:hover {
+  border-color: var(--ficsit);
+  color: var(--ficsit);
+}
+
+.pin-badge {
+  border: 0;
+  padding: 0 6px;
+  background: var(--ficsit);
+  color: var(--ficsit-ink);
+  font: 700 12px / 1.5 var(--font-display);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.pin-input {
+  width: 96px;
+}
+
+.scaled {
+  flex-basis: 100%;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 16px;
+  padding: 10px 22px;
+  background: color-mix(in srgb, var(--ficsit) 14%, var(--panel));
+  font-size: 16px;
+}
+
+.scaled b {
+  font: 700 24px var(--font-display);
+  color: var(--ficsit);
+}
+
+.scaled .chip {
+  font: 700 18px var(--font-display);
+}
+
+.pin-held {
+  flex-basis: 100%;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 14px;
+  color: var(--dim);
+}
+
+.pin-held .chip {
+  font: 600 16px var(--font-body);
+  color: var(--paper);
+}
+
+.readout-value.over {
+  color: var(--alert) !important;
+}

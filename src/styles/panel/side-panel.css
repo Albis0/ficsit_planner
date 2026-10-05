@@ -1,0 +1,234 @@
+/* ---------- Side panel ---------- */
+
+.side {
+  position: relative;
+  z-index: 2;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  background: var(--panel-2);
+  border-bottom: 1px solid var(--line-2);
+}
+
+.tabs {
+  display: flex;
+  background: var(--panel);
+  border-bottom: 1px solid var(--line);
+}
+
+.tabs button {
+  position: relative;
+  border: 0;
+  background: transparent;
+  padding: 14px 30px 11px;
+  font: 700 19px / 1 var(--font-display);
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--faint);
+}
+
+.tabs button:hover {
+  color: var(--paper);
+}
+
+.tabs button[aria-selected='true'] {
+  color: var(--paper);
+  background: var(--panel-2);
+}
+
+.tabs button[aria-selected='true']::after {
+  content: '';
+  position: absolute;
+  inset: auto 0 -1px;
+  height: 4px;
+  background: var(--mode);
+}
+
+/* Folds the panel down to its tabs, so the factory gets the whole screen. */
+.tabs .deck-toggle {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0 20px;
+  font: 600 16px var(--font-display);
+  letter-spacing: 0.03em;
+  text-transform: none;
+  color: var(--faint);
+}
+
+.tabs .deck-toggle:hover {
+  color: var(--ficsit);
+}
+
+.deck-arrow {
+  width: 9px;
+  height: 9px;
+  margin-top: 3px;
+  border: solid currentColor;
+  border-width: 2px 2px 0 0;
+  transform: rotate(-45deg);
+  transition: transform 200ms;
+}
+
+.app[data-deck='closed'] .deck-arrow {
+  margin-top: -5px;
+  transform: rotate(135deg);
+}
+
+.app[data-deck='closed']:not([data-empty]) {
+  grid-template-rows: var(--top-h) auto minmax(0, 1fr);
+}
+
+.app[data-deck='closed'] .side > :not(.tabs),
+.app[data-deck='closed'] .tabs button[aria-selected='true']::after {
+  display: none;
+}
+
+.app[data-deck='closed'] .tabs {
+  border-bottom: 0;
+}
+
+.app[data-deck='closed'] .tabs button[aria-selected='true'] {
+  background: transparent;
+  color: var(--faint);
+}
+
+.tab-badge {
+  margin-left: 8px;
+  font-weight: 500;
+  color: var(--faint);
+}
+
+.panel-body {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  /* Content running past the bottom fades out over a few pixels, only while there's more below: scrolled to the
+     end, or with nothing to scroll, nothing is faded. Browsers without scroll-linked animations show a hard cut. */
+  --fade: 0px;
+  mask-image: linear-gradient(to bottom, #000 calc(100% - var(--fade)), transparent);
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 28px;
+}
+
+@property --fade {
+  syntax: '<length>';
+  inherits: false;
+  initial-value: 0px;
+}
+
+@keyframes more-below {
+  from {
+    --fade: 14px;
+  }
+  to {
+    --fade: 0px;
+  }
+}
+
+@supports (animation-timeline: scroll()) {
+  .panel-body {
+    animation: more-below linear both;
+    animation-timeline: scroll(self);
+    animation-range: calc(100% - 30px) 100%;
+  }
+}
+
+.stack {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+/* Across the width: targets, on hand and inventory side by side. */
+.panel-body.targets {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(360px, 1fr));
+  align-items: start;
+  gap: 24px 36px;
+}
+
+/* Each column opens on a title row of the same height, with or without buttons in it. */
+.panel-body.targets > .stack > .section-title:first-child,
+.panel-body.targets > .stack > .section-head:first-child {
+  min-height: 34px;
+  display: flex;
+  align-items: center;
+}
+
+.section-title {
+  margin: 0;
+  font: 700 18px / 1.2 var(--font-display);
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--dim);
+}
+
+.section-title.with-icon {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.hint {
+  margin: 0 0 4px;
+  color: var(--faint);
+  font-size: 15px;
+  max-width: 46ch;
+}
+
+/* Target / supply / resource line: a slot, the name, the rate. */
+.item-card {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 8px;
+  background: var(--raised);
+  border-left: 4px solid var(--ficsit);
+}
+
+.item-card.flat {
+  border-left: 0;
+  background: transparent;
+  padding: 0;
+}
+
+.item-card-name {
+  flex: 1;
+  min-width: 0;
+  font: 600 20px / 1.15 var(--font-display);
+  letter-spacing: 0.01em;
+}
+
+.item-card-rate {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.add-button {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-height: 52px;
+  padding: 0 16px;
+  border: 1px dashed var(--line-2);
+  background: transparent;
+  color: var(--dim);
+  font: 600 18px var(--font-display);
+  letter-spacing: 0.03em;
+  text-align: left;
+}
+
+.add-button:hover {
+  border-color: var(--ficsit);
+  color: var(--ficsit);
+}
+
+.add-plus {
+  font-size: 26px;
+  line-height: 1;
+}

@@ -1,0 +1,338 @@
+/* ---------- The game's own look ---------- */
+
+/*
+  Shapes and colours read from the game's UI files rather than made up: rounded 4–6 px corners
+  (Rectangle_Background_Rounded), dark bevelled buttons (TXUI_DarkButton: a grey that darkens
+  downwards, a near-black edge, a faint light line on top), the UI greys above, and labels written as
+  words rather than letter-spaced capitals. Hazard stripes stay where the game paints them: on the
+  logo, not on every header.
+*/
+
+/* The planner's own logo in place of the painted stripe block, as tall as the wordmark beside it. */
+.brand-mark {
+  align-self: center;
+  width: 44px;
+  height: 44px;
+  margin: 0 -2px 0 14px;
+  clip-path: none;
+  background: url('/logo.png') center / contain no-repeat;
+}
+
+.brand-mark::before {
+  content: none;
+}
+
+.brand-name {
+  font: 700 23px / 1 var(--font-display);
+  letter-spacing: 0.02em;
+  color: var(--paper);
+}
+
+/*
+  The wordmark: FICSIT in heavy capitals the way the game letters its company, and PLANNER spaced out on a plate
+  with one corner cut like the game's labels, in the colour of the planner on screen. Set in Heebo whatever
+  typeface Settings picks, so the name always looks the same.
+*/
+.brand-name {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 4px;
+  font-family: 'Heebo', sans-serif;
+}
+
+.brand-word {
+  font-size: 25px;
+  font-weight: 800;
+  line-height: 0.82;
+  letter-spacing: 0.1em;
+  color: var(--paper);
+  text-shadow: 0 2px 0 rgb(0 0 0 / 0.45);
+}
+
+.brand-sub {
+  padding: 2px 9px 1px 6px;
+  font-size: 10px;
+  font-weight: 800;
+  line-height: 1.2;
+  letter-spacing: 0.42em;
+  text-transform: uppercase;
+  color: var(--mode-ink, #1d1206);
+  background: var(--mode, var(--ficsit));
+  clip-path: polygon(0 0, 100% 0, 100% 55%, calc(100% - 6px) 100%, 0 100%);
+}
+
+/*
+  Phones keep the top bar for the tabs: the logo alone stands for the name, and the tab row is swiped rather than
+  stepped with arrows, so the room goes to the tab names. Closing a tab is in the ⋯ menu there.
+*/
+@media (max-width: 900px) {
+  .brand-name,
+  .tabs-nudge,
+  .plan-tab-close {
+    display: none;
+  }
+
+  /* Tight enough that a name like "Factory 12" still shows whole beside the four mode buttons. */
+  .plan-tab {
+    padding-right: 4px;
+  }
+
+  .plan-tab-name {
+    padding-left: 10px;
+  }
+
+  .plan-tabs-frame {
+    flex: 1 1 auto;
+  }
+
+  .plan-add {
+    width: 30px;
+  }
+
+  .mode-switch button {
+    min-width: 38px;
+    padding: 0 6px;
+  }
+
+  .menu-button {
+    width: 40px;
+  }
+}
+
+/* The narrowest phones: the tabs need the logo's room more than the logo does. */
+@media (max-width: 380px) {
+  .brand {
+    display: none;
+  }
+
+  .mode-switch {
+    margin-left: 6px;
+  }
+}
+
+.topbar {
+  background: var(--bg);
+  border-bottom-color: #151515;
+}
+
+/* Words, not letter-spaced capitals. */
+.tabs button,
+.section-title,
+.readout-label,
+.mode-switch button,
+.modal-title,
+.settings-heading,
+.inspector-label,
+.inspector-machine,
+.plan-table th,
+.map-nav-title,
+.codex-home-link,
+.help-title,
+.power-more > summary,
+.size-total-label,
+.grid-head,
+.consumer-kind,
+.endpoint-kind,
+.gen-add,
+.codex-h,
+.codex-title,
+.codex-cat-card-name,
+.codex-recipe-name,
+.codex-table th,
+.codex-stat dt,
+.codex-crumbs,
+.codex-readout span,
+.crash-title,
+.settings-preview figcaption,
+.mobile-nav button,
+.plan-table td::before,
+.codex-hit-kind,
+.sent-title,
+.pin-badge {
+  text-transform: none;
+  letter-spacing: 0;
+}
+
+.tabs button {
+  font-size: 18px;
+}
+
+.section-title {
+  font-size: 18px;
+  color: var(--paper);
+}
+
+.readout-label {
+  font-size: 14px;
+  color: var(--dim);
+}
+
+.mode-switch button {
+  font-size: 16px;
+}
+
+.modal-title {
+  font-size: 24px;
+}
+
+.endpoint-kind {
+  color: var(--dim);
+}
+
+/* Buttons: the game's dark button, and its orange one for the main action. */
+.ghost-button,
+.chrome-button,
+.tier-button,
+.add-button,
+.floor-button,
+.fuel-chip {
+  border: 1px solid var(--button-edge);
+  border-radius: var(--radius);
+  background: linear-gradient(180deg, var(--button-top), var(--button-bottom));
+  box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.07);
+  color: var(--paper);
+}
+
+.ghost-button:hover:not(:disabled),
+.chrome-button:hover,
+.tier-button:hover,
+.add-button:hover,
+.floor-button:hover,
+.fuel-chip:hover {
+  border-color: var(--button-edge);
+  background: linear-gradient(180deg, #595959, #444);
+  color: var(--paper);
+}
+
+.primary-button {
+  border-radius: var(--radius);
+  background-image: linear-gradient(rgb(255 255 255 / 0.14), rgb(255 255 255 / 0));
+  box-shadow:
+    inset 0 1px 0 rgb(255 255 255 / 0.25),
+    0 1px 0 rgb(0 0 0 / 0.35);
+}
+
+.add-button {
+  color: var(--paper);
+}
+
+.add-button .glyph,
+.add-button > span:first-child {
+  color: var(--ficsit);
+}
+
+/* Switches: a sunken track with a raised thumb. */
+.segmented,
+.mode-switch {
+  border-radius: var(--radius-lg);
+  border-color: #151515;
+  background: #1a1a1a;
+  box-shadow: inset 0 1px 2px rgb(0 0 0 / 0.4);
+}
+
+.segmented button,
+.mode-thumb {
+  border-radius: var(--radius);
+}
+
+.segmented button[aria-checked='true'] {
+  box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.25);
+}
+
+.mode-thumb {
+  background: var(--thumb);
+  box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.25);
+}
+
+/* Fields: sunken, rounded. */
+.rate-input,
+.search,
+.quick-search,
+.field input,
+.modal input,
+.modal textarea,
+.modal select,
+.supply-from select {
+  border-radius: var(--radius);
+}
+
+.rate-field .rate-input {
+  border-radius: var(--radius) 0 0 var(--radius);
+}
+
+.rate-step {
+  border-radius: 0 var(--radius) var(--radius) 0;
+  overflow: hidden;
+}
+
+/* Cards: the game's rounded panels, no painted stripe down the side. */
+.item-card,
+.recipe-row,
+.resource-card,
+.gen-row,
+.tier-card,
+.quick-item,
+.codex-cat-card,
+.codex-tile,
+.codex-recipe,
+.exports-list li,
+.size-box,
+.draw-row,
+.setting-note,
+.inventory-row,
+.placements button,
+.readout.wide .raw-chip,
+.rate-chip {
+  border-radius: var(--radius-lg);
+}
+
+.item-card,
+.exports-list li,
+.setting-note {
+  border-left: 0;
+}
+
+.gen-row {
+  overflow: hidden;
+}
+
+.gen-row-head {
+  clip-path: none;
+}
+
+/* Windows: rounded, no cut corner, no stripe block in the title bar. */
+.modal,
+.tier-dialog,
+.inspector,
+.sheet {
+  border-radius: 8px;
+  clip-path: none;
+}
+
+.modal-head::before {
+  content: none;
+}
+
+.modal-head {
+  padding-left: 22px;
+}
+
+.tier-dialog {
+  border-top-width: 1px;
+  border-top-color: var(--line-2);
+}
+
+.toast {
+  border: 1px solid var(--line-2);
+  border-radius: var(--radius-lg);
+}
+
+.floor-hint {
+  border-radius: var(--radius);
+}
+
+.floor-bar .segmented,
+.floor-controls .segmented {
+  background: #1a1a1a;
+}

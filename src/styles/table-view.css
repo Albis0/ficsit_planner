@@ -1,0 +1,111 @@
+/* ---------- Table view ---------- */
+
+.table-wrap {
+  position: absolute;
+  inset: 0;
+  overflow: auto;
+  padding: 18px 18px 84px;
+}
+
+.plan-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 16px;
+}
+
+.plan-table th {
+  position: sticky;
+  top: -18px;
+  z-index: 1;
+  padding: 12px 14px;
+  text-align: left;
+  font: 700 15px var(--font-display);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--faint);
+  background: var(--panel);
+  border-bottom: 3px solid var(--ficsit);
+}
+
+.plan-table td {
+  padding: 11px 14px;
+  vertical-align: top;
+  /* One line is as tall as an icon row, so plain text sits level with the icons beside it. */
+  line-height: 30px;
+  border-bottom: 1px solid var(--line);
+}
+
+.plan-table tbody tr {
+  cursor: pointer;
+}
+
+.plan-table tbody tr:hover td {
+  background: var(--panel);
+}
+
+.plan-table tbody tr.selected td {
+  background: color-mix(in srgb, var(--ficsit) 10%, var(--panel));
+}
+
+.plan-table .n {
+  text-align: right;
+  white-space: nowrap;
+}
+
+.plan-table .strong {
+  font: 700 26px / 30px var(--font-display);
+  color: var(--ficsit);
+}
+
+.plan-table .dim {
+  color: var(--dim);
+}
+
+.plan-table b {
+  font-weight: 600;
+}
+
+.flow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 30px;
+}
+
+/* Following a line through the table: where its inputs are made (feeds), where its outputs go (takes). */
+.plan-table .flow {
+  margin: 0 -6px;
+  padding: 0 6px;
+  border-radius: 4px;
+  transition:
+    background-color 120ms,
+    box-shadow 120ms;
+}
+
+.plan-table .flow.link {
+  background: color-mix(in srgb, var(--ficsit) 16%, transparent);
+}
+
+.plan-table .flow.feeds {
+  background: color-mix(in srgb, var(--supply) 20%, transparent);
+  box-shadow: inset 3px 0 var(--supply);
+}
+
+.plan-table .flow.takes {
+  background: color-mix(in srgb, var(--fluid) 20%, transparent);
+  box-shadow: inset 3px 0 var(--fluid);
+}
+
+.plan-table tbody tr.feeds td:first-child {
+  box-shadow: inset 3px 0 var(--supply);
+}
+
+.plan-table tbody tr.takes td:first-child {
+  box-shadow: inset 3px 0 var(--fluid);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .plan-table .flow {
+    transition: none;
+  }
+}

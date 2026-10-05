@@ -1,0 +1,100 @@
+/* ---------- Conveyor belts and pipes ---------- */
+
+.belt-edge path,
+.pipe-edge path {
+  fill: none;
+  transition: opacity 120ms;
+}
+
+/* Two rails in the tier colour with a dark bed between them, slats moving along it. */
+.belt-rails {
+  stroke: var(--belt);
+  stroke-linecap: butt;
+}
+
+.belt-bed {
+  stroke: #17191c;
+}
+
+.belt-slats {
+  stroke: color-mix(in srgb, var(--belt) 55%, #17191c);
+  stroke-dasharray: 3 7;
+  animation: belt var(--belt-speed) linear infinite;
+}
+
+/* Chevrons pointing the way the belt moves. Each one rides the belt's path; the delay spreads them out. */
+.belt-chev {
+  fill: none;
+  stroke: color-mix(in srgb, var(--belt) 80%, #fff);
+  stroke-width: 2.4;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  offset-rotate: auto;
+  animation: belt-run linear infinite;
+}
+
+@keyframes belt-run {
+  from {
+    offset-distance: 0%;
+  }
+  to {
+    offset-distance: 100%;
+  }
+}
+
+.belt-edge.still .belt-chev {
+  animation-play-state: paused;
+}
+
+.pipe-casing {
+  stroke: #5b646d;
+  stroke-linecap: round;
+}
+
+.pipe-fluid {
+  stroke-linecap: round;
+  stroke-dasharray: 14 6;
+  animation: belt 1.6s linear infinite;
+  opacity: 0.95;
+}
+
+@keyframes belt {
+  to {
+    stroke-dashoffset: -20;
+  }
+}
+
+.belt-edge.still .belt-slats,
+.pipe-edge.still .pipe-fluid,
+.still .cable-core {
+  animation: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .app:not([data-motion='full']) :is(.belt-slats, .pipe-fluid) {
+    animation: none;
+  }
+
+  .app:not([data-motion='full']) .belt-chev {
+    animation-play-state: paused;
+  }
+}
+
+.belt-edge.faded,
+.pipe-edge.faded {
+  opacity: 0.12;
+}
+
+.belt-edge.lit .belt-rails {
+  filter: brightness(1.25);
+}
+
+.pipe-edge.lit .pipe-casing {
+  stroke: var(--paper);
+}
+
+.edge-tier {
+  padding: 1px 6px;
+  font: 700 14px var(--font-display);
+  color: #111;
+}

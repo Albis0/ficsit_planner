@@ -1,0 +1,49 @@
+/* ---------- Item picker ---------- */
+
+.picker {
+  border: 1px solid var(--ficsit);
+  background: var(--panel);
+}
+
+.picker-search {
+  border: 0;
+  border-bottom: 1px solid var(--line);
+}
+
+.picker-list {
+  list-style: none;
+  margin: 0;
+  padding: 4px 0;
+  max-height: 420px;
+  overflow-y: auto;
+}
+
+.picker-list li {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 6px 14px;
+  font-size: 17px;
+  cursor: pointer;
+}
+
+.picker-list li.active {
+  background: var(--raised);
+  box-shadow: inset 4px 0 var(--ficsit);
+}
+
+.picker-empty {
+  color: var(--faint);
+  cursor: default;
+}
+
+.picker-list li.picker-heading {
+  margin-top: 6px;
+  padding: 8px 14px 4px;
+  border-top: 1px solid var(--line);
+  font: 600 13px var(--font-display);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--faint);
+  cursor: default;
+}

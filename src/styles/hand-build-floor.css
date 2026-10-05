@@ -1,0 +1,943 @@
+/* ---------- Hand-built floor ---------- */
+
+/* Auto or Manual, ahead of the view switch. */
+.floor-kind button[aria-checked='true'] {
+  background: var(--ficsit);
+  color: var(--ficsit-ink);
+}
+
+/* An end of a machine: a square on its edge with the item it takes or gives; dashed while nothing is on it. */
+.react-flow__handle.port {
+  width: 26px;
+  height: 26px;
+  display: grid;
+  place-items: center;
+  background: var(--bg);
+  border: 2px solid var(--line-2);
+  border-radius: 3px;
+  cursor: crosshair;
+}
+
+.react-flow__handle.port.in {
+  left: -14px;
+}
+
+.react-flow__handle.port.out {
+  right: -14px;
+}
+
+/* On a floor running down: inputs along a card's top, outputs along its bottom. */
+.react-flow__handle.port.down.in {
+  top: -14px;
+}
+
+.react-flow__handle.port.down.out {
+  top: auto;
+  right: auto;
+  bottom: -14px;
+}
+
+.react-flow__handle.port.open {
+  border-style: dashed;
+  border-color: var(--ficsit);
+}
+
+.react-flow__handle.port.pipe {
+  border-radius: 50%;
+}
+
+.react-flow__handle.port img {
+  pointer-events: none;
+}
+
+/* While a belt is being drawn, the ends it can go to light up. */
+.react-flow__handle.port.connectingto,
+.react-flow__handle.port.valid {
+  border-color: var(--supply);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--supply) 45%, transparent);
+}
+
+.react-flow__handle.port.connectionindicator:hover {
+  border-color: var(--paper);
+}
+
+/* Fingers need a bigger target than the drawn square. */
+@media (pointer: coarse) {
+  .react-flow__handle.port::after {
+    content: '';
+    position: absolute;
+    inset: -10px;
+  }
+}
+
+.machine-node.manual,
+.endpoint-node.manual {
+  overflow: visible;
+}
+
+/* Hand-built cards keep their grid size: whole squares, so their sides and ends sit on the floor's lines. */
+.machine-node.manual,
+.endpoint-node.manual,
+.fitting-node {
+  --t: 1;
+  zoom: 1;
+  box-sizing: border-box;
+}
+
+.machine-node.manual {
+  clip-path: none;
+}
+
+.endpoint-node.manual.selected,
+.fitting-node.selected {
+  border-color: var(--ficsit);
+  box-shadow: inset 0 0 0 2px var(--ficsit);
+}
+
+/* Built in the game: a small tick in the corner. */
+.machine-node.done::before,
+.endpoint-node.done::before,
+.fitting-node.done::before {
+  content: '✓';
+  position: absolute;
+  top: -12px;
+  left: -12px;
+  z-index: 2;
+  width: 24px;
+  height: 24px;
+  display: grid;
+  place-items: center;
+  background: var(--supply);
+  color: var(--ficsit-ink);
+  font: 700 15px var(--font-body);
+  border-radius: 50%;
+}
+
+.endpoint-node.manual {
+  position: relative;
+  --edge-l: 5px;
+}
+
+/* An output or input comes off the floor with the × on its corner, opposite the built tick; there's nothing else to
+   set on it there. */
+.card-x {
+  position: absolute;
+  top: -12px;
+  right: -12px;
+  z-index: 3;
+  width: 24px;
+  height: 24px;
+  display: grid;
+  place-items: center;
+  padding: 0 0 2px;
+  border: 1px solid var(--line-2);
+  border-radius: 50%;
+  background: var(--raised);
+  color: var(--dim);
+  font: 500 18px / 1 var(--font-body);
+  cursor: pointer;
+  opacity: 0;
+  transition: opacity 0.12s;
+}
+
+.react-flow__node:hover .card-x,
+.react-flow__node.selected .card-x,
+.card-x:focus-visible {
+  opacity: 1;
+}
+
+.card-x:hover {
+  border-color: var(--alert);
+  color: var(--alert);
+}
+
+@media (hover: none) {
+  .card-x {
+    opacity: 1;
+  }
+}
+
+/* A right click on a card: Duplicate, Copy, Paste, Built, Remove, with their keys. */
+.card-menu {
+  position: absolute;
+  z-index: 9;
+  min-width: 200px;
+  padding: 4px;
+  display: flex;
+  flex-direction: column;
+  background: var(--panel);
+  border: 1px solid var(--line-2);
+  border-radius: var(--radius);
+  box-shadow: 0 12px 30px rgb(0 0 0 / 55%);
+}
+
+.card-menu button {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px;
+  padding: 7px 10px;
+  border: 0;
+  border-radius: 3px;
+  background: none;
+  color: var(--paper);
+  font: 500 15px var(--font-body);
+  text-align: left;
+  cursor: pointer;
+}
+
+.card-menu button:hover,
+.card-menu button:focus-visible {
+  background: var(--raised);
+  outline: none;
+  box-shadow: inset 3px 0 var(--ficsit);
+}
+
+.card-menu button.danger {
+  color: var(--alert);
+}
+
+.card-menu kbd {
+  color: var(--faint);
+  font: 500 12px var(--font-body);
+}
+
+/* Goes against the side panel (a recipe turned off, above the tier, past a resource limit): a tag over the card. */
+.card-flag {
+  position: absolute;
+  right: 0;
+  bottom: calc(100% + 4px);
+  z-index: 2;
+  padding: 2px 8px;
+  background: var(--power);
+  color: var(--ficsit-ink);
+  font: 700 13px / 1.3 var(--font-display);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  pointer-events: auto;
+}
+
+.slot-empty {
+  width: 60px;
+  height: 60px;
+  border: 1px dashed var(--line-2);
+}
+
+/* Splitters, mergers, sinks: the building's icon and what passes through. */
+.fitting-node {
+  position: relative;
+  width: 96px;
+  height: 96px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  background: var(--raised);
+  border: 1px solid var(--line-2);
+}
+
+.fitting-rate {
+  font: 700 15px var(--font-display);
+  white-space: nowrap;
+}
+
+.fitting-rate small {
+  margin-left: 2px;
+  font-size: 11px;
+  color: var(--dim);
+}
+
+.fitting-unknown {
+  font: 700 32px var(--font-display);
+  color: var(--alert);
+}
+
+.fitting-node.unknown {
+  border-color: var(--alert);
+}
+
+/* How a machine is running: green at full speed, amber below it, red when something stops it. */
+.run-state {
+  font: 700 14px var(--font-display);
+  white-space: nowrap;
+}
+
+.run-state.good {
+  color: var(--supply);
+}
+
+.run-state.warn {
+  color: var(--power);
+}
+
+.run-state.bad {
+  color: var(--alert);
+}
+
+.run-state.big {
+  margin: 0;
+  font-size: 17px;
+}
+
+/* A wide, invisible line along each belt, so it's easy to click. */
+.belt-hit {
+  fill: none;
+  stroke: transparent;
+  stroke-width: 22px;
+  pointer-events: stroke;
+  cursor: pointer;
+}
+
+.belt-edge.stopped,
+.pipe-edge.stopped {
+  opacity: 0.55;
+}
+
+.edge-label.manual.bad {
+  border-color: var(--alert);
+}
+
+.edge-tier.full {
+  outline: 2px solid var(--alert);
+  outline-offset: 1px;
+}
+
+.edge-warn {
+  font: 700 13px var(--font-display);
+  color: var(--alert);
+}
+
+.edge-mixed {
+  font-size: 12px;
+  color: var(--dim);
+  white-space: normal;
+  max-width: 260px;
+}
+
+/* Over the hand-built floor's top edge: how it's worked out, open outputs, undo, start again. */
+.model-toolbar {
+  position: absolute;
+  /* Below the totals' fold tab, which hangs over the middle of the floor's top edge. */
+  top: 34px;
+  left: 18px;
+  right: 440px;
+  z-index: 6;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px 14px;
+  pointer-events: none;
+  zoom: var(--ui-scale, 1);
+}
+
+.model-toolbar > * {
+  pointer-events: auto;
+}
+
+.model-toolbar .segmented {
+  background: #1a1a1a;
+}
+
+/* Square icon buttons joined in a row, in the floor buttons' metal: undo with redo, tidy up with rebuild. */
+.tool-group {
+  display: flex;
+  border: 1px solid var(--button-edge);
+  border-radius: var(--radius);
+  overflow: hidden;
+  box-shadow: 0 2px 6px rgb(0 0 0 / 0.3);
+}
+
+.tool-button {
+  display: grid;
+  place-items: center;
+  width: 42px;
+  height: 40px;
+  padding: 0;
+  border: 0;
+  background: linear-gradient(180deg, var(--button-top), var(--button-bottom));
+  box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.07);
+  color: var(--paper);
+  cursor: pointer;
+}
+
+.tool-button + .tool-button {
+  border-left: 1px solid var(--button-edge);
+}
+
+.tool-button:hover:not(:disabled) {
+  color: var(--ficsit);
+}
+
+.tool-button:disabled {
+  cursor: default;
+}
+
+/* Nothing to undo or redo: still drawn, dimmed, so the pair keeps its shape. */
+.tool-button:disabled .glyph {
+  opacity: 0.3;
+}
+
+.tool-button[aria-pressed='false'] {
+  color: var(--dim);
+}
+
+/* What an output with no belt does: the words say it, no hint to read. */
+/* A caption beside the switch, not a part of it. */
+.open-outputs {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.tool-label {
+  font: 600 12px var(--font-display);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--faint);
+  white-space: nowrap;
+  text-shadow: 0 1px 2px rgb(0 0 0 / 80%);
+}
+
+.model-toolbar .run-state {
+  padding: 4px 10px;
+  background: rgb(21 21 22);
+  white-space: normal;
+}
+
+.inspector-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.inspector-stats small {
+  color: var(--dim);
+}
+
+.mk-pick button:disabled {
+  opacity: 0.4;
+}
+
+@media (max-width: 900px) {
+  .model-toolbar {
+    top: 42px;
+    left: 8px;
+    right: 8px;
+    gap: 6px;
+  }
+
+  .open-outputs {
+    display: none;
+  }
+}
+
+/* The same output another way: the machines at 100% with one slower, or all at one clock. */
+.speed-buttons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+/* On a picked card, in its strip: small, so the card keeps its size. */
+.speed-buttons.small {
+  flex-wrap: nowrap;
+  gap: 4px;
+  margin: 0 0 0 auto;
+}
+
+.speed-buttons.small .floor-button {
+  min-height: 0;
+  padding: 1px 7px;
+  font: 600 13px / 1.4 var(--font-body);
+  white-space: nowrap;
+}
+
+/* A machine sizing itself to what comes in: a small tag after its count. */
+.run-with-auto {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+.auto-tag {
+  flex: none;
+  padding: 0 6px;
+  border: 1px solid var(--line-2);
+  color: var(--dim);
+  font: 600 12px / 1.5 var(--font-body);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+/* What comes out of an open output, beside it: left over, made all the same. */
+.react-flow__handle.port .port-spare {
+  position: absolute;
+  top: 50%;
+  left: calc(100% + 6px);
+  translate: 0 -50%;
+  padding: 1px 6px;
+  background: var(--raised);
+  border: 1px dashed var(--line-2);
+  color: var(--paper);
+  font: 700 14px var(--font-display);
+  white-space: nowrap;
+  pointer-events: none;
+}
+
+.react-flow__handle.port.down .port-spare {
+  top: calc(100% + 6px);
+  left: 50%;
+  translate: -50% 0;
+}
+
+.port-spare small {
+  margin-left: 2px;
+  color: var(--dim);
+  font-size: 11px;
+}
+
+/* Count stepper and the Auto box side by side. */
+.count-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px 16px;
+}
+
+.check.auto-count {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font: 600 16px var(--font-body);
+  cursor: pointer;
+}
+
+/* Built in the game: a box to tick, green once ticked, as the card's corner tick. */
+.built-check {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 14px 8px 10px;
+  background: var(--bg);
+  border: 1px solid var(--line-2);
+  font: 600 16px var(--font-body);
+  cursor: pointer;
+}
+
+.built-check:hover {
+  border-color: var(--paper);
+}
+
+.built-check.on {
+  border-color: var(--supply);
+  color: var(--supply);
+}
+
+.app .built-check input[type='checkbox']:checked {
+  background: var(--supply);
+  border-color: var(--supply);
+}
+
+.inspector-actions {
+  align-items: center;
+}
+
+/* An end that's free and doesn't need a belt: a splitter's spare output. */
+.react-flow__handle.port.free {
+  border-color: var(--line);
+}
+
+/* The end tapped first while laying a belt by taps. */
+.react-flow__handle.port.clickconnecting {
+  border-color: var(--ficsit);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--ficsit) 50%, transparent);
+}
+
+.quick-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px 24px;
+}
+
+/* Bottom right of the hand-built floor: the cards still missing a belt, and adding one. */
+.floor-button.open-ends {
+  color: var(--power);
+  border-color: color-mix(in srgb, var(--power) 60%, transparent);
+}
+
+.floor-button.add-part {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--paper);
+}
+
+.floor-button.add-part .add-plus {
+  font-size: 22px;
+}
+
+/* Nothing on the floor yet. */
+.floor-empty {
+  position: absolute;
+  inset: 0;
+  z-index: 4;
+  display: grid;
+  place-items: center;
+  pointer-events: none;
+}
+
+.floor-empty > * {
+  pointer-events: auto;
+}
+
+/* Low over the floor, above the buttons along the bottom: half way through laying a belt by taps, say. */
+.floor-strip {
+  position: absolute;
+  bottom: 78px;
+  left: 50%;
+  z-index: 7;
+  transform: translateX(-50%);
+  width: max-content;
+  max-width: min(640px, calc(100% - 24px));
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 6px 6px 6px 10px;
+  background: var(--panel);
+  border: 1px solid var(--line-2);
+  border-left: 4px solid var(--ficsit);
+  border-radius: var(--radius);
+  box-shadow: 0 10px 28px rgb(0 0 0 / 50%);
+  font: 600 15px / 1.25 var(--font-body);
+}
+
+.floor-strip .slot {
+  flex: none;
+}
+
+.floor-strip-text {
+  min-width: 0;
+}
+
+.floor-strip-actions {
+  display: flex;
+  flex: none;
+  gap: 4px;
+}
+
+.floor-strip-actions .text-button {
+  padding: 8px 12px;
+}
+
+/* The build menu of a hand-built floor. */
+.chooser {
+  position: absolute;
+  z-index: 9;
+  width: min(440px, calc(100% - 24px));
+  max-height: min(520px, calc(100% - 24px));
+  display: flex;
+  flex-direction: column;
+  background: var(--panel);
+  border: 1px solid var(--ficsit);
+  box-shadow: 0 14px 36px rgb(0 0 0 / 55%);
+}
+
+.chooser:not(.at) {
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+}
+
+.chooser-head {
+  flex: none;
+  display: flex;
+  align-items: center;
+  border-bottom: 1px solid var(--line);
+}
+
+.chooser-head .picker-search {
+  flex: 1;
+  min-width: 0;
+  border: 0;
+}
+
+.chooser-head .icon-button {
+  margin-right: 6px;
+}
+
+.chooser-tabs {
+  flex: none;
+  display: flex;
+  overflow-x: auto;
+  border-bottom: 1px solid var(--line);
+  scrollbar-width: none;
+  /* Tabs running past the right edge fade out there, only while there are more to scroll to. */
+  --fade: 0px;
+  mask-image: linear-gradient(to right, #000 calc(100% - var(--fade) * 2), transparent);
+}
+
+@supports (animation-timeline: scroll()) {
+  .chooser-tabs {
+    animation: more-below linear both;
+    animation-timeline: scroll(self inline);
+    animation-range: calc(100% - 30px) 100%;
+  }
+}
+
+.chooser-tabs button {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 9px 14px;
+  border: 0;
+  background: none;
+  font: 600 15px var(--font-display);
+  color: var(--dim);
+}
+
+.chooser-tabs button[aria-selected='true'] {
+  color: var(--ficsit);
+  box-shadow: inset 0 -3px var(--ficsit);
+}
+
+.chooser-tabs button:disabled {
+  opacity: 0.4;
+}
+
+.chooser-list {
+  flex: 1;
+  min-height: 0;
+  margin: 0;
+  padding: 4px 0;
+  list-style: none;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+.chooser-list li {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 6px 14px;
+  cursor: pointer;
+}
+
+.chooser-list li.active {
+  background: var(--raised);
+  box-shadow: inset 4px 0 var(--ficsit);
+}
+
+.chooser-list li.locked {
+  opacity: 0.55;
+}
+
+.chooser-list li.picker-empty {
+  cursor: default;
+}
+
+.chooser-blank {
+  flex: none;
+  width: 40px;
+  height: 40px;
+}
+
+.chooser-text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.chooser-title {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 8px;
+  font: 600 16px var(--font-body);
+}
+
+.chooser-sub {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 2px 10px;
+  font-size: 13px;
+  color: var(--dim);
+}
+
+.chooser-io {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+}
+
+/* On a phone it comes up from the bottom, the width of the screen. */
+@media (max-width: 600px) {
+  .chooser,
+  .chooser.at,
+  .chooser:not(.at) {
+    left: 0;
+    right: 0;
+    top: auto;
+    bottom: 0;
+    width: auto;
+    max-height: 72%;
+    transform: none;
+    border-width: 1px 0 0;
+  }
+
+  .chooser-list li {
+    padding: 8px 14px;
+  }
+
+  .chooser-tabs button {
+    padding: 9px 8px;
+  }
+
+  .chooser-tabs .tab-badge {
+    margin-left: 4px;
+  }
+
+  .floor-strip {
+    bottom: 140px;
+    font-size: 14px;
+  }
+}
+
+/* Cards picked with a box stay clickable one by one; dragging any of them moves them all. */
+.floor-view .react-flow__nodesselection-rect {
+  pointer-events: none;
+  border: 0;
+  background: none;
+}
+
+/* A card's panel open on a wide screen: the buttons along the bottom right step left of it instead of going under
+   it, and up a row where they'd run into Auto | Manual and the views on the left. */
+@media (min-width: 901px) {
+  .floor-view:has(> .inspector.manual) .floor-controls {
+    right: 436px;
+  }
+}
+
+@media (min-width: 901px) {
+  @container floor (max-width: 1400px) {
+    .floor-view:has(> .inspector.manual) .floor-controls {
+      bottom: 76px;
+    }
+  }
+}
+
+/* Manual floor side panel: an output or input card's name goes to its card on the floor. */
+.floor-io-name {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+  padding: 0;
+  background: none;
+  border: 0;
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.floor-io-name:hover {
+  color: var(--ficsit);
+}
+
+.floor-io-now {
+  color: var(--power);
+  font: 600 14px var(--font-body);
+}
+
+/* A hand-built card is one grid square tall: its amount, miners and state stay on one line. */
+.endpoint-node.manual .endpoint-line {
+  flex-wrap: nowrap;
+  overflow: hidden;
+}
+
+.endpoint-node.manual .endpoint-line .run-state {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* The app's own hover tips: a dark box with an arrow, under what it's for or over it near the bottom. */
+.tip {
+  position: fixed;
+  z-index: 1000;
+  translate: -50% 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  max-width: min(320px, calc(100vw - 16px));
+  padding: 6px 10px;
+  background: #151515;
+  border: 1px solid var(--line-2);
+  border-radius: var(--radius);
+  box-shadow: 0 8px 22px rgb(0 0 0 / 55%);
+  color: var(--paper);
+  font: 500 13px / 1.35 var(--font-body);
+  pointer-events: none;
+  animation: tip-in 0.12s ease-out;
+}
+
+.tip.below {
+  margin-top: 8px;
+}
+
+.tip.above {
+  margin-top: -8px;
+  translate: -50% -100%;
+}
+
+/* The arrow: a small square turned, half under the box's edge. */
+.tip::before {
+  content: '';
+  position: absolute;
+  left: calc(50% + var(--arrow, 0px) - 5px);
+  width: 9px;
+  height: 9px;
+  background: #151515;
+  border: 1px solid var(--line-2);
+  rotate: 45deg;
+}
+
+.tip.below::before {
+  top: -6px;
+  border-width: 1px 0 0 1px;
+}
+
+.tip.above::before {
+  bottom: -6px;
+  border-width: 0 1px 1px 0;
+}
+
+.tip kbd {
+  padding: 1px 6px;
+  background: var(--raised);
+  border: 1px solid var(--line-2);
+  border-radius: 3px;
+  color: var(--dim);
+  font: 600 12px var(--font-body);
+  white-space: nowrap;
+}
+
+@keyframes tip-in {
+  from {
+    opacity: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .tip {
+    animation: none;
+  }
+}

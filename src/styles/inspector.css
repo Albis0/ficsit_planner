@@ -1,0 +1,328 @@
+/* ---------- Inspector ---------- */
+
+.inspector {
+  position: absolute;
+  top: 18px;
+  right: 18px;
+  z-index: 8;
+  width: 400px;
+  max-height: calc(100% - 36px);
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  padding: 16px 18px 18px;
+  background: var(--panel);
+  border: 1px solid var(--line-2);
+  border-top: 4px solid var(--ficsit);
+  box-shadow: 0 14px 40px rgb(0 0 0 / 0.5);
+}
+
+.inspector-head {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.inspector-title {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.inspector-machine {
+  font: 700 15px var(--font-display);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--ficsit);
+}
+
+.inspector-recipe {
+  font: 700 24px / 1.1 var(--font-display);
+}
+
+.inspector-row {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.inspector-label {
+  font: 700 15px var(--font-display);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--faint);
+}
+
+.stepper {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+}
+
+.stepper button {
+  width: 38px;
+  height: 38px;
+  border: 1px solid var(--line-2);
+  background: var(--bg);
+  color: var(--paper);
+  font: 700 22px / 1 var(--font-display);
+}
+
+.stepper button:hover:not(:disabled) {
+  border-color: var(--ficsit);
+  color: var(--ficsit);
+}
+
+.stepper b {
+  min-width: 1.6em;
+  text-align: center;
+  font: 700 28px / 1 var(--font-display);
+}
+
+.stepper .slot-label {
+  flex-basis: 100%;
+  margin: 0;
+  color: var(--faint);
+}
+
+.clock-control {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.clock-control input[type='range'] {
+  flex: 1;
+  appearance: none;
+  height: 8px;
+  background: linear-gradient(90deg, var(--ficsit) var(--fill), var(--raised) var(--fill));
+  cursor: pointer;
+}
+
+.clock-control input[type='range']::-webkit-slider-thumb {
+  appearance: none;
+  width: 14px;
+  height: 26px;
+  background: var(--paper);
+  border: 2px solid var(--ficsit);
+}
+
+.shard-slots,
+.sloop-slots {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.shard-slot {
+  width: 22px;
+  height: 22px;
+  border: 1px solid var(--line-2);
+  transform: rotate(45deg) scale(0.8);
+}
+
+.shard-slot.filled {
+  background: var(--shard);
+  border-color: var(--shard);
+}
+
+.sloop-slots button {
+  width: 40px;
+  height: 40px;
+  border: 1px solid var(--line-2);
+  border-radius: 50%;
+  background: var(--bg);
+  color: var(--dim);
+  font: 700 18px var(--font-display);
+}
+
+.sloop-slots button.filled {
+  background: color-mix(in srgb, var(--sloop) 35%, var(--panel));
+  border-color: var(--sloop);
+  color: var(--paper);
+}
+
+.sloop-slots button[aria-checked='true'] {
+  outline: 2px solid var(--sloop);
+  outline-offset: 2px;
+}
+
+.slot-label {
+  margin-left: 6px;
+  font-size: 14px;
+  color: var(--dim);
+}
+
+.inspector-stats {
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  background: var(--line);
+}
+
+.inspector-stats > div {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 9px 12px;
+  background: var(--panel-2);
+}
+
+.inspector-stats dt {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--dim);
+}
+
+.inspector-stats dd {
+  margin: 0;
+  font: 700 20px var(--font-display);
+}
+
+.inspector-stats dd.power {
+  color: var(--power);
+}
+
+/* "Build as 6 + 4 groups", with why under it. */
+.inspector-stats > .inspector-groups {
+  flex-wrap: wrap;
+  row-gap: 4px;
+}
+
+.inspector-stats dd.groups-why {
+  flex-basis: 100%;
+  font: 400 13px / 1.4 var(--font-body);
+  color: var(--dim);
+}
+
+.mod-badge.groups,
+.table-groups {
+  color: var(--fluid);
+  white-space: nowrap;
+}
+
+.table-groups {
+  display: block;
+  margin-top: 2px;
+  font: 600 12px var(--font-body);
+}
+
+/* "By destination": one group of machines per place the output goes, each at its own clock. */
+.mod-badge.split {
+  align-self: flex-start;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  color: var(--supply);
+  white-space: nowrap;
+  line-height: calc(32px * (0.3 + 0.7 * var(--t)));
+}
+
+.inspector-stats > .inspector-split {
+  flex-wrap: wrap;
+  row-gap: 6px;
+}
+
+.inspector-stats dd.split-line {
+  flex-basis: 100%;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 4px 10px;
+  font: 700 17px var(--font-display);
+}
+
+.split-line .split-to {
+  flex: 1;
+  min-width: 0;
+  color: var(--supply);
+}
+
+.split-line .split-rate {
+  color: var(--dim);
+}
+
+.split-line .split-groups {
+  flex-basis: 100%;
+  font: 600 12px var(--font-body);
+  color: var(--fluid);
+}
+
+/* Under a line in the list: its groups by destination, indented and quieter. */
+.plan-table tbody tr.split-row td {
+  padding-top: 4px;
+  padding-bottom: 4px;
+  font-size: 15px;
+  color: var(--dim);
+}
+
+.plan-table tbody tr.split-row td.recipe-cell {
+  padding-left: 34px;
+  color: var(--supply);
+}
+
+.inspector .text-button {
+  align-self: flex-start;
+}
+
+/* Recipes for the part on the machine: tick one to let the plan use it. */
+.recipe-choices ul {
+  margin: 8px 0 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  background: var(--line);
+}
+
+.recipe-choice {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 9px 12px;
+  background: var(--panel-2);
+  cursor: pointer;
+}
+
+.recipe-choice input {
+  flex: none;
+  width: 18px;
+  height: 18px;
+  margin: 2px 0 0;
+  accent-color: var(--ficsit);
+}
+
+.recipe-choice-text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.recipe-choice-name {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 4px 8px;
+  color: var(--dim);
+}
+
+.recipe-choice.on .recipe-choice-name {
+  color: var(--paper);
+}
+
+.recipe-choice small {
+  font-size: 13px;
+  color: var(--faint);
+}
+
+.recipe-choice-used {
+  font: 600 12px var(--font-body);
+  color: var(--supply);
+}

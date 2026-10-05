@@ -1,0 +1,206 @@
+/* ---------- Panel beside the floor ---------- */
+
+@media (min-width: 901px) {
+  /* Likewise a saved width never squeezes the floor under 420px. */
+  .app:is([data-panel='left'], [data-panel='right']) {
+    --side: min(var(--side-w, 460px), max(300px, 100vw - 420px));
+  }
+
+  .app[data-panel='left'] {
+    grid-template-columns: var(--side) minmax(0, 1fr);
+    grid-template-rows: var(--top-h) minmax(0, 1fr);
+  }
+
+  .app[data-panel='right'] {
+    grid-template-columns: minmax(0, 1fr) var(--side);
+    grid-template-rows: var(--top-h) minmax(0, 1fr);
+  }
+
+  .app[data-panel='left'] .side {
+    grid-column: 1;
+    grid-row: 2;
+    border-bottom: 0;
+    border-right: 1px solid var(--line-2);
+  }
+
+  .app[data-panel='right'] .side {
+    grid-column: 2;
+    grid-row: 2;
+    border-bottom: 0;
+    border-left: 1px solid var(--line-2);
+  }
+
+  .app[data-panel='left'] .floor {
+    grid-column: 2;
+    grid-row: 2;
+  }
+
+  .app[data-panel='right'] .floor {
+    grid-column: 1;
+    grid-row: 2;
+  }
+
+  .app:is([data-panel='left'], [data-panel='right'])[data-empty] {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .app:is([data-panel='left'], [data-panel='right'])[data-empty] .floor {
+    grid-column: 1;
+  }
+
+  /* Folded: the panel shrinks to a strip of tabs standing on end. */
+  .app[data-panel='left'][data-deck='closed']:not([data-empty]) {
+    grid-template-columns: auto minmax(0, 1fr);
+  }
+
+  .app[data-panel='right'][data-deck='closed']:not([data-empty]) {
+    grid-template-columns: minmax(0, 1fr) auto;
+  }
+
+  .app:is([data-panel='left'], [data-panel='right'])[data-deck='closed'] .tabs {
+    flex-direction: column;
+    height: 100%;
+    border-bottom: 0;
+  }
+
+  .app:is([data-panel='left'], [data-panel='right'])[data-deck='closed'] .tabs button {
+    writing-mode: vertical-rl;
+    padding: 22px 13px;
+  }
+
+  .app[data-panel='left'][data-deck='closed'] .tabs button {
+    transform: rotate(180deg);
+  }
+
+  /* Folded, the unfold button leads the strip, where the fold button was. */
+  .app:is([data-panel='left'], [data-panel='right'])[data-deck='closed'] .tabs .deck-toggle {
+    order: -1;
+    margin: 0 0 8px;
+    padding: 18px 13px;
+    transform: none;
+  }
+
+  .app:is([data-panel='left'], [data-panel='right']) .deck-toggle-label {
+    display: none;
+  }
+
+  .app:is([data-panel='left'], [data-panel='right']) .tabs button {
+    padding-inline: 18px;
+  }
+
+  .app:is([data-panel='left'], [data-panel='right']) .tabs .deck-toggle {
+    padding: 0 16px;
+  }
+
+  .app:is([data-panel='left'], [data-panel='right']):not([data-deck='closed']) .tabs {
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+
+  .app:is([data-panel='left'], [data-panel='right']):not([data-deck='closed']) .tabs button {
+    flex: none;
+    padding-inline: 14px;
+  }
+
+  .app:is([data-panel='left'], [data-panel='right']):not([data-deck='closed']) .tabs .deck-toggle {
+    position: sticky;
+    right: 0;
+    padding: 0 14px;
+    background: var(--panel);
+    box-shadow: -10px 0 12px -6px rgb(0 0 0 / 0.6);
+  }
+
+  .app[data-panel='left'] .deck-arrow {
+    margin: 0 0 0 3px;
+    transform: rotate(-135deg);
+  }
+
+  .app[data-panel='left'][data-deck='closed'] .deck-arrow {
+    margin: 0 3px 0 0;
+    transform: rotate(45deg);
+  }
+
+  .app[data-panel='right'] .deck-arrow {
+    margin: 0 3px 0 0;
+    transform: rotate(45deg);
+  }
+
+  .app[data-panel='right'][data-deck='closed'] .deck-arrow {
+    margin: 0 0 0 3px;
+    transform: rotate(-135deg);
+  }
+
+  /* One column inside a narrow panel, like on a phone. */
+  .app:is([data-panel='left'], [data-panel='right']) :is(.panel-body.targets, .panel-body.power) {
+    display: flex;
+    align-items: stretch;
+  }
+
+  .app:is([data-panel='left'], [data-panel='right']) :is(.panel-body.recipes, .panel-body.resources) {
+    flex-direction: column;
+    overflow-y: auto;
+  }
+
+  .app:is([data-panel='left'], [data-panel='right']) :is(.recipe-tools, .panel-body.resources > .extraction) {
+    width: auto;
+    border-right: 0;
+    overflow: visible;
+  }
+
+  .app:is([data-panel='left'], [data-panel='right']) .recipe-tools {
+    border-bottom: 1px solid var(--line);
+  }
+
+  .app:is([data-panel='left'], [data-panel='right']) :is(.recipe-list, .panel-body.resources > .stack) {
+    overflow: visible;
+  }
+
+  .app:is([data-panel='left'], [data-panel='right']) .recipe-flow {
+    column-width: auto;
+  }
+
+  .app:is([data-panel='left'], [data-panel='right']) .recipe-list {
+    padding-bottom: 24px;
+  }
+
+  .app:is([data-panel='left'], [data-panel='right']) .resource-cards {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .splitter.across {
+    top: 0;
+    bottom: 0;
+    left: auto;
+    right: -11px;
+    width: 10px;
+    height: auto;
+    cursor: col-resize;
+  }
+
+  .app[data-panel='right'] .splitter.across {
+    left: -11px;
+    right: auto;
+  }
+
+  .splitter.across::after {
+    top: 0;
+    bottom: 0;
+    left: 0;
+    right: auto;
+    width: 3px;
+    height: auto;
+  }
+
+  .app[data-panel='right'] .splitter.across::after {
+    left: auto;
+    right: 0;
+  }
+
+  .app[data-deck='closed'] .splitter {
+    display: none;
+  }
+}
+
+.resizing-x {
+  cursor: col-resize;
+}

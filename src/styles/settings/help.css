@@ -1,0 +1,416 @@
+/* ---------- Settings: help ---------- */
+
+.help {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.help-group {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.help-title {
+  margin: 0;
+  font: 700 17px var(--font-display);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--ficsit);
+}
+
+.help-list {
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.help-term {
+  display: grid;
+  grid-template-columns: 200px 1fr;
+  gap: 16px;
+  padding: 9px 0;
+  border-bottom: 1px solid var(--line);
+}
+
+.help-term dt {
+  font: 700 17px / 1.3 var(--font-display);
+}
+
+.help-term dd {
+  margin: 0;
+  color: var(--dim);
+  font-size: 15px;
+}
+
+/* Settings › Updates: the latest version in full, under New, Improved and Fixed; earlier ones a line each. */
+.updates {
+  display: flex;
+  flex-direction: column;
+  gap: 26px;
+}
+
+.update.latest {
+  padding: 18px 22px 20px;
+  background: color-mix(in srgb, var(--panel-2) 70%, transparent);
+  border: 1px solid var(--line);
+  border-left: 3px solid var(--ficsit);
+  border-radius: var(--radius);
+}
+
+.update-head {
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+}
+
+.update-version {
+  font: 700 28px / 1 var(--font-display);
+  letter-spacing: 0.02em;
+}
+
+.update-head time {
+  color: var(--faint);
+  font: 500 14px var(--font-body);
+}
+
+.update-group {
+  --k: var(--faint);
+  margin-top: 16px;
+}
+
+.update-group.added {
+  --k: var(--alt);
+}
+
+.update-group.fixed {
+  --k: var(--ficsit);
+}
+
+.update-kind {
+  margin: 0 0 8px;
+  color: var(--k);
+  font: 700 12px var(--font-display);
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.update-notes {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  color: var(--dim);
+  font-size: 15px;
+  line-height: 1.45;
+}
+
+.update-notes li {
+  position: relative;
+  padding-left: 18px;
+}
+
+/* A small square in the kind's colour, like the game's list markers. */
+.update-notes li::before {
+  content: '';
+  position: absolute;
+  left: 2px;
+  top: 0.58em;
+  width: 6px;
+  height: 6px;
+  background: var(--k);
+}
+
+.update-name {
+  margin: 8px 0 0;
+  font: 700 19px var(--font-display);
+  color: var(--paper);
+}
+
+.update-credit {
+  margin-left: 8px;
+  color: var(--faint);
+  font-size: 13px;
+  white-space: nowrap;
+}
+
+.update-earlier-title {
+  margin: 0 0 4px;
+  color: var(--faint);
+  font: 700 13px var(--font-display);
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.update-earlier details {
+  border-top: 1px solid var(--line);
+}
+
+.update-earlier details:last-child {
+  border-bottom: 1px solid var(--line);
+}
+
+.update-earlier summary {
+  padding: 12px 4px;
+  cursor: pointer;
+  list-style: none;
+}
+
+.update-earlier summary::-webkit-details-marker {
+  display: none;
+}
+
+.update-earlier summary .update-version {
+  font-size: 19px;
+}
+
+.update-count {
+  margin-left: auto;
+  color: var(--faint);
+  font-size: 13px;
+}
+
+/* A chevron that turns when the version opens. */
+.update-earlier summary::after {
+  content: '';
+  width: 8px;
+  height: 8px;
+  margin: 0 4px 2px 6px;
+  border: solid var(--faint);
+  border-width: 0 2px 2px 0;
+  rotate: 45deg;
+  align-self: center;
+  transition: rotate 0.15s;
+}
+
+.update-earlier details[open] summary::after {
+  rotate: 225deg;
+}
+
+.update-earlier summary:hover .update-version,
+.update-earlier summary:focus-visible .update-version {
+  color: var(--ficsit);
+}
+
+.update-earlier details > .update-group {
+  margin-top: 12px;
+  padding: 0 4px;
+}
+
+.update-earlier summary + .update-group {
+  margin-top: 2px;
+}
+
+.update-earlier details > .update-group:last-child {
+  margin-bottom: 16px;
+}
+
+.update-made {
+  margin: 0;
+  padding-top: 14px;
+  border-top: 1px solid var(--line);
+  color: var(--faint);
+  font-size: 14px;
+}
+
+/* Something new under Settings › Updates. */
+.new-dot {
+  flex: none;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--ficsit);
+}
+
+.settings-nav .new-dot {
+  margin-left: auto;
+}
+
+.menu-button {
+  position: relative;
+}
+
+.menu-button .new-dot {
+  position: absolute;
+  top: 12px;
+  right: 8px;
+}
+
+@media (max-width: 900px) {
+  .codex-page {
+    padding: 18px 14px 40px;
+    gap: 22px;
+  }
+
+  .codex-title {
+    font-size: 30px;
+  }
+
+  .codex-head {
+    grid-template-columns: 1fr;
+    padding: 16px;
+  }
+
+  .codex-actions {
+    grid-column: auto;
+    flex-flow: row wrap;
+  }
+
+  .codex-head-icon {
+    width: 96px;
+    height: 96px;
+  }
+
+  .codex-recipes,
+  .codex-uses {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .codex-tiles {
+    grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  }
+
+  .codex-filter {
+    width: 100%;
+  }
+
+  .codex-bar {
+    grid-template-columns: 30px 1fr 90px;
+  }
+
+  .codex-bar-track {
+    display: none;
+  }
+
+  /* The table keeps the page's width and wraps its names, rather than scrolling on its own. */
+  .codex-table :is(th, td) {
+    padding: 7px 8px;
+  }
+
+  /* A recipe reads top to bottom: what goes in, then what comes out. */
+  .codex-recipe-flow {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 6px;
+  }
+
+  .codex-recipe-flow .codex-arrow {
+    transform: rotate(90deg);
+    margin-left: 14px;
+    line-height: 1;
+  }
+
+  .help-term {
+    grid-template-columns: 1fr;
+    gap: 2px;
+  }
+}
+
+/* Typeface choices in Settings: each shown in its own face. */
+.font-choices {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(168px, 1fr));
+  gap: 8px;
+}
+
+.font-choice {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 4px;
+  padding: 10px 12px;
+  background: var(--raised);
+  border: 1px solid var(--line);
+  color: var(--dim);
+  text-align: left;
+}
+
+.font-choice:hover {
+  border-color: var(--line-2);
+}
+
+.font-choice[aria-checked='true'] {
+  border-color: var(--ficsit);
+  box-shadow: inset 0 0 0 1px var(--ficsit);
+  color: var(--paper);
+}
+
+.font-sample {
+  white-space: nowrap;
+  font: 700 18px / 1.1 var(--font-display);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.font-name {
+  font: 500 14px var(--font-body);
+}
+
+/* An on-hand item's source: on hand, or one of the other factory tabs. */
+.supply-from {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 4px;
+  font: 500 14px var(--font-body);
+  color: var(--faint);
+}
+
+.supply-from select {
+  max-width: 100%;
+  min-width: 0;
+  padding: 3px 6px;
+  background: var(--bg);
+  border: 1px solid var(--line-2);
+  color: var(--paper);
+  font: 600 14px var(--font-body);
+}
+
+.supply-from select:focus-visible {
+  outline-offset: 0;
+}
+
+/* What other tabs take from this one. */
+.exports-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.exports-list li {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 10px 6px 6px;
+  background: var(--raised);
+  border-left: 4px solid var(--supply);
+}
+
+.exports-text {
+  flex: 1;
+  min-width: 0;
+}
+
+.exports-text b {
+  font: 700 18px var(--font-display);
+}
+
+.exports-title {
+  margin-top: 14px;
+}
+
+/* In the phone menu there's room to say what Share does. */
+.sheet .share-button {
+  justify-content: center;
+  min-height: 48px;
+}
+
+.sheet .share-button .chrome-label {
+  display: inline;
+}

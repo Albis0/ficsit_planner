@@ -1,0 +1,292 @@
+/* ---------- Summary readouts ---------- */
+
+.summary {
+  position: relative;
+  display: flex;
+  flex-wrap: wrap;
+  background: var(--panel);
+  border-bottom: 1px solid var(--line);
+  /* A big plan's raw inputs and a warning under them never take more than about half the floor. */
+  max-height: 45%;
+  overflow-y: auto;
+  flex: none;
+}
+
+.readout {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 3px;
+  padding: 9px 22px;
+  background: var(--panel);
+  min-width: 130px;
+  border: 0;
+  border-right: 1px solid var(--line);
+  text-align: left;
+}
+
+.readout.link:hover {
+  background: var(--panel-2);
+}
+
+.readout.link:hover .readout-label {
+  color: var(--ficsit);
+}
+
+.readout.wide {
+  flex: 1;
+  min-width: 200px;
+  border-right: 0;
+}
+
+.readout-label {
+  font: 700 15px var(--font-display);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--faint);
+}
+
+.readout-value {
+  font: 700 34px / 1 var(--font-display);
+}
+
+.readout-value small {
+  font-size: 20px;
+  color: var(--dim);
+}
+
+.readout.power .readout-value {
+  color: var(--power);
+}
+
+.readout-sub {
+  font-size: 13px;
+  color: var(--faint);
+}
+
+.readout-value.shard {
+  color: var(--shard);
+}
+
+.readout-value.sloop {
+  color: var(--sloop);
+}
+
+/* Compact totals (the default): smaller figures, less padding, so the strip takes about half the height. */
+.app[data-summary='compact'] .readout {
+  gap: 1px;
+  padding: 6px 16px;
+  min-width: 0;
+}
+
+.app[data-summary='compact'] .readout-label {
+  font-size: 12px;
+}
+
+.app[data-summary='compact'] .readout-value {
+  font-size: 24px;
+}
+
+.app[data-summary='compact'] .readout.balance .readout-value {
+  font-size: 28px;
+}
+
+.app[data-summary='compact'] .readout-value small {
+  font-size: 15px;
+}
+
+.app[data-summary='compact'] .readout-sub {
+  font-size: 12px;
+}
+
+/* Room for one raw input at least: with less, the readout moves to a line of its own instead of spilling out. */
+.app[data-summary='compact'] .readout.wide {
+  min-width: 190px;
+}
+
+.readout.wide[data-many] {
+  order: 1;
+  flex-basis: 100%;
+}
+
+.app[data-summary='compact'] .raw-inputs {
+  gap: 4px 6px;
+}
+
+.app[data-summary='compact'] .raw-chip {
+  gap: 4px;
+  padding: 2px 3px 2px 4px;
+}
+
+.app[data-summary='compact'] .raw-chip .icon {
+  width: 24px;
+  height: 24px;
+}
+
+.app[data-summary='compact'] .raw-chip .rate-input {
+  width: 72px;
+  padding: 2px 6px;
+  font-size: 16px;
+}
+
+.app[data-summary='compact'] .readouts .slot {
+  width: 36px !important;
+  height: 36px !important;
+  --slot-size: 36px !important;
+}
+
+/* What a plan needs or leaves over, in the readouts: icon and amount side by side. */
+.rate-chips {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 14px;
+}
+
+.rate-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font: 700 18px / 1.2 var(--font-display);
+  white-space: nowrap;
+}
+
+.rate-chip small {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--dim);
+}
+
+.rate-chips.muted .rate-chip {
+  color: var(--dim);
+}
+
+/* Raw inputs in the summary: icon and an amount you can retype or step; a pinned one turns orange. */
+.raw-inputs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 10px;
+}
+
+.raw-chip {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 4px 3px 6px;
+  background: var(--raised);
+  border: 1px solid var(--line);
+}
+
+.raw-chip.pinned {
+  border-color: var(--ficsit);
+}
+
+.raw-chip .rate-input {
+  width: 84px;
+  padding: 4px 8px;
+  font-size: 19px;
+  color: var(--paper);
+}
+
+.raw-chip.pinned .rate-input {
+  color: var(--ficsit);
+}
+
+.raw-chip .unpin {
+  width: 26px;
+  height: 26px;
+  font-size: 20px;
+}
+
+.slots {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  white-space: nowrap;
+}
+
+.missing-banner {
+  flex-basis: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  border-top: 1px solid var(--line);
+  padding: 12px 22px;
+  background: color-mix(in srgb, var(--alert) 15%, var(--panel));
+  font-size: 16px;
+}
+
+.chip.alert {
+  border: 1px solid var(--alert);
+  background: transparent;
+  padding: 4px 10px;
+  font-weight: 600;
+}
+
+.chip.alert:hover {
+  background: var(--alert);
+  color: var(--bg);
+}
+
+.missing-title {
+  font-weight: 600;
+}
+
+.missing-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.missing-list li {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 12px;
+}
+
+.missing-text {
+  flex: 1;
+  min-width: 220px;
+}
+
+.missing-fixes {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.chip.fix {
+  border: 1px solid var(--ficsit);
+  background: var(--ficsit);
+  color: var(--ficsit-ink);
+  padding: 4px 10px;
+  font-weight: 600;
+}
+
+.chip.fix:hover {
+  background: var(--ficsit-deep);
+}
+
+/* Every target is out of reach: the reasons and fixes in the middle of the floor. */
+.blocked {
+  max-width: 680px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  padding: 28px 30px;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-top: 3px solid var(--alert);
+  text-align: left;
+  font: 400 17px / 1.45 var(--font-body);
+}

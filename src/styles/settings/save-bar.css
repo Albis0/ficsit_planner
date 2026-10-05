@@ -1,0 +1,121 @@
+/* ---------- Settings: save bar ---------- */
+
+.settings-foot {
+  flex: none;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 12px 28px 12px 24px;
+  background: var(--panel-2);
+  border-top: 1px solid var(--line);
+  transition: background 200ms;
+}
+
+.settings-status {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font: 600 16px var(--font-display);
+  letter-spacing: 0.03em;
+  color: var(--faint);
+}
+
+.status-dot {
+  width: 10px;
+  height: 10px;
+  background: var(--supply);
+  transform: rotate(45deg);
+  transition: background 200ms;
+}
+
+.settings-foot[data-state='dirty'] .settings-status {
+  color: var(--paper);
+}
+
+.settings-foot[data-state='dirty'] .status-dot {
+  background: var(--ficsit);
+}
+
+.settings-foot[data-state='asking'] {
+  background: color-mix(in srgb, var(--ficsit) 14%, var(--panel-2));
+}
+
+.settings-foot[data-state='asking'] .settings-status {
+  color: var(--paper);
+}
+
+.settings-foot[data-state='asking'] .status-dot {
+  background: var(--ficsit);
+}
+
+.settings-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 10px;
+}
+
+.settings-actions .primary-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.settings-actions button:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
+@media (max-width: 600px) {
+  .settings-foot {
+    flex-direction: column;
+    align-items: stretch;
+    padding: 10px 16px calc(10px + env(safe-area-inset-bottom));
+  }
+
+  .settings-actions > * {
+    flex: 1;
+  }
+}
+
+/* Backup and fuel on hand, folded away under the two steps. */
+.power-more {
+  border-top: 1px solid var(--line);
+  padding-top: 12px;
+}
+
+.power-more > summary {
+  cursor: pointer;
+  font: 700 16px var(--font-display);
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--faint);
+}
+
+.power-more > summary:hover {
+  color: var(--paper);
+}
+
+.power-more[open] > summary {
+  margin-bottom: 12px;
+}
+
+/* A part of the panel a floor message pointed at: a brief glow so the eye finds it. */
+.panel-body .flash {
+  animation: panel-flash 1.4s ease-out;
+}
+
+.app[data-mode='factory'] .panel-body .flash {
+  --flash: var(--ficsit);
+}
+
+@keyframes panel-flash {
+  0%,
+  30% {
+    box-shadow: 0 0 0 2px var(--flash, var(--power));
+  }
+  100% {
+    box-shadow: 0 0 0 3px transparent;
+  }
+}

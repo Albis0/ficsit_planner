@@ -1,0 +1,97 @@
+/* ---------- Inventory ---------- */
+
+.inventory-row .item-card-name {
+  display: flex;
+  flex-direction: column;
+}
+
+.inventory-use {
+  font: 500 14px var(--font-body);
+  color: var(--faint);
+}
+
+.inventory-use.over {
+  color: var(--alert);
+}
+
+/* Section title with its action on the same line. */
+.section-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  max-width: 560px;
+}
+
+.inventory-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: none;
+}
+
+.section-head .section-title {
+  white-space: nowrap;
+}
+
+.primary-button.small,
+.ghost-button.small {
+  padding: 6px 12px;
+  font-size: 15px;
+}
+
+.placements-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  max-width: 560px;
+}
+
+.inventory .inventory-row,
+.inventory .placements {
+  max-width: 560px;
+}
+
+.failure {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 18px;
+  max-width: 720px;
+}
+
+.primary-button {
+  border: 0;
+  padding: 10px 20px;
+  background: var(--ficsit);
+  color: var(--ficsit-ink);
+  font: 700 18px var(--font-display);
+  letter-spacing: 0.03em;
+}
+
+.primary-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+.primary-button:not(:disabled):hover {
+  background: color-mix(in srgb, var(--ficsit) 78%, #fff);
+}
+
+/* Nothing to do yet: plain grey, like a locked button in the game, not a dimmed orange. */
+.primary-button:disabled {
+  opacity: 1;
+  background: var(--raised);
+  color: var(--faint);
+}
+
+.ghost-button:disabled {
+  opacity: 1;
+  border-color: var(--line);
+}
+
+.miner-picker button:disabled {
+  opacity: 0.35;
+}

@@ -1,0 +1,115 @@
+/* ---------- Frame ---------- */
+
+/*
+  Top bar, then the panel (targets, recipes, resources) across the whole width, then the factory
+  floor across the whole width under it. Dragging the panel's bottom edge trades height between them.
+*/
+.app {
+  font-family: var(--font-body);
+  --top-h: calc(64px * var(--ui-scale, 1));
+  /* Tab underline, brand stripes and the switch thumb follow the planner on screen. */
+  --mode: var(--ficsit);
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  /* A height saved on a taller window never pushes the floor under 300px here. */
+  /* At least a tab row, a recipe heading and one card tall, so the Recipes tab never cuts a card. */
+  --deck: min(
+    max(calc(300px * var(--ui-scale, 1)), var(--deck-h, calc(clamp(250px, 36vh, 420px) * var(--ui-scale, 1)))),
+    max(calc(300px * var(--ui-scale, 1)), 100dvh - var(--top-h) - 300px)
+  );
+  /* Until its edge is dragged, the panel is only as tall as what it holds, up to that height. */
+  --deck-row: fit-content(var(--deck));
+  grid-template-rows: var(--top-h) var(--deck-row) minmax(0, 1fr);
+  height: 100%;
+  /* It's an app, not a page: clicks and drags shouldn't paint text selections. */
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+.app input,
+.app textarea {
+  -webkit-user-select: text;
+  user-select: text;
+}
+
+/* Nothing to plan yet: the floor takes the whole screen and asks what to make. */
+.app[data-empty] {
+  grid-template-rows: var(--top-h) minmax(0, 1fr);
+}
+
+.app[data-mode='power'] {
+  --mode: var(--power);
+}
+
+.app[data-empty] .side {
+  display: none;
+}
+
+.topbar {
+  grid-column: 1 / -1;
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  padding-right: 18px;
+  background: var(--panel);
+  border-bottom: 1px solid var(--line);
+}
+
+.brand {
+  display: flex;
+  align-items: stretch;
+  align-self: stretch;
+  gap: 16px;
+  flex: none;
+}
+
+/* Orange/black hazard block, like the edge paint on FICSIT buildables; yellow in the power planner. */
+.brand-mark {
+  /* Stripes 9px thick on the diagonal repeat every 18 × √2 px across. */
+  --tile: 25.456px;
+  position: relative;
+  overflow: hidden;
+  width: 56px;
+  clip-path: polygon(0 0, 100% 0, calc(100% - 18px) 100%, 0 100%);
+}
+
+/*
+  The stripes creep along like construction tape. They slide as one layer moved by the compositor
+  (a transform, exactly one repeat per loop), so they never repaint mid-frame or jump at the loop.
+*/
+.brand-mark::before {
+  content: '';
+  position: absolute;
+  inset: 0 auto 0 calc(var(--tile) * -1);
+  width: calc(100% + var(--tile) * 2);
+  background: repeating-linear-gradient(-45deg, var(--mode) 0 9px, var(--bg) 9px 18px);
+  animation: hazard-march 3.2s linear infinite;
+  will-change: transform;
+}
+
+@keyframes hazard-march {
+  to {
+    transform: translateX(var(--tile));
+  }
+}
+
+.brand-name {
+  align-self: center;
+  margin: 0;
+  font: 700 28px / 1 var(--font-display);
+  letter-spacing: 0.08em;
+  color: var(--ficsit);
+}
+
+.topbar-controls {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  flex: none;
+}
+
+.control-label {
+  font: 600 15px var(--font-display);
+  letter-spacing: 0.02em;
+  color: var(--faint);
+}

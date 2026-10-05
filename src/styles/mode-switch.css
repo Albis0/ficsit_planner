@@ -1,0 +1,77 @@
+/* ---------- Mode switch ---------- */
+
+/*
+  Factory, power or the Codex: a lever in the top bar. The thumb is a flat block in the planner's
+  colour with a strip of hazard paint on its leading edge, and slides straight across.
+*/
+.mode-switch {
+  --thumb: var(--ficsit);
+  --thumb-ink: var(--ficsit-ink);
+  position: relative;
+  flex: none;
+  align-self: center;
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  height: 42px;
+  padding: 3px;
+  background: var(--bg);
+  border: 1px solid var(--line-2);
+}
+
+.mode-switch[data-mode='power'] {
+  --thumb: var(--power);
+  --thumb-ink: var(--power-ink, var(--ficsit-ink));
+}
+
+.mode-thumb {
+  position: absolute;
+  z-index: 0;
+  top: 3px;
+  bottom: 3px;
+  left: 3px;
+  width: calc((100% - 6px) / 4);
+  background:
+    repeating-linear-gradient(-45deg, rgb(0 0 0 / 0.3) 0 4px, transparent 4px 8px) left / 6px 100% no-repeat,
+    var(--thumb);
+  transition:
+    transform 180ms ease-out,
+    background-color 180ms;
+}
+
+.mode-switch[data-mode='power'] .mode-thumb {
+  transform: translateX(100%);
+}
+
+.mode-switch button {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-width: 118px;
+  padding: 0 16px;
+  border: 0;
+  background: transparent;
+  color: var(--faint);
+  font: 700 16px / 1 var(--font-display);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  transition: color 120ms;
+}
+
+.mode-switch button:hover {
+  color: var(--paper);
+}
+
+.mode-switch button[aria-checked='true'] {
+  color: var(--thumb-ink);
+  cursor: default;
+}
+
+/* Changing planner: a quick cross-fade, nothing more. */
+::view-transition-old(root),
+::view-transition-new(root) {
+  animation-duration: 140ms;
+  animation-timing-function: ease-out;
+}

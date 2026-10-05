@@ -1,0 +1,398 @@
+/* ---------- Power planner: floor ---------- */
+
+.readout.balance .readout-value {
+  font-size: 40px;
+}
+
+.readout.balance.ok {
+  box-shadow: inset 4px 0 var(--supply);
+}
+
+.readout.balance.ok .readout-value {
+  color: var(--supply);
+}
+
+.readout.balance.short {
+  box-shadow: inset 4px 0 var(--alert);
+  background: color-mix(in srgb, var(--alert) 9%, var(--panel));
+}
+
+.readout.balance.short .readout-value {
+  color: var(--alert);
+}
+
+/* Enough to run, but under the spare capacity the player asked for. */
+.readout.balance.thin {
+  box-shadow: inset 4px 0 var(--power);
+}
+
+.readout.balance.thin .readout-value,
+.readout.balance.thin .readout-sub {
+  color: var(--power);
+}
+
+.readout.fluid .readout-value {
+  color: var(--fluid);
+}
+
+.readout.waste .readout-value {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: #8fe36b;
+}
+
+.readout-sub.shard {
+  color: var(--shard);
+}
+
+.readout.mix {
+  min-width: 320px;
+}
+
+.mix-bar {
+  position: relative;
+  display: flex;
+  height: 16px;
+  margin: 6px 0 8px;
+  background: var(--bg);
+  box-shadow: inset 0 0 0 1px var(--line);
+}
+
+.mix-part {
+  height: 100%;
+  background: repeating-linear-gradient(-45deg, rgb(255 255 255 / 0.12) 0 4px, transparent 4px 9px), var(--part);
+  border-right: 2px solid var(--panel);
+  transform-origin: left;
+}
+
+.mix-demand {
+  position: absolute;
+  top: -5px;
+  bottom: -5px;
+  width: 2px;
+  margin-left: -1px;
+  background: var(--paper);
+  box-shadow: 0 0 0 1px var(--bg);
+  transition: left 500ms ease-out;
+}
+
+.mix-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 14px;
+}
+
+.mix-key {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding-left: 7px;
+  border-left: 4px solid var(--part);
+  font: 600 16px var(--font-body);
+  white-space: nowrap;
+}
+
+/* Generators on the floor: the power colour on the strip, and what they make instead of what they draw. */
+.machine-power.made {
+  align-items: center;
+}
+
+.machine-power.made .glyph {
+  margin-right: 1px;
+}
+
+.react-flow__node-power {
+  cursor: default;
+}
+
+.power-node {
+  --t: var(--card-text, 1);
+  zoom: var(--card-scale, 1);
+  position: relative;
+  transition: opacity 120ms;
+}
+
+.power-node.faded {
+  opacity: 0.2;
+}
+
+/* The grid: a hazard-edged panel with the total in big digits. */
+.power-node.grid {
+  width: calc(300px * (0.6 + 0.4 * var(--t)));
+  height: calc(124px * (0.3 + 0.7 * var(--t)));
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 2px;
+  padding: 10px 16px 10px 22px;
+  background:
+    linear-gradient(90deg, transparent 12px, var(--panel) 12px), repeating-linear-gradient(-45deg, var(--power) 0 7px, #111 7px 14px);
+  border: 1px solid var(--power);
+  box-shadow: 0 0 0 1px rgb(0 0 0 / 0.5);
+}
+
+.power-node.grid.short {
+  border-color: var(--alert);
+  background:
+    linear-gradient(90deg, transparent 12px, var(--panel) 12px), repeating-linear-gradient(-45deg, var(--alert) 0 7px, #111 7px 14px);
+  animation: none;
+}
+
+.grid-head {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font: 700 calc(15px * var(--t)) var(--font-display);
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--power);
+}
+
+.grid-mw {
+  font: 700 calc(40px * var(--t)) / 1 var(--font-display);
+}
+
+.grid-mw small {
+  margin-left: 4px;
+  font-size: calc(18px * var(--t));
+  color: var(--dim);
+}
+
+.grid-foot {
+  display: flex;
+  gap: 10px;
+  font: 600 calc(15px * var(--t)) var(--font-body);
+}
+
+.grid-foot .good {
+  color: var(--supply);
+}
+
+.grid-foot .bad {
+  color: var(--alert);
+}
+
+.grid-boost {
+  color: #c9a8ff;
+}
+
+/* What the grid feeds. */
+.power-node.consumer {
+  width: calc(260px * (0.6 + 0.4 * var(--t)));
+  height: calc(84px * (0.3 + 0.7 * var(--t)));
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 14px 8px 12px;
+  background: var(--panel);
+  border: 1px solid var(--line-2);
+  border-left: 5px solid var(--power);
+}
+
+.power-node.consumer > .glyph {
+  flex: none;
+  color: var(--power);
+}
+
+.power-node.consumer.chain {
+  border-style: dashed;
+  border-left-style: solid;
+}
+
+.power-node.consumer.other {
+  border-left-color: var(--dim);
+}
+
+.power-node.consumer.other > .glyph {
+  color: var(--dim);
+}
+
+/* What the plant sends on: a set target, or all that's left after its own chain. */
+.power-node.consumer.out {
+  border-left-color: var(--supply);
+}
+
+.power-node.consumer.out > .glyph {
+  color: var(--supply);
+}
+
+.consumer-text {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.consumer-kind {
+  font: 700 calc(13px * var(--t)) / 1.2 var(--font-display);
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  color: var(--faint);
+}
+
+.consumer-name {
+  font: 600 calc(19px * var(--t)) / 1.15 var(--font-display);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.consumer-mw {
+  font: 700 calc(19px * var(--t)) / 1.15 var(--font-display);
+  white-space: nowrap;
+}
+
+.consumer-mw small {
+  margin-left: 2px;
+  font-size: calc(13px * var(--t));
+  color: var(--dim);
+}
+
+/* Power lines: a dark cable with current pulsing along a bright core. */
+.power-edge path {
+  fill: none;
+  transition: opacity 120ms;
+}
+
+.cable {
+  stroke: #0e1012;
+  stroke-width: 10;
+  stroke-linecap: round;
+}
+
+.cable-core {
+  stroke: var(--power);
+  stroke-width: 3;
+  stroke-linecap: round;
+  stroke-dasharray: 3 13;
+  animation: current 0.8s linear infinite;
+}
+
+@keyframes current {
+  to {
+    stroke-dashoffset: -32;
+  }
+}
+
+.power-edge.faded {
+  opacity: 0.12;
+}
+
+.power-edge.lit .cable-core {
+  stroke-width: 4;
+  stroke-dasharray: 6 8;
+}
+
+.edge-label.power {
+  gap: 5px;
+  padding: 4px 10px 4px 6px;
+  border-color: color-mix(in srgb, var(--power) 45%, var(--line));
+  color: var(--power);
+}
+
+.edge-label.power .edge-rate small {
+  font-size: 13px;
+  color: var(--dim);
+}
+
+/* Held still while the floor pans or zooms, so a big factory moves smoothly. */
+.react-flow.moving :is(.belt-slats, .belt-chev, .pipe-fluid, .cable-core) {
+  animation-play-state: paused;
+}
+
+.app[data-belt-motion='off'] .belt-slats,
+.app[data-belt-motion='off'] .pipe-fluid,
+.app[data-belt-motion='off'] .cable-core,
+.settings-preview[data-belt-motion='off'] .belt-slats {
+  animation: none;
+}
+
+.app[data-belt-motion='off'] .belt-chev,
+.settings-preview[data-belt-motion='off'] .belt-chev {
+  animation-play-state: paused;
+}
+
+/* Getting started with power: every generator as a card. */
+.gen-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  gap: 12px;
+}
+
+.gen-card {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 14px 16px 16px;
+  background: var(--raised);
+  border: 1px solid var(--line);
+  border-top: 4px solid var(--gen, var(--power));
+  color: var(--paper);
+  text-align: left;
+}
+
+.gen-card:nth-child(2) {
+  animation-delay: 40ms;
+}
+
+.gen-card:nth-child(3) {
+  animation-delay: 80ms;
+}
+
+.gen-card:nth-child(4) {
+  animation-delay: 120ms;
+}
+
+.gen-card:nth-child(5) {
+  animation-delay: 160ms;
+}
+
+.gen-card:nth-child(6) {
+  animation-delay: 200ms;
+}
+
+.gen-card.button:hover {
+  border-color: var(--gen, var(--power));
+}
+
+.gen-card.locked {
+  opacity: 0.65;
+}
+
+.gen-card-head {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.gen-card-head .icon {
+  filter: drop-shadow(0 3px 4px rgb(0 0 0 / 0.55));
+}
+
+.gen-card-name {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  font: 700 22px / 1.1 var(--font-display);
+}
+
+.gen-card-name small {
+  margin-top: 4px;
+  font: 700 17px var(--font-body);
+  color: var(--power);
+}
+
+.gen-add {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font: 700 16px var(--font-display);
+  color: var(--power);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.power-start .quick-inner {
+  max-width: 1080px;
+}

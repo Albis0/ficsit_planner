@@ -1,0 +1,327 @@
+/* ---------- Feedback ---------- */
+
+.report-dialog {
+  width: min(780px, 94vw);
+}
+
+.report-form {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: 22px 26px 22px;
+  overflow-y: auto;
+}
+
+.report-kinds {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+.report-kind {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 12px 16px 12px 12px;
+  background: var(--raised);
+  border: 1px solid var(--line);
+  color: var(--dim);
+  text-align: left;
+  transition:
+    border-color 160ms,
+    background 160ms;
+}
+
+.report-kind:hover {
+  border-color: var(--line-2);
+}
+
+.report-kind-icon {
+  flex: none;
+  width: 50px;
+  height: 50px;
+  display: grid;
+  place-items: center;
+  background: var(--bg);
+  color: var(--faint);
+  transition:
+    background 200ms,
+    color 200ms;
+}
+
+.report-kind-text {
+  display: flex;
+  flex-direction: column;
+}
+
+.report-kind b {
+  font: 700 20px var(--font-display);
+  letter-spacing: 0.02em;
+  color: var(--paper);
+}
+
+.report-kind.bug[aria-checked='true'] {
+  border-color: var(--alert);
+  box-shadow: inset 0 0 0 1px var(--alert);
+  background: color-mix(in srgb, var(--alert) 8%, var(--raised));
+}
+
+.report-kind.bug[aria-checked='true'] .report-kind-icon {
+  background: var(--alert);
+  color: #1b0805;
+}
+
+.report-kind.idea[aria-checked='true'] {
+  border-color: var(--power);
+  box-shadow: inset 0 0 0 1px var(--power);
+  background: color-mix(in srgb, var(--power) 8%, var(--raised));
+}
+
+.report-kind.idea[aria-checked='true'] .report-kind-icon {
+  background: var(--power);
+  color: var(--power-ink, #1d1206);
+}
+
+.field-block {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.field-label {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+  font: 600 17px var(--font-display);
+  letter-spacing: 0.02em;
+  color: var(--dim);
+}
+
+.field-label em {
+  font-style: normal;
+  font-weight: 500;
+  color: var(--faint);
+}
+
+.field-count {
+  font: 500 13px var(--font-body);
+  color: var(--faint);
+}
+
+.field-need {
+  font: 600 13px var(--font-body);
+  color: var(--alert);
+}
+
+.text-field[aria-invalid='true'],
+.text-field[aria-invalid='true']:focus {
+  border-color: var(--alert);
+}
+
+.text-field {
+  width: 100%;
+  padding: 10px 12px;
+  background: var(--bg);
+  border: 1px solid var(--line-2);
+  color: var(--paper);
+  font: 400 16px / 1.45 var(--font-body);
+  resize: vertical;
+}
+
+.text-field::placeholder {
+  color: #656c73;
+}
+
+.text-field:focus {
+  outline: none;
+  border-color: var(--ficsit);
+  box-shadow: 0 0 0 1px var(--ficsit);
+}
+
+.chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.chip-button {
+  padding: 6px 12px;
+  border: 1px solid var(--line-2);
+  background: transparent;
+  color: var(--dim);
+  font: 600 15px var(--font-display);
+  letter-spacing: 0.02em;
+}
+
+.chip-button:hover {
+  color: var(--paper);
+  border-color: var(--power);
+}
+
+.chip-button[aria-checked='true'] {
+  background: var(--power);
+  border-color: var(--power);
+  color: var(--power-ink, #1d1206);
+}
+
+.honeypot {
+  position: absolute;
+  left: -9999px;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+}
+
+.report-peek summary {
+  cursor: pointer;
+  width: fit-content;
+  font: 600 15px var(--font-display);
+  letter-spacing: 0.03em;
+  color: var(--faint);
+}
+
+.report-peek summary:hover {
+  color: var(--paper);
+}
+
+.report-peek pre {
+  max-height: 220px;
+  overflow: auto;
+  margin: 8px 0 0;
+  padding: 10px 12px;
+  background: var(--bg);
+  border: 1px solid var(--line);
+  font:
+    12px / 1.45 ui-monospace,
+    Consolas,
+    monospace;
+  color: var(--dim);
+  white-space: pre-wrap;
+  word-break: break-all;
+  user-select: text;
+}
+
+.report-error {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 16px;
+  padding: 10px 14px;
+  border-left: 4px solid var(--alert);
+  background: color-mix(in srgb, var(--alert) 10%, var(--panel));
+}
+
+.report-foot {
+  position: sticky;
+  z-index: 2;
+  bottom: -22px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin: 0 -26px -22px;
+  padding: 14px 26px 18px;
+  background: var(--panel);
+  border-top: 1px solid var(--line);
+  box-shadow: 0 -12px 24px rgb(0 0 0 / 0.35);
+}
+
+.report-privacy {
+  margin: 0;
+  max-width: 62ch;
+  font-size: 13px;
+  color: var(--faint);
+}
+
+.report-privacy a {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  color: var(--dim);
+}
+
+/* Grey until the title and the description are long enough, then the colour of the kind. Still clickable while
+   grey, so a click can point at the field that's short. */
+.send-button:not([data-ready]) {
+  background: var(--raised) !important;
+  color: var(--faint) !important;
+  filter: none !important;
+}
+
+.report-form[data-kind='bug'] .send-button {
+  background: var(--alert);
+  color: #1b0805;
+}
+
+.report-form[data-kind='idea'] .send-button {
+  background: var(--power);
+  color: var(--power-ink, #1d1206);
+}
+
+.send-button {
+  flex: none;
+  padding: 12px 22px;
+}
+
+.send-button:not(:disabled):hover {
+  filter: brightness(1.12);
+}
+
+.send-button.sending {
+  background-image: repeating-linear-gradient(-45deg, rgb(0 0 0 / 0.18) 0 10px, transparent 10px 20px);
+  background-size: 28px 28px;
+  animation: sending 600ms linear infinite;
+}
+
+@keyframes sending {
+  to {
+    background-position: 28px 0;
+  }
+}
+
+.report-sent {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  padding: 48px 28px 40px;
+  text-align: center;
+}
+
+.sent-badge {
+  width: 96px;
+  height: 96px;
+  display: grid;
+  place-items: center;
+  background: var(--supply);
+  color: #0d1a08;
+  clip-path: polygon(0 0, calc(100% - 16px) 0, 100% 16px, 100% 100%, 0 100%);
+  animation: fade-in 200ms ease-out;
+}
+
+.sent-badge path {
+  stroke-dasharray: 30;
+  stroke-dashoffset: 30;
+  stroke-width: 2.6;
+  animation: check-draw 420ms 260ms ease-out forwards;
+}
+
+@keyframes check-draw {
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+
+.sent-title {
+  margin: 10px 0 0;
+  font: 700 32px var(--font-display);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.report-actions {
+  display: flex;
+  gap: 10px;
+  margin-top: 12px;
+}

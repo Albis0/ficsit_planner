@@ -1,0 +1,19 @@
+/* ---------- Build bill ---------- */
+.bill {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 28px;
+}
+
+.bill-grid {
+  display: grid;
+  grid-template-columns: 1fr 2fr;
+  gap: 24px;
+}
+
+.bill-grid > div {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}

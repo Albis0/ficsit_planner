@@ -1,0 +1,215 @@
+/* ---------- Resources ---------- */
+
+.miner-picker {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 6px;
+}
+
+.miner-picker button {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 10px 6px 8px;
+  background: var(--raised);
+  border: 1px solid var(--line);
+  font: 600 17px var(--font-display);
+  color: var(--dim);
+}
+
+.miner-picker button:hover {
+  border-color: var(--line-2);
+  color: var(--paper);
+}
+
+.miner-picker button[aria-checked='true'] {
+  border-color: var(--ficsit);
+  box-shadow: inset 0 0 0 1px var(--ficsit);
+  color: var(--paper);
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-top: 6px;
+}
+
+/* Extraction settings on the left, every resource in a grid across the rest. */
+.panel-body.resources {
+  flex-direction: row;
+  padding: 0;
+  gap: 0;
+  overflow: hidden;
+}
+
+.panel-body.resources > .stack {
+  min-height: 0;
+  overflow-y: auto;
+  padding: 18px 20px 20px;
+}
+
+.panel-body.resources > .extraction {
+  flex: none;
+  width: 400px;
+  border-right: 1px solid var(--line);
+}
+
+.panel-body.resources > .resource-list {
+  flex: 1;
+  min-width: 0;
+}
+
+.resource-cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(380px, 1fr));
+  align-items: start;
+  gap: 8px 16px;
+}
+
+.field .item-card-rate {
+  align-self: flex-start;
+}
+
+.resource-card {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 10px 12px;
+  background: var(--raised);
+}
+
+.resource-card:not(.used) {
+  background: transparent;
+  padding: 4px 12px;
+}
+
+.resource-card:not(.used) .item-card-name {
+  color: var(--dim);
+}
+
+.meter {
+  height: 4px;
+  background: var(--bg);
+}
+
+.meter span {
+  display: block;
+  height: 100%;
+  background: var(--ficsit);
+}
+
+.meter span.full {
+  background: var(--alert);
+}
+
+.over-cap {
+  margin: 0;
+  font-size: 13px;
+}
+
+.extract-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.extract-name {
+  flex: 1;
+  min-width: 0;
+  font-size: 14px;
+  color: var(--dim);
+}
+
+.extract-count {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  min-width: 52px;
+  padding: 2px 6px;
+  color: var(--faint);
+}
+
+.extract-count b {
+  font: 700 20px / 1.1 var(--font-display);
+}
+
+.extract-count small {
+  font-size: 11px;
+}
+
+.extract-count.chosen {
+  background: color-mix(in srgb, var(--ficsit) 18%, transparent);
+  color: var(--paper);
+}
+
+.extract-count.chosen b {
+  color: var(--ficsit);
+}
+
+.set-nodes {
+  align-self: flex-start;
+  font-size: 14px;
+}
+
+/* With your own nodes set, a box under each purity's count: how many of those nodes you have. */
+.node-count {
+  display: block;
+  width: 52px;
+  margin-top: 6px;
+}
+
+.node-count .rate-input {
+  width: 100%;
+  min-width: 0;
+  padding: 5px 4px;
+  text-align: center;
+}
+
+.nodes-line {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 4px 12px;
+  margin: 0;
+  font-size: 13px;
+  color: var(--dim);
+}
+
+.beta-tag {
+  margin-left: 6px;
+  padding: 0 4px;
+  border: 1px solid currentColor;
+  border-radius: 3px;
+  font: 600 10px / 14px var(--font-body);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  opacity: 0.75;
+  vertical-align: 2px;
+}
+
+.nodes-short {
+  color: var(--alert);
+}
+
+/* Settings › Game settings: "[ 1.25 ] ×" */
+.game-mult {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.game-mult .rate-input {
+  width: 84px;
+}
+
+.game-mult .unit {
+  font: 600 18px var(--font-display);
+  color: var(--dim);
+}
+
+.game-intro {
+  margin: 0 0 6px;
+}

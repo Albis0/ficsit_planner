@@ -1,0 +1,482 @@
+/* ---------- Power planner: panel ---------- */
+
+.panel-body.power {
+  display: flex;
+  flex-direction: column;
+  gap: 26px;
+  max-width: 620px;
+}
+
+.draw-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.draw-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 9px 12px;
+  background: var(--raised);
+  border-left: 4px solid var(--power);
+  cursor: pointer;
+}
+
+.draw-list li.off .draw-row {
+  border-left-color: var(--line-2);
+  background: transparent;
+  color: var(--faint);
+}
+
+.draw-row .glyph {
+  flex: none;
+  color: var(--faint);
+}
+
+.draw-name {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font: 600 19px var(--font-display);
+}
+
+.draw-mw {
+  font: 700 19px var(--font-display);
+  color: var(--power);
+  white-space: nowrap;
+}
+
+.draw-list li.off .draw-mw {
+  color: var(--faint);
+  text-decoration: line-through;
+}
+
+.power-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.power-row-label {
+  display: flex;
+  flex-direction: column;
+  font: 600 18px / 1.2 var(--font-display);
+}
+
+.power-row-label small {
+  font: 400 14px var(--font-body);
+  color: var(--faint);
+}
+
+/* Numbered steps down the panel: generators, then what the plant is sized to. */
+.section-title.step {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.step-num {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  background: var(--power);
+  color: var(--power-ink, var(--ficsit-ink));
+  font: 700 17px var(--font-display);
+  clip-path: polygon(0 0, calc(100% - 8px) 0, 100% 8px, 100% 100%, 0 100%);
+}
+
+/* Three ways to size the plant, as one switch across the column. */
+.segmented.size-modes {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.segmented.size-modes button {
+  padding: 8px 6px;
+  white-space: nowrap;
+}
+
+.segmented.size-modes button[aria-checked='true'] {
+  background: var(--power);
+  color: var(--power-ink, var(--ficsit-ink));
+}
+
+/* What the chosen way needs, in one framed box. */
+.size-box {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 14px;
+  background: var(--panel-2);
+  border: 1px solid var(--line);
+  border-left: 4px solid var(--power);
+}
+
+.size-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.draw-other {
+  display: block;
+  font: 400 13px var(--font-body);
+  color: var(--faint);
+}
+
+/* The figure the plant is sized to, under everything that adds up to it. */
+.size-total {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 2px 12px;
+  margin-top: 4px;
+  padding-top: 12px;
+  border-top: 1px solid var(--line);
+  color: var(--dim);
+}
+
+.size-total-label {
+  font: 600 16px var(--font-display);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.size-total b {
+  margin-left: auto;
+  font: 700 32px / 1 var(--font-display);
+  color: var(--power);
+}
+
+.size-total b small {
+  font-size: 16px;
+  color: var(--dim);
+}
+
+.size-total-note {
+  flex-basis: 100%;
+  font-size: 14px;
+  color: var(--faint);
+}
+
+.size-total-note.warn {
+  color: var(--power);
+}
+
+.size-total-note .text-button {
+  padding: 0;
+  font-size: 14px;
+}
+
+.check-row.own-load {
+  margin-top: 2px;
+}
+
+/* One kind of generator in the plant: a slim strip, its fuels as pills, and the count underneath. */
+.gen-row {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 0 0 12px;
+  background: var(--raised);
+  border: 1px solid var(--line-2);
+}
+
+.gen-row.locked {
+  opacity: 0.6;
+}
+
+.gen-row-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 3px 6px 3px 6px;
+  background: var(--power);
+  color: var(--power-ink, var(--ficsit-ink));
+  font: 700 17px / 1.2 var(--font-display);
+  clip-path: polygon(0 0, calc(100% - 14px) 0, 100% 14px, 100% 100%, 0 100%);
+}
+
+/* "Coal-Powered Generator" wraps rather than losing its end beside the megawatts. */
+.gen-row-name {
+  flex: 1;
+  min-width: 0;
+  line-height: 1.1;
+}
+
+.gen-row-mw {
+  padding: 1px 8px 2px;
+  background: rgb(18 20 22 / 0.9);
+  color: var(--power);
+  font: 700 17px / 1.25 var(--font-body);
+  letter-spacing: 0;
+  text-transform: none;
+  white-space: nowrap;
+}
+
+.gen-row-mw small {
+  font-size: 12px;
+  color: var(--dim);
+}
+
+.gen-row-remove {
+  flex: none;
+  width: 26px;
+  height: 26px;
+  margin-right: 10px;
+  display: grid;
+  place-items: center;
+  padding: 0;
+  border: 0;
+  background: rgb(0 0 0 / 0.15);
+  color: inherit;
+}
+
+.gen-row-remove:hover {
+  background: var(--alert);
+  color: #1a0806;
+}
+
+.gen-row-head .tier-tag {
+  background: rgb(0 0 0 / 0.75);
+  color: var(--power);
+}
+
+.gen-row > :not(.gen-row-head) {
+  margin: 0 12px;
+}
+
+/* A fuel to pick, or something to add to what you have: icon and name in a small frame. */
+.fuel-pills,
+.have-chips {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+}
+
+.fuel-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 4px 11px 4px 5px;
+  background: var(--bg);
+  border: 1px solid var(--line-2);
+  color: var(--dim);
+  font: 600 16px var(--font-display);
+  letter-spacing: 0.01em;
+}
+
+.fuel-pill small {
+  font: 500 13px var(--font-body);
+  color: var(--faint);
+}
+
+.fuel-pill:hover {
+  border-color: var(--power);
+  color: var(--paper);
+}
+
+.fuel-pill[aria-checked='true'] {
+  border-color: var(--power);
+  background: color-mix(in srgb, var(--power) 14%, var(--bg));
+  color: var(--paper);
+  box-shadow: inset 0 0 0 1px var(--power);
+}
+
+.have-chips .control-label {
+  flex-basis: 100%;
+}
+
+.gen-row-foot {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 12px;
+  padding-top: 10px;
+  border-top: 1px solid var(--line);
+}
+
+.gen-count {
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--paper);
+  font: 600 17px var(--font-body);
+}
+
+.gen-count b {
+  font-size: 21px;
+}
+
+button.gen-count:hover,
+button.gen-count[aria-pressed='true'] {
+  color: var(--power);
+}
+
+.gen-count.idle {
+  color: var(--faint);
+  font-size: 15px;
+}
+
+.gen-mode {
+  flex: 1;
+  color: var(--faint);
+  font-size: 14px;
+}
+
+.gen-row-foot .text-button {
+  padding: 0;
+  font-size: 15px;
+}
+
+.mini-stepper {
+  display: inline-flex;
+  align-items: stretch;
+  border: 1px solid var(--line-2);
+  background: var(--bg);
+}
+
+.mini-stepper button {
+  width: 34px;
+  border: 0;
+  background: transparent;
+  color: var(--dim);
+  font: 600 20px / 1 var(--font-body);
+}
+
+.mini-stepper button:hover:not(:disabled) {
+  background: var(--raised);
+  color: var(--paper);
+}
+
+.mini-stepper b {
+  min-width: 40px;
+  padding: 4px 6px;
+  text-align: center;
+  color: var(--ficsit);
+  font: 700 19px var(--font-body);
+}
+
+.segmented.small button {
+  padding: 4px 12px;
+  font-size: 15px;
+}
+
+.check-row.small {
+  align-items: center;
+  font-size: 15px;
+  color: var(--dim);
+}
+
+/* "Add a power plant": opens in place, each generator with its fuels to pick from. */
+.plant-menu {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin-top: 6px;
+  padding: 6px;
+  background: var(--panel);
+  border: 1px solid var(--power);
+}
+
+.plant-menu-group {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 8px 8px 10px;
+  background: var(--raised);
+}
+
+.plant-menu-group.locked {
+  opacity: 0.6;
+}
+
+.plant-menu-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.plant-menu-name {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  font: 600 18px / 1.15 var(--font-display);
+}
+
+.plant-menu-name small {
+  font: 600 14px var(--font-body);
+  color: var(--power);
+}
+
+.plant-menu-fuels,
+.gen-fuels {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.fuel-chip {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 5px 10px 5px 5px;
+  background: var(--bg);
+  border: 1px solid var(--line-2);
+  color: var(--paper);
+  font: 600 16px var(--font-display);
+  letter-spacing: 0.01em;
+}
+
+.fuel-chip small {
+  font: 500 13px var(--font-body);
+  color: var(--faint);
+}
+
+.fuel-chip:hover {
+  border-color: var(--power);
+  background: color-mix(in srgb, var(--power) 10%, var(--bg));
+}
+
+.backup-result {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 10px 12px;
+  background: var(--raised);
+  border-left: 4px solid var(--shard);
+}
+
+.backup-result > span {
+  display: flex;
+  flex-direction: column;
+}
+
+.backup-result b {
+  font: 700 20px var(--font-display);
+}
+
+.backup-result small {
+  font-size: 14px;
+  color: var(--dim);
+}
+
+.backup .section-title + .hint,
+.backup .section-title {
+  margin-top: 0;
+}
+
+.backup > .section-title:not(:first-child) {
+  margin-top: 18px;
+}

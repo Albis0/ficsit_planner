@@ -1,0 +1,105 @@
+/* ---------- Modals ---------- */
+
+/*
+  Settings and feedback: a charcoal plate with a cut corner, hazard stripes at the head and the title
+  in condensed caps. It rises in, sinks out.
+*/
+.modal {
+  width: min(1000px, calc(94vw / var(--ui-scale, 1)));
+}
+
+.settings-dialog {
+  width: min(1200px, calc(96vw / var(--ui-scale, 1)));
+}
+
+.modal {
+  max-width: calc(100vw / var(--ui-scale, 1) - 16px);
+  max-height: min(calc(88vh / var(--ui-scale, 1)), 900px);
+  padding: 0;
+  flex-direction: column;
+  overflow: hidden;
+  background: var(--panel);
+  color: var(--paper);
+  border: 1px solid var(--line-2);
+  clip-path: polygon(0 0, calc(100% - 22px) 0, 100% 22px, 100% 100%, 0 100%);
+}
+
+.modal[open] {
+  display: flex;
+  animation: fade-in 120ms ease-out;
+}
+
+.modal[data-closing] {
+  animation: fade-out 100ms ease-in forwards;
+}
+
+.modal::backdrop {
+  background: rgb(8 9 10 / 0.72);
+  backdrop-filter: blur(3px);
+  animation: fade-in 220ms ease-out;
+}
+
+.modal[data-closing]::backdrop {
+  animation: fade-out 170ms ease-in forwards;
+}
+
+@keyframes fade-in {
+  from {
+    opacity: 0;
+  }
+}
+
+@keyframes fade-out {
+  to {
+    opacity: 0;
+  }
+}
+
+.modal-head {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  height: 60px;
+  padding-right: 30px;
+  background: var(--panel-2);
+  border-bottom: 1px solid var(--line);
+}
+
+.modal-head::before {
+  content: '';
+  align-self: stretch;
+  width: 46px;
+  background: repeating-linear-gradient(-45deg, var(--ficsit) 0 7px, var(--panel-2) 7px 14px);
+  clip-path: polygon(0 0, 100% 0, calc(100% - 14px) 100%, 0 100%);
+}
+
+.modal-icon {
+  display: grid;
+  place-items: center;
+  color: var(--ficsit);
+}
+
+.modal-title {
+  flex: 1;
+  margin: 0;
+  font: 700 25px var(--font-display);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.modal-close {
+  width: 40px;
+  height: 40px;
+  display: grid;
+  place-items: center;
+  padding: 0;
+  border: 1px solid transparent;
+  background: transparent;
+  color: var(--faint);
+}
+
+.modal-close:hover {
+  border-color: var(--line-2);
+  color: var(--paper);
+}

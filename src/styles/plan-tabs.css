@@ -1,0 +1,324 @@
+/* ---------- Plan tabs ---------- */
+
+.plan-tabs {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: stretch;
+  align-self: stretch;
+}
+
+/*
+  The tabs scroll sideways when there are more than fit; + and ⋯ stay after them. Which way the rest lies shows
+  three ways: an arrow button at each end (dimmed at the end that has nothing more), a fade on each side that has
+  more, and a thin bar along the top showing which part of the row is in view.
+*/
+.plan-tabs-frame {
+  position: relative;
+  flex: 0 1 auto;
+  min-width: 0;
+  display: flex;
+}
+
+.plan-tabs-strip {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: stretch;
+  gap: 2px;
+  overflow-x: auto;
+  scrollbar-width: none;
+  overscroll-behavior-x: contain;
+}
+
+.plan-tabs-strip::-webkit-scrollbar {
+  display: none;
+}
+
+.plan-tabs-frame[data-more-left] .plan-tabs-strip {
+  mask-image: linear-gradient(90deg, transparent, #000 44px);
+}
+
+.plan-tabs-frame[data-more-right] .plan-tabs-strip {
+  mask-image: linear-gradient(90deg, #000 calc(100% - 44px), transparent);
+}
+
+.plan-tabs-frame[data-more-left][data-more-right] .plan-tabs-strip {
+  mask-image: linear-gradient(90deg, transparent, #000 44px, #000 calc(100% - 44px), transparent);
+}
+
+.tabs-track {
+  position: absolute;
+  inset: 0 0 auto;
+  height: 3px;
+  background: rgb(255 255 255 / 0.07);
+  pointer-events: none;
+}
+
+.tabs-track span {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  border-radius: 2px;
+  background: var(--mode, var(--ficsit));
+  transition: left 120ms ease-out;
+}
+
+/* The arrows are the game's small dark buttons. */
+.tabs-nudge {
+  flex: none;
+  align-self: center;
+  display: grid;
+  place-items: center;
+  width: 30px;
+  height: 36px;
+  margin: 0 4px;
+  padding: 0;
+  color: var(--paper);
+  background: linear-gradient(180deg, var(--button-top), var(--button-bottom));
+  border: 1px solid var(--button-edge);
+  border-radius: var(--radius);
+  box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.12);
+}
+
+.tabs-nudge:hover:not(:disabled) {
+  color: var(--ficsit);
+}
+
+.tabs-nudge:disabled {
+  opacity: 0.3;
+  cursor: default;
+}
+
+.plan-tab {
+  position: relative;
+  flex: none;
+  max-width: 280px;
+  padding: 0 6px 0 0;
+  border: 0;
+  background: transparent;
+  font: 600 19px var(--font-display);
+  letter-spacing: 0.02em;
+  color: var(--faint);
+  white-space: nowrap;
+}
+
+/* The name selects the tab (double-click renames, middle-click closes); the × beside it closes it. */
+.plan-tab-name {
+  min-width: 0;
+  height: 100%;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0 4px 0 18px;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  letter-spacing: inherit;
+}
+
+.plan-tab-label {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.plan-tab-close {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 24px;
+  height: 24px;
+  padding: 0;
+  border: 0;
+  border-radius: 5px;
+  background: transparent;
+  color: var(--faint);
+  opacity: 0;
+}
+
+.plan-tab:hover .plan-tab-close,
+.plan-tab[aria-current='page'] .plan-tab-close,
+.plan-tab-close:focus-visible {
+  opacity: 1;
+}
+
+.plan-tab-close:hover {
+  background: var(--raised);
+  color: var(--paper);
+}
+
+@media (hover: none) {
+  .plan-tab:not([aria-current='page']) .plan-tab-close {
+    display: none;
+  }
+}
+
+.plan-tab:hover,
+.plan-tab[aria-current='page'] {
+  color: var(--paper);
+  background: var(--panel-2);
+}
+
+.plan-tab[aria-current='page']::after {
+  content: '';
+  position: absolute;
+  inset: auto 0 0;
+  height: 4px;
+  background: var(--ficsit);
+}
+
+/* Power plant tabs: the plant's first generator beside its name, the power colour under the one on screen. */
+.plan-tab {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.plan-tab-icon {
+  flex: none;
+  margin-left: -4px;
+}
+
+.plan-tabs.power .plan-tab[aria-current='page']::after {
+  background: var(--power);
+}
+
+.plan-tab.editing {
+  width: 220px;
+  margin: 10px 0;
+  padding: 0 12px;
+  background: var(--bg);
+  border: 1px solid var(--ficsit);
+  outline: none;
+  color: var(--paper);
+}
+
+.plan-add {
+  flex: none;
+  width: 44px;
+  border: 0;
+  background: transparent;
+  color: var(--faint);
+  font-size: 28px;
+  line-height: 1;
+}
+
+.plan-add:hover {
+  color: var(--ficsit);
+}
+
+/* The ⋯ after the tabs: rename, duplicate and delete for the tab on screen, out of the way of a stray click. */
+.tab-menu {
+  position: relative;
+  flex: none;
+  align-self: center;
+}
+
+.tab-menu-button {
+  display: grid;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  border: 1px solid transparent;
+  background: transparent;
+  color: var(--faint);
+}
+
+.tab-menu-button:hover,
+.tab-menu-button[aria-expanded='true'] {
+  border-color: var(--line-2);
+  color: var(--paper);
+}
+
+.tab-menu-list {
+  position: fixed;
+  z-index: 60;
+  zoom: var(--ui-scale, 1);
+  min-width: 190px;
+  display: flex;
+  flex-direction: column;
+  padding: 4px;
+  background: var(--raised);
+  border: 1px solid var(--line-2);
+  border-top: 3px solid var(--mode);
+  box-shadow: 0 10px 24px rgb(0 0 0 / 0.5);
+}
+
+.menu-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 9px 12px;
+  border: 0;
+  background: transparent;
+  color: var(--paper);
+  font: 600 16px var(--font-display);
+  text-align: left;
+  white-space: nowrap;
+}
+
+.menu-item .glyph {
+  color: var(--faint);
+}
+
+.menu-item:hover {
+  background: var(--panel-2);
+}
+
+/* Delete sits last, under a rule, and turns red when it asks to be pressed again. */
+.menu-item.delete {
+  margin-top: 4px;
+  border-top: 1px solid var(--line);
+  color: var(--alert);
+}
+
+.menu-item.delete .glyph {
+  color: var(--alert);
+}
+
+.share-button.copied .glyph {
+  color: var(--supply);
+}
+
+.share-button.failed {
+  border-color: var(--alert);
+}
+
+/* Drag handle on the panel's bottom edge. */
+/* The grab strip sits just outside the panel, on the floor side, so it never shares room with the panel's scrollbar. */
+.splitter {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: -11px;
+  z-index: 20;
+  height: 10px;
+  cursor: row-resize;
+  touch-action: none;
+}
+
+.splitter::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 0;
+  height: 3px;
+  transition: background 120ms;
+}
+
+.splitter:hover::after,
+.splitter:focus-visible::after,
+.resizing .splitter::after {
+  background: var(--ficsit);
+}
+
+.splitter:focus-visible {
+  outline: none;
+}
+
+.resizing {
+  cursor: row-resize;
+}

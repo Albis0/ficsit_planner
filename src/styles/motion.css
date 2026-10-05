@@ -1,0 +1,44 @@
+/* ---------- Motion ---------- */
+
+/* The panel for what's picked slides in from the side it sits on: the right, or the bottom on a phone. */
+.inspector {
+  animation: inspector-in 180ms ease-out;
+}
+
+@keyframes inspector-in {
+  from {
+    opacity: 0;
+    translate: 28px 0;
+  }
+}
+
+@media (max-width: 900px) {
+  .inspector {
+    animation-name: inspector-up;
+  }
+}
+
+@keyframes inspector-up {
+  from {
+    opacity: 0;
+    translate: 0 40px;
+  }
+}
+
+.app[data-motion='reduce'] *,
+.app[data-motion='reduce'] *::before,
+.app[data-motion='reduce'] *::after {
+  animation-duration: 1ms !important;
+  animation-iteration-count: 1 !important;
+  transition-duration: 1ms !important;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .app:not([data-motion='full']) *,
+  .app:not([data-motion='full']) *::before,
+  .app:not([data-motion='full']) *::after {
+    animation-duration: 1ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 1ms !important;
+  }
+}

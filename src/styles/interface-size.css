@@ -1,0 +1,12 @@
+/* ---------- Interface size ---------- */
+
+/* Chrome around the floor grows with the interface size; the floor and its cards have their own. */
+.topbar,
+.side,
+.summary,
+.floor-bar,
+.inspector,
+.modal,
+.sheet {
+  zoom: var(--ui-scale, 1);
+}

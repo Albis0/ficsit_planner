@@ -1,0 +1,46 @@
+/* ---------- Where shards and somersloops went ---------- */
+
+.placements {
+  list-style: none;
+  margin: 4px 0 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.placements button {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 10px;
+  background: var(--raised);
+  border: 1px solid transparent;
+  text-align: left;
+}
+
+.placements button:hover {
+  border-color: var(--ficsit);
+}
+
+.placement-name {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  font: 600 17px / 1.15 var(--font-display);
+}
+
+.placement-name small {
+  font: 400 13px var(--font-body);
+  color: var(--faint);
+}
+
+.hint.warn {
+  color: var(--power);
+}
+
+.data-version {
+  margin-top: 20px;
+  font-size: 13px;
+}
