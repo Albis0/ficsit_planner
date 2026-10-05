@@ -3201,6 +3201,30 @@ button.slot:hover {
   animation: belt var(--belt-speed) linear infinite;
 }
 
+/* Chevrons pointing the way the belt moves. Each one rides the belt's path; the delay spreads them out. */
+.belt-chev {
+  fill: none;
+  stroke: color-mix(in srgb, var(--belt) 80%, #fff);
+  stroke-width: 2.4;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  offset-rotate: auto;
+  animation: belt-run linear infinite;
+}
+
+@keyframes belt-run {
+  from {
+    offset-distance: 0%;
+  }
+  to {
+    offset-distance: 100%;
+  }
+}
+
+.belt-edge.still .belt-chev {
+  animation-play-state: paused;
+}
+
 .pipe-casing {
   stroke: #5b646d;
   stroke-linecap: round;
@@ -3228,6 +3252,10 @@ button.slot:hover {
 @media (prefers-reduced-motion: reduce) {
   .app:not([data-motion='full']) :is(.belt-slats, .pipe-fluid) {
     animation: none;
+  }
+
+  .app:not([data-motion='full']) .belt-chev {
+    animation-play-state: paused;
   }
 }
 
@@ -4627,7 +4655,7 @@ button.gen-count[aria-pressed='true'] {
 }
 
 /* Held still while the floor pans or zooms, so a big factory moves smoothly. */
-.react-flow.moving :is(.belt-slats, .pipe-fluid, .cable-core) {
+.react-flow.moving :is(.belt-slats, .belt-chev, .pipe-fluid, .cable-core) {
   animation-play-state: paused;
 }
 
@@ -4636,6 +4664,11 @@ button.gen-count[aria-pressed='true'] {
 .app[data-belt-motion='off'] .cable-core,
 .settings-preview[data-belt-motion='off'] .belt-slats {
   animation: none;
+}
+
+.app[data-belt-motion='off'] .belt-chev,
+.settings-preview[data-belt-motion='off'] .belt-chev {
+  animation-play-state: paused;
 }
 
 /* Getting started with power: every generator as a card. */

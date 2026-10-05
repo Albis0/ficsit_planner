@@ -23,6 +23,7 @@ import { RateInput } from './RateInput';
 import { Dialog } from './Dialog';
 import { Glyph, type GlyphName } from './Glyph';
 import { Icon } from './Icon';
+import { BeltChevrons } from './floor/BeltStroke';
 
 type Section = 'layout' | 'floor' | 'colors' | 'interface' | 'game' | 'data' | 'help' | 'updates';
 
@@ -887,7 +888,7 @@ function Preview() {
             <g className="belt-edge" style={{ ['--belt' as string]: belt, ['--belt-speed' as string]: '1s' }}>
               <path d="M0,10 L240,10" className="belt-rails" style={{ strokeWidth: 12 }} />
               <path d="M0,10 L240,10" className="belt-bed" style={{ strokeWidth: 7 }} />
-              <path d="M0,10 L240,10" className="belt-slats" style={{ strokeWidth: 7 }} />
+              <BeltChevrons path="M0,10 L240,10" width={7} speed={1} />
             </g>
           </svg>
           {s.beltLabels !== 'never' && (
