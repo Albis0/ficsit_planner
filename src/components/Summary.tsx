@@ -1,5 +1,5 @@
 import { useMemo } from 'react';
-import { data, recipeById } from '../lib/data';
+import { data, recipeById, sinkPerMin } from '../lib/data';
 import { fold } from '../lib/fold';
 import type { ExtractionUse } from '../lib/extraction';
 import { useT } from '../lib/i18n';
@@ -27,6 +27,13 @@ export function RateChips({ list, muted }: { list: { item: string; rate: number 
       ))}
     </span>
   );
+}
+
+/** What sinking the leftovers would score, under the list of them. Nothing when none of them can be sunk. */
+export function SinkPoints({ list }: { list: { item: string; rate: number }[] }) {
+  const { t, num } = useT();
+  const points = Math.round(sinkPerMin(list));
+  return points > 0 ? <span className="readout-sub sink-points">{t('sinkPerMin', { n: num(points) })}</span> : null;
 }
 
 export function Summary({ result, extraction }: { result: SolveResult; extraction: ExtractionUse[] }) {
@@ -115,9 +122,10 @@ export function Summary({ result, extraction }: { result: SolveResult; extractio
             <RawInputs raw={result.raw} />
           </div>
           {result.surplus.length > 0 && (
-            <div className="readout">
+            <div className="readout fill">
               <span className="readout-label">{t('surplus')}</span>
               <RateChips list={result.surplus} muted />
+              <SinkPoints list={result.surplus} />
             </div>
           )}
         </div>

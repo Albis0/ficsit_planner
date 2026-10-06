@@ -346,6 +346,7 @@
   }
 
   .readout,
+  .readout.fill,
   .readout.wide {
     flex: none;
     min-width: 0;

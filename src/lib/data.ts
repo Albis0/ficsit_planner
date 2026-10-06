@@ -272,6 +272,14 @@ export function rawTier(id: string): number | undefined {
   return tiers.length ? Math.min(...tiers) : undefined;
 }
 
+/** AWESOME Sink points a minute that sinking these would score. Fluids and parts worth nothing add none. */
+export const sinkPerMin = (list: { item: string; rate: number }[]) =>
+  list.reduce((sum, x) => {
+    const it = data.items[x.item];
+    // Only parts that go in the Sink: it takes no liquid or gas, whatever points the data lists.
+    return it?.form === 'solid' ? sum + x.rate * it.sink : sum;
+  }, 0);
+
 /** Not makeable yet at this tier: its first standard recipe opens up later. Items nothing standard makes never are. */
 export function itemLocked(id: string, tier: number): boolean {
   const needs = itemTier(id);

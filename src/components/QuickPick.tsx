@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react';
 import { craftableItems, data, itemLocked, itemTier, SPECIAL_ITEMS } from '../lib/data';
 import { useT } from '../lib/i18n';
+import { laterMatches } from '../lib/later';
 import { searchKey } from '../lib/text';
 import { useStore } from '../store';
 import { Glyph } from './Glyph';
@@ -58,6 +59,18 @@ export function QuickPick() {
       )
       .slice(0, RESULTS);
   }, [q, name, hide, tier]);
+
+  const later = useMemo(
+    () =>
+      hide && q.trim()
+        ? laterMatches(
+            q,
+            craftableItems.filter((i) => itemLocked(i.id, tier)),
+            name,
+          )
+        : [],
+    [q, name, hide, tier],
+  );
 
   const add = (item: string, rate: number) => {
     updatePlan((p) => (p.targets.some((x) => x.item === item) ? {} : { targets: [...p.targets, { item, rate }] }));
@@ -119,7 +132,11 @@ export function QuickPick() {
               10,
             )
           ) : (
-            <p className="hint">{t('noResults')}</p>
+            <p className="hint">
+              {later.length
+                ? t('notInTierYet', { list: later.map((x) => `${name(x.item)} (${t('tierTag', { tier: x.tier })})`).join(', ') })
+                : t('noResults')}
+            </p>
           )
         ) : (
           <>

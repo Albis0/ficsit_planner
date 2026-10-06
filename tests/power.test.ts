@@ -1,7 +1,7 @@
 import { beforeAll, describe, expect, test } from 'bun:test';
 import loadHighs, { type Highs } from 'highs';
 import { data, generatorById } from '../src/lib/data';
-import { fuelRate, geyserPower, gridBoost, type Plant, plantRecipe, unitPower } from '../src/lib/power';
+import { filledTo100, fixedAs, fuelRate, geyserPower, gridBoost, type Plant, plantRecipe, unitPower } from '../src/lib/power';
 import { powerInput, powerLoad } from '../src/lib/solution';
 import { type PowerInput, type SolveInput, solve } from '../src/lib/solver';
 import { newPowerPlan, type PowerPlan } from '../src/store';
@@ -203,6 +203,41 @@ describe('sizing a plant', () => {
     // A Fuel Generator burns 20 m³ a minute at 250 MW.
     expect(r.grid!.generation).toBeCloseTo(750, 3);
     expect(r.raw.filter((x) => x.item !== 'Desc_Water_C')).toHaveLength(0);
+  });
+
+  test('what I have: Fix the count keeps the answer; the old whole-generators-at-100% count asked for more fuel than there is', () => {
+    const pp = make({
+      sizeBy: 'have',
+      have: [{ item: 'Desc_PackagedRocketFuel_C', rate: 60 }],
+      ownLoad: false,
+      plants: [plant({ generator: FUEL, fuel: 'Desc_RocketFuel_C' })],
+    });
+    const r = run(pp);
+    const use = r.recipes.find((x) => x.recipe.kind === 'power')!;
+    // 60 packaged give 120 rocket fuel, 4.17 a generator: 28.8 generators' worth, so 29 built.
+    expect(use.built).toBe(29);
+    const as = (patch: Partial<Plant>): PowerPlan => ({ ...pp, plants: pp.plants.map((p) => ({ ...p, ...patch })) });
+    expect(() => run(as({ by: 'count', amount: use.built }))).toThrow();
+    const fixed = run(as(fixedAs(use)));
+    expect(fixed.grid!.generation).toBeCloseTo(r.grid!.generation, 3);
+    expect(fixed.recipes.find((x) => x.recipe.kind === 'power')!.built).toBe(29);
+  });
+
+  test('Fill to 100%: rounds down to what the fuel runs, or up to cover the load, every generator at 100%', () => {
+    const pp = make({
+      sizeBy: 'have',
+      have: [{ item: 'Desc_PackagedRocketFuel_C', rate: 60 }],
+      ownLoad: false,
+      plants: [plant({ generator: FUEL, fuel: 'Desc_RocketFuel_C' })],
+    });
+    const use = run(pp).recipes.find((x) => x.recipe.kind === 'power')!;
+    expect(filledTo100(use, true)).toEqual({ by: 'count', amount: 28, clock: 1 });
+    expect(filledTo100(use, false)).toEqual({ by: 'count', amount: 29, clock: 1 });
+    const filled = run({ ...pp, plants: pp.plants.map((p) => ({ ...p, ...filledTo100(use, true) })) });
+    expect(filled.recipes.find((x) => x.recipe.kind === 'power')!.clocks.every((c) => Math.abs(c - 1) < 1e-6)).toBe(true);
+    // Less than one generator's worth of fuel: nothing runs full.
+    const little = run({ ...pp, have: [{ item: 'Desc_PackagedRocketFuel_C', rate: 1 }] }).recipes.find((x) => x.recipe.kind === 'power')!;
+    expect(filledTo100(little, true)).toBeUndefined();
   });
 
   test('what I have: nothing burnable listed says so instead of making free power', () => {

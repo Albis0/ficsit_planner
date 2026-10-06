@@ -1027,7 +1027,16 @@ const clash = (a, b) => a && b && a.x < b.x + b.width && b.x < a.x + a.width && 
   await page.locator('.side .add-button').first().click();
   await page.locator('.picker-search').fill('motor');
   await wait(200);
-  ok('Motor is not in Add product', (await page.locator('.picker-list li:has-text("Motor")').count()) === 0);
+  ok('Motor is not in Add product', (await page.locator('.picker-list li[role=option]').count()) === 0);
+  ok(
+    'and the empty list says when it opens up',
+    /Not in your tier yet: .*Motor.*Tier \d/.test(await page.locator('.picker-empty').innerText()),
+  );
+  await page.locator('.picker-search').fill('qwzx');
+  await wait(200);
+  ok('a made-up word just finds no matches', (await page.locator('.picker-empty').innerText()).trim() === 'No matches');
+  await page.locator('.picker-search').fill('motor');
+  await wait(200);
   await page.locator('.picker-search').fill('rotor');
   await wait(200);
   ok('what this tier makes still is', (await page.locator('.picker-list li:has-text("Rotor")').count()) === 1);
@@ -1035,7 +1044,7 @@ const clash = (a, b) => a && b && a.x < b.x + b.width && b.x < a.x + a.width && 
   await page.locator('.side .add-button').nth(1).click();
   await page.locator('.picker-search').fill('motor');
   await wait(200);
-  ok('Motor is not in Already on hand', (await page.locator('.picker-list li:has-text("Motor")').count()) === 0);
+  ok('Motor is not in Already on hand', (await page.locator('.picker-list li[role=option]').count()) === 0);
   await page.keyboard.press('Escape');
   // Recipes: nothing locked listed, and no button to list it.
   await page.locator('.side .tabs button[role="tab"]:has-text("Recipes")').click();

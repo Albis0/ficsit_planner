@@ -2,7 +2,18 @@ import { useEffect, useRef, useState } from 'react';
 import { data, type Generator } from '../lib/data';
 import { PURITIES } from '../lib/extraction';
 import { useT } from '../lib/i18n';
-import { fuelRate, generatorOf, handFed, PLANT_OPTIONS, PLANT_PREFIX, type Plant, type SizeBy, sizable } from '../lib/power';
+import {
+  filledTo100,
+  fixedAs,
+  fuelRate,
+  generatorOf,
+  handFed,
+  PLANT_OPTIONS,
+  PLANT_PREFIX,
+  type Plant,
+  type SizeBy,
+  sizable,
+} from '../lib/power';
 import type { FactoryDraw, PowerLoad } from '../lib/solution';
 import type { SolveResult, Target } from '../lib/solver';
 import { activePowerPlan, poweredBy, usePlan, useStore } from '../store';
@@ -84,6 +95,15 @@ function GenRow({ plant, result }: { plant: Plant; result?: SolveResult }) {
   const put = (patch: Partial<Plant>) => updatePlant(plant.id, patch);
   const locked = g.tier > tier;
   const auto = sizable(g) && plant.by === 'auto';
+  const have = useStore((s) => activePowerPlan(s).sizeBy === 'have');
+  // Whole generators at 100% instead; greyed out when that is what is already there.
+  const full = use && sizable(g) ? filledTo100(use, have) : undefined;
+  const isFull = !!use && !!full && use.built === full.amount && Math.abs(use.clock - 1) < 1e-6;
+  const fillButton = use && sizable(g) && (
+    <button type="button" className="text-button" title={t('powerFillHint')} disabled={!full || isFull} onClick={() => full && put(full)}>
+      {t('fullSpeed')}
+    </button>
+  );
   const count = Math.max(0, Math.round(plant.by === 'count' || !sizable(g) ? plant.amount : (use?.built ?? 1)));
 
   return (
@@ -155,10 +175,11 @@ function GenRow({ plant, result }: { plant: Plant; result?: SolveResult }) {
             )}
             <span className="gen-mode">{t('autoSized')}</span>
             {use && (
-              <button type="button" className="text-button" onClick={() => put({ by: 'count', amount: use.built })}>
+              <button type="button" className="text-button" onClick={() => put(fixedAs(use))}>
                 {t('fixCount')}
               </button>
             )}
+            {fillButton}
           </>
         ) : (
           <>
@@ -182,6 +203,7 @@ function GenRow({ plant, result }: { plant: Plant; result?: SolveResult }) {
                 {t('backToAuto')}
               </button>
             )}
+            {fillButton}
           </>
         )}
       </div>

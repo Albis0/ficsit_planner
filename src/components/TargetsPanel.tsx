@@ -55,6 +55,7 @@ export function TargetsPanel({ result }: { result?: SolveResult }) {
   const others = s.plans.filter((p) => p.id !== plan.id);
   // What the tier can't make yet stays out of every list, unless Settings shows it.
   const unlocked = (list: typeof supplyItems) => (s.settings.showLocked ? list : list.filter((i) => !itemLocked(i.id, s.tier)));
+  const later = (list: typeof supplyItems) => (s.settings.showLocked ? undefined : list.filter((i) => itemLocked(i.id, s.tier)));
   const exports = useExports(plan.id);
   // Taken from the tab that already makes it, if one does; the source can be changed on the card.
   const made = new Map<string, string>();
@@ -67,6 +68,7 @@ export function TargetsPanel({ result }: { result?: SolveResult }) {
         <Cards list={plan.targets} size={64} onRate={s.setTarget} onRemove={s.removeTarget} />
         <ItemPicker
           items={unlocked(craftableItems)}
+          hidden={later(craftableItems)}
           label={t('addProduct')}
           onPick={s.addTarget}
           exclude={plan.targets.map((x) => x.item)}
@@ -120,6 +122,7 @@ export function TargetsPanel({ result }: { result?: SolveResult }) {
         />
         <ItemPicker
           items={unlocked(supplyItems)}
+          hidden={later(supplyItems)}
           label={t('addSupply')}
           onPick={(id) => s.addSupply(id)}
           exclude={plan.supplies.map((x) => x.item)}
@@ -127,6 +130,7 @@ export function TargetsPanel({ result }: { result?: SolveResult }) {
         {others.length > 0 && (
           <ItemPicker
             items={unlocked(supplyItems)}
+            hidden={later(supplyItems)}
             label={t('takeFromFactory')}
             onPick={(id) => s.addSupply(id, 10, made.get(id) ?? others[0].id)}
             exclude={plan.supplies.map((x) => x.item)}

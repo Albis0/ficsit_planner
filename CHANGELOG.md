@@ -2,6 +2,28 @@
 
 All notable changes to FICSIT Planner. Dates are when the version was finished.
 
+## 0.13.9 — 2026-10-06
+
+### Added
+
+- **Belts show arrowheads running the way the belt moves**, following its curve, in place of the straight lines. They
+  stand still when belt motion is off or while the floor is being moved.
+- **Fill to 100% on a power plant's generators**: whole generators, every one at 100%. Sized to what you have it rounds
+  down to what the fuel runs; sized any other way it rounds up, so the load is still met. It greys out when that is
+  what is already there.
+- **Sink points for what is left over**: the Surplus card, the power summary and the Manual panel's left-over list say
+  how many AWESOME Sink points a minute sinking it would score. Liquids and gases don't count, the Sink takes none.
+
+### Fixed
+
+- **Searching for something your tier can't make yet** said "No matches". It now says when it opens up ("Not in your
+  tier yet: Turbo Motor (Tier 8)", up to three names); a word that matches nothing still says "No matches".
+- **"Fix the count" on a power plant could leave it with no answer.** It took the rounded-up generator count but kept
+  the plant's own clock, so 60 a minute of Packaged Rocket Fuel (28.8 generators' worth) became 29 at 100%, which burns
+  more than there is. It now keeps the clock the generators came to (29 × 99.31%).
+- **The Surplus card, and the power summary's Needs and Makes as well, dropped to a line of their own** when they didn't
+  fit beside the other totals, leaving a gap. They now take the rest of the row and wrap inside.
+
 ## 0.13.8 — 2026-10-05
 
 ### Fixed

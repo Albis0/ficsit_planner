@@ -1,5 +1,6 @@
 import { data, type Generator, generatorById, type Recipe } from './data';
 import { PURITY, type Purity } from './extraction';
+import type { RecipeUse } from './solver';
 
 /**
  * How a power plant is sized: whatever the grid still needs ('auto', worked out by the solver),
@@ -40,6 +41,27 @@ export const clockable = (g: Generator) => g.kind === 'fuel';
 
 /** Clock the solver should run a plant's generators at. */
 export const plantClock = (p: Plant) => (clockable(generatorOf(p)) ? p.clock : 1);
+
+/**
+ * "Fix the count": the generators as the solver worked them out, whole ones each at the clock the total came to. Keeping
+ * the plant's own clock instead would burn more than the plan has, e.g. 29 at 100% for 28.8 generators' worth of fuel.
+ */
+export function fixedAs(use: Pick<RecipeUse, 'built' | 'clock'>): Partial<Plant> {
+  return { by: 'count', amount: use.built, clock: Math.min(MAX_CLOCK, Math.max(0.01, use.clock)) };
+}
+
+/**
+ * "Fill to 100%": whole generators, every one at 100%. Sized to what you have the count rounds down, since the fuel
+ * can't stretch; sized any other way it rounds up, so the load is still met. Undefined when not even one runs full.
+ */
+export function filledTo100(
+  use: Pick<RecipeUse, 'count'> & { mod: Pick<RecipeUse['mod'], 'clock'> },
+  have: boolean,
+): Partial<Plant> | undefined {
+  const exact = use.count * use.mod.clock;
+  const n = have ? Math.floor(exact + 1e-6) : Math.ceil(exact - 1e-6);
+  return n >= 1 ? { by: 'count', amount: n, clock: 1 } : undefined;
+}
 
 /** Fixed-size plants always use a count or an output; auto only makes sense for burners. */
 export const plantSize = (p: Plant): PlantSize => (sizable(generatorOf(p)) ? p.by : 'count');

@@ -7,6 +7,7 @@ import type { IoNode, Model } from '../../lib/model/types';
 import type { SolveResult } from '../../lib/solver';
 import { useStore } from '../../store';
 import { ItemPicker } from '../ItemPicker';
+import { SinkPoints } from '../Summary';
 import { RateInput } from '../RateInput';
 import { Slot } from '../Slot';
 import { type ModelHost, revealCard } from './ModelEditor';
@@ -107,6 +108,7 @@ export function FloorPanel({ host, calc, result }: { host: ModelHost; calc?: Cal
         {outs.map((n) => row(n, 64))}
         <ItemPicker
           items={showLocked ? craftableItems : craftableItems.filter((i) => !itemLocked(i.id, tier))}
+          hidden={showLocked ? undefined : craftableItems.filter((i) => itemLocked(i.id, tier))}
           label={t('addProduct')}
           onPick={(id) => add('out', id)}
           exclude={outs.flatMap((n) => (n.item ? [n.item] : []))}
@@ -128,6 +130,7 @@ export function FloorPanel({ host, calc, result }: { host: ModelHost; calc?: Cal
                 </li>
               ))}
             </ul>
+            <SinkPoints list={surplus} />
           </>
         )}
       </section>

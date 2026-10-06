@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { type Item, SPECIAL_ITEMS } from '../lib/data';
 import { useT } from '../lib/i18n';
+import { laterMatches } from '../lib/later';
 import { searchKey } from '../lib/text';
 import { Icon } from './Icon';
 
@@ -9,10 +10,12 @@ interface Props {
   label: string;
   onPick: (id: string) => void;
   exclude?: string[];
+  /** Items left out of the list for being above the tier: a search that finds none of `items` says when these open up. */
+  hidden?: Item[];
 }
 
 /** A button that unfolds into a searchable item list. Type to filter, arrows to move, Enter to pick. */
-export function ItemPicker({ items, label, onPick, exclude = [] }: Props) {
+export function ItemPicker({ items, label, onPick, exclude = [], hidden }: Props) {
   const { t, name } = useT();
   const [open, setOpen] = useState(false);
   const [q, setQ] = useState('');
@@ -29,6 +32,7 @@ export function ItemPicker({ items, label, onPick, exclude = [] }: Props) {
       .filter((i) => !f || searchKey(name(i)).includes(f))
       .sort((a, b) => Number(SPECIAL_ITEMS.has(a.id)) - Number(SPECIAL_ITEMS.has(b.id)) || name(a).localeCompare(name(b)));
   }, [q, items, exclude, name]);
+  const later = useMemo(() => (hidden && q.trim() ? laterMatches(q, hidden, name) : []), [q, hidden, name]);
   // Gear (ammo, equipment, power shards) comes last, under a heading of its own.
   const firstSpecial = matches.findIndex((i) => SPECIAL_ITEMS.has(i.id));
 
@@ -99,7 +103,13 @@ export function ItemPicker({ items, label, onPick, exclude = [] }: Props) {
       {/* Combobox pattern: focus stays in the search field and aria-activedescendant points at the option. */}
       {/* biome-ignore lint/a11y/noNoninteractiveElementToInteractiveRole: listbox of the combobox above */}
       <ul className="picker-list" id="picker-list" role="listbox" ref={list}>
-        {matches.length === 0 && <li className="picker-empty">{t('noResults')}</li>}
+        {matches.length === 0 && (
+          <li className="picker-empty">
+            {later.length
+              ? t('notInTierYet', { list: later.map((x) => `${name(x.item)} (${t('tierTag', { tier: x.tier })})`).join(', ') })
+              : t('noResults')}
+          </li>
+        )}
         {matches.map((i, k) => [
           k === firstSpecial && (
             <li key="special" className="picker-heading" role="presentation">

@@ -1,6 +1,7 @@
 import { describe, expect, test } from 'bun:test';
-import { craftableItems, itemLocked, itemTier } from '../src/lib/data';
+import { craftableItems, itemLocked, itemTier, sinkPerMin } from '../src/lib/data';
 import { choicesFor } from '../src/lib/model/choices';
+import { laterMatches } from '../src/lib/later';
 import { cleanSettings } from '../src/lib/sanitize';
 import { DEFAULT_SETTINGS } from '../src/lib/settings';
 
@@ -30,5 +31,22 @@ describe('hiding what the tier can’t make', () => {
 
   test('the build menu has something to hide below the last tier', () => {
     expect(choicesFor(undefined, 2).some((c) => c.tier > 2)).toBe(true);
+  });
+
+  test('a search that finds nothing at the tier says when what it found opens up; a made-up word says nothing', () => {
+    const hidden = craftableItems.filter((i) => itemLocked(i.id, 2));
+    const name = (i: { name: string }) => i.name;
+    const found = laterMatches('motor', hidden, name);
+    expect(found.length).toBeGreaterThan(0);
+    expect(found.length).toBeLessThanOrEqual(3);
+    for (const x of found) expect(x.tier).toBeGreaterThan(2);
+    expect(laterMatches('qwzx', hidden, name)).toEqual([]);
+    expect(laterMatches('  ', hidden, name)).toEqual([]);
+  });
+
+  test('sink points: parts count, fluids and empty lists add nothing', () => {
+    expect(sinkPerMin([])).toBe(0);
+    expect(sinkPerMin([{ item: 'Desc_IronPlate_C', rate: 10 }])).toBeGreaterThan(0);
+    expect(sinkPerMin([{ item: 'Desc_Water_C', rate: 100 }])).toBe(0);
   });
 });

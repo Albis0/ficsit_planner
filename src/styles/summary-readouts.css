@@ -33,6 +33,11 @@
   color: var(--ficsit);
 }
 
+/* What a plan leaves over or needs: takes the rest of the row, its chips wrapping inside, instead of dropping to a line of its own with a gap beside it. */
+.readout.fill {
+  flex: 1 1 200px;
+}
+
 .readout.wide {
   flex: 1;
   min-width: 200px;
@@ -62,6 +67,11 @@
 .readout-sub {
   font-size: 13px;
   color: var(--faint);
+}
+
+.sink-points {
+  display: block;
+  margin-top: 2px;
 }
 
 .readout-value.shard {

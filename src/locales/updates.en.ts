@@ -9,6 +9,18 @@ export type UpdateNote = [UpdateKind, string];
 
 export const UPDATES: { version: string; date: string; title?: string; notes: UpdateNote[] }[] = [
   {
+    version: '0.13.9',
+    date: '2026-10-06',
+    notes: [
+      ['changed', 'Belts show arrowheads running the way the belt moves, instead of straight lines.'],
+      ['added', 'Power plants: Fill to 100% turns the generators into whole ones at 100%.'],
+      ['added', 'Left-over products show the AWESOME Sink points a minute they would score.'],
+      ['fixed', 'Searching for something above your tier says when it opens up, not just “No matches”.'],
+      ['fixed', 'Power plants: “Fix the count” no longer asks for more fuel than you listed.'],
+      ['fixed', 'The Surplus card no longer drops to a line of its own with a gap beside it.'],
+    ],
+  },
+  {
     version: '0.13.8',
     date: '2026-10-05',
     notes: [['fixed', 'Manual floor: a card moved or removed while Tidy up is working stays as you left it. Thanks to dberlin.']],
