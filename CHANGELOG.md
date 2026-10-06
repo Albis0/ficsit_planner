@@ -2,6 +2,15 @@
 
 All notable changes to FICSIT Planner. Dates are when the version was finished.
 
+## 0.13.11 — 2026-10-06
+
+### Added
+
+- **Belt shape for the Auto floor** (Settings › Factory floor): Curved, as before, or Square, in straight runs with
+  rounded square turns like the Manual floor's. Square belts follow the same route around the machines; belts of
+  different lines that would run upright over each other in one gap get a lane each, and belts off one machine share
+  theirs. A belt of a machine you drag falls back to a square step. Curved stays the default.
+
 ## 0.13.10 — 2026-10-06
 
 ### Added

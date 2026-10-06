@@ -1,3 +1,4 @@
+import { squareBends } from './squareRoute';
 import dagre from '@dagrejs/dagre';
 import { Position, type Edge, type Node, type NodeHandle } from '@xyflow/react';
 import { groupClocks } from './clocks';
@@ -65,6 +66,8 @@ export interface Route {
   /** Where both machines were laid out. Once either is dragged, the belt falls back to a plain curve. */
   from: Point;
   to: Point;
+  /** With square belts: the bends of the same route in straight runs and square turns. */
+  square?: Point[];
 }
 
 export interface FlowEdgeData extends Record<string, unknown> {
@@ -152,6 +155,8 @@ export interface GraphOptions {
   consumers?: Consumer[];
   /** A line whose output goes to several places: one card with a note, or a card per place. */
   splitLines?: 'one' | 'each';
+  /** Belts in straight runs with square turns, as on the hand-built floor, instead of curves. */
+  squareBelts?: boolean;
 }
 
 /** Turns an LP solution into a factory graph, with a belt for each flow `matchFlows` finds. */
@@ -357,6 +362,33 @@ function place(nodes: Node[], edges: Edge[], dir: Direction, ranker: Ranker, opt
   return { dir, pos, routes, width, height, crossings: crossings(nodes, edges, pos, dir) };
 }
 
+/** Gives every belt its square route: dagre's bends made straight runs, belts of different lines kept in lanes of their own. */
+function squareUp(nodes: Node[], edges: Edge[], dir: Direction) {
+  const size = new Map(nodes.map((n) => [n.id, { w: n.width ?? 0, h: n.height ?? 0 }]));
+  const pos = new Map(nodes.map((n) => [n.id, n.position]));
+  const out = (id: string): Point => {
+    const [p, s] = [pos.get(id)!, size.get(id)!];
+    return dir === 'LR' ? { x: p.x + s.w, y: p.y + s.h / 2 } : { x: p.x + s.w / 2, y: p.y + s.h };
+  };
+  const into = (id: string): Point => {
+    const [p, s] = [pos.get(id)!, size.get(id)!];
+    return dir === 'LR' ? { x: p.x, y: p.y + s.h / 2 } : { x: p.x + s.w / 2, y: p.y };
+  };
+  const flow = edges.filter((e) => e.type === 'flow' && (e.data as FlowEdgeData).route);
+  const bends = squareBends(
+    flow.map((e) => ({
+      id: e.id,
+      source: e.source,
+      target: e.target,
+      from: out(e.source),
+      to: into(e.target),
+      via: (e.data as FlowEdgeData).route!.points,
+    })),
+    dir,
+  );
+  for (const e of flow) (e.data as FlowEdgeData).route!.square = bends.get(e.id);
+}
+
 /** Belts that cross, counting each belt as a straight line from its output handle to its input handle. */
 function crossings(nodes: Node[], edges: Edge[], pos: Map<string, Point>, dir: Direction): number {
   const size = new Map(nodes.map((n) => [n.id, { w: n.width ?? 0, h: n.height ?? 0 }]));
@@ -404,5 +436,6 @@ function layout(nodes: Node[], edges: Edge[], opts: GraphOptions): Direction {
     const r = pick.routes.get(e.id)!;
     (e.data as FlowEdgeData | PowerEdgeData).route = { ...r, from: pick.pos.get(e.source)!, to: pick.pos.get(e.target)! };
   }
+  if (opts.squareBelts) squareUp(nodes, edges, pick.dir);
   return pick.dir;
 }

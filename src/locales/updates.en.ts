@@ -9,6 +9,16 @@ export type UpdateNote = [UpdateKind, string];
 
 export const UPDATES: { version: string; date: string; title?: string; notes: UpdateNote[] }[] = [
   {
+    version: '0.13.11',
+    date: '2026-10-06',
+    notes: [
+      [
+        'added',
+        'Settings › Factory floor › Belt shape: Square gives the Auto floor straight belts with square turns, like the Manual floor.',
+      ],
+    ],
+  },
+  {
     version: '0.13.10',
     date: '2026-10-06',
     notes: [

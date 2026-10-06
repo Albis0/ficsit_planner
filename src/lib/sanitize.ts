@@ -228,6 +228,7 @@ export function cleanSettings(saved: unknown): Settings {
     uiScale: scale('uiScale'),
     spacing: scale('spacing'),
     beltLabels: oneOf(s.beltLabels, ['auto', 'always', 'never'] as const, d.beltLabels),
+    autoBelts: oneOf(s.autoBelts, ['curve', 'square'] as const, d.autoBelts),
     beltMotion: typeof s.beltMotion === 'boolean' ? s.beltMotion : d.beltMotion,
     gridLines: typeof s.gridLines === 'boolean' ? s.gridLines : d.gridLines,
     addWith: oneOf(s.addWith, ['right', 'double'] as const, d.addWith),

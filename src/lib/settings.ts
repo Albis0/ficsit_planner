@@ -24,6 +24,8 @@ export interface Settings {
   /** Room between machines, 1 = default. */
   spacing: number;
   beltLabels: 'auto' | 'always' | 'never';
+  /** The Auto floor's belts: curves, or straight runs with square turns like the hand-built floor's. */
+  autoBelts: 'curve' | 'square';
   beltMotion: boolean;
   /** Foundation grid lines on the floor. */
   gridLines: boolean;
@@ -84,6 +86,7 @@ export const DEFAULT_SETTINGS: Settings = {
   uiScale: 1,
   spacing: 1,
   beltLabels: 'auto',
+  autoBelts: 'curve',
   beltMotion: true,
   gridLines: true,
   addWith: 'right',

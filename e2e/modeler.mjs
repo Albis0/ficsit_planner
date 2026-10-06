@@ -175,6 +175,27 @@ const clash = (a, b) => a && b && a.x < b.x + b.width && b.x < a.x + a.width && 
   page = await ctx.newPage();
   page.on('pageerror', (e) => errors.push(e.message));
 
+  // ── A0: square belts on the Auto floor ──
+  section = 'A0';
+  const beltPaths = () => page.$$eval('.react-flow__edge path', (l) => l.map((p) => p.getAttribute('d') ?? ''));
+  await open(factory([['Desc_Motor_C', 10]]));
+  const curved = await beltPaths();
+  ok('curved belts by default', curved.length > 0 && curved.some((d) => /C/.test(d)));
+  await open(
+    saved({
+      mode: 'factory',
+      plans: [{ id: 'f1', name: 'Factory 1', targets: [{ item: 'Desc_Motor_C', rate: 10 }] }],
+      active: 'f1',
+      settings: { autoBelts: 'square' },
+    }),
+  );
+  const squared = await beltPaths();
+  ok(
+    'square belts: straight runs with rounded turns, no curves',
+    squared.length > 0 && squared.every((d) => !/C/.test(d)),
+    `${squared.length} belts`,
+  );
+
   // ── A1: Auto to Manual ──
   section = 'A1';
   await open(factory([['Desc_Motor_C', 10]]));

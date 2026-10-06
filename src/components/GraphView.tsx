@@ -7,6 +7,7 @@ import {
   ReactFlow,
   ReactFlowProvider,
   getBezierPath,
+  getSmoothStepPath,
   useInternalNode,
   useReactFlow,
   useStore as useFlowStore,
@@ -42,6 +43,7 @@ import { COARSE, useMediaQuery } from '../lib/useMediaQuery';
 import type { SolveResult } from '../lib/solver';
 import { toggleBuilt, usePlan, useStore } from '../store';
 import { beltStroke } from './floor/BeltStroke';
+import { longestRunMid, SQUARE_TURN, squarePath } from './floor/squarePath';
 import { Glyph } from './Glyph';
 import { Icon } from './Icon';
 import { Slot } from './Slot';
@@ -520,6 +522,7 @@ function FlowEdge({ id, source, target, sourceX, sourceY, targetX, targetY, sour
   const zoom = useFlowStore(zoomSelector);
   const still = useFlowStore(stillSelector);
   const labels = useStore((s) => s.settings.beltLabels);
+  const square = useStore((s) => s.settings.autoBelts === 'square');
   const oneColor = useStore((s) => s.settings.beltColors === 'one');
   const { item, rate, transport, lanes, route } = d as FlowEdgeData;
   const it = data.items[item];
@@ -535,9 +538,18 @@ function FlowEdge({ id, source, target, sourceX, sourceY, targetX, targetY, sour
   let ly: number;
   if (route && !moved(from, route.from) && !moved(to, route.to)) {
     // As laid out: follow the route around the machines, through the label's reserved spot.
-    path = routePath([{ x: sourceX, y: sourceY }, ...route.points, { x: targetX, y: targetY }], dir);
-    lx = route.label.x;
-    ly = route.label.y;
+    if (square && route.square) {
+      // Straight runs with square turns, as on the Manual floor, the label on the longest run.
+      const sq = squarePath({ x: sourceX, y: sourceY }, route.square, { x: targetX, y: targetY }, dir === 'TB');
+      path = sq.path;
+      [lx, ly] = longestRunMid(sq.runs);
+    } else {
+      path = routePath([{ x: sourceX, y: sourceY }, ...route.points, { x: targetX, y: targetY }], dir);
+      lx = route.label.x;
+      ly = route.label.y;
+    }
+  } else if (square) {
+    [path, lx, ly] = getSmoothStepPath({ sourceX, sourceY, targetX, targetY, sourcePosition, targetPosition, borderRadius: SQUARE_TURN });
   } else {
     [path, lx, ly] = getBezierPath({ sourceX, sourceY, targetX, targetY, sourcePosition, targetPosition });
   }
@@ -849,6 +861,7 @@ export function GraphView({
   const text = useStore((s) => s.settings.textScale);
   const splitLines = useStore((s) => s.settings.splitLines);
   const spacing = useStore((s) => s.settings.spacing);
+  const squareBelts = useStore((s) => s.settings.autoBelts === 'square');
   // Uncontrolled flow remounted per solve: nodes stay draggable, and each new solve lays out fresh.
   const { nodes, edges, dir, key, sig } = useMemo(() => {
     const box = document.querySelector('.floor-view')?.getBoundingClientRect();
@@ -860,6 +873,7 @@ export function GraphView({
       spacing,
       consumers,
       splitLines,
+      squareBelts,
     });
     return {
       ...g,
@@ -870,7 +884,7 @@ export function GraphView({
           .sort()
           .join('|') + g.dir,
     };
-  }, [result, tier, chosen, scale, text, spacing, consumers, splitLines]);
+  }, [result, tier, chosen, scale, text, spacing, consumers, splitLines, squareBelts]);
   const exMap = useMemo(() => new Map(extraction.map((u) => [u.item, u])), [extraction]);
   // Ticking a machine built changes nothing the layout is made from, so the floor isn't laid out again for it.
   const ticked = usePlan().built;
