@@ -75,6 +75,20 @@
   overflow: visible;
 }
 
+/* The same cut corner, on a shape that reaches 24px past every other side: the ports and the built tick stand out of the
+   card and aren't cut with it. */
+.machine-node.manual {
+  clip-path: polygon(
+    -24px -24px,
+    calc(100% - 20px) -24px,
+    calc(100% - 20px) 0,
+    100% 20px,
+    calc(100% + 24px) 20px,
+    calc(100% + 24px) calc(100% + 24px),
+    -24px calc(100% + 24px)
+  );
+}
+
 /* Hand-built cards keep their grid size: whole squares, so their sides and ends sit on the floor's lines. */
 .machine-node.manual,
 .endpoint-node.manual,
@@ -82,10 +96,6 @@
   --t: 1;
   zoom: 1;
   box-sizing: border-box;
-}
-
-.machine-node.manual {
-  clip-path: none;
 }
 
 .endpoint-node.manual.selected,

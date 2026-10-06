@@ -180,6 +180,15 @@ const clash = (a, b) => a && b && a.x < b.x + b.width && b.x < a.x + a.width && 
   await open(factory([['Desc_Motor_C', 10]]));
   await page.click('.deck-toggle');
   await wait(600);
+  // A double click on an Auto machine ticks it built (no panel opens); a single click opens its panel with the box ticked.
+  await page.locator('.react-flow__node-machine .machine-node').first().dblclick();
+  await wait(600);
+  ok('a double click on an Auto machine ticks it built', (await page.locator('.machine-node.done').count()) === 1);
+  ok('and opens no panel', (await page.locator('.inspector').count()) === 0);
+  await page.locator('.react-flow__node-machine .machine-node').first().click();
+  await wait(600);
+  ok('a single click opens the panel, with the built box ticked', (await page.locator('.inspector .built-check.on').count()) === 1);
+  await page.keyboard.press('Escape');
   const autoRaw = await page.$$eval('.readout.wide input', (l) => l.map((i) => i.value));
   const autoMachines = await page.locator('.readout-value').nth(1).innerText();
   await page.click('.floor-kind button >> nth=1');
@@ -204,6 +213,10 @@ const clash = (a, b) => a && b && a.x < b.x + b.width && b.x < a.x + a.width && 
   const manualRaw = await page.$$eval('.readout.wide input', (l) => l.map((i) => i.value));
   ok('same raw input as Auto', JSON.stringify(manualRaw) === JSON.stringify(autoRaw), `${autoRaw} / ${manualRaw}`);
   ok('same machine count', (await page.locator('.readout-value').nth(1).innerText()) === autoMachines);
+  ok(
+    'the machine ticked built in Auto is ticked on the Manual floor too',
+    m.nodes.some((n) => n.k === 'machine' && n.done),
+  );
   const states = await page.$$eval('.react-flow__node .machine-node .run-state', (l) => l.map((x) => x.textContent));
   ok('every machine at full speed', states.length > 0 && states.every((s) => s === 'Full speed'), [...new Set(states)].join(', '));
   ok('no cards on top of each other', (await overlaps()).length === 0, (await overlaps()).join(' '));

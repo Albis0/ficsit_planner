@@ -8,7 +8,7 @@ import { groupClocks } from '../lib/clocks';
 import { buildGroups, groupsLabel, isPipe } from '../lib/groups';
 import { amplification, NO_MOD, shardsFor, type SolveResult } from '../lib/solver';
 import { matchFlows, splitByDestination } from '../lib/split';
-import { usePlan, useStore } from '../store';
+import { toggleBuilt, usePlan, useStore } from '../store';
 import { Icon } from './Icon';
 import { RateInput } from './RateInput';
 import { useSplitText } from './SplitText';
@@ -23,6 +23,7 @@ export function Inspector({ result }: { result: SolveResult }) {
   const tier = useStore((s) => s.tier);
   const set = useStore((s) => s.set);
   const setMod = useStore((s) => s.setMod);
+  const updatePlan = useStore((s) => s.updatePlan);
   const plan = usePlan();
   // Slider position while it's dragged, and until the solve comes back with the clock it asked for.
   // Tied to the machine and the clock it started from, so any new result shows the real clock again.
@@ -213,6 +214,13 @@ export function Inspector({ result }: { result: SolveResult }) {
           </div>
         ))}
       </dl>
+
+      <div className="inspector-actions">
+        <label className={`built-check ${plan.built?.includes(recipe.id) ? 'on' : ''}`}>
+          <input type="checkbox" checked={!!plan.built?.includes(recipe.id)} onChange={() => updatePlan(toggleBuilt(recipe.id))} />
+          {t('builtCheck')}
+        </label>
+      </div>
 
       <RecipeChoices item={recipe.outputs[0].item} result={result} />
 

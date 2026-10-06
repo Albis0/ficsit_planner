@@ -9,6 +9,17 @@ export type UpdateNote = [UpdateKind, string];
 
 export const UPDATES: { version: string; date: string; title?: string; notes: UpdateNote[] }[] = [
   {
+    version: '0.13.10',
+    date: '2026-10-06',
+    notes: [
+      [
+        'added',
+        'Auto floor: double-click a machine to tick it built in the game. The tick comes along when you turn the factory into a Manual floor.',
+      ],
+      ['changed', 'Machines on the Manual floor have the same cut corner as on the Auto floor.'],
+    ],
+  },
+  {
     version: '0.13.9',
     date: '2026-10-06',
     notes: [

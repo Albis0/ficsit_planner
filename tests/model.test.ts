@@ -256,6 +256,22 @@ describe('from an Auto plan', () => {
     });
   }
 
+  test('machines whose recipe was ticked built on the Auto floor start ticked on the Manual floor', async () => {
+    const auto = solve(highs, {
+      targets: [{ item: 'Desc_Wire_C', rate: 60 }],
+      supplies: [],
+      enabledRecipes: standard(),
+      resourceCaps: {},
+      objective: 'resources',
+    });
+    const ticked = auto.recipes[0].recipe.id;
+    const m = await modelFromSolve(auto, 9, DEFAULT_EXTRACTION, 'LR', [ticked]);
+    for (const n of m.nodes) if (n.k === 'machine') expect(!!n.done).toBe(n.recipe === ticked);
+    expect(m.nodes.some((n) => n.k === 'machine' && n.done)).toBe(true);
+    const plain = await modelFromSolve(auto, 9, DEFAULT_EXTRACTION);
+    expect(plain.nodes.some((n) => n.k === 'machine' && n.done)).toBe(false);
+  });
+
   test('a target set lower afterwards takes fewer machines and slower belts, not machines running slower', async () => {
     const item = 'Desc_IronPlateReinforced_C';
     const auto = solve(highs, {
@@ -381,6 +397,22 @@ describe('a manual factory tab', () => {
     const back = cleanPlan(unpack(JSON.parse(JSON.stringify(pack(plan)))), newPlan('x'));
     expect(back.floor).toBe('manual');
     expect(back.model).toEqual(cleanModel(plan.model));
+  });
+
+  test('the Auto floor’s built ticks survive a reload and a shared link, and come out as ticked cards', async () => {
+    const { toggleBuilt } = require('../src/store');
+    const id = 'Recipe_IngotCopper_C';
+    const plan = { ...newPlan('Ticked'), ...toggleBuilt(id)(newPlan('Ticked')) };
+    expect(plan.built).toEqual([id]);
+    const reloaded = persisted(mergeState({ plans: [plan], active: plan.id }, useStore.getState()));
+    expect(reloaded.plans[0].built).toEqual([id]);
+    const shared = cleanPlan(unpack(JSON.parse(JSON.stringify(pack(plan)))), newPlan('x'));
+    expect(shared.built).toEqual([id]);
+    // A recipe the game no longer has, or the same one twice, doesn't come back.
+    expect(cleanPlan({ ...plan, built: [id, id, 'Recipe_Gone_C', 7] }, newPlan('x')).built).toEqual([id]);
+    // Ticking it again takes the tick (and the field) off.
+    expect(toggleBuilt(id)(plan)).toEqual({ built: undefined });
+    expect('built' in cleanPlan(newPlan('x'), newPlan('y'))).toBe(false);
   });
 
   test('an Auto tab saves neither', () => {

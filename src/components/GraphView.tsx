@@ -17,7 +17,7 @@ import {
   type Viewport,
 } from '@xyflow/react';
 import '@xyflow/react/dist/base.css';
-import { createContext, useContext, useEffect, useMemo, useState } from 'react';
+import { createContext, useContext, useEffect, useMemo, useRef, useState } from 'react';
 import { groupClocks } from '../lib/clocks';
 import { buildGroups, groupsLabel, isPipe } from '../lib/groups';
 import { data } from '../lib/data';
@@ -40,7 +40,7 @@ import { generatorById } from '../lib/data';
 import { minerLabel, recipeLabel } from '../lib/text';
 import { COARSE, useMediaQuery } from '../lib/useMediaQuery';
 import type { SolveResult } from '../lib/solver';
-import { usePlan, useStore } from '../store';
+import { toggleBuilt, usePlan, useStore } from '../store';
 import { beltStroke } from './floor/BeltStroke';
 import { Glyph } from './Glyph';
 import { Icon } from './Icon';
@@ -51,6 +51,9 @@ import { SplitBadge, SplitTo } from './SplitText';
 const Focus = createContext<{ node?: string; near: Set<string>; edge?: string }>({ near: new Set() });
 /** The belt whose label was clicked, which then says where it comes from and goes to. */
 const PickEdge = createContext<(id?: string) => void>(() => {});
+
+/** Recipes ticked built in the game, and the way to tick one; no way to tick on the power planner's floor. */
+const Built = createContext<{ built: Set<string>; toggle?: (recipe: string) => void }>({ built: new Set() });
 
 /** Which way the line runs, so node handles sit on the matching sides. */
 const Flow = createContext<Direction>('LR');
@@ -172,11 +175,12 @@ function MachineNode(props: NodeProps) {
   const dir = useContext(Flow);
   const { recipe } = use;
   const faded = useFaded(id);
+  const done = useContext(Built).built.has(recipe.id);
   if (recipe.kind === 'power') return <GeneratorNode {...props} />;
   const bar = modBar(use.shards, use.sloops);
   return (
     <div
-      className={`machine-node ${recipe.kind} ${faded ? 'faded' : ''} ${selected ? 'selected' : ''}`}
+      className={`machine-node ${recipe.kind} ${faded ? 'faded' : ''} ${selected ? 'selected' : ''} ${done ? 'done' : ''}`}
       style={{ ['--run-extra' as string]: cardExtra(use, split ?? part), ...(bar ? { ['--mod-bar' as string]: bar } : {}) }}
     >
       <Handle type="target" position={inSide(dir)} />
@@ -625,6 +629,9 @@ function FloorControls() {
   );
 }
 
+/** How long a click waits for a second one to make it a double click, in ms. */
+const DOUBLE = 250;
+
 let solveCount = 0;
 
 /** The way the factory floor last ran on screen, picked or fitted to it: a floor built by hand from it runs the same. */
@@ -719,6 +726,9 @@ function Canvas({ nodes, edges, sig, dir }: { nodes: Node[]; edges: Edge[]; sig:
   }, [edges]);
 
   const flow = useReactFlow();
+  const { toggle } = useContext(Built);
+  const opening = useRef<number>(undefined);
+  useEffect(() => () => clearTimeout(opening.current), []);
   useEffect(() => {
     if (!inspect) return;
     // A line drawn as a card per destination is found by its first card.
@@ -791,9 +801,20 @@ function Canvas({ nodes, edges, sig, dir }: { nodes: Node[]; edges: Edge[]; sig:
           // A finger has no hover: a tap would leave the whole floor faded around it until the next tap.
           onNodeMouseEnter={coarse ? undefined : (_, n) => setHover(n.id)}
           onNodeMouseLeave={coarse ? undefined : () => setHover(undefined)}
-          onNodeClick={(_, n) => {
+          onNodeClick={(e, n) => {
             setEdge(undefined);
-            if (n.type === 'machine') set({ inspect: (n.data as MachineNodeData).use.recipe.id });
+            // The machine's panel waits out a double click, which ticks it built instead.
+            clearTimeout(opening.current);
+            if (e.detail > 1 || n.type !== 'machine') return;
+            const recipe = (n.data as MachineNodeData).use.recipe.id;
+            if (!toggle) set({ inspect: recipe });
+            else opening.current = window.setTimeout(() => set({ inspect: recipe }), DOUBLE);
+          }}
+          onNodeDoubleClick={(_, n) => {
+            clearTimeout(opening.current);
+            if (!toggle || n.type !== 'machine') return;
+            const { use } = n.data as MachineNodeData;
+            if (use.recipe.kind !== 'power') toggle(use.recipe.id);
           }}
           onPaneClick={() => {
             setEdge(undefined);
@@ -851,14 +872,26 @@ export function GraphView({
     };
   }, [result, tier, chosen, scale, text, spacing, consumers, splitLines]);
   const exMap = useMemo(() => new Map(extraction.map((u) => [u.item, u])), [extraction]);
+  // Ticking a machine built changes nothing the layout is made from, so the floor isn't laid out again for it.
+  const ticked = usePlan().built;
+  const updatePlan = useStore((s) => s.updatePlan);
+  const builtNow = useMemo(
+    () => ({
+      built: new Set(consumers ? [] : ticked),
+      toggle: consumers ? undefined : (recipe: string) => updatePlan(toggleBuilt(recipe)),
+    }),
+    [consumers, ticked, updatePlan],
+  );
   if (!consumers) shownDir = dir;
   return (
     <Extraction.Provider value={exMap}>
       <Links.Provider value={links}>
         <Flow.Provider value={dir}>
-          <ReactFlowProvider key={key}>
-            <Canvas nodes={nodes} edges={edges} sig={sig} dir={dir} />
-          </ReactFlowProvider>
+          <Built.Provider value={builtNow}>
+            <ReactFlowProvider key={key}>
+              <Canvas nodes={nodes} edges={edges} sig={sig} dir={dir} />
+            </ReactFlowProvider>
+          </Built.Provider>
         </Flow.Provider>
       </Links.Provider>
     </Extraction.Provider>

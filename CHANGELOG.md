@@ -2,6 +2,19 @@
 
 All notable changes to FICSIT Planner. Dates are when the version was finished.
 
+## 0.13.10 — 2026-10-06
+
+### Added
+
+- **Double-click a machine on the Auto floor to tick it built in the game**, as on the Manual floor: a green tick on its
+  corner. The machine's panel has the same "Built in the game" box. Ticks are kept per recipe with the factory, in
+  saves and shared links, and the cards start ticked when the factory is turned into a Manual floor. A single click
+  still opens the panel, a moment after the click, so a double click doesn't open it first.
+
+### Changed
+
+- **Cards on the Manual floor have the same cut top right corner as on the Auto floor.** It was square there before.
+
 ## 0.13.9 — 2026-10-06
 
 ### Added

@@ -44,6 +44,8 @@ export interface Plan {
   floor?: 'manual';
   /** The hand-built factory; kept when switching back to Auto, so Manual comes back as it was. */
   model?: Model;
+  /** Recipes whose machines are built in the game, ticked from the Auto floor; Manual cards start from them. */
+  built?: string[];
 }
 
 /** A carrier chosen for one input or output, and how far it goes one way, in metres. */
@@ -106,6 +108,15 @@ export const newPowerPlan = (name: string, factories: PowerPlan['factories'] = '
 /** The factory tabs a power plant feeds. */
 export const poweredBy = (pp: Pick<PowerPlan, 'factories'>, plans: Pick<Plan, 'id'>[]): Set<string> =>
   new Set(pp.factories === 'all' ? plans.map((p) => p.id) : pp.factories);
+
+/** The plan's built ticks with one recipe ticked or unticked; for `updatePlan`. */
+export const toggleBuilt =
+  (recipe: string) =>
+  (p: Plan): Partial<Plan> => {
+    const on = p.built ?? [];
+    const next = on.includes(recipe) ? on.filter((id) => id !== recipe) : [...on, recipe];
+    return { built: next.length ? next : undefined };
+  };
 
 export const newPlan = (name: string): Plan => ({
   id: uid(),

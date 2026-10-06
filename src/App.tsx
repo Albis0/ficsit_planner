@@ -143,7 +143,7 @@ export default function App() {
     const solved = factory.result;
     // Running the way the Auto floor did.
     const model = solved
-      ? await lay(() => modelFromSolve(solved, s.tier, effectiveExtraction(plan.extraction, s.tier), s.graphDir ?? autoDir()))
+      ? await lay(() => modelFromSolve(solved, s.tier, effectiveExtraction(plan.extraction, s.tier), s.graphDir ?? autoDir(), plan.built))
       : emptyModel();
     forgetCamera(plan.id);
     setBuilt((n) => n + 1);
@@ -173,7 +173,7 @@ export default function App() {
       const input = factoryInput({ ...plan, targets: from.targets, supplies }, s.tier, exports, aimOf(s), s.settings.game);
       if (!input) return;
       const r = await solveAsync(input);
-      const model = await lay(() => modelFromSolve(r, s.tier, effectiveExtraction(plan.extraction, s.tier), dirOf(m)));
+      const model = await lay(() => modelFromSolve(r, s.tier, effectiveExtraction(plan.extraction, s.tier), dirOf(m), plan.built));
       forgetCamera(plan.id);
       setBuilt((n) => n + 1);
       s.updatePlan({ targets: from.targets, supplies });

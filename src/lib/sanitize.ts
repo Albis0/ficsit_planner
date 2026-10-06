@@ -105,6 +105,9 @@ function transportOf(x: unknown): Record<string, Route> | undefined {
 export function cleanPlan(saved: unknown, fallback: Plan): Plan {
   const p = obj(saved);
   const model = cleanModel(p.model);
+  const built = Array.isArray(p.built)
+    ? [...new Set(p.built.filter((id): id is string => typeof id === 'string' && recipeById.has(id)))]
+    : [];
   return {
     id: text(p.id, fallback.id, 40),
     name: text(p.name, fallback.name),
@@ -120,6 +123,7 @@ export function cleanPlan(saved: unknown, fallback: Plan): Plan {
     ...(transportOf(p.transport) ? { transport: transportOf(p.transport) } : {}),
     ...(p.floor === 'manual' ? { floor: 'manual' as const } : {}),
     ...(model ? { model } : {}),
+    ...(built.length ? { built } : {}),
   };
 }
 

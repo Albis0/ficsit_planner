@@ -28,7 +28,14 @@ const line = (item: string, rate: number, tier: number): { lanes?: number } => {
   return lanes > 1 ? { lanes } : {};
 };
 
-export async function modelFromSolve(result: SolveResult, tier: number, extraction: ExtractionSettings, dir: Dir = 'LR'): Promise<Model> {
+export async function modelFromSolve(
+  result: SolveResult,
+  tier: number,
+  extraction: ExtractionSettings,
+  dir: Dir = 'LR',
+  /** Recipes ticked built on the Auto floor: their cards come ticked too. */
+  built: string[] = [],
+): Promise<Model> {
   const g = buildGraph(result, tier, { dir: 'LR', splitLines: 'each' });
   let seq = 1;
   const id = () => (seq++).toString(36);
@@ -51,6 +58,7 @@ export async function modelFromSolve(result: SolveResult, tier: number, extracti
       k: 'machine',
       recipe: use.recipe.id,
       auto: true,
+      ...(built.includes(use.recipe.id) ? { done: true as const } : {}),
       ...(Math.abs(use.clock - 1) > 1e-12 ? { clock: use.clock } : {}),
       ...(Math.round(use.mod.sloops) > 0 ? { sloops: Math.round(use.mod.sloops) } : {}),
     };

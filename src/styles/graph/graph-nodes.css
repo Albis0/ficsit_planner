@@ -37,7 +37,9 @@
   flex-direction: column;
   background: var(--raised);
   border: 1px solid var(--line-2);
-  clip-path: polygon(0 0, calc(100% - 20px) 0, 100% 20px, 100% 100%, 0 100%);
+  /* The top right corner is cut. A square at the top left lies outside the cut shape, so the built tick on that corner
+     isn't cut with it. */
+  clip-path: polygon(-24px -24px, 12px -24px, 12px 0, calc(100% - 20px) 0, 100% 20px, 100% 100%, 0 100%, 0 12px, -24px 12px);
   transition: opacity 120ms;
 }
 
