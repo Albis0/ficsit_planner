@@ -38,6 +38,7 @@ import {
 } from '../lib/graph';
 import { useT } from '../lib/i18n';
 import { generatorById } from '../lib/data';
+import { pipeColor } from '../lib/pipe';
 import { minerLabel, recipeLabel } from '../lib/text';
 import { COARSE, useMediaQuery } from '../lib/useMediaQuery';
 import type { SolveResult } from '../lib/solver';
@@ -292,7 +293,7 @@ function EndpointNode({ id, data: d }: NodeProps) {
   return (
     <div
       className={`endpoint-node ${kind} ${faded ? 'faded' : ''}`}
-      style={it.form !== 'solid' ? { ['--fluid-color' as string]: it.color ?? 'var(--fluid)' } : undefined}
+      style={it.form !== 'solid' ? { ['--fluid-color' as string]: pipeColor(it) ?? 'var(--fluid)' } : undefined}
     >
       {!feeds && <Handle type="target" position={inSide(dir)} />}
       <Slot id={item} size={60} tone={kind === 'target' ? 'target' : 'default'} />
@@ -559,7 +560,7 @@ function FlowEdge({ id, source, target, sourceX, sourceY, targetX, targetY, sour
   const faded = (focus.node !== undefined || focus.edge !== undefined) && !lit;
   const showLabel = labels === 'always' || lit || (labels === 'auto' && zoom !== 'far');
   const state = `${faded ? 'faded' : ''} ${lit ? 'lit' : ''} ${still ? 'still' : ''}`;
-  const { body, color: tierColor } = beltStroke({ path, item, transport, lanes: drawn, state, oneColor });
+  const { body, color: tierColor, ink } = beltStroke({ path, item, transport, lanes: drawn, state, oneColor });
 
   return (
     <>
@@ -586,7 +587,7 @@ function FlowEdge({ id, source, target, sourceX, sourceY, targetX, targetY, sour
                     {num(rate)}
                     {t('perMin')}
                   </span>
-                  <span className="edge-tier" style={{ background: tierColor }}>
+                  <span className="edge-tier" style={{ background: tierColor, ...(ink ? { color: ink } : {}) }}>
                     {lanes > 1 && `${lanes}× `}
                     {transport.name}
                   </span>

@@ -5,7 +5,7 @@ import { useT } from '../lib/i18n';
 import type { ItemInsight, Line } from '../lib/insights';
 import type { Target } from '../lib/solver';
 import { recipeLabel } from '../lib/text';
-import { CodexLink } from './Codex';
+import { CodexLink } from './codex/route';
 import { Icon } from './Icon';
 
 const fluid = (item: string) => data.items[item]?.form !== 'solid';

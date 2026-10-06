@@ -2,6 +2,24 @@
 
 All notable changes to FICSIT Planner. Dates are when the version was finished.
 
+## 0.13.13 — 2026-10-06
+
+### Fixed
+
+- **Fluid colours.** The game files give every liquid and gas the colour it has on the pipe, but 12 of the 15 were read
+  as having none, so their pipes and tags came out the same blue. Water, crude oil, fuel, acids and the rest now have
+  their own colour on both floors, in the power planner and in the Codex. Crude oil, which is near black, is lifted
+  until it shows on the dark floor; the Codex gives the colour as it is in the game.
+
+### Added
+
+- **The Codex shows a fluid's colour** on its page: a swatch, the hex code and a Copy button.
+
+### Changed
+
+- The Codex's page code is split into one file per kind of page (nothing changes on screen), and the two copies of the
+  small readout box are one.
+
 ## 0.13.12 — 2026-10-06
 
 ### Fixed

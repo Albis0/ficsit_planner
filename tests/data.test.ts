@@ -1,5 +1,6 @@
 import { describe, expect, test } from 'bun:test';
 import { data, itemTier, recipeTier, recipeUnlocked, whyMissing } from '../src/lib/data';
+import { pipeColor } from '../src/lib/pipe';
 import { usableRecipes } from '../src/lib/solution';
 
 const standard = () => new Set(data.recipes.filter((r) => r.kind === 'standard').map((r) => r.id));
@@ -69,5 +70,22 @@ describe('transport data from the game files', () => {
     expect(s.Build_TruckStation_C.load).toBe(8);
     expect(s.Build_DroneStation_C.power).toBe(100);
     expect(s.Build_DroneStation_C.trip).toEqual({ base: 24000, perMetre: 6, battery: 6000 });
+  });
+});
+
+describe('fluid colours', () => {
+  test('every liquid and gas has the colour it has on the pipe', () => {
+    const fluids = Object.values(data.items).filter((i) => i.form !== 'solid');
+    expect(fluids.length).toBeGreaterThan(10);
+    for (const f of fluids) expect([f.id, f.color]).toEqual([f.id, expect.stringMatching(/^#[\da-f]{6}$/)]);
+    expect(data.items.Desc_Water_C.color).toBe('#7ab0d4');
+    expect(data.items.Desc_LiquidOil_C.color).toBe('#190019');
+  });
+
+  test('a colour too dark for the floor is lifted until it shows, and a bright one is left alone', () => {
+    const dark = pipeColor(data.items.Desc_LiquidOil_C)!;
+    expect(dark).not.toBe('#190019');
+    expect(pipeColor(data.items.Desc_SulfuricAcid_C)).toBe('#ffff00');
+    expect(pipeColor(data.items.Desc_IronIngot_C)).toBeUndefined();
   });
 });

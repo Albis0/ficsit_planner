@@ -1,6 +1,8 @@
 import { useMemo, type ReactNode } from 'react';
 import { BELT_COLORS } from '../../lib/belts';
 import { data, type Transport } from '../../lib/data';
+import { pipeColor } from '../../lib/pipe';
+import { inkOn } from '../../lib/settings';
 
 const beltIndex = (id: string) =>
   Math.max(
@@ -64,14 +66,15 @@ export function beltStroke({
   lanes?: number;
   state?: string;
   oneColor?: boolean;
-}): { body: ReactNode; color: string } {
+}): { body: ReactNode; color: string; ink?: string } {
   const it = data.items[item];
   if (it && it.form !== 'solid') {
     const mk = pipeIndex(transport.id);
     const w = mk === 0 ? 9 : 12;
-    const color = it.color ?? 'var(--fluid)';
+    const color = pipeColor(it) ?? 'var(--fluid)';
     return {
       color,
+      ink: pipeColor(it) ? inkOn(color) : undefined,
       body: (
         <g className={`pipe-edge ${state}`}>
           <path d={path} className="pipe-casing" style={{ strokeWidth: w + 4 * (lanes - 1) }} />

@@ -1000,6 +1000,8 @@ export const en = {
   choose_special: 'Special',
   cardMenu: 'Card',
   copy: 'Copy',
+  copied: 'Copied',
+  statColor: 'Colour on the pipe',
   paste: 'Paste',
   markBuilt: 'Mark built',
   notBuilt: 'Not built',

@@ -9,6 +9,14 @@ export type UpdateNote = [UpdateKind, string];
 
 export const UPDATES: { version: string; date: string; title?: string; notes: UpdateNote[] }[] = [
   {
+    version: '0.13.13',
+    date: '2026-10-06',
+    notes: [
+      ['fixed', 'Liquids and gases have their own colour on pipes and tags, as in the game; 12 of 15 were all the same blue before.'],
+      ['added', 'Codex: a fluid page shows its pipe colour and a button that copies the hex code.'],
+    ],
+  },
+  {
     version: '0.13.12',
     date: '2026-10-06',
     notes: [

@@ -374,6 +374,43 @@
   color: var(--paper);
 }
 
+/* A fluid's colour on the pipe: swatch, hex, and a button that copies the hex. */
+.codex-color {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font: 700 22px / 1.15 var(--font-display);
+}
+
+.codex-swatch {
+  width: 26px;
+  height: 26px;
+  border: 2px solid var(--line);
+  flex: none;
+}
+
+.codex-color code {
+  font: inherit;
+  letter-spacing: 0.04em;
+}
+
+.codex-copy {
+  font: 600 13px var(--font-display);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--faint);
+  background: none;
+  border: 1px solid var(--line);
+  padding: 2px 12px;
+  min-height: 30px;
+  cursor: pointer;
+}
+
+.codex-copy:hover {
+  color: var(--paper);
+  border-color: var(--paper);
+}
+
 /* What to do with it, in the head's top right corner. */
 .codex-actions {
   display: flex;

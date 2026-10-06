@@ -11,8 +11,9 @@ import { fuelRate, MAX_CLOCK } from '../lib/power';
 import { shardsFor } from '../lib/solver';
 import { CARRIERS, carrierTier, carries, haul, vehicleFacts } from '../lib/transport';
 import { recipeLabel } from '../lib/text';
-import { CodexLink, PhaseList, phaseOpens } from './Codex';
-import { Delta, Flows, rawOrder } from './CodexLine';
+import { PhaseList, phaseOpens } from './codex/parts';
+import { CodexLink } from './codex/route';
+import { Delta, Flows, rawOrder, Readout } from './CodexLine';
 import { Glyph } from './Glyph';
 import { openMapOn } from './MapNav';
 import { Icon } from './Icon';
@@ -94,15 +95,6 @@ function Picker({ ids, value, onChange, label }: { ids: string[]; value: string;
           <Icon id={id} size={40} />
         </button>
       ))}
-    </div>
-  );
-}
-
-function Readout({ label, value, tone }: { label: string; value: ReactNode; tone?: 'power' | 'good' }) {
-  return (
-    <div className={`codex-readout${tone ? ` ${tone}` : ''}`}>
-      <span>{label}</span>
-      <b>{value}</b>
     </div>
   );
 }

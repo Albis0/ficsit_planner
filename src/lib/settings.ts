@@ -141,6 +141,21 @@ export function accentOnDark(hex: string): string {
   return `color-mix(in srgb, ${hex} 40%, ${LIGHT_INK})`;
 }
 
+/** A #rrggbb colour as it stands out on the dark panels (3:1): itself, or mixed toward light until it does. */
+export function liftedOnDark(hex: string): string {
+  const m = hex.match(/^#([\da-f]{2})([\da-f]{2})([\da-f]{2})$/i);
+  if (!m) return hex;
+  const rgb = m.slice(1).map((x) => Number.parseInt(x, 16));
+  const light = [0xfb, 0xf7, 0xf0];
+  const panel = luminance(PANEL)!;
+  for (let k = 0; k <= 20; k++) {
+    const mixed = rgb.map((c, i) => Math.round(c + ((light[i] - c) * k) / 20));
+    const out = `#${mixed.map((c) => c.toString(16).padStart(2, '0')).join('')}`;
+    if (contrast(luminance(out)!, panel) >= 3) return out;
+  }
+  return `#${light.map((c) => c.toString(16).padStart(2, '0')).join('')}`;
+}
+
 /** Whether two sets of settings are the same, colour by colour. */
 export function sameSettings(a: Settings, b: Settings): boolean {
   return (Object.keys(DEFAULT_SETTINGS) as (keyof Settings)[]).every((k) =>

@@ -38,9 +38,10 @@ for (const nc of ['FGBuildableManufacturer', 'FGBuildableManufacturerVariablePow
 }
 
 // ---- Items -------------------------------------------------------------------
+// The game stores a fluid's colour with an alpha of 0 for most of them; the colour is still the one on the pipe.
 const colorOf = (s) => {
   const m = s?.match(/B=(\d+),G=(\d+),R=(\d+),A=(\d+)/);
-  if (!m || m[4] === '0') return undefined;
+  if (!m) return undefined;
   return `#${[m[3], m[2], m[1]].map((v) => Number(v).toString(16).padStart(2, '0')).join('')}`;
 };
 
@@ -54,7 +55,8 @@ for (const g of en) {
       name: c.mDisplayName,
       form,
       sink: Number.parseInt(c.mResourceSinkPoints ?? '0', 10) || 0,
-      color: form === 'solid' ? undefined : (colorOf(form === 'gas' ? c.mGasColor : c.mFluidColor) ?? colorOf(c.mFluidColor)),
+      // The colour on the pipe. A gas also has one for the cloud it makes when released, which isn't what the pipe shows.
+      color: form === 'solid' ? undefined : colorOf(c.mFluidColor),
       raw: nativeName(g) === 'FGResourceDescriptor',
       // Items per inventory slot; what a freight car, truck or drone holds is slots × this.
       ...(form === 'solid' ? { stack: Number.parseInt(c.mCachedStackSize, 10) } : {}),

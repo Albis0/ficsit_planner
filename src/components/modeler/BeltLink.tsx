@@ -67,7 +67,7 @@ export function BeltLink({ sourceX, sourceY, targetX, targetY, sourcePosition, t
   if (link.lbl) [lx, ly] = link.lbl;
   const state = `${selected ? 'lit' : ''} ${still ? 'still' : ''} ${calc && calc.rate < 1e-6 ? 'stopped' : ''}`;
   const lanes = link.lanes ?? 1;
-  const { body, color } = beltStroke({ path, item: item ?? 'Desc_OreIron_C', transport, lanes: Math.min(lanes, 6), state, oneColor });
+  const { body, color, ink } = beltStroke({ path, item: item ?? 'Desc_OreIron_C', transport, lanes: Math.min(lanes, 6), state, oneColor });
   // A belt too short for its label (a machine into the splitter beside it) goes without one; the splitter says it.
   const short = !link.lbl && Math.hypot(targetX - sourceX, targetY - sourceY) < SHORT;
   const shown = item && (selected || labels === 'always' || (labels === 'auto' && !far && !short));
@@ -102,7 +102,7 @@ export function BeltLink({ sourceX, sourceY, targetX, targetY, sourcePosition, t
                   )}
                   <span
                     className={`edge-tier ${full ? 'full' : ''}`}
-                    style={{ background: color }}
+                    style={{ background: color, ...(ink ? { color: ink } : {}) }}
                     title={full ? t('beltFull', { mk: transport.name }) : undefined}
                   >
                     {lanes > 1 && `${lanes}× `}

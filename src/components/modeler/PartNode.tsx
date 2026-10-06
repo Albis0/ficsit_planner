@@ -9,6 +9,7 @@ import { cardSize, type Dir, endSpot } from '../../lib/model/layout';
 import { extractorById, type Port, portsOf, runnerRecipe } from '../../lib/model/ports';
 import { evenSpeed, fullSpeed } from '../../lib/model/ops';
 import type { MNode } from '../../lib/model/types';
+import { pipeColor } from '../../lib/pipe';
 import { describeUse } from '../../lib/solver';
 import { minerLabel, recipeLabel } from '../../lib/text';
 import { modBar, RunLine } from '../GraphView';
@@ -339,7 +340,7 @@ function Endpoint({ data: d, selected }: { data: PartData; selected: boolean }) 
   return (
     <div
       className={`endpoint-node manual ${kind} ${selected ? 'selected' : ''} ${n.done ? 'done' : ''}`}
-      style={{ ...grid(n, dir), ...(it && it.form !== 'solid' ? { ['--fluid-color' as string]: it.color ?? 'var(--fluid)' } : {}) }}
+      style={{ ...grid(n, dir), ...(it && it.form !== 'solid' ? { ['--fluid-color' as string]: pipeColor(it) ?? 'var(--fluid)' } : {}) }}
     >
       <FlagTag id={n.id} />
       <Ends {...d} />
