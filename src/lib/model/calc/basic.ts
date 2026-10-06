@@ -203,7 +203,8 @@ export function basicCalc(highs: Highs, net: Net): CalcResult {
     // First: as many machines as busy as can be.
     const first = solveLp(highs, lp.text(uVars.map((v) => `+ ${v}`).join(' '), 'Maximize', []));
     const busy = uVars.reduce((s, v) => s + Math.max(0, first.Columns[v]?.Primal ?? 0), 0);
-    const hold = uVars.length ? [` hold: ${uVars.map((v) => `+ ${v}`).join(' ')} >= ${fmt(Math.max(0, busy * (1 - 1e-10) - 1e-10))}`] : [];
+    // A hair under the best, so rounding in a big model can't make holding it impossible.
+    const hold = uVars.length ? [` hold: ${uVars.map((v) => `+ ${v}`).join(' ')} >= ${fmt(Math.max(0, busy * (1 - 1e-7) - 1e-7))}`] : [];
     // Then, keeping that: as much reaching the outputs as can, with as little looping as can be. One term per
     // variable: the LP format doesn't add up a variable named twice.
     const made = new Map<string, number>();

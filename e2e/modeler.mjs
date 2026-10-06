@@ -973,6 +973,28 @@ const clash = (a, b) => a && b && a.x < b.x + b.width && b.x < a.x + a.width && 
   await settle();
   ok('undo puts them back', JSON.stringify((await model()).nodes.map((n) => [n.x, n.y])) === was);
 
+  // A machine that takes back what it gives off (a Blender feeding itself acid) comes across with its belt round to its own input.
+  section = 'loop';
+  await open(factory([['Desc_UraniumCell_C', 12]]));
+  await page.click('.deck-toggle');
+  await wait(600);
+  await page.click('.floor-kind button >> nth=1');
+  await settle();
+  await wait(800);
+  m = await model();
+  const blender = m.nodes.find((n) => n.recipe === 'Recipe_UraniumCell_C');
+  ok(
+    'the Blender has its acid output belted, round into its own input through a merger',
+    m.links.some((l) => l.a === blender.id && l.ap === 1) &&
+      m.nodes.some((n) => n.k === 'logistic' && m.links.some((l) => l.a === n.id && l.b === blender.id && l.bp === 2)),
+  );
+  const loopStates = await page.$$eval('.react-flow__node .machine-node .run-state', (l) => l.map((x) => x.textContent));
+  ok('every machine at full speed', loopStates.length === 3 && loopStates.every((x) => x === 'Full speed'), loopStates.join(', '));
+  ok(
+    'the product still comes out at 12 a minute',
+    /12\s*\/min/.test(await page.locator('.react-flow__node', { hasText: 'Output' }).first().innerText()),
+  );
+
   // ── Big factories: laid out cleanly ──
   section = 'big';
   for (const [item, rate] of [

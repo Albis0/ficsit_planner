@@ -80,3 +80,21 @@ test('every string is used somewhere', () => {
 test('every language fills every key', () => {
   for (const { messages } of Object.values(LANGS)) expect(Object.keys(messages).sort()).toEqual(Object.keys(en).sort());
 });
+
+const slots = (text: string) => [...text.matchAll(/\{(\w+)\}/g)].map((m) => m[1]).sort();
+
+test('every language keeps the {placeholders} of the English text', () => {
+  for (const [code, { messages }] of Object.entries(LANGS)) {
+    for (const [key, text] of Object.entries(messages)) {
+      if (typeof text === 'string') expect([code, key, slots(text)]).toEqual([code, key, slots((en as Record<string, string>)[key])]);
+    }
+  }
+});
+
+test('no string is empty', () => {
+  for (const [key, text] of Object.entries(en)) {
+    // Units can be empty on purpose (a count has no unit).
+    if (typeof text !== 'string' || key.startsWith('statUnit_')) continue;
+    expect([key, text.trim().length > 0]).toEqual([key, true]);
+  }
+});

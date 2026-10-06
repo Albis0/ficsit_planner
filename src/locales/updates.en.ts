@@ -9,6 +9,17 @@ export type UpdateNote = [UpdateKind, string];
 
 export const UPDATES: { version: string; date: string; title?: string; notes: UpdateNote[] }[] = [
   {
+    version: '0.13.12',
+    date: '2026-10-06',
+    notes: [
+      [
+        'fixed',
+        'Manual floor: a machine that takes back what it gives off (Encased Uranium Cell, nuclear fuel rods) now comes across with its own belt round and runs at full speed.',
+      ],
+      ['fixed', 'Manual floor: big factories like Turbo Motors at 12 a minute no longer stop with "model calc: Infeasible".'],
+    ],
+  },
+  {
     version: '0.13.11',
     date: '2026-10-06',
     notes: [

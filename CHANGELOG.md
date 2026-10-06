@@ -2,6 +2,29 @@
 
 All notable changes to FICSIT Planner. Dates are when the version was finished.
 
+## 0.13.12 — 2026-10-06
+
+### Fixed
+
+- **A machine that feeds itself came across to the Manual floor short of what it needs.** Encased Uranium Cells give
+  off sulfuric acid they take back in; the Auto floor shows only the net, so the hand-built copy ran at 75%. The copy
+  now has the belt from the machine's own output round to its own input through a merger, and runs full. The same for
+  the nuclear fuel rods and other recipes that do this.
+- **Manual floor: "model calc: Infeasible" on big factories** (Turbo Motor at 12 a minute, Space Elevator parts 7, 8
+  and 11). The second pass of the calculation held the first one's result too tightly for the rounding of a big model.
+  It now holds a hair under it.
+- **Machines and miners needing under 1% were saved at their exact clock** when a factory was turned into a Manual
+  floor, below the game's 1% minimum, so the floor changed on its first load. They now start at 1%.
+
+### Tests
+
+- Every product the game makes is planned on the Auto floor, copied to the Manual floor and calculated: it must make
+  the same product from the same raw resources, with the standard recipes and with every alternate on.
+- Every generator with every fuel it takes, sized to a load and to what you have, through Fix the count and Fill to
+  100%.
+- Saves, backups and shared links read back as they went in, with 300 made-up factories and with junk in their place;
+  language files keep the same {placeholders}; `bun run coverage`.
+
 ## 0.13.11 — 2026-10-06
 
 ### Added

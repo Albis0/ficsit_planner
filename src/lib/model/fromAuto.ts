@@ -59,7 +59,7 @@ export async function modelFromSolve(
       recipe: use.recipe.id,
       auto: true,
       ...(built.includes(use.recipe.id) ? { done: true as const } : {}),
-      ...(Math.abs(use.clock - 1) > 1e-12 ? { clock: use.clock } : {}),
+      ...(Math.abs(use.clock - 1) > 1e-12 ? { clock: Math.max(0.01, use.clock) } : {}),
       ...(Math.round(use.mod.sloops) > 0 ? { sloops: Math.round(use.mod.sloops) } : {}),
     };
     nodes.push(m);
@@ -74,6 +74,25 @@ export async function modelFromSolve(
     const item = (e.data as FlowEdgeData).item;
     out.set(`${e.source}|${item}`, [...(out.get(`${e.source}|${item}`) ?? []), e]);
     into.set(`${e.target}|${item}`, [...(into.get(`${e.target}|${item}`) ?? []), e]);
+  }
+
+  // A machine that feeds itself (Encased Uranium Cell takes back the acid it gives off) is shown on the Auto floor as what
+  // it takes in net; the hand-built one needs the belt from its own output round to its own input, or it starves.
+  const rounds: Edge[] = [];
+  for (const n of g.nodes) {
+    if (n.type !== 'machine') continue;
+    const { use } = n.data as MachineNodeData;
+    for (const o of use.outputs) {
+      const gross = use.inputs.find((i) => i.item === o.item)?.rate ?? 0;
+      if (gross <= 0) continue;
+      const fed = (into.get(`${n.id}|${o.item}`) ?? []).reduce((a, e) => a + (e.data as FlowEdgeData).rate, 0);
+      const back = Math.min(o.rate, gross - fed);
+      if (back < 1e-6) continue;
+      const e = { id: `round:${n.id}|${o.item}`, source: n.id, target: n.id, type: 'flow', data: { item: o.item, rate: back } } as Edge;
+      rounds.push(e);
+      out.set(`${n.id}|${o.item}`, [...(out.get(`${n.id}|${o.item}`) ?? []), e]);
+      into.set(`${n.id}|${o.item}`, [...(into.get(`${n.id}|${o.item}`) ?? []), e]);
+    }
   }
 
   /** A belt end: a node and which of its outputs (or inputs). */
@@ -146,6 +165,20 @@ export async function modelFromSolve(
     }
   }
 
+  for (const e of rounds) {
+    const src = sourceOf.get(e.id);
+    const dst = targetOf.get(e.id);
+    if (src && dst)
+      links.push({
+        id: id(),
+        a: src.node,
+        ap: src.port,
+        b: dst.node,
+        bp: dst.port,
+        ...line((e.data as FlowEdgeData).item, (e.data as FlowEdgeData).rate, tier),
+      });
+  }
+
   // Raw inputs, things brought in and outputs: one node per belt.
   for (const e of g.edges) {
     if (e.type !== 'flow') continue;
@@ -173,7 +206,8 @@ export async function modelFromSolve(
           item,
           ...(purity !== 'normal' ? { purity } : {}),
           ...(count !== 1 ? { n: count } : {}),
-          ...(Math.abs(each - 1) > 1e-12 ? { clock: each } : {}),
+          // The game's slowest setting is 1%; a belt needing less than that just leaves the miner part busy.
+          ...(Math.abs(each - 1) > 1e-12 ? { clock: Math.max(0.01, each) } : {}),
         };
       } else n = { id: id(), ...at, k: 'in', item, lim: rate, ...(d.kind === 'missing' ? { tag: 'bring' as const } : {}) };
       nodes.push(n);
