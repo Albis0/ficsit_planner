@@ -1073,3 +1073,31 @@ a.codex-flow:hover {
 .codex-sort {
   align-self: flex-start;
 }
+
+/* Phone: the categories two to a row, the count under the name, so more of them show without scrolling. */
+@media (max-width: 600px) {
+  .codex-cat-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 8px;
+  }
+
+  .codex-cat-card {
+    grid-template-columns: 44px minmax(0, 1fr);
+    column-gap: 10px;
+    padding: 10px 10px 10px 12px;
+  }
+
+  .codex-cat-card .icon {
+    grid-row: 1 / span 2;
+    width: 44px;
+    height: 44px;
+  }
+
+  .codex-cat-card-name {
+    font-size: 16px;
+  }
+
+  .codex-cat-card-count {
+    grid-column: 2;
+  }
+}

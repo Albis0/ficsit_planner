@@ -2,6 +2,13 @@
 
 All notable changes to FICSIT Planner. Dates are when the version was finished.
 
+## 0.13.14 — 2026-10-07
+
+### Changed
+
+- **Codex front page on a phone** shows the categories two to a row, the count under the name, instead of one tall card
+  each, so most of them fit without scrolling.
+
 ## 0.13.13 — 2026-10-06
 
 ### Fixed
