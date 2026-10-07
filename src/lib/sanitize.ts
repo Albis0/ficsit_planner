@@ -2,6 +2,7 @@ import { DEFAULT_GAME, GAME_RANGE, type GameRules } from './game';
 import type { Plan, PowerPlan, Route, Supply } from '../store';
 import { data, generatorById, recipeById } from './data';
 import { DEFAULT_EXTRACTION, type ExtractionSettings, MINERS, PURITIES, type Purity } from './extraction';
+import { POOL } from './pool';
 import { PLANT_NAMES, type Plant, type PlantSize, type SizeBy } from './power';
 import { clampSetting, DEFAULT_COLORS, DEFAULT_SETTINGS, FONTS, type Settings } from './settings';
 import type { RecipeMod, Target } from './solver';
@@ -160,7 +161,8 @@ export function cleanPowerPlan(saved: unknown, fallback: PowerPlan): PowerPlan {
     name: text(g.name, fallback.name),
     plants: plants(g.plants),
     sizeBy: oneOf<SizeBy>(g.sizeBy, ['have', 'want', 'factories'], fallback.sizeBy),
-    have: targets(g.have),
+    // Only the pool is a source a plant can take from.
+    have: supplies(g.have).map((x) => (x.from && x.from !== POOL ? { item: x.item, rate: x.rate } : x)),
     want: within(g.want, 0, 1e7, fallback.want),
     factories:
       g.factories === 'all'

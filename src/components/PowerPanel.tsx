@@ -15,8 +15,9 @@ import {
   sizable,
 } from '../lib/power';
 import type { FactoryDraw, PowerLoad } from '../lib/solution';
-import type { SolveResult, Target } from '../lib/solver';
-import { activePowerPlan, poweredBy, usePlan, useStore } from '../store';
+import type { SolveResult } from '../lib/solver';
+import { usePool } from '../lib/overview';
+import { activePowerPlan, POOL, poweredBy, type Supply, usePlan, useStore } from '../store';
 import { Glyph } from './Glyph';
 import { Icon } from './Icon';
 import { ItemPicker } from './ItemPicker';
@@ -288,10 +289,15 @@ function SizeTotal({ result, load, chainDraw }: PowerPanelProps) {
 /** Sized to what you have: the items it may use. */
 function HaveBox({ probe }: PowerPanelProps) {
   const { t, num, name } = useT();
-  const have = useStore((s) => activePowerPlan(s).have);
+  const pp = useStore(activePowerPlan);
+  const have = pp.have;
   const updatePower = useStore((s) => s.updatePower);
-  const put = (list: Target[]) => updatePower({ have: list });
+  const put = (list: Supply[]) => updatePower({ have: list });
   const listed = new Set(have.map((h) => h.item));
+  // The pool, as the other factories and plants leave it: what this plant could burn from it.
+  const pool = usePool(undefined, true, pp.id);
+  const inPool = (item: string) => pool.find((l) => l.item === item)?.left ?? 0;
+  const poolItems = allItems.filter((i) => !listed.has(i.id) && !i.raw && inPool(i.id) > 0.01);
   // What the fuel is made from, so the list can start from a tap. Water is free, so it isn't offered.
   const needs = probe
     ? [...probe.raw, ...probe.supplies, ...probe.missing].filter((x) => !listed.has(x.item) && x.item !== 'Desc_Water_C')
@@ -305,6 +311,15 @@ function HaveBox({ probe }: PowerPanelProps) {
         size={44}
         onRate={(i, v) => put(have.map((h, j) => (j === i ? { ...h, rate: v } : h)))}
         onRemove={(i) => put(have.filter((_, j) => j !== i))}
+        extra={(i) =>
+          have[i].from === POOL && (
+            <span className={`supply-pool ${have[i].rate > inPool(have[i].item) + 1e-6 ? 'short' : ''}`}>
+              {have[i].rate > inPool(have[i].item) + 1e-6
+                ? t('poolShort', { n: num(have[i].rate - Math.max(0, inPool(have[i].item))) })
+                : t('poolHas', { n: num(inPool(have[i].item)) })}
+            </span>
+          )
+        }
       />
       {needs.length > 0 && (
         <div className="have-chips">
@@ -329,6 +344,14 @@ function HaveBox({ probe }: PowerPanelProps) {
         </div>
       )}
       <ItemPicker items={allItems} label={t('addHave')} onPick={(id) => put([...have, { item: id, rate: 60 }])} exclude={[...listed]} />
+      {poolItems.length > 0 && (
+        <ItemPicker
+          items={poolItems}
+          label={t('takeFromPool')}
+          onPick={(id) => put([...have, { item: id, rate: Math.min(60, Math.floor(inPool(id) * 100) / 100), from: POOL }])}
+          exclude={[...listed]}
+        />
+      )}
     </>
   );
 }

@@ -6,6 +6,7 @@ import { DEFAULT_EXTRACTION, type ExtractionSettings } from './lib/extraction';
 import type { Aim } from './lib/solution';
 import { generatorById } from './lib/data';
 import { PLANT_NAMES, type Plant, type SizeBy, sizable } from './lib/power';
+import { POOL } from './lib/pool';
 import { cleanChoice, cleanNumber, cleanPlan, cleanPowerPlan, cleanSettings, gridToPower } from './lib/sanitize';
 import { DEFAULT_SETTINGS, type Settings } from './lib/settings';
 import type { RecipeMod, Target } from './lib/solver';
@@ -19,8 +20,7 @@ export const MAX_TIER = Math.max(...data.recipes.map((r) => r.tier ?? 0));
 
 export const defaultEnabled = () => data.recipes.filter((r) => r.kind === 'standard').map((r) => r.id);
 
-/** What a supply's `from` holds when it's taken from the shared pool: what every factory and plant leaves over, added up. */
-export const POOL = 'pool';
+export { POOL };
 
 /** An item a factory gets instead of making it: on hand (a train, storage), taken from another factory tab, or from the pool. */
 export interface Supply extends Target {
@@ -71,8 +71,8 @@ export interface PowerPlan {
   /** Rows of generators, each one building burning one fuel. */
   plants: Plant[];
   sizeBy: SizeBy;
-  /** 'have': what there is to burn, raw or made, per minute. */
-  have: Target[];
+  /** 'have': what there is to burn, raw or made, per minute; some of it may come from the pool. */
+  have: Supply[];
   /** 'want': MW to put on the grid. */
   want: number;
   /** 'factories': the factory tabs it powers, or every one of them. */

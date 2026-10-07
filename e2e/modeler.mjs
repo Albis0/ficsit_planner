@@ -1060,6 +1060,33 @@ const clash = (a, b) => a && b && a.x < b.x + b.width && b.x < a.x + a.width && 
   );
   await shot('pool-short');
 
+  // A power plant sized to what you have can take fuel from the pool too.
+  section = 'pool-power';
+  await open(
+    saved({
+      mode: 'power',
+      plans: [{ id: 'f1', name: 'Plastic', targets: [{ item: 'Desc_Plastic_C', rate: 60 }] }],
+      active: 'f1',
+      power: [
+        {
+          id: 'pp',
+          name: 'Coal plant',
+          plants: [{ id: 'p', generator: 'Build_GeneratorCoal_C', fuel: 'Desc_Coal_C', by: 'auto', amount: 1, clock: 1 }],
+          sizeBy: 'have',
+          have: [{ item: 'Desc_HeavyOilResidue_C', rate: 10, from: 'pool' }],
+          want: 1000,
+          factories: 'all',
+        },
+      ],
+      activePower: 'pp',
+    }),
+  );
+  await wait(2500);
+  ok(
+    'a plant says what the pool has for the fuel taken from it',
+    /30\/min in the pool/.test((await page.locator('.supply-pool').first().innerText()).replace(/\s+/g, ' ')),
+  );
+
   // ── Big factories: laid out cleanly ──
   section = 'big';
   for (const [item, rate] of [

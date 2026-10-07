@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { aimOf, type PowerPlan, useStore } from '../store';
-import { type PoolLine, poolLines, takesFromPool } from './pool';
+import { type PoolLine, plantTakesFromPool, poolLines, takesFromPool } from './pool';
 import { effectiveExtraction, type ExtractionUse, planExtraction } from './extraction';
 import type { GameRules } from './game';
 import { type FactoryDraw, type FactoryEntry, powerInput, powerLoad, useFactoryEntries } from './solution';
@@ -199,6 +199,7 @@ function usePlantRows(draws: FactoryDraw[], enabled = true): PlantRow[] {
 /** Every factory and power plant worked out in the background, for the "All" page. */
 export function useOverview(): Overview {
   const plans = useStore((s) => s.plans);
+  const power = useStore((s) => s.power);
   const entries = useFactoryEntries(true);
   const draws: FactoryDraw[] = useMemo(() => entries.map(({ id, name, mw, failed }) => ({ id, name, mw, failed })), [entries]);
   const rows = usePlantRows(draws);
@@ -212,18 +213,22 @@ export function useOverview(): Overview {
       factories,
       plants: rows,
       totals: totalsOf(factories, rows),
-      pool: poolLines([...factories.map((f) => f.leaves), ...rows.map((p) => p.leaves)], takesFromPool(plans)),
+      pool: poolLines(
+        [...factories.map((f) => f.leaves), ...rows.map((p) => p.leaves)],
+        [...takesFromPool(plans), ...plantTakesFromPool(power)],
+      ),
       pending: factories.some((f) => f.pending) || rows.some((p) => p.pending),
     };
-  }, [entries, plans, rows]);
+  }, [entries, plans, power, rows]);
 }
 
 /**
- * What a factory could take from the pool: what every other factory and every plant leaves over, less what the
+ * What a factory or a plant could take from the pool: what every other factory and plant leaves over, less what the
  * others already take. Worked out only when asked (`on`), since it solves every tab.
  */
-export function usePool(forPlan: string, on: boolean): PoolLine[] {
+export function usePool(forPlan: string | undefined, on: boolean, forPlant?: string): PoolLine[] {
   const plans = useStore((s) => s.plans);
+  const power = useStore((s) => s.power);
   const entries = useFactoryEntries(on);
   const draws: FactoryDraw[] = useMemo(() => entries.map(({ id, name, mw, failed }) => ({ id, name, mw, failed })), [entries]);
   const rows = usePlantRows(draws, on);
@@ -231,8 +236,11 @@ export function usePool(forPlan: string, on: boolean): PoolLine[] {
     if (!on) return [];
     const others = entries.filter((e) => e.id !== forPlan);
     return poolLines(
-      [...others.map((e) => (e.result ? madeBeyond(e.result.surplus, e.result.supplies) : [])), ...rows.map((p) => p.leaves)],
-      takesFromPool(plans.filter((p) => p.id !== forPlan)),
+      [
+        ...others.map((e) => (e.result ? madeBeyond(e.result.surplus, e.result.supplies) : [])),
+        ...rows.filter((p) => p.id !== forPlant).map((p) => p.leaves),
+      ],
+      [...takesFromPool(plans.filter((p) => p.id !== forPlan)), ...plantTakesFromPool(power.filter((p) => p.id !== forPlant))],
     );
-  }, [on, entries, rows, plans, forPlan]);
+  }, [on, entries, rows, plans, power, forPlan, forPlant]);
 }

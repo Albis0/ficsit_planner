@@ -1,6 +1,8 @@
-import type { Plan } from '../store';
-import { POOL } from '../store';
+import type { Plan, PowerPlan } from '../store';
 import type { Target } from './solver';
+
+/** What a supply's `from` holds when it's taken from the shared pool: what every factory and plant leaves over, added up. */
+export const POOL = 'pool';
 
 /** One item in the shared pool: what the factories and plants leave over, what's taken from it, and what's still there. */
 export interface PoolLine {
@@ -20,6 +22,10 @@ const total = (lists: Target[][]) => {
 /** What the factory tabs take from the pool, per tab. */
 export const takesFromPool = (plans: Pick<Plan, 'supplies'>[]): Target[][] =>
   plans.map((p) => p.supplies.filter((x) => x.from === POOL).map(({ item, rate }) => ({ item, rate })));
+
+/** What the power plants take from the pool, per plant: the fuel they're sized to that comes from it. */
+export const plantTakesFromPool = (plants: Pick<PowerPlan, 'have'>[]): Target[][] =>
+  plants.map((p) => p.have.filter((x) => x.from === POOL).map(({ item, rate }) => ({ item, rate })));
 
 /**
  * The pool: every list of leftovers added up per item, less everything taken from it. Taking from it makes nothing

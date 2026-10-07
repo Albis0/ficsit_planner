@@ -2,6 +2,15 @@
 
 All notable changes to FICSIT Planner. Dates are when the version was finished.
 
+## 0.13.17 — 2026-10-07
+
+### Added
+
+- **Power plants take fuel from the pool.** A plant sized to "What I have" gets "Take from the pool", listing what the
+  factories and the other plants leave over; each such row says how much the pool has and goes red when it is short.
+  What a plant leaves over (spent fuel rods, empty tanks, anything its fuel chain gives off) goes into the pool for
+  factories and other plants to take, and shows in the "All" page's totals.
+
 ## 0.13.16 — 2026-10-07
 
 ### Added
