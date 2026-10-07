@@ -373,6 +373,18 @@
   outline-offset: 0;
 }
 
+/* What the pool has for an item taken from it; red when it has less than is taken. */
+.supply-pool {
+  display: block;
+  margin-top: 2px;
+  font: 500 14px var(--font-body);
+  color: var(--faint);
+}
+
+.supply-pool.short {
+  color: var(--alert);
+}
+
 /* What other tabs take from this one. */
 .exports-list {
   list-style: none;

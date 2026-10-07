@@ -19,9 +19,12 @@ export const MAX_TIER = Math.max(...data.recipes.map((r) => r.tier ?? 0));
 
 export const defaultEnabled = () => data.recipes.filter((r) => r.kind === 'standard').map((r) => r.id);
 
-/** An item a factory gets instead of making it: on hand (a train, storage), or taken from another factory tab. */
+/** What a supply's `from` holds when it's taken from the shared pool: what every factory and plant leaves over, added up. */
+export const POOL = 'pool';
+
+/** An item a factory gets instead of making it: on hand (a train, storage), taken from another factory tab, or from the pool. */
 export interface Supply extends Target {
-  /** The factory tab it comes from; that factory makes it on top of its own targets. */
+  /** The factory tab it comes from, which makes it on top of its own targets; or POOL, which makes nothing extra. */
   from?: string;
 }
 
@@ -276,7 +279,9 @@ export const activePowerPlan = (s: Pick<State, 'power' | 'activePower'>) => s.po
 
 /** Supplies taken from a factory that isn't there (any more) become plain on-hand items. */
 export function dropSource(plans: Plan[], gone: string | ((id: string) => boolean)): Plan[] {
-  const missing = typeof gone === 'string' ? (id: string) => id === gone : gone;
+  const test = typeof gone === 'string' ? (id: string) => id === gone : gone;
+  // The pool is always there.
+  const missing = (id: string) => id !== POOL && test(id);
   return plans.map((p) =>
     p.supplies.some((x) => x.from && missing(x.from))
       ? { ...p, supplies: p.supplies.map(({ from, ...x }) => (from && !missing(from) ? { ...x, from } : x)) }

@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { aimOf, type PowerPlan, useStore } from '../store';
+import { type PoolLine, poolLines, takesFromPool } from './pool';
 import { effectiveExtraction, type ExtractionUse, planExtraction } from './extraction';
 import type { GameRules } from './game';
 import { type FactoryDraw, type FactoryEntry, powerInput, powerLoad, useFactoryEntries } from './solution';
@@ -22,6 +23,8 @@ export interface FactoryRow {
   /** What it brings in: items on hand and the ones taken from another tab. */
   brings: Target[];
   surplus: Target[];
+  /** What it makes beyond what it needs: its surplus less what was handed to it and left unused. This is what goes to the pool. */
+  leaves: Target[];
   /** MW it draws, miners and pumps included. */
   mw: number;
   machines: number;
@@ -42,12 +45,16 @@ export interface PlantRow {
   /** MW its own fuel chain draws. */
   own: number;
   surplus: Target[];
+  /** What it makes beyond what it was given; this is what goes to the pool. */
+  leaves: Target[];
 }
 
 export interface Overview {
   factories: FactoryRow[];
   plants: PlantRow[];
   totals: Totals;
+  /** What every factory and plant leaves over, less what's taken from it. */
+  pool: PoolLine[];
   pending: boolean;
 }
 
@@ -61,8 +68,6 @@ export interface Totals {
   spare: number;
   machines: number;
   extractors: number;
-  /** Everything left over, added up per item, the most first. */
-  surplus: Target[];
 }
 
 /** Adds lists of items up per item, the largest first. */
@@ -73,6 +78,13 @@ export function sumItems(lists: Target[][]): Target[] {
 }
 
 const sumOf = (list: { built: number }[]) => list.reduce((s, u) => s + u.built, 0);
+
+/** A surplus less what was handed over and just sits there: only what was made is left. */
+export function madeBeyond(surplus: Target[], given: Target[]): Target[] {
+  const have = new Map<string, number>();
+  for (const g of given) have.set(g.item, (have.get(g.item) ?? 0) + g.rate);
+  return surplus.map((x) => ({ item: x.item, rate: x.rate - (have.get(x.item) ?? 0) })).filter((x) => x.rate > 1e-4);
+}
 
 export function factoryRow(e: FactoryEntry, planned: boolean): FactoryRow {
   const r = e.result;
@@ -87,13 +99,14 @@ export function factoryRow(e: FactoryEntry, planned: boolean): FactoryRow {
     raw: r?.raw ?? [],
     brings: sumItems([r?.supplies ?? [], r?.missing ?? []]),
     surplus: r?.surplus ?? [],
+    leaves: r ? madeBeyond(r.surplus, r.supplies) : [],
     mw: e.mw ?? 0,
     machines: r ? sumOf(r.recipes) : 0,
     extractors: sumOf(e.extraction ?? []),
   };
 }
 
-/** The totals under the rows: power served and short, how many buildings, and what's left over all together. */
+/** The totals above the rows: power served and short, and how many buildings. */
 export function totalsOf(factories: FactoryRow[], plants: PlantRow[]): Totals {
   const used = factories.reduce((s, f) => s + f.mw, 0);
   const made = plants.reduce((s, p) => s + p.made, 0);
@@ -105,7 +118,6 @@ export function totalsOf(factories: FactoryRow[], plants: PlantRow[]): Totals {
     spare: made - own - used,
     machines: factories.reduce((s, f) => s + f.machines, 0),
     extractors: factories.reduce((s, f) => s + f.extractors, 0),
-    surplus: sumItems([...factories.map((f) => f.surplus), ...plants.map((p) => p.surplus)]),
   };
 }
 
@@ -144,14 +156,12 @@ function plantEntry(pp: PowerPlan, demand: number, tier: number, aim: ReturnType
   return entry;
 }
 
-/** Every factory and power plant worked out in the background, for the "All" page. */
-export function useOverview(): Overview {
-  const plans = useStore((s) => s.plans);
+/** Every power plant worked out in the background, each with the load the factories put on it. */
+function usePlantRows(draws: FactoryDraw[], enabled = true): PlantRow[] {
   const plants = useStore((s) => s.power);
   const tier = useStore((s) => s.tier);
   const aim = useStore(aimOf);
   const game = useStore((s) => s.settings.game);
-  const entries = useFactoryEntries(true);
   const [landed, bump] = useState(0);
   const alive = useRef(true);
   useEffect(() => {
@@ -161,36 +171,68 @@ export function useOverview(): Overview {
     };
   }, []);
 
-  const draws: FactoryDraw[] = useMemo(() => entries.map(({ id, name, mw, failed }) => ({ id, name, mw, failed })), [entries]);
   // biome-ignore lint/correctness/useExhaustiveDependencies: `landed` re-reads the cache once a solve lands.
+  return useMemo(
+    () =>
+      (enabled ? plants : []).map((pp): PlantRow => {
+        const load = powerLoad(pp, draws);
+        const e = plantEntry(pp, load.demand, tier, aim, game, () => alive.current && bump((n) => n + 1));
+        const r = e.result;
+        const own = pp.ownLoad && r ? r.power + (e.extraction ?? []).reduce((s, u) => s + u.power, 0) : 0;
+        return {
+          id: pp.id,
+          name: pp.name,
+          icon: pp.plants[0]?.generator,
+          empty: pp.plants.length === 0,
+          pending: e.pending,
+          failed: !!e.failed,
+          made: r?.grid?.generation ?? 0,
+          own,
+          surplus: r?.surplus ?? [],
+          leaves: r ? madeBeyond(r.surplus, r.supplies) : [],
+        };
+      }),
+    [enabled, plants, draws, tier, aim, game, landed],
+  );
+}
+
+/** Every factory and power plant worked out in the background, for the "All" page. */
+export function useOverview(): Overview {
+  const plans = useStore((s) => s.plans);
+  const entries = useFactoryEntries(true);
+  const draws: FactoryDraw[] = useMemo(() => entries.map(({ id, name, mw, failed }) => ({ id, name, mw, failed })), [entries]);
+  const rows = usePlantRows(draws);
   return useMemo(() => {
     const factories = entries.map((e) => {
       const plan = plans.find((p) => p.id === e.id);
       const planned = !!plan && (plan.floor === 'manual' ? !!plan.model?.nodes.length : plan.targets.length > 0);
       return factoryRow(e, planned || (e.result?.recipes.length ?? 0) > 0);
     });
-    const rows = plants.map((pp): PlantRow => {
-      const load = powerLoad(pp, draws);
-      const e = plantEntry(pp, load.demand, tier, aim, game, () => alive.current && bump((n) => n + 1));
-      const r = e.result;
-      const own = pp.ownLoad && r ? r.power + (e.extraction ?? []).reduce((s, u) => s + u.power, 0) : 0;
-      return {
-        id: pp.id,
-        name: pp.name,
-        icon: pp.plants[0]?.generator,
-        empty: pp.plants.length === 0,
-        pending: e.pending,
-        failed: !!e.failed,
-        made: r?.grid?.generation ?? 0,
-        own,
-        surplus: r?.surplus ?? [],
-      };
-    });
     return {
       factories,
       plants: rows,
       totals: totalsOf(factories, rows),
+      pool: poolLines([...factories.map((f) => f.leaves), ...rows.map((p) => p.leaves)], takesFromPool(plans)),
       pending: factories.some((f) => f.pending) || rows.some((p) => p.pending),
     };
-  }, [entries, plans, plants, draws, tier, aim, game, landed]);
+  }, [entries, plans, rows]);
+}
+
+/**
+ * What a factory could take from the pool: what every other factory and every plant leaves over, less what the
+ * others already take. Worked out only when asked (`on`), since it solves every tab.
+ */
+export function usePool(forPlan: string, on: boolean): PoolLine[] {
+  const plans = useStore((s) => s.plans);
+  const entries = useFactoryEntries(on);
+  const draws: FactoryDraw[] = useMemo(() => entries.map(({ id, name, mw, failed }) => ({ id, name, mw, failed })), [entries]);
+  const rows = usePlantRows(draws, on);
+  return useMemo(() => {
+    if (!on) return [];
+    const others = entries.filter((e) => e.id !== forPlan);
+    return poolLines(
+      [...others.map((e) => (e.result ? madeBeyond(e.result.surplus, e.result.supplies) : [])), ...rows.map((p) => p.leaves)],
+      takesFromPool(plans.filter((p) => p.id !== forPlan)),
+    );
+  }, [on, entries, rows, plans, forPlan]);
 }

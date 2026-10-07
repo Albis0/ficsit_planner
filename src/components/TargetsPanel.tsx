@@ -3,7 +3,8 @@ import { craftableItems, data, itemLocked } from '../lib/data';
 import { useT } from '../lib/i18n';
 import type { SolveResult, Target } from '../lib/solver';
 import { useExports } from '../lib/solution';
-import { usePlan, useStore } from '../store';
+import { usePool } from '../lib/overview';
+import { POOL, usePlan, useStore } from '../store';
 import { InventoryPanel } from './InventoryPanel';
 import { ItemPicker } from './ItemPicker';
 import { RateInput } from './RateInput';
@@ -57,6 +58,10 @@ export function TargetsPanel({ result }: { result?: SolveResult }) {
   const unlocked = (list: typeof supplyItems) => (s.settings.showLocked ? list : list.filter((i) => !itemLocked(i.id, s.tier)));
   const later = (list: typeof supplyItems) => (s.settings.showLocked ? undefined : list.filter((i) => itemLocked(i.id, s.tier)));
   const exports = useExports(plan.id);
+  // The pool (what the other factories and the plants leave over) is worked out only once there is something to take it from.
+  const poolOn = others.length > 0 || s.power.some((p) => p.plants.length > 0);
+  const pool = usePool(plan.id, poolOn);
+  const poolItems = unlocked(supplyItems).filter((i) => (pool.find((l) => l.item === i.id)?.left ?? 0) > 0.01);
   // Taken from the tab that already makes it, if one does; the source can be changed on the card.
   const made = new Map<string, string>();
   for (const o of others) for (const x of o.targets) if (!made.has(x.item)) made.set(x.item, o.id);
@@ -104,21 +109,35 @@ export function TargetsPanel({ result }: { result?: SolveResult }) {
           size={52}
           onRate={s.setSupply}
           onRemove={s.removeSupply}
-          extra={(i) =>
-            others.length > 0 && (
-              <label className="supply-from">
-                <span>{t('comesFrom')}</span>
-                <select value={plan.supplies[i].from ?? ''} onChange={(e) => s.setSupplyFrom(i, e.target.value || undefined)}>
-                  <option value="">{t('fromAnywhere')}</option>
-                  {others.map((o) => (
-                    <option key={o.id} value={o.id}>
-                      {o.name}
-                    </option>
-                  ))}
-                </select>
-              </label>
-            )
-          }
+          extra={(i) => {
+            const supply = plan.supplies[i];
+            const left = pool.find((l) => l.item === supply.item)?.left ?? 0;
+            return (
+              poolOn && (
+                <>
+                  <label className="supply-from">
+                    <span>{t('comesFrom')}</span>
+                    <select value={supply.from ?? ''} onChange={(e) => s.setSupplyFrom(i, e.target.value || undefined)}>
+                      <option value="">{t('fromAnywhere')}</option>
+                      <option value={POOL}>{t('thePool')}</option>
+                      {others.map((o) => (
+                        <option key={o.id} value={o.id}>
+                          {o.name}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                  {supply.from === POOL && (
+                    <span className={`supply-pool ${supply.rate > left + 1e-6 ? 'short' : ''}`}>
+                      {supply.rate > left + 1e-6
+                        ? t('poolShort', { n: num(supply.rate - Math.max(0, left)) })
+                        : t('poolHas', { n: num(left) })}
+                    </span>
+                  )}
+                </>
+              )
+            );
+          }}
         />
         <ItemPicker
           items={unlocked(supplyItems)}
@@ -127,6 +146,14 @@ export function TargetsPanel({ result }: { result?: SolveResult }) {
           onPick={(id) => s.addSupply(id)}
           exclude={plan.supplies.map((x) => x.item)}
         />
+        {poolItems.length > 0 && (
+          <ItemPicker
+            items={poolItems}
+            label={t('takeFromPool')}
+            onPick={(id) => s.addSupply(id, Math.min(10, Math.floor((pool.find((l) => l.item === id)?.left ?? 10) * 100) / 100), POOL)}
+            exclude={plan.supplies.map((x) => x.item)}
+          />
+        )}
         {others.length > 0 && (
           <ItemPicker
             items={unlocked(supplyItems)}

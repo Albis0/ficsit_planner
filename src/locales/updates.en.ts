@@ -9,6 +9,16 @@ export type UpdateNote = [UpdateKind, string];
 
 export const UPDATES: { version: string; date: string; title?: string; notes: UpdateNote[] }[] = [
   {
+    version: '0.13.16',
+    date: '2026-10-07',
+    notes: [
+      [
+        'added',
+        'A shared pool: what factories and power plants leave over can be taken by any factory (Already on hand › Take from the pool). It says how much the pool has, and goes red when it is short.',
+      ],
+    ],
+  },
+  {
     version: '0.13.15',
     date: '2026-10-07',
     notes: [

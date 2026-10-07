@@ -2,6 +2,17 @@
 
 All notable changes to FICSIT Planner. Dates are when the version was finished.
 
+## 0.13.16 — 2026-10-07
+
+### Added
+
+- **A shared pool for what the factories leave over.** Under a factory's "Already on hand" there is now "Take from the
+  pool", listing what the other factories and the power plants leave over (not what a factory was handed and never
+  used). A supply's source can be set to "the pool" like to another factory. Taking from the pool makes no factory
+  produce more, so it never loops back; each card says how much the pool has, and goes red with "The pool is n/min
+  short" when more is taken than there is. The "All" page's totals now show what's left in the pool and, in red,
+  what is short.
+
 ## 0.13.15 — 2026-10-07
 
 ### Added

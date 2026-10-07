@@ -1025,6 +1025,41 @@ const clash = (a, b) => a && b && a.x < b.x + b.width && b.x < a.x + a.width && 
   await wait(600);
   ok('a row opens its factory', (await page.locator('.overview').count()) === 0 && (await page.locator('.floor-kind').count()) === 1);
 
+  // The pool: what factories leave over, for another factory to take; red when more is taken than there is.
+  section = 'pool';
+  await open(
+    saved({
+      mode: 'factory',
+      plans: [
+        { id: 'f1', name: 'Plastic', targets: [{ item: 'Desc_Plastic_C', rate: 60 }] },
+        {
+          id: 'f2',
+          name: 'Fuel',
+          targets: [{ item: 'Desc_Motor_C', rate: 5 }],
+          supplies: [{ item: 'Desc_HeavyOilResidue_C', rate: 20, from: 'pool' }],
+        },
+      ],
+      active: 'f2',
+    }),
+  );
+  await wait(2500);
+  const poolNote = async () => (await page.locator('.supply-pool').first().innerText()).replace(/\s+/g, ' ');
+  ok('a supply taken from the pool says what the pool has', /30\/min in the pool/.test(await poolNote()), await poolNote());
+  const poolInput = page.locator('.item-card', { hasText: 'Heavy Oil Residue' }).locator('input').first();
+  await poolInput.fill('50');
+  await poolInput.blur();
+  await wait(2500);
+  ok('and goes red when more is taken than there is', (await page.locator('.supply-pool.short').count()) === 1, await poolNote());
+  ok('the graph says the supply comes from the pool', /From the pool/i.test(await page.locator('.react-flow').innerText()));
+  await page.locator('.plan-all .plan-tab-name').click();
+  await wait(2500);
+  ok(
+    'the All page shows the pool short',
+    (await page.locator('.readout.short').count()) === 1,
+    (await page.locator('.readout.short').innerText()).replace(/\s+/g, ' '),
+  );
+  await shot('pool-short');
+
   // ── Big factories: laid out cleanly ──
   section = 'big';
   for (const [item, rate] of [

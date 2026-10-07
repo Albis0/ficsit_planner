@@ -19,6 +19,9 @@ export function OverviewPage() {
   const set = useStore((s) => s.set);
   const o = useOverview();
   const { totals } = o;
+  // The pool: what's left over added up, less what factories take from it; below zero, it's short.
+  const left = o.pool.filter((l) => l.left > 0.01).map((l) => ({ item: l.item, rate: l.left }));
+  const short = o.pool.filter((l) => l.left < -0.01).map((l) => ({ item: l.item, rate: -l.left }));
   // A plant with nothing in it yet isn't listed.
   const plants = o.plants.filter((p) => !p.empty);
   const grid = plants.length > 0;
@@ -53,11 +56,17 @@ export function OverviewPage() {
             <span className="readout-label">{t('extractors')}</span>
             <span className="readout-value">{totals.extractors}</span>
           </div>
-          {totals.surplus.length > 0 && (
+          {left.length > 0 && (
             <div className="readout fill">
-              <span className="readout-label">{t('ovAllLeft')}</span>
-              <RateChips list={totals.surplus} muted />
-              <SinkPoints list={totals.surplus} />
+              <span className="readout-label">{t('ovPoolLeft')}</span>
+              <RateChips list={left} muted />
+              <SinkPoints list={left} />
+            </div>
+          )}
+          {short.length > 0 && (
+            <div className="readout fill short">
+              <span className="readout-label">{t('ovPoolShort')}</span>
+              <RateChips list={short} />
             </div>
           )}
         </div>

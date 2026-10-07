@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'bun:test';
-import { type FactoryRow, type PlantRow, sumItems, totalsOf } from '../src/lib/overview';
+import { type FactoryRow, madeBeyond, type PlantRow, sumItems, totalsOf } from '../src/lib/overview';
 
 const factory = (patch: Partial<FactoryRow>): FactoryRow => ({
   id: 'f',
@@ -12,6 +12,7 @@ const factory = (patch: Partial<FactoryRow>): FactoryRow => ({
   raw: [],
   brings: [],
   surplus: [],
+  leaves: [],
   mw: 0,
   machines: 0,
   extractors: 0,
@@ -26,6 +27,7 @@ const plant = (patch: Partial<PlantRow>): PlantRow => ({
   made: 0,
   own: 0,
   surplus: [],
+  leaves: [],
   ...patch,
 });
 
@@ -65,14 +67,19 @@ describe('the All page', () => {
     expect(totalsOf([factory({ mw: 500 })], []).spare).toBe(-500);
   });
 
-  test('what factories and plants leave over is pooled per item', () => {
-    const t = totalsOf(
-      [factory({ surplus: [{ item: 'HOR', rate: 10 }] }), factory({ surplus: [{ item: 'HOR', rate: 5 }] })],
-      [plant({ surplus: [{ item: 'Waste', rate: 2 }] })],
-    );
-    expect(t.surplus).toEqual([
-      { item: 'HOR', rate: 15 },
-      { item: 'Waste', rate: 2 },
+  test('what a factory makes beyond its needs leaves out what was handed to it and sits unused', () => {
+    expect(
+      madeBeyond(
+        [
+          { item: 'HOR', rate: 80 },
+          { item: 'Plastic', rate: 5 },
+        ],
+        [{ item: 'HOR', rate: 50 }],
+      ),
+    ).toEqual([
+      { item: 'HOR', rate: 30 },
+      { item: 'Plastic', rate: 5 },
     ]);
+    expect(madeBeyond([{ item: 'HOR', rate: 50 }], [{ item: 'HOR', rate: 50 }])).toEqual([]);
   });
 });

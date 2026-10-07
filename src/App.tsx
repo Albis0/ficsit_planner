@@ -48,7 +48,7 @@ import { LATEST_UPDATE } from './locales/updates.en';
 import { modelFromSolve } from './lib/model/fromAuto';
 import { emptyModel, type Model } from './lib/model/types';
 import { calcAsync, solveAsync } from './lib/solverClient';
-import { activePowerPlan, aimOf, usePlan, useStore } from './store';
+import { activePowerPlan, aimOf, POOL, usePlan, useStore } from './store';
 
 // Folding the panel moves the app's grid tracks: above the floor a row, beside it a column.
 const GRID = ['gridTemplateRows', 'gridTemplateColumns'] as const;
@@ -246,12 +246,12 @@ export default function App() {
   // The graph names the tabs this factory sends to and takes from.
   const links = useMemo<FactoryLinks | undefined>(() => {
     if (powerMode) return undefined;
-    const nameOf = (id: string) => s.plans.find((p) => p.id === id)?.name ?? '';
+    const nameOf = (id: string) => (id === POOL ? t('thePool') : (s.plans.find((p) => p.id === id)?.name ?? ''));
     const to = new Map<string, { name: string; rate: number }[]>();
     for (const x of exports) to.set(x.item, [...(to.get(x.item) ?? []), { name: nameOf(x.to), rate: x.rate }]);
     const from = new Map(plan.supplies.flatMap((x) => (x.from ? [[x.item, nameOf(x.from)] as const] : [])));
     return { to, from, own: new Set(plan.targets.map((x) => x.item)) };
-  }, [powerMode, exports, plan.supplies, plan.targets, s.plans]);
+  }, [powerMode, exports, plan.supplies, plan.targets, s.plans, t]);
   const empty = bookMode || manual ? false : powerMode ? pp.plants.length === 0 : plan.targets.length === 0 && exports.length === 0;
   // Every target is out of reach (e.g. above the unlocked tier): explain instead of drawing a lone "bring in".
   const blocked = !powerMode && !manual && result && result.recipes.length === 0 && result.missing.length > 0;
