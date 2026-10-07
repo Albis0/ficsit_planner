@@ -7,6 +7,7 @@ import { MapNav } from './components/MapNav';
 import { MissingList } from './components/MissingList';
 import { MobileMenu, MobileNav } from './components/MobileChrome';
 import { ModeSwitch } from './components/ModeSwitch';
+import { OverviewPage } from './components/Overview';
 import { PlanTabs, ShareButton } from './components/PlanTabs';
 import { PlantInspector, PowerQuickStart, PowerSummary } from './components/PowerFloor';
 import { PowerPanel } from './components/PowerPanel';
@@ -113,6 +114,8 @@ export default function App() {
   const mapMode = s.mode === 'map';
   // The Codex and the map aren't planners: no plan tabs, no targets panel, their own index on the left.
   const bookMode = codexMode || mapMode;
+  // The "All" tab: every factory and plant on one page instead of a floor, with no panel beside it.
+  const overviewOn = !!s.overview && !bookMode;
   useCodexRoute();
   useSharedLinks();
   const pp = activePowerPlan(s);
@@ -283,7 +286,7 @@ export default function App() {
       data-mode={s.mode}
       data-pane={s.pane}
       data-panel={panel}
-      data-empty={empty || undefined}
+      data-empty={empty || overviewOn || undefined}
       data-deck={s.deckClosed && !bookMode ? 'closed' : undefined}
       data-summary={s.settings.summary}
       data-belt-motion={s.settings.beltMotion ? undefined : 'off'}
@@ -301,7 +304,7 @@ export default function App() {
         {bookMode ? <span className="topbar-fill" /> : <PlanTabs />}
         <div className="topbar-controls">
           <InstallButton />
-          {!bookMode && <ShareButton />}
+          {!bookMode && !overviewOn && <ShareButton />}
           <button type="button" className="tier-button" title={t('unlockedTier')} onClick={() => setTierOpen(true)}>
             {t('tier')} <b>{s.tier}</b>
           </button>
@@ -374,14 +377,16 @@ export default function App() {
             <WorldMap />
           </Suspense>
         )}
+        {overviewOn && <OverviewPage />}
         {!bookMode &&
+          !overviewOn &&
           shown &&
           (powerMode ? (
             <PowerSummary result={result} load={load} chainDraw={chainDraw} />
           ) : (
             <Summary result={result} extraction={extraction} />
           ))}
-        {!bookMode && (
+        {!bookMode && !overviewOn && (
           <div className="floor-view">
             {shown && !powerMode && <SummaryHandle />}
             {error && (

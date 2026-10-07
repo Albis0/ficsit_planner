@@ -995,6 +995,36 @@ const clash = (a, b) => a && b && a.x < b.x + b.width && b.x < a.x + a.width && 
     /12\s*\/min/.test(await page.locator('.react-flow__node', { hasText: 'Output' }).first().innerText()),
   );
 
+  // The "All" tab: every factory and plant on one page; a hand-built factory counts for what its floor works out to.
+  section = 'all';
+  await open(factory([['Desc_Motor_C', 10]]));
+  await page.click('.deck-toggle');
+  await wait(600);
+  await page.click('.floor-kind button >> nth=1');
+  await settle();
+  await wait(800);
+  const floorPower = (await page.locator('.readout.power .readout-value').first().innerText()).replace(/\s+/g, ' ');
+  ok('no All tab while there is only one tab', (await page.locator('.plan-all').count()) === 0);
+  await page.click('.plan-add');
+  await wait(500);
+  ok('the All tab shows with two factories', (await page.locator('.plan-all').count()) === 1);
+  await page.locator('.plan-all .plan-tab-name').click();
+  await wait(2500);
+  ok(
+    'the All page replaces the floor',
+    (await page.locator('.overview').count()) === 1 && (await page.locator('.react-flow').count()) === 0,
+  );
+  const rowsText = await page.$$eval('.ov-table:not(.plants) tbody tr', (l) => l.map((r) => r.textContent.replace(/\s+/g, ' ')));
+  ok('a row per factory, the empty one says so', rowsText.length === 2 && /Nothing planned/.test(rowsText[1]), rowsText.join(' | '));
+  ok('the hand-built factory is marked', (await page.locator('.ov-tag').count()) === 1);
+  const rowPower = rowsText[0].match(/([\d.,]+)\s*MW/)?.[1];
+  ok('its power is what the Manual floor showed', !!rowPower && floorPower.startsWith(rowPower), `${floorPower} / ${rowPower}`);
+  ok('the page is clean of floor controls', (await page.locator('.floor-bar, .share-button').count()) === 0);
+  await shot('all-page');
+  await page.locator('.ov-name button').first().click();
+  await wait(600);
+  ok('a row opens its factory', (await page.locator('.overview').count()) === 0 && (await page.locator('.floor-kind').count()) === 1);
+
   // ── Big factories: laid out cleanly ──
   section = 'big';
   for (const [item, rate] of [

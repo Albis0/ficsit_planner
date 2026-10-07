@@ -2,6 +2,21 @@
 
 All notable changes to FICSIT Planner. Dates are when the version was finished.
 
+## 0.13.15 — 2026-10-07
+
+### Added
+
+- **An "All" tab** at the start of the tabs, once there are two things to compare. It replaces the floor with one page: the
+  power used by every factory against what the power plants make (spare, or short), the machines and extractors in all,
+  everything left over added up per item with its sink points, then a row per factory (what it makes, what it takes
+  in, what it leaves over, its power) and a row per power plant (power made, its own fuel chain, what it leaves over).
+  Read-only; a row opens that tab.
+
+### Fixed
+
+- **A hand-built factory counted for what its targets would draw, not what its floor works out to**, in the power planner's
+  list of factories to power. It now uses the floor's own numbers.
+
 ## 0.13.14 — 2026-10-07
 
 ### Changed

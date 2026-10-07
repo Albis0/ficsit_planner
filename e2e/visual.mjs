@@ -121,6 +121,39 @@ const SCREENS = [
     },
   },
   {
+    name: 'all-page',
+    state: factory([['Desc_Motor_C', 10]], {
+      plans: [
+        { id: 'f1', name: 'Motors', targets: [{ item: 'Desc_Motor_C', rate: 10 }] },
+        {
+          id: 'f2',
+          name: 'Plastic and rubber',
+          targets: [
+            { item: 'Desc_Plastic_C', rate: 60 },
+            { item: 'Desc_Rubber_C', rate: 20 },
+          ],
+        },
+      ],
+      power: [
+        {
+          id: 'pp',
+          name: 'Coal plant',
+          plants: [{ id: 'p', generator: 'Build_GeneratorCoal_C', fuel: 'Desc_Coal_C', by: 'auto', amount: 1, clock: 1 }],
+          sizeBy: 'factories',
+          have: [],
+          want: 1000,
+          factories: 'all',
+        },
+      ],
+      activePower: 'pp',
+    }),
+    act: async (page) => {
+      await page.locator('.plan-all .plan-tab-name').click();
+      await page.waitForFunction(() => document.querySelectorAll('.ov-note').length === 0, null, { timeout: 30000 });
+      await page.waitForTimeout(800);
+    },
+  },
+  {
     name: 'manual-empty',
     state: saved({
       mode: 'factory',

@@ -166,6 +166,8 @@ interface State {
   inspect?: string;
   /** On phones the side panel and the factory floor take turns filling the screen. Not persisted. */
   pane: 'side' | 'floor';
+  /** The "All" tab is open: every factory and power plant side by side, read-only. Not persisted. */
+  overview?: boolean;
   /** Factory tab being renamed. Not persisted. */
   renaming?: string;
   /** Height of the panel above the factory floor, set by dragging its edge; unset uses the layout default. */
@@ -204,6 +206,7 @@ interface State {
         | 'active'
         | 'activePower'
         | 'inspect'
+        | 'overview'
         | 'pane'
         | 'renaming'
         | 'deckHeight'
@@ -386,7 +389,13 @@ export const useStore = create<State>()(
         plans: [first],
         active: first.id,
 
-        set: (patch) => set(patch),
+        // Going to another tab or planner leaves the "All" page.
+        set: (patch) =>
+          set(
+            'overview' in patch || !('active' in patch || 'activePower' in patch || 'mode' in patch)
+              ? patch
+              : { ...patch, overview: undefined },
+          ),
         setSettings: (patch) => set({ settings: { ...get().settings, ...patch } }),
         updatePower: (patch) => power(() => patch),
         setPowered: (factory, on) => {

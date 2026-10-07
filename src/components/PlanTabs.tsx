@@ -35,13 +35,15 @@ function useTabs() {
         list: plants.map((p) => ({ id: p.id, name: p.name, icon: p.plants[0]?.generator })),
         active,
         select: (id: string) => set({ activePower: id, inspect: undefined }),
-        add: () =>
+        add: () => {
+          set({ overview: undefined });
           store().addPowerPlan(
             nextName(
               t('plantName'),
               plants.map((p) => p.name),
             ),
-          ),
+          );
+        },
         duplicate: (id: string) => store().duplicatePowerPlan(id),
         remove: closing((id) => store().removePowerPlan(id)),
         rename: (id: string, name: string) => store().renamePowerPlan(id, name),
@@ -53,13 +55,15 @@ function useTabs() {
         list: plans.map((p) => ({ id: p.id, name: p.name, icon: undefined as string | undefined })),
         active,
         select: (id: string) => set({ active: id, inspect: undefined }),
-        add: () =>
+        add: () => {
+          set({ overview: undefined });
           store().addPlan(
             nextName(
               t('planName'),
               plans.map((p) => p.name),
             ),
-          ),
+          );
+        },
         duplicate: (id: string) => store().duplicatePlan(id),
         remove: closing((id) => store().removePlan(id)),
         rename: (id: string, name: string) => store().renamePlan(id, name),
@@ -198,6 +202,9 @@ export function PlanTabs() {
   const tabs = useTabs();
   const editing = useStore((s) => s.renaming);
   const set = useStore((s) => s.set);
+  const overview = useStore((s) => !!s.overview);
+  // Every factory and plant on one page: worth a tab once there are two things to compare.
+  const many = useStore((s) => s.plans.length + s.power.filter((p) => p.plants.length > 0).length > 1);
   const input = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -264,6 +271,18 @@ export function PlanTabs() {
       {arrow(-1)}
       <div className="plan-tabs-frame" data-more-left={view.left || undefined} data-more-right={view.right || undefined}>
         <div className="plan-tabs-strip" ref={strip}>
+          {many && (
+            <span className="plan-tab plan-all" aria-current={overview ? 'page' : undefined}>
+              <button
+                type="button"
+                className="plan-tab-name"
+                title={t('overviewTabHint')}
+                onClick={() => set({ overview: true, inspect: undefined })}
+              >
+                <span className="plan-tab-label">{t('overviewTab')}</span>
+              </button>
+            </span>
+          )}
           {tabs.list.map((p) =>
             editing === p.id ? (
               <input
@@ -282,7 +301,7 @@ export function PlanTabs() {
                 }}
               />
             ) : (
-              <span key={p.id} className="plan-tab" aria-current={p.id === tabs.active ? 'page' : undefined}>
+              <span key={p.id} className="plan-tab" aria-current={!overview && p.id === tabs.active ? 'page' : undefined}>
                 <button
                   type="button"
                   className="plan-tab-name"

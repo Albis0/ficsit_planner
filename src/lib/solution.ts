@@ -2,10 +2,11 @@ import { type GameRules, isDefaultGame } from './game';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { aimOf, exportsOf, type Plan, poweredBy, type PowerPlan, useStore } from '../store';
 import { data, recipeById, recipeUnlocked } from './data';
-import { effectiveExtraction, extractionPowerPerUnit, extractorCost, planExtraction } from './extraction';
+import { type ExtractionUse, effectiveExtraction, extractionPowerPerUnit, extractorCost, planExtraction } from './extraction';
 import { plantUnlocked } from './power';
 import type { SolveInput, SolveResult, Target } from './solver';
-import { solveAsync } from './solverClient';
+import { adaptModel } from './model/calc/adapter';
+import { calcAsync, solveAsync } from './solverClient';
 import type { SolveFailure } from './solveFailure';
 
 /** Recipes above the unlocked tier (or needing a building that isn't unlocked) stay ticked but sit out. */
@@ -188,6 +189,9 @@ interface Draw {
 
 interface Entry {
   draw?: Draw;
+  /** What the factory makes and takes, once solved; a hand-built floor's numbers come from its model. */
+  result?: SolveResult;
+  extraction?: ExtractionUse[];
   /** Settles (never rejects) once `draw` is filled in. */
   wait?: Promise<void>;
 }
@@ -205,28 +209,43 @@ function entryFor(plan: Plan, tier: number, exports: Export[], aim: Aim, game: G
   const key = drawKey(tier, exports, aim, game);
   const hit = byTier.get(key);
   if (hit) return hit;
-  const input = factoryInput(plan, tier, exports, aim, game);
-  const entry: Entry = input ? {} : { draw: { mw: 0 } };
-  if (input) {
-    entry.wait = solveAsync(input).then(
-      (r) => {
-        const extraction = planExtraction(r.raw, effectiveExtraction(plan.extraction, tier));
-        entry.draw = { mw: r.power + extraction.reduce((s, u) => s + u.power, 0) };
-      },
-      () => {
-        entry.draw = { failed: true };
-      },
-    );
+  const entry: Entry = {};
+  const done = (r: SolveResult, extraction: ExtractionUse[]) => {
+    entry.result = r;
+    entry.extraction = extraction;
+    entry.draw = { mw: r.power + extraction.reduce((s, u) => s + u.power, 0) };
+  };
+  const failed = () => {
+    entry.draw = { failed: true };
+  };
+  const hand = plan.floor === 'manual' ? plan.model : undefined;
+  if (hand) {
+    // A hand-built floor draws what its model works out to, not what its targets would.
+    entry.wait = calcAsync({ model: hand, tier, game }).then((calc) => {
+      const { result, extraction } = adaptModel(hand, calc);
+      done(result, extraction);
+    }, failed);
+  } else {
+    const input = factoryInput(plan, tier, exports, aim, game);
+    if (!input) entry.draw = { mw: 0 };
+    else entry.wait = solveAsync(input).then((r) => done(r, planExtraction(r.raw, effectiveExtraction(plan.extraction, tier))), failed);
   }
   byTier.set(key, entry);
   return entry;
 }
 
+/** One factory tab as it's worked out in the background: what it draws, and what it makes and takes. */
+export interface FactoryEntry extends FactoryDraw {
+  manual: boolean;
+  result?: SolveResult;
+  extraction?: ExtractionUse[];
+}
+
 /**
- * How much power every factory tab needs, solved in the background for the power planner. The list
- * only changes when a draw does, so whatever is drawn from it isn't laid out again on every render.
+ * Every factory tab worked out in the background, for the power planner and the "All" page. The list
+ * only changes when an answer lands or a plan does, so whatever is drawn from it isn't laid out again on every render.
  */
-export function useFactoryDraws(enabled: boolean): FactoryDraw[] {
+export function useFactoryEntries(enabled: boolean): FactoryEntry[] {
   const plans = useStore((s) => s.plans);
   const tier = useStore((s) => s.tier);
   const aim = useStore(aimOf);
@@ -249,11 +268,25 @@ export function useFactoryDraws(enabled: boolean): FactoryDraw[] {
   return useMemo(
     () =>
       plans.map((plan) => {
-        const draw = cache.get(plan)?.get(drawKey(tier, exportsOf(plans, plan.id), aim, game))?.draw;
-        return { id: plan.id, name: plan.name, mw: draw?.mw, failed: draw?.failed };
+        const entry = cache.get(plan)?.get(drawKey(tier, exportsOf(plans, plan.id), aim, game));
+        return {
+          id: plan.id,
+          name: plan.name,
+          mw: entry?.draw?.mw,
+          failed: entry?.draw?.failed,
+          manual: plan.floor === 'manual',
+          result: entry?.result,
+          extraction: entry?.extraction,
+        };
       }),
     [plans, tier, aim, game, landed],
   );
+}
+
+/** How much power every factory tab needs, solved in the background for the power planner. */
+export function useFactoryDraws(enabled: boolean): FactoryDraw[] {
+  const entries = useFactoryEntries(enabled);
+  return useMemo(() => entries.map(({ id, name, mw, failed }) => ({ id, name, mw, failed })), [entries]);
 }
 
 /** What a power plant has to carry besides its own fuel chain. */

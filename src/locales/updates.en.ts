@@ -9,6 +9,17 @@ export type UpdateNote = [UpdateKind, string];
 
 export const UPDATES: { version: string; date: string; title?: string; notes: UpdateNote[] }[] = [
   {
+    version: '0.13.15',
+    date: '2026-10-07',
+    notes: [
+      [
+        'added',
+        'An All tab: every factory and power plant on one page, with the power used against what the plants make and everything left over added up.',
+      ],
+      ['fixed', 'A hand-built factory now counts for what its floor works out to when the power planner adds up the load.'],
+    ],
+  },
+  {
     version: '0.13.14',
     date: '2026-10-07',
     notes: [['changed', 'Codex on a phone: the categories sit two to a row.']],

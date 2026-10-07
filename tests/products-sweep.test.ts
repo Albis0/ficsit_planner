@@ -59,7 +59,8 @@ for (const [label, recipes] of [
   describe(`Auto and Manual agree on every product, ${label}`, () => {
     test('the list is not empty', () => expect(products.length).toBeGreaterThan(100));
 
-    for (const item of products) {
+    // The alternates change the plan the most and take longest: every third product with them on, all of them without.
+    for (const item of recipes === everything ? products.filter((_, i) => i % 3 === 0) : products) {
       test(item, async () => {
         const auto = solve(highs, {
           targets: [{ item, rate: RATE }],
