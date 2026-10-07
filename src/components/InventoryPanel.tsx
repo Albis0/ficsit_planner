@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { data, recipeById, recipeUnlocked } from '../lib/data';
 import { useT } from '../lib/i18n';
 import { recipeLabel } from '../lib/text';
-import { effectiveExtraction, overclockExtractors, planExtraction } from '../lib/extraction';
+import { capsWithNodes, effectiveExtraction, overclockExtractors, planExtraction } from '../lib/extraction';
 import { isDefaultGame } from '../lib/game';
 import type { SolveInput, SolveResult } from '../lib/solver';
 import { useExports, withExports } from '../lib/solution';
@@ -42,10 +42,11 @@ export function InventoryPanel({ result }: { result?: SolveResult }) {
         targets: withExports(plan.targets, exports),
         supplies: plan.supplies,
         enabledRecipes: new Set(plan.enabled.filter((id) => recipeUnlocked(recipeById.get(id)!, tier))),
-        resourceCaps: plan.caps,
+        resourceCaps: capsWithNodes(plan.caps, ex),
         objective: 'resources',
         fixed: plan.fixed,
         equalWeights: aim === 'equal',
+        ...(aim === 'custom' && plan.weights ? { weights: plan.weights } : {}),
         ...(isDefaultGame(game) ? {} : { game }),
       };
       const mods = await autoAssignAsync(input, inventory, all);

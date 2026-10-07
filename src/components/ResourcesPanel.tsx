@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { data, rawItems } from '../lib/data';
+import { data, rawItems, resourceWeights } from '../lib/data';
 import {
   type ExtractionSettings,
   type ExtractionUse,
@@ -25,6 +25,7 @@ export function ResourcesPanel({ result }: { result?: SolveResult }) {
   const { t, name, num } = useT();
   const plan = usePlan();
   const setCap = useStore((s) => s.setCap);
+  const setWeight = useStore((s) => s.setWeight);
   const updatePlan = useStore((s) => s.updatePlan);
   const tier = useStore((s) => s.tier);
   const showLocked = useStore((s) => s.settings.showLocked);
@@ -92,6 +93,12 @@ export function ResourcesPanel({ result }: { result?: SolveResult }) {
             <span className="unit">%</span>
           </span>
         </div>
+        {ex.nodes && (
+          <label className="check-row small" title={t('capByNodesHint')}>
+            <input type="checkbox" checked={!!ex.capByNodes} onChange={(e) => setEx({ capByNodes: e.target.checked || undefined })} />
+            <span>{t('capByNodes')}</span>
+          </label>
+        )}
       </section>
 
       <section className="stack resource-list">
@@ -104,7 +111,7 @@ export function ResourcesPanel({ result }: { result?: SolveResult }) {
               type="button"
               role="radio"
               aria-checked={aim === 'rarity'}
-              onClick={() => set({ equalWeights: false, fewestBuildings: false })}
+              onClick={() => set({ equalWeights: false, fewestBuildings: false, customWeights: false })}
             >
               {t('byRarity')}
             </button>
@@ -112,9 +119,18 @@ export function ResourcesPanel({ result }: { result?: SolveResult }) {
               type="button"
               role="radio"
               aria-checked={aim === 'equal'}
-              onClick={() => set({ equalWeights: true, fewestBuildings: false })}
+              onClick={() => set({ equalWeights: true, fewestBuildings: false, customWeights: false })}
             >
               {t('allEqual')}
+            </button>
+            <button
+              type="button"
+              role="radio"
+              aria-checked={aim === 'custom'}
+              title={t('customCostHint')}
+              onClick={() => set({ customWeights: true, equalWeights: false, fewestBuildings: false })}
+            >
+              {t('customCost')}
             </button>
             <button type="button" role="radio" aria-checked={aim === 'buildings'} onClick={() => set({ fewestBuildings: true })}>
               {t('fewestBuildings')}
@@ -144,6 +160,20 @@ export function ResourcesPanel({ result }: { result?: SolveResult }) {
                     <span className="unit">{t('perMin')}</span>
                   </span>
                 </div>
+                {aim === 'custom' && (
+                  <div className="field cost-field">
+                    <span className="control-label">{t('costOf')}</span>
+                    <span className="item-card-rate">
+                      <RateInput
+                        value={plan.weights?.[item.id] ?? Number.NaN}
+                        label={`${t('costOf')}: ${name(item)}`}
+                        placeholder={num(Math.round((resourceWeights[item.id] ?? 1) * 100) / 100)}
+                        onChange={(v) => setWeight(item.id, v)}
+                        onClear={() => setWeight(item.id, undefined)}
+                      />
+                    </span>
+                  </div>
+                )}
                 {use && (
                   <>
                     <div className="meter" aria-hidden>

@@ -9,6 +9,16 @@ export type UpdateNote = [UpdateKind, string];
 
 export const UPDATES: { version: string; date: string; title?: string; notes: UpdateNote[] }[] = [
   {
+    version: '0.13.19',
+    date: '2026-10-07',
+    notes: [
+      [
+        'added',
+        'Resources: Plan with my nodes limits each resource to what the nodes you set give, and Optimize › Custom lets you set what each resource costs the plan. Thanks to u/terrifiedTechnophile and u/a__gun.',
+      ],
+    ],
+  },
+  {
     version: '0.13.18',
     date: '2026-10-07',
     notes: [

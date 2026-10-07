@@ -1120,6 +1120,42 @@ const clash = (a, b) => a && b && a.x < b.x + b.width && b.x < a.x + a.width && 
   await wait(2500);
   ok('switched off, the floor is one line again', (await page.locator('.line-tag').count()) === 0);
 
+  // Your own nodes as a limit, and what each resource costs.
+  section = 'resources';
+  await open(
+    saved({
+      mode: 'factory',
+      plans: [
+        {
+          id: 'f1',
+          name: 'Factory 1',
+          targets: [{ item: 'Desc_IronPlate_C', rate: 300 }],
+          extraction: {
+            miner: 'Build_MinerMk2_C',
+            purity: 'normal',
+            clock: 1,
+            nodes: { Desc_OreIron_C: { pure: 1, normal: 1 } },
+            capByNodes: true,
+          },
+        },
+      ],
+      active: 'f1',
+    }),
+  );
+  await wait(1500);
+  ok('more than the nodes give does not work out', (await page.locator('.floor-message.error').count()) === 1);
+  await page.getByRole('tab', { name: /Resources/ }).click();
+  await wait(500);
+  const nodesBox = page.locator('.check-row', { hasText: 'Plan with my nodes' }).locator('input');
+  ok('Plan with my nodes is on', await nodesBox.isChecked());
+  await nodesBox.uncheck();
+  await wait(2000);
+  ok('off, the plan works out again', (await page.locator('.floor-message.error').count()) === 0);
+  await page.getByRole('radio', { name: 'Custom' }).click();
+  await wait(500);
+  ok('Custom cost puts a cost box on every resource', (await page.locator('.cost-field').count()) > 0);
+  await shot('custom-cost');
+
   // ── Big factories: laid out cleanly ──
   section = 'big';
   for (const [item, rate] of [

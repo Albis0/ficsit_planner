@@ -2,7 +2,14 @@ import { type GameRules, isDefaultGame } from './game';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { aimOf, exportsOf, type Plan, poweredBy, type PowerPlan, useStore } from '../store';
 import { data, recipeById, recipeUnlocked } from './data';
-import { type ExtractionUse, effectiveExtraction, extractionPowerPerUnit, extractorCost, planExtraction } from './extraction';
+import {
+  capsWithNodes,
+  type ExtractionUse,
+  effectiveExtraction,
+  extractionPowerPerUnit,
+  extractorCost,
+  planExtraction,
+} from './extraction';
 import { plantUnlocked } from './power';
 import type { SolveInput, SolveResult, Target } from './solver';
 import { adaptModel } from './model/calc/adapter';
@@ -42,7 +49,7 @@ export function reachableRaw(goals: Iterable<string>, recipes: Set<string>): Set
 }
 
 type SolvedPart = Pick<Plan, 'targets' | 'supplies' | 'enabled' | 'caps' | 'mods' | 'fixed' | 'extraction'> &
-  Partial<Pick<Plan, 'separate'>>;
+  Partial<Pick<Plan, 'separate' | 'weights'>>;
 
 export type Export = { item: string; rate: number; to: string };
 
@@ -54,7 +61,7 @@ export function withExports(targets: Target[], exports: Export[] = []): Target[]
 }
 
 /** What a plan keeps down: rare resources first, all resources the same, or the number of machines. */
-export type Aim = 'rarity' | 'equal' | 'buildings';
+export type Aim = 'rarity' | 'equal' | 'buildings' | 'custom';
 
 const aimInput = (aim: Aim) => ({
   objective: aim === 'buildings' ? ('buildings' as const) : ('resources' as const),
@@ -75,9 +82,10 @@ export function factoryInput(
     targets,
     supplies: plan.supplies,
     enabledRecipes: usableRecipes(plan, tier),
-    resourceCaps: plan.caps,
+    resourceCaps: capsWithNodes(plan.caps, effectiveExtraction(plan.extraction, tier)),
     mods: plan.mods,
     fixed: plan.fixed,
+    ...(aim === 'custom' && plan.weights ? { weights: plan.weights } : {}),
     // Lines of their own: only those that are still targets, and only worth it with a product left for the other.
     ...(plan.separate?.some((i) => targets.some((t) => t.item === i)) && targets.length > 1 ? { lines: plan.separate } : {}),
     ...aimInput(aim),
@@ -103,7 +111,7 @@ export function powerInput(pp: PowerPart, demand: number, tier: number, aim: Aim
   if (pp.plants.length === 0) return undefined;
   const chain = pp.chain;
   const have = pp.sizeBy === 'have';
-  let caps = chain.caps;
+  let caps = capsWithNodes(chain.caps, effectiveExtraction(chain.extraction, tier));
   let supplies = chain.supplies;
   if (have) {
     caps = Object.fromEntries(RAW.map((i) => [i.id, 0]));
@@ -119,6 +127,7 @@ export function powerInput(pp: PowerPart, demand: number, tier: number, aim: Aim
     enabledRecipes: usableRecipes(chain, tier),
     resourceCaps: caps,
     mods: chain.mods,
+    ...(aim === 'custom' && chain.weights ? { weights: chain.weights } : {}),
     ...aimInput(aim),
     ...(isDefaultGame(game) ? {} : { game }),
     power: {

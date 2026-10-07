@@ -16,6 +16,8 @@ export interface ExtractionSettings {
   overclock?: Record<string, number>;
   /** Per resource, the nodes the player actually has, by purity. Extractors go on the best of them first. */
   nodes?: Record<string, Partial<Record<Purity, number>>>;
+  /** Plan with no more of a resource than those nodes give, each extractor at the set clock. */
+  capByNodes?: boolean;
 }
 
 export const DEFAULT_EXTRACTION: ExtractionSettings = { miner: 'Build_MinerMk2_C', purity: 'normal', clock: 1 };
@@ -99,6 +101,32 @@ export function planExtraction(raw: Target[], settings: ExtractionSettings): Ext
     });
   }
   return uses;
+}
+
+/**
+ * The limits "Plan with my nodes" puts on the resources that have nodes set: what their extractors give together at
+ * the set clock. Resources with no nodes set keep whatever limit they had.
+ */
+export function nodeCaps(settings: ExtractionSettings): Record<string, number> {
+  if (!settings.capByNodes || !settings.nodes) return {};
+  const out: Record<string, number> = {};
+  for (const [item, nodes] of Object.entries(settings.nodes)) {
+    const e = extractorFor(item, settings);
+    if (!e?.purity) continue;
+    const set = settings.overclock?.[item] ?? settings.clock;
+    const total = PURITIES.reduce((s, p) => s + (nodes[p] ?? 0) * e.rate * PURITY[p] * set, 0);
+    if (total > 0) out[item] = total;
+  }
+  return out;
+}
+
+/** The plan's own limits with the nodes' on top: the lower of the two for each resource. */
+export function capsWithNodes(caps: Record<string, number>, settings: ExtractionSettings): Record<string, number> {
+  const nodes = nodeCaps(settings);
+  if (Object.keys(nodes).length === 0) return caps;
+  const out = { ...caps };
+  for (const [item, cap] of Object.entries(nodes)) out[item] = Math.min(cap, caps[item] ?? Number.POSITIVE_INFINITY);
+  return out;
 }
 
 /** Output of one extractor at 100% on the chosen purity. */

@@ -52,6 +52,8 @@ export interface SolveInput {
   power?: PowerInput;
   /** Products that get a line of their own, each solved apart from the rest (see lines.ts). */
   lines?: string[];
+  /** What each raw resource costs the plan, instead of by how rare it is; the ones not listed keep their usual cost. */
+  weights?: Record<string, number>;
   /**
    * Every raw resource costs the same, instead of scarcer ones costing more. For mods that let you build
    * resource nodes anywhere. Water stays free either way.
@@ -330,7 +332,7 @@ function buildModel(input: SolveInput, draw?: Map<string, number>): Model {
       const name = `s${si++}`;
       sv.set(id, name);
       const rarity = resourceWeights[id] ?? 1;
-      const base = input.equalWeights && rarity > 0 ? 1 : rarity;
+      const base = input.weights?.[id] ?? (input.equalWeights && rarity > 0 ? 1 : rarity);
       const w =
         input.objective === 'resources'
           ? base

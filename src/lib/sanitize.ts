@@ -72,6 +72,7 @@ function extraction(x: unknown): ExtractionSettings {
         }
       : {}),
     ...(nodesOf(e.nodes) ? { nodes: nodesOf(e.nodes) } : {}),
+    ...(e.capByNodes === true && nodesOf(e.nodes) ? { capByNodes: true } : {}),
   };
 }
 
@@ -110,6 +111,8 @@ export function cleanPlan(saved: unknown, fallback: Plan): Plan {
     ? [...new Set(p.built.filter((id): id is string => typeof id === 'string' && recipeById.has(id)))]
     : [];
   const aims = targets(p.targets ?? fallback.targets);
+  // What each resource costs, as typed: a number from zero up.
+  const weights = amounts(p.weights);
   // Only a product the factory makes can be on a line of its own.
   const separate = Array.isArray(p.separate)
     ? [...new Set(p.separate.filter((i): i is string => typeof i === 'string' && aims.some((t) => t.item === i)))]
@@ -131,6 +134,7 @@ export function cleanPlan(saved: unknown, fallback: Plan): Plan {
     ...(model ? { model } : {}),
     ...(built.length ? { built } : {}),
     ...(separate.length ? { separate } : {}),
+    ...(Object.keys(weights).length ? { weights } : {}),
   };
 }
 

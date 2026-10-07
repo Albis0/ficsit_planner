@@ -51,6 +51,8 @@ export interface Plan {
   built?: string[];
   /** Targets (by item) made on a line of their own, apart from the others; unset: everything is one line. */
   separate?: string[];
+  /** What a raw resource costs this plan when the cost is set by hand (Resources › Cost › Custom). */
+  weights?: Record<string, number>;
 }
 
 /** A carrier chosen for one input or output, and how far it goes one way, in metres. */
@@ -164,6 +166,8 @@ interface State {
   tier: number;
   /** Every raw resource costs the plan the same, for mods that let you build nodes anywhere. */
   equalWeights: boolean;
+  /** Every plan costs its resources as it sets them itself, where it does. */
+  customWeights: boolean;
   /** Plan for the fewest machines instead of the fewest resources. */
   fewestBuildings: boolean;
   /** Newest version whose notes under Settings › Updates were opened. */
@@ -211,6 +215,7 @@ interface State {
         | 'dialog'
         | 'tier'
         | 'equalWeights'
+        | 'customWeights'
         | 'fewestBuildings'
         | 'seenUpdates'
         | 'onboarded'
@@ -270,6 +275,7 @@ interface State {
   toggleRecipe: (id: string, on?: boolean) => void;
   setRecipes: (ids: string[], on: boolean) => void;
   setCap: (item: string, cap: number | undefined) => void;
+  setWeight: (item: string, weight: number | undefined) => void;
   setMod: (recipe: string, mod: RecipeMod | undefined) => void;
   /** Auto or Manual for a factory tab; a model to start Manual with, when there isn't one yet or it's rebuilt. */
   setFloor: (plan: string, floor: 'auto' | 'manual', model?: Model) => void;
@@ -323,8 +329,8 @@ function freeName(base: string, taken: string[]): string {
 }
 
 /** What the plans keep down, from the choice on the Resources tab. */
-export const aimOf = (s: Pick<State, 'equalWeights' | 'fewestBuildings'>): Aim =>
-  s.fewestBuildings ? 'buildings' : s.equalWeights ? 'equal' : 'rarity';
+export const aimOf = (s: Pick<State, 'equalWeights' | 'fewestBuildings' | 'customWeights'>): Aim =>
+  s.fewestBuildings ? 'buildings' : s.customWeights ? 'custom' : s.equalWeights ? 'equal' : 'rarity';
 
 /** What a reload keeps: the part of the state written to the browser's storage. */
 export const persisted = (s: State): Persisted => ({
@@ -338,6 +344,7 @@ export const persisted = (s: State): Persisted => ({
   sideWidth: s.sideWidth,
   tier: s.tier,
   equalWeights: s.equalWeights,
+  customWeights: s.customWeights,
   fewestBuildings: s.fewestBuildings,
   seenUpdates: s.seenUpdates,
   onboarded: s.onboarded,
@@ -396,6 +403,7 @@ export const useStore = create<State>()(
         settings: DEFAULT_SETTINGS,
         tier: MAX_TIER,
         equalWeights: false,
+        customWeights: false,
         fewestBuildings: false,
         onboarded: false,
         inventory: { sloops: 0, shards: 0 },
@@ -593,6 +601,13 @@ export const useStore = create<State>()(
             else caps[item] = cap;
             return { caps };
           }),
+        setWeight: (item, weight) =>
+          update((p) => {
+            const weights = { ...p.weights };
+            if (weight === undefined) delete weights[item];
+            else weights[item] = weight;
+            return { weights: Object.keys(weights).length ? weights : undefined };
+          }),
         setFixed: (item, rate) =>
           update((p) => {
             const fixed = { ...p.fixed };
@@ -662,6 +677,7 @@ type Persisted = Partial<
     | 'settings'
     | 'tier'
     | 'equalWeights'
+    | 'customWeights'
     | 'fewestBuildings'
     | 'seenUpdates'
     | 'onboarded'
@@ -740,6 +756,7 @@ export function mergeState<S extends State>(persisted: unknown, current: S): S {
     settings: cleanSettings(p.settings),
     tier: Math.round(cleanNumber(p.tier, 0, MAX_TIER, current.tier)),
     equalWeights: p.equalWeights === true,
+    customWeights: p.customWeights === true,
     fewestBuildings: p.fewestBuildings === true,
     seenUpdates: typeof p.seenUpdates === 'string' ? p.seenUpdates.slice(0, 20) : undefined,
     onboarded: p.onboarded === true,

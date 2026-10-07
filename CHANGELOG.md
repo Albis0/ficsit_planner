@@ -2,6 +2,19 @@
 
 All notable changes to FICSIT Planner. Dates are when the version was finished.
 
+## 0.13.19 — 2026-10-07
+
+### Added
+
+- **Plan with my nodes** (Resources › Extraction, once you have set nodes under a resource): the plan takes no more of
+  a resource than the nodes you set give, each extractor at the clock set there, and the factory says it can't be
+  worked out when it asks for more. A limit of your own, or the world's, still counts when it is lower. Resources with
+  no nodes set are not limited by this. Thanks to u/terrifiedTechnophile.
+- **Custom cost** (Resources › Optimize): a cost box on every resource card, set by hand; a resource you leave empty
+  keeps its usual cost, by how rare it is. For mods that let you build nodes anywhere, or for keeping coal out of the
+  plan. The costs belong to the factory (and to a power plant's fuel plan) and are saved and shared with it. Thanks to
+  u/a__gun.
+
 ## 0.13.18 — 2026-10-07
 
 ### Added
