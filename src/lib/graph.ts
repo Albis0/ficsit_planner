@@ -159,8 +159,71 @@ export interface GraphOptions {
   squareBelts?: boolean;
 }
 
+export interface LineTagData extends Record<string, unknown> {
+  /** The products the line makes. */
+  items: string[];
+}
+
+type Graph = { nodes: Node[]; edges: Edge[]; dir: Direction };
+
+/** Room between one line and the next, and above each for its tag. */
+const LINE_GAP = 140;
+const LINE_TAG = { width: 520, height: 60, room: 84 };
+
+/** The graph of a factory. With products on lines of their own, each line is laid out apart and the lines stand one after the other. */
+export function buildGraph(result: SolveResult, tier: number, opts: GraphOptions = {}): Graph {
+  const lines = result.lines;
+  if (!lines || lines.length < 2) return buildGraphOne(result, tier, opts);
+  const nodes: Node[] = [];
+  const edges: Edge[] = [];
+  let dir = opts.dir;
+  let cursor = 0;
+  for (const [i, line] of lines.entries()) {
+    // One direction for all of them: the first line's pick, unless the player chose.
+    const g = buildGraphOne({ ...line.result, lines: undefined }, tier, { ...opts, dir });
+    dir ??= g.dir;
+    const box = {
+      minX: Math.min(...g.nodes.map((n) => n.position.x)),
+      minY: Math.min(...g.nodes.map((n) => n.position.y)),
+      maxX: Math.max(...g.nodes.map((n) => n.position.x + (n.width ?? 0))),
+      maxY: Math.max(...g.nodes.map((n) => n.position.y + (n.height ?? 0))),
+    };
+    // Down the page left to right, side by side top to bottom; each line starts at the edge, with room above for its tag.
+    const [dx, dy] = g.dir === 'LR' ? [-box.minX, cursor + LINE_TAG.room - box.minY] : [cursor - box.minX, LINE_TAG.room - box.minY];
+    cursor += (g.dir === 'LR' ? box.maxY - box.minY : box.maxX - box.minX) + LINE_GAP + LINE_TAG.room;
+    const at = (p: Point): Point => ({ x: p.x + dx, y: p.y + dy });
+    const id = (x: string) => `L${i}:${x}`;
+    nodes.push({
+      id: `line:${i}`,
+      type: 'line',
+      position: at({ x: box.minX, y: box.minY - LINE_TAG.room }),
+      data: { items: line.items } satisfies LineTagData,
+      width: LINE_TAG.width,
+      height: LINE_TAG.height,
+      draggable: false,
+      selectable: false,
+      focusable: false,
+      handles: [],
+    });
+    for (const n of g.nodes) nodes.push({ ...n, id: id(n.id), position: at(n.position) });
+    for (const e of g.edges) {
+      const data = e.data as FlowEdgeData;
+      const route = data.route && {
+        ...data.route,
+        points: data.route.points.map(at),
+        label: at(data.route.label),
+        from: at(data.route.from),
+        to: at(data.route.to),
+        ...(data.route.square ? { square: data.route.square.map(at) } : {}),
+      };
+      edges.push({ ...e, id: id(e.id), source: id(e.source), target: id(e.target), data: { ...data, route } });
+    }
+  }
+  return { nodes, edges, dir: dir ?? 'LR' };
+}
+
 /** Turns an LP solution into a factory graph, with a belt for each flow `matchFlows` finds. */
-export function buildGraph(result: SolveResult, tier: number, opts: GraphOptions = {}): { nodes: Node[]; edges: Edge[]; dir: Direction } {
+function buildGraphOne(result: SolveResult, tier: number, opts: GraphOptions = {}): Graph {
   const k = opts.scale ?? 1;
   const box = (size: Box) => cardBox(size, k, opts.text ?? 1);
   const nodes: Node[] = [];

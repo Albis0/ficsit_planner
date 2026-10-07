@@ -46,7 +46,8 @@ function call(req: Request): Promise<SolverResponse & { ok: true }> {
 export async function solveAsync(input: SolveInput): Promise<SolveResult> {
   const result = (await call({ kind: 'solve', input })).value as SolveResult;
   // Recipes come back as structured-clone copies; point them at the shared objects again.
-  for (const u of result.recipes) u.recipe = recipeById.get(u.recipe.id) ?? u.recipe;
+  for (const u of [...result.recipes, ...(result.lines?.flatMap((l) => l.result.recipes) ?? [])])
+    u.recipe = recipeById.get(u.recipe.id) ?? u.recipe;
   return result;
 }
 

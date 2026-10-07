@@ -49,6 +49,8 @@ export interface Plan {
   model?: Model;
   /** Recipes whose machines are built in the game, ticked from the Auto floor; Manual cards start from them. */
   built?: string[];
+  /** Targets (by item) made on a line of their own, apart from the others; unset: everything is one line. */
+  separate?: string[];
 }
 
 /** A carrier chosen for one input or output, and how far it goes one way, in metres. */
@@ -119,6 +121,15 @@ export const toggleBuilt =
     const on = p.built ?? [];
     const next = on.includes(recipe) ? on.filter((id) => id !== recipe) : [...on, recipe];
     return { built: next.length ? next : undefined };
+  };
+
+/** The plan's separate lines with one product put on a line of its own or taken off it; for `updatePlan`. */
+export const toggleLine =
+  (item: string) =>
+  (p: Plan): Partial<Plan> => {
+    const on = p.separate ?? [];
+    const next = on.includes(item) ? on.filter((x) => x !== item) : [...on, item];
+    return { separate: next.length ? next : undefined };
   };
 
 export const newPlan = (name: string): Plan => ({

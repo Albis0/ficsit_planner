@@ -1,6 +1,7 @@
 import type { GameRules } from './game';
 import type { Highs } from 'highs';
 import { data, producersOf, recipeById, resourceWeights, type Recipe } from './data';
+import { type Line, solveInLines } from './lines';
 import { gridBoost, type Plant, plantClock, plantRecipe, plantSize, plantValid, unitPower } from './power';
 
 export interface Target {
@@ -49,6 +50,8 @@ export interface SolveInput {
   pinShare?: Record<string, number>;
   /** Power planning: generators to run and the load they have to carry. */
   power?: PowerInput;
+  /** Products that get a line of their own, each solved apart from the rest (see lines.ts). */
+  lines?: string[];
   /**
    * Every raw resource costs the same, instead of scarcer ones costing more. For mods that let you build
    * resource nodes anywhere. Water stays free either way.
@@ -125,6 +128,8 @@ export interface SolveResult {
   grid?: GridResult;
   /** Ticked alternates the plan leaves out only because of the pinned inputs (see heldByPins). */
   heldByPins?: string[];
+  /** With products on lines of their own: each line's solution. This result is all of them added up. */
+  lines?: Line[];
 }
 
 export type SolverErrorCode = 'infeasible' | 'pinnedInfeasible' | 'noPower' | 'stopped';
@@ -474,6 +479,10 @@ function withPinShare(solver: Highs, input: SolveInput): SolveInput {
 }
 
 export function solve(solver: Highs, given: SolveInput): SolveResult {
+  return given.lines?.length ? solveInLines((one) => solveOne(solver, one), given) : solveOne(solver, given);
+}
+
+function solveOne(solver: Highs, given: SolveInput): SolveResult {
   const input = withPinShare(solver, given);
   let result = solveWith(solver, input);
   const power = input.power;

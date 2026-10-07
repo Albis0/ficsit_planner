@@ -109,10 +109,15 @@ export function cleanPlan(saved: unknown, fallback: Plan): Plan {
   const built = Array.isArray(p.built)
     ? [...new Set(p.built.filter((id): id is string => typeof id === 'string' && recipeById.has(id)))]
     : [];
+  const aims = targets(p.targets ?? fallback.targets);
+  // Only a product the factory makes can be on a line of its own.
+  const separate = Array.isArray(p.separate)
+    ? [...new Set(p.separate.filter((i): i is string => typeof i === 'string' && aims.some((t) => t.item === i)))]
+    : [];
   return {
     id: text(p.id, fallback.id, 40),
     name: text(p.name, fallback.name),
-    targets: targets(p.targets ?? fallback.targets),
+    targets: aims,
     supplies: supplies(p.supplies ?? fallback.supplies),
     enabled: Array.isArray(p.enabled)
       ? p.enabled.filter((id): id is string => typeof id === 'string' && recipeById.has(id))
@@ -125,6 +130,7 @@ export function cleanPlan(saved: unknown, fallback: Plan): Plan {
     ...(p.floor === 'manual' ? { floor: 'manual' as const } : {}),
     ...(model ? { model } : {}),
     ...(built.length ? { built } : {}),
+    ...(separate.length ? { separate } : {}),
   };
 }
 

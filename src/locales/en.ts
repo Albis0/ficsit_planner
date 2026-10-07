@@ -11,6 +11,8 @@ export const en = {
   comesFrom: 'from',
   fromAnywhere: 'on hand',
   thePool: 'the pool',
+  ownLine: 'Own line',
+  ownLineHint: 'Make this product on a line of its own, apart from the others',
   takeFromPool: 'Take from the pool',
   poolHas: '{n}/min in the pool',
   poolShort: 'The pool is {n}/min short',

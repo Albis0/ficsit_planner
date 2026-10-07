@@ -2,6 +2,18 @@
 
 All notable changes to FICSIT Planner. Dates are when the version was finished.
 
+## 0.13.18 — 2026-10-07
+
+### Added
+
+- **Separate lines in one factory.** With two or more products, each has an "Own line" switch under its name. A product
+  switched on is planned on its own, apart from the others: where two lines need the same part, each makes its own
+  instead of sharing one line of machines. On the Auto floor each line stands apart with a heading of what it makes,
+  one under the other (side by side when the floor is laid out top to bottom). The totals, the list, the transport view,
+  Manual conversion and power all count every line. Lines share the resource limits (what one mines is gone for the
+  next); items on hand and pinned inputs go to the first line. The switch is kept with the factory, in saves and
+  shared links. Off by default: every product is one line, as before. Suggested by a Reddit reader on the panel.
+
 ## 0.13.17 — 2026-10-07
 
 ### Added

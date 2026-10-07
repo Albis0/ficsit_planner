@@ -41,7 +41,8 @@ export function reachableRaw(goals: Iterable<string>, recipes: Set<string>): Set
   return raw;
 }
 
-type SolvedPart = Pick<Plan, 'targets' | 'supplies' | 'enabled' | 'caps' | 'mods' | 'fixed' | 'extraction'>;
+type SolvedPart = Pick<Plan, 'targets' | 'supplies' | 'enabled' | 'caps' | 'mods' | 'fixed' | 'extraction'> &
+  Partial<Pick<Plan, 'separate'>>;
 
 export type Export = { item: string; rate: number; to: string };
 
@@ -77,6 +78,8 @@ export function factoryInput(
     resourceCaps: plan.caps,
     mods: plan.mods,
     fixed: plan.fixed,
+    // Lines of their own: only those that are still targets, and only worth it with a product left for the other.
+    ...(plan.separate?.some((i) => targets.some((t) => t.item === i)) && targets.length > 1 ? { lines: plan.separate } : {}),
     ...aimInput(aim),
     // Fewest buildings counts the miners and pumps too.
     ...(aim === 'buildings' ? { extractorCost: extractorCost(effectiveExtraction(plan.extraction, tier)) } : {}),

@@ -346,3 +346,18 @@
 .edge-label.faded {
   opacity: 0.2;
 }
+
+/* The heading over a line of its own in a factory: what it makes. */
+.line-tag {
+  height: 100%;
+  display: flex;
+  align-items: flex-end;
+  padding: 0 0 6px;
+  border-bottom: 3px solid var(--ficsit);
+  font: 700 36px var(--font-display);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--dim);
+  white-space: nowrap;
+  pointer-events: none;
+}

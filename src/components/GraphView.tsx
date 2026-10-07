@@ -29,6 +29,7 @@ import {
   type Direction,
   type EndpointNodeData,
   type FlowEdgeData,
+  type LineTagData,
   type MachineNodeData,
   type Point,
   type PowerEdgeData,
@@ -606,7 +607,14 @@ function FlowEdge({ id, source, target, sourceX, sourceY, targetX, targetY, sour
   );
 }
 
-const nodeTypes = { machine: MachineNode, endpoint: EndpointNode, power: PowerNode };
+/** The heading over a line of its own: the products it makes. */
+function LineTag({ data: d }: NodeProps) {
+  const { name } = useT();
+  const { items } = d as LineTagData;
+  return <div className="line-tag">{items.map((i) => name(data.items[i])).join(', ')}</div>;
+}
+
+const nodeTypes = { machine: MachineNode, endpoint: EndpointNode, power: PowerNode, line: LineTag };
 const edgeTypes = { flow: FlowEdge, power: PowerEdge };
 
 /** The direction switch (left to right or top to bottom) and fit to screen. */
@@ -711,6 +719,9 @@ export function openingViewport(nodes: Node[], width: number, height: number, di
   return { x, y, zoom };
 }
 
+/** Whether a node is the card (or the first of its cards, or its copy on a line of its own) of this recipe's machines. */
+const isCard = (nodeId: string, recipe: string) => nodeId.replace(/^L\d+:/, '').replace(/~\d+$/, '') === `recipe:${recipe}`;
+
 // Camera survives re-solves that keep the same machines (e.g. tweaking a clock speed).
 let camera: { sig: string; viewport?: Viewport } = { sig: '' };
 
@@ -745,7 +756,7 @@ function Canvas({ nodes, edges, sig, dir }: { nodes: Node[]; edges: Edge[]; sig:
   useEffect(() => {
     if (!inspect) return;
     // A line drawn as a card per destination is found by its first card.
-    const node = flow.getNode(`recipe:${inspect}`) ?? flow.getNode(`recipe:${inspect}~0`);
+    const node = flow.getNodes().find((n) => isCard(n.id, inspect));
     if (!node) return;
     const zoom = Math.max(flow.getZoom(), 0.9);
     // On a phone the machine panel is a sheet over the floor's lower part: centre the machine in what's left above it.
@@ -771,7 +782,7 @@ function Canvas({ nodes, edges, sig, dir }: { nodes: Node[]; edges: Edge[]; sig:
   }, [inspect, set]);
 
   // A machine that's gone from the plan (its recipe was just unticked) focuses nothing, so the floor doesn't dim.
-  const inspected = inspect ? [`recipe:${inspect}`, `recipe:${inspect}~0`].find((id) => neighbours.has(id)) : undefined;
+  const inspected = inspect ? [...neighbours.keys()].find((id) => isCard(id, inspect)) : undefined;
   // A clicked belt lights itself and the two machines it joins; otherwise the machine under the pointer, or the
   // selected one, lights its belts and neighbours.
   const picked = edge ? edges.find((e) => e.id === edge) : undefined;

@@ -4,7 +4,7 @@ import { useT } from '../lib/i18n';
 import type { SolveResult, Target } from '../lib/solver';
 import { useExports } from '../lib/solution';
 import { usePool } from '../lib/overview';
-import { POOL, usePlan, useStore } from '../store';
+import { POOL, toggleLine, usePlan, useStore } from '../store';
 import { InventoryPanel } from './InventoryPanel';
 import { ItemPicker } from './ItemPicker';
 import { RateInput } from './RateInput';
@@ -70,7 +70,30 @@ export function TargetsPanel({ result }: { result?: SolveResult }) {
     <div className="panel-body targets">
       <section className="stack">
         <h3 className="section-title">{t('productsTitle')}</h3>
-        <Cards list={plan.targets} size={64} onRate={s.setTarget} onRemove={s.removeTarget} />
+        <Cards
+          list={plan.targets}
+          size={64}
+          onRate={s.setTarget}
+          onRemove={s.removeTarget}
+          extra={
+            plan.targets.length > 1
+              ? (i) => {
+                  const item = plan.targets[i].item;
+                  return (
+                    <button
+                      type="button"
+                      className="line-toggle"
+                      aria-pressed={!!plan.separate?.includes(item)}
+                      title={t('ownLineHint')}
+                      onClick={() => s.updatePlan(toggleLine(item))}
+                    >
+                      {t('ownLine')}
+                    </button>
+                  );
+                }
+              : undefined
+          }
+        />
         <ItemPicker
           items={unlocked(craftableItems)}
           hidden={later(craftableItems)}

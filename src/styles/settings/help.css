@@ -373,6 +373,30 @@
   outline-offset: 0;
 }
 
+/* A product made on a line of its own: a small switch under its name. */
+.line-toggle {
+  display: block;
+  margin-top: 4px;
+  padding: 1px 12px;
+  min-height: 30px;
+  background: transparent;
+  border: 1px solid var(--line-2);
+  color: var(--faint);
+  font: 600 13px var(--font-body);
+  cursor: pointer;
+}
+
+.line-toggle:hover {
+  color: var(--paper);
+  border-color: var(--paper);
+}
+
+.line-toggle[aria-pressed='true'] {
+  background: var(--ficsit);
+  border-color: var(--ficsit);
+  color: var(--ficsit-ink);
+}
+
 /* What the pool has for an item taken from it; red when it has less than is taken. */
 .supply-pool {
   display: block;
