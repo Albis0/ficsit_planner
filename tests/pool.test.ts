@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'bun:test';
-import { plantTakesFromPool, poolLines, takesFromPool } from '../src/lib/pool';
+import { plantTakesFromPool, poolLines, poolSources, takesFromPool } from '../src/lib/pool';
 import { cleanPlan, cleanPowerPlan } from '../src/lib/sanitize';
 import { powerInput } from '../src/lib/solution';
 import { dropSource, exportsOf, newPlan, newPowerPlan, POOL, type Plan } from '../src/store';
@@ -7,6 +7,22 @@ import { dropSource, exportsOf, newPlan, newPowerPlan, POOL, type Plan } from '.
 const plan = (name: string, patch: Partial<Plan> = {}): Plan => ({ ...newPlan(name), ...patch });
 
 describe('the shared pool', () => {
+  test('who leaves an item over is named, the biggest first, and nobody leaving none is named', () => {
+    const who = poolSources([
+      { name: 'Oil', leaves: [{ item: 'HOR', rate: 20 }] },
+      {
+        name: 'Plastics',
+        leaves: [
+          { item: 'HOR', rate: 50 },
+          { item: 'Waste', rate: 0 },
+        ],
+      },
+      { name: 'Idle', leaves: [] },
+    ]);
+    expect(who.get('HOR')).toEqual(['Plastics', 'Oil']);
+    expect(who.has('Waste')).toBe(false);
+  });
+
   test('what factories and plants leave over is added up per item, less what is taken, and can run short', () => {
     const lines = poolLines(
       [

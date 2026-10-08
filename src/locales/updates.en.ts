@@ -9,6 +9,19 @@ export type UpdateNote = [UpdateKind, string];
 
 export const UPDATES: { version: string; date: string; title?: string; notes: UpdateNote[] }[] = [
   {
+    version: '0.13.24',
+    date: '2026-10-08',
+    notes: [
+      [
+        'changed',
+        'A belt that has to carry more than one belt’s worth is drawn as that many belts side by side, up to six, with “3 × Mk.5” on its label.',
+      ],
+      ['changed', 'A “From the pool” card names the factories and plants that leave the item over.'],
+      ['changed', 'Codex search groups its results under Parts, Resources, Buildings and the other headings.'],
+      ['fixed', 'On the Auto floor a belt’s label no longer sits on a card’s header or on another label when there is room to move it.'],
+    ],
+  },
+  {
     version: '0.13.23',
     date: '2026-10-08',
     notes: [

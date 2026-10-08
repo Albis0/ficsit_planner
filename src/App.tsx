@@ -41,6 +41,7 @@ import { plantIdOf, plantSize, plantUnlocked, plantValid } from './lib/power';
 import { settingsStyle } from './lib/settings';
 import { showInPanel } from './lib/panel';
 import { useSharedLinks } from './lib/share';
+import { usePoolSources } from './lib/overview';
 import { factoryInput, powerInput, powerLoad, useExports, useFactoryDraws, useSolve } from './lib/solution';
 import { failureText } from './lib/solveFailure';
 import { fold } from './lib/fold';
@@ -245,14 +246,20 @@ export default function App() {
 
   // Nothing planned yet: the whole floor asks what to make (or how to make power), and the panel waits.
   // The graph names the tabs this factory sends to and takes from.
+  const poolFrom = usePoolSources(plan.id, !powerMode && plan.supplies.some((x) => x.from === POOL));
   const links = useMemo<FactoryLinks | undefined>(() => {
     if (powerMode) return undefined;
-    const nameOf = (id: string) => (id === POOL ? t('thePool') : (s.plans.find((p) => p.id === id)?.name ?? ''));
+    const nameOf = (id: string, item: string) => {
+      if (id !== POOL) return s.plans.find((p) => p.id === id)?.name ?? '';
+      // The pool names who leaves the item over: two of them, then how many more.
+      const who = poolFrom.get(item) ?? [];
+      return who.length ? `${t('thePool')} (${who.slice(0, 2).join(', ')}${who.length > 2 ? ` +${who.length - 2}` : ''})` : t('thePool');
+    };
     const to = new Map<string, { name: string; rate: number }[]>();
-    for (const x of exports) to.set(x.item, [...(to.get(x.item) ?? []), { name: nameOf(x.to), rate: x.rate }]);
-    const from = new Map(plan.supplies.flatMap((x) => (x.from ? [[x.item, nameOf(x.from)] as const] : [])));
+    for (const x of exports) to.set(x.item, [...(to.get(x.item) ?? []), { name: nameOf(x.to, x.item), rate: x.rate }]);
+    const from = new Map(plan.supplies.flatMap((x) => (x.from ? [[x.item, nameOf(x.from, x.item)] as const] : [])));
     return { to, from, own: new Set(plan.targets.map((x) => x.item)) };
-  }, [powerMode, exports, plan.supplies, plan.targets, s.plans, t]);
+  }, [powerMode, exports, plan.supplies, plan.targets, s.plans, poolFrom, t]);
   const empty = bookMode || manual ? false : powerMode ? pp.plants.length === 0 : plan.targets.length === 0 && exports.length === 0;
   // Every target is out of reach (e.g. above the unlocked tier): explain instead of drawing a lone "bring in".
   const blocked = !powerMode && !manual && result && result.recipes.length === 0 && result.missing.length > 0;

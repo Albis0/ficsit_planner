@@ -1,5 +1,16 @@
 import { useEffect, useMemo, useState } from 'react';
-import { CATEGORIES, type CodexIndex, GUIDE_ICON, GUIDES, type Page, pageKey, parsePage, search, useCodex } from '../lib/codex';
+import {
+  CATEGORIES,
+  type Category,
+  type CodexIndex,
+  GUIDE_ICON,
+  GUIDES,
+  type Page,
+  pageKey,
+  parsePage,
+  search,
+  useCodex,
+} from '../lib/codex';
 import { useT } from '../lib/i18n';
 import { useStore } from '../store';
 import { GuidePage } from './CodexGuides';
@@ -24,6 +35,17 @@ export function CodexNav() {
     [t],
   );
   const hits = useMemo(() => (index ? search(index, query, guides) : []), [index, query, guides]);
+  // Under a heading for each kind of page.
+  const groups = useMemo(() => {
+    const rank = (c: Category | 'other') => (c === 'other' ? CATEGORIES.length : CATEGORIES.indexOf(c));
+    const by = new Map<Category | 'other', typeof hits>();
+    for (const e of hits) {
+      const cat = categoryOf(e.page, index) ?? 'other';
+      by.set(cat, [...(by.get(cat) ?? []), e]);
+    }
+    // Parts and resources first, in the same order as the index; what the search ranked stays in order inside each.
+    return [...by].sort(([a], [b]) => rank(a) - rank(b));
+  }, [hits, index]);
   const current = categoryOf(page, index);
 
   return (
@@ -44,13 +66,20 @@ export function CodexNav() {
       </div>
       {query.trim() ? (
         <ul className="codex-hits">
-          {hits.map((e) => (
-            <li key={pageKey(e.page)}>
-              <CodexLink page={e.page} className="codex-hit">
-                {e.icon ? <Icon id={e.icon} size={32} /> : <span className="codex-hit-blank" />}
-                <span className="codex-hit-name">{e.name}</span>
-                <span className="codex-hit-kind">{t(`pageKind_${e.page.kind}` as 'pageKind_item')}</span>
-              </CodexLink>
+          {groups.map(([cat, list]) => (
+            <li key={cat} className="codex-hits-group">
+              <h3 className="codex-hits-head">{cat === 'other' ? t('codex') : t(`cat_${cat}`)}</h3>
+              <ul>
+                {list.map((e) => (
+                  <li key={pageKey(e.page)}>
+                    <CodexLink page={e.page} className="codex-hit">
+                      {e.icon ? <Icon id={e.icon} size={32} /> : <span className="codex-hit-blank" />}
+                      <span className="codex-hit-name">{e.name}</span>
+                      <span className="codex-hit-kind">{t(`pageKind_${e.page.kind}` as 'pageKind_item')}</span>
+                    </CodexLink>
+                  </li>
+                ))}
+              </ul>
             </li>
           ))}
           {index && hits.length === 0 && <li className="hint codex-none">{t('codexNoHits')}</li>}

@@ -546,7 +546,7 @@ function FlowEdge({ id, source, target, sourceX, sourceY, targetX, targetY, sour
       // Straight runs with square turns, as on the Manual floor, the label on the longest run.
       const sq = squarePath({ x: sourceX, y: sourceY }, route.square, { x: targetX, y: targetY }, dir === 'TB');
       path = sq.path;
-      [lx, ly] = longestRunMid(sq.runs);
+      [lx, ly] = route.labelAt ? [route.labelAt.x, route.labelAt.y] : longestRunMid(sq.runs);
     } else {
       path = routePath([{ x: sourceX, y: sourceY }, ...route.points, { x: targetX, y: targetY }], dir);
       lx = route.label.x;
@@ -591,7 +591,7 @@ function FlowEdge({ id, source, target, sourceX, sourceY, targetX, targetY, sour
                     {t('perMin')}
                   </span>
                   <span className="edge-tier" style={{ background: tierColor, ...(ink ? { color: ink } : {}) }}>
-                    {lanes > 1 && `${lanes}× `}
+                    {lanes > 1 && `${lanes} × `}
                     {transport.name}
                   </span>
                 </span>

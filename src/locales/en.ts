@@ -818,6 +818,17 @@ export const en = {
   helpText_inventory: 'How many somersloops and power shards you own. Auto place spends them where they save the most machines or power.',
   helpText_take:
     'An item one factory tab gets from another. The other tab makes it on top of its own products, and both floors show the link (From… and To…). Pick the source on the card; delete the source and the item is simply on hand.',
+  helpPool: 'The pool',
+  helpText_pool:
+    'What every factory and power plant leaves over, added up per item. A tab can take from it instead of from one tab, and the card names who leaves it over. It can run short: if more is taken than is left, the factories or plants taking it say so.',
+  helpText_ownLine:
+    'Makes a product on a line of its own, apart from the other targets, with its own machines and its own heading on the Auto floor.',
+  helpManual: 'Auto and Manual floors',
+  helpText_manual:
+    'Auto works the machines out from your targets. Manual is a floor you build yourself: place machines, lay belts, set counts, and the numbers follow. Rebuild as Manual turns an Auto floor into one you can edit.',
+  helpSplit: 'Splitters and mergers',
+  helpText_split:
+    'Where one belt feeds several machines or several belts meet. A belt that needs more than one belt’s worth shows as that many belts side by side, with the count on its label, like “3 × Mk.5”.',
   helpText_useAll:
     'Places as many somersloops and power shards as it can: every free somersloop slot, then shards in machines, then the rest in miners and pumps so fewer of them are needed. Some can stay unused when there’s nowhere they help.',
   helpText_share:

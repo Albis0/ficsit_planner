@@ -2,6 +2,22 @@
 
 All notable changes to FICSIT Planner. Dates are when the version was finished.
 
+## 0.13.24 — 2026-10-08
+
+### Changed
+
+- **Belts that carry more than one belt's worth.** The Auto floor draws that many ordinary belts side by side (up to six)
+  instead of one fat belt, and the label reads "3 × Mk.5". The Manual floor draws its extra lines the same way.
+- **From the pool.** The card now names who leaves the item over: up to two factories or plants, then "+ N".
+- **Codex search.** Results are grouped under Parts, Resources, Buildings and so on, each group keeping the search's
+  own order.
+- **Settings › Help.** New entries for the pool, Own line, the Auto and Manual floors, and splitters and mergers.
+
+### Fixed
+
+- **Belt labels on the Auto floor** no longer sit on a card's header or on each other where there is room to slide
+  them along the belt.
+
 ## 0.13.23 — 2026-10-08
 
 ### Fixed

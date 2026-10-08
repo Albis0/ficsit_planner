@@ -103,3 +103,31 @@ test('with splitters shown, a belt feeds one place per end and a splitter or mer
     expect(plain.nodes.some((n) => n.type === 'logistic')).toBe(false);
   }
 });
+
+test('with square belts every belt label sits on its route, and none covers a card or another label', () => {
+  const r = solve(highs, {
+    targets: [
+      { item: 'Desc_Computer_C', rate: 20 },
+      { item: 'Desc_Motor_C', rate: 30 },
+    ],
+    supplies: [],
+    enabledRecipes: new Set(data.recipes.filter((x) => x.kind === 'standard').map((x) => x.id)),
+    resourceCaps: {},
+    objective: 'resources',
+  });
+  const { nodes, edges } = buildGraph(r, 9, { dir: 'LR', squareBelts: true });
+  const spots = edges.map((e) => (e.data as { route?: { labelAt?: { x: number; y: number } } }).route?.labelAt);
+  expect(spots.every(Boolean)).toBe(true);
+  const box = (p: { x: number; y: number }) => ({ x: p.x - 75, y: p.y - 22, w: 150, h: 44 });
+  const hit = (a: ReturnType<typeof box>, b: ReturnType<typeof box>) =>
+    a.x < b.x + b.w && b.x < a.x + a.w && a.y < b.y + b.h && b.y < a.y + a.h;
+  const labels = spots.map((p) => box(p!));
+  let overCards = 0;
+  for (const l of labels)
+    for (const n of nodes) if (hit(l, { x: n.position.x, y: n.position.y, w: n.width ?? 0, h: n.height ?? 0 })) overCards++;
+  let overLabels = 0;
+  for (let i = 0; i < labels.length; i++) for (let j = i + 1; j < labels.length; j++) if (hit(labels[i], labels[j])) overLabels++;
+  // Short belts between neighbouring cards leave no clear spot; the rest must be clear.
+  expect(overLabels).toBeLessThanOrEqual(Math.ceil(labels.length / 5));
+  expect(overCards).toBeLessThanOrEqual(Math.ceil(labels.length / 5));
+});

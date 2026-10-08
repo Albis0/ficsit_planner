@@ -113,6 +113,23 @@
   font-size: 17px;
 }
 
+.codex-hits-group > ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.codex-hits-head {
+  margin: 8px 0 4px;
+  padding: 0 10px 3px;
+  font: 600 14px var(--font-body);
+  color: var(--faint);
+  border-bottom: 1px solid var(--line);
+}
+
 .codex-hit-blank {
   width: 32px;
 }

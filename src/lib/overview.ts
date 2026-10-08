@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { aimOf, type PowerPlan, useStore } from '../store';
-import { type PoolLine, plantTakesFromPool, poolLines, takesFromPool } from './pool';
+import { type PoolLine, plantTakesFromPool, poolLines, poolSources, takesFromPool } from './pool';
 import { effectiveExtraction, type ExtractionUse, planExtraction } from './extraction';
 import type { GameRules } from './game';
 import { type FactoryDraw, type FactoryEntry, powerInput, powerLoad, useFactoryEntries } from './solution';
@@ -220,6 +220,22 @@ export function useOverview(): Overview {
       pending: factories.some((f) => f.pending) || rows.some((p) => p.pending),
     };
   }, [entries, plans, power, rows]);
+}
+
+/** Who leaves each item over for the pool, by name: every other factory and plant, for naming the source on a "from the pool" card. */
+export function usePoolSources(forPlan: string | undefined, on: boolean): Map<string, string[]> {
+  const entries = useFactoryEntries(on);
+  const draws: FactoryDraw[] = useMemo(() => entries.map(({ id, name, mw, failed }) => ({ id, name, mw, failed })), [entries]);
+  const rows = usePlantRows(draws, on);
+  return useMemo(() => {
+    const made = [
+      ...entries
+        .filter((e) => e.id !== forPlan)
+        .map((e) => ({ name: e.name, leaves: e.result ? madeBeyond(e.result.surplus, e.result.supplies) : [] })),
+      ...rows.map((p) => ({ name: p.name, leaves: p.leaves })),
+    ];
+    return poolSources(made);
+  }, [entries, rows, forPlan]);
 }
 
 /**

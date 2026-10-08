@@ -27,6 +27,14 @@ export const takesFromPool = (plans: Pick<Plan, 'supplies'>[]): Target[][] =>
 export const plantTakesFromPool = (plants: Pick<PowerPlan, 'have'>[]): Target[][] =>
   plants.map((p) => p.have.filter((x) => x.from === POOL).map(({ item, rate }) => ({ item, rate })));
 
+/** Which factories and plants leave each item over, by name, most first. */
+export function poolSources(made: { name: string; leaves: Target[] }[]): Map<string, string[]> {
+  const by = new Map<string, { name: string; rate: number }[]>();
+  for (const m of made)
+    for (const x of m.leaves) if (x.rate > 1e-9) by.set(x.item, [...(by.get(x.item) ?? []), { name: m.name, rate: x.rate }]);
+  return new Map([...by].map(([item, list]) => [item, list.sort((a, b) => b.rate - a.rate).map((x) => x.name)]));
+}
+
 /**
  * The pool: every list of leftovers added up per item, less everything taken from it. Taking from it makes nothing
  * extra anywhere, so what's left can run out (below zero) but never loops back on itself.

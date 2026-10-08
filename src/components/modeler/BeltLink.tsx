@@ -105,7 +105,7 @@ export function BeltLink({ sourceX, sourceY, targetX, targetY, sourcePosition, t
                     style={{ background: color, ...(ink ? { color: ink } : {}) }}
                     title={full ? t('beltFull', { mk: transport.name }) : undefined}
                   >
-                    {lanes > 1 && `${lanes}× `}
+                    {lanes > 1 && `${lanes} × `}
                     {transport.name}
                   </span>
                 </span>

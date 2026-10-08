@@ -1,3 +1,4 @@
+import { squarePath } from '../components/floor/squarePath';
 import { squareBends } from './squareRoute';
 import dagre from '@dagrejs/dagre';
 import { Position, type Edge, type Node, type NodeHandle } from '@xyflow/react';
@@ -73,6 +74,8 @@ export interface Route {
   to: Point;
   /** With square belts: the bends of the same route in straight runs and square turns. */
   square?: Point[];
+  /** With square belts: where the label sits on that route, clear of the cards and of other labels. */
+  labelAt?: Point;
 }
 
 export interface FlowEdgeData extends Record<string, unknown> {
@@ -223,6 +226,7 @@ export function buildGraph(result: SolveResult, tier: number, opts: GraphOptions
         from: at(data.route.from),
         to: at(data.route.to),
         ...(data.route.square ? { square: data.route.square.map(at) } : {}),
+        ...(data.route.labelAt ? { labelAt: at(data.route.labelAt) } : {}),
       };
       edges.push({ ...e, id: id(e.id), source: id(e.source), target: id(e.target), data: { ...data, route } });
     }
@@ -544,7 +548,7 @@ function place(nodes: Node[], edges: Edge[], dir: Direction, ranker: Ranker, opt
 }
 
 /** Gives every belt its square route: dagre's bends made straight runs, belts of different lines kept in lanes of their own. */
-function squareUp(nodes: Node[], edges: Edge[], dir: Direction) {
+function squareUp(nodes: Node[], edges: Edge[], dir: Direction, text: number) {
   const size = new Map(nodes.map((n) => [n.id, { w: n.width ?? 0, h: n.height ?? 0 }]));
   const pos = new Map(nodes.map((n) => [n.id, n.position]));
   const out = (id: string): Point => {
@@ -568,6 +572,47 @@ function squareUp(nodes: Node[], edges: Edge[], dir: Direction) {
     dir,
   );
   for (const e of flow) (e.data as FlowEdgeData).route!.square = bends.get(e.id);
+  placeLabels(nodes, flow, dir, out, into, text);
+}
+
+type Rect = { x: number; y: number; w: number; h: number };
+const overlap = (a: Rect, b: Rect) =>
+  Math.max(0, Math.min(a.x + a.w, b.x + b.w) - Math.max(a.x, b.x)) * Math.max(0, Math.min(a.y + a.h, b.y + b.h) - Math.max(a.y, b.y));
+
+/** A belt label's box on the floor, about as big as the label draws, for keeping labels off the cards and off each other. */
+const LABEL_BOX = { width: 150, height: 44 };
+
+/**
+ * Puts each square belt's label on its longest run, then slides it along the belt (and onto its other runs) while it would
+ * cover a card or another belt's label. Where nothing is clear, the spot that covers least wins.
+ */
+function placeLabels(nodes: Node[], flow: Edge[], dir: Direction, out: (id: string) => Point, into: (id: string) => Point, text: number) {
+  const box = { w: LABEL_BOX.width * text, h: LABEL_BOX.height * text };
+  const cards: Rect[] = nodes.map((n) => ({ x: n.position.x - 4, y: n.position.y - 4, w: (n.width ?? 0) + 8, h: (n.height ?? 0) + 8 }));
+  const taken: Rect[] = [];
+  const AT = [0.5, 0.3, 0.7, 0.15, 0.85];
+  for (const e of flow) {
+    const route = (e.data as FlowEdgeData).route!;
+    if (!route.square) continue;
+    const { runs } = squarePath(out(e.source), route.square, into(e.target), dir === 'TB');
+    const long = runs
+      .filter(([a, b]) => Math.hypot(b.x - a.x, b.y - a.y) > 30)
+      .sort(([a, b], [c, d]) => Math.hypot(d.x - c.x, d.y - c.y) - Math.hypot(b.x - a.x, b.y - a.y));
+    let best: { p: Point; cost: number } | undefined;
+    for (const [a, b] of long.length ? long : runs) {
+      for (const t of AT) {
+        const p = { x: a.x + (b.x - a.x) * t, y: a.y + (b.y - a.y) * t };
+        const r = { x: p.x - box.w / 2, y: p.y - box.h / 2, w: box.w, h: box.h };
+        const cost = [...cards, ...taken].reduce((sum, c) => sum + overlap(r, c), 0);
+        if (!best || cost < best.cost) best = { p, cost };
+        if (cost === 0) break;
+      }
+      if (best?.cost === 0) break;
+    }
+    if (!best) continue;
+    route.labelAt = best.p;
+    taken.push({ x: best.p.x - box.w / 2, y: best.p.y - box.h / 2, w: box.w, h: box.h });
+  }
 }
 
 /** Belts that cross, counting each belt as a straight line from its output handle to its input handle. */
@@ -617,6 +662,6 @@ function layout(nodes: Node[], edges: Edge[], opts: GraphOptions): Direction {
     const r = pick.routes.get(e.id)!;
     (e.data as FlowEdgeData | PowerEdgeData).route = { ...r, from: pick.pos.get(e.source)!, to: pick.pos.get(e.target)! };
   }
-  if (opts.squareBelts) squareUp(nodes, edges, pick.dir);
+  if (opts.squareBelts) squareUp(nodes, edges, pick.dir, opts.text ?? 1);
   return pick.dir;
 }
