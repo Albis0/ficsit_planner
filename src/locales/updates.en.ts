@@ -9,6 +9,21 @@ export type UpdateNote = [UpdateKind, string];
 
 export const UPDATES: { version: string; date: string; title?: string; notes: UpdateNote[] }[] = [
   {
+    version: '0.13.23',
+    date: '2026-10-08',
+    notes: [
+      ['fixed', 'Settings › Layout: the Left and Right pictures no longer spill out of their frame on a narrow window.'],
+      [
+        'fixed',
+        'In a narrow side panel the sizing switch and the generator name stay inside their boxes, and the recipe kinds drop to a second row.',
+      ],
+      [
+        'changed',
+        'Searching for a part also names the ones above your tier that match, closest tier first, even when something already matched.',
+      ],
+    ],
+  },
+  {
     version: '0.13.22',
     date: '2026-10-08',
     notes: [

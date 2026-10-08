@@ -21,11 +21,14 @@
 
 .recipe-tools .segmented {
   align-self: stretch;
+  flex-wrap: wrap;
 }
 
+/* When the panel is narrow the kinds drop to a second row instead of running past the edge. */
 .recipe-tools .segmented button {
-  flex: 1;
+  flex: 1 1 auto;
   padding-inline: 6px;
+  white-space: nowrap;
 }
 
 .tier-picker {

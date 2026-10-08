@@ -10,9 +10,9 @@ export function laterMatches(q: string, hidden: Item[], name: (i: Item) => strin
   if (!f) return [];
   const found: { item: Item; tier: number }[] = [];
   for (const item of hidden) {
-    if (found.length === SHOWN) break;
     const tier = itemTier(item.id);
     if (tier !== undefined && searchKey(name(item)).includes(f)) found.push({ item, tier });
   }
-  return found;
+  // The ones that open up first.
+  return found.sort((a, b) => a.tier - b.tier || name(a.item).localeCompare(name(b.item))).slice(0, SHOWN);
 }

@@ -40,6 +40,9 @@ describe('hiding what the tier can’t make', () => {
     expect(found.length).toBeGreaterThan(0);
     expect(found.length).toBeLessThanOrEqual(3);
     for (const x of found) expect(x.tier).toBeGreaterThan(2);
+    // The ones that open up first come first.
+    const tiers = found.map((x) => x.tier);
+    expect(tiers).toEqual([...tiers].sort((a, b) => a - b));
     expect(laterMatches('qwzx', hidden, name)).toEqual([]);
     expect(laterMatches('  ', hidden, name)).toEqual([]);
   });

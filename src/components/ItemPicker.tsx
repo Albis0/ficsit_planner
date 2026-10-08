@@ -134,6 +134,11 @@ export function ItemPicker({ items, label, onPick, exclude = [], hidden }: Props
             {name(i)}
           </li>,
         ])}
+        {matches.length > 0 && later.length > 0 && (
+          <li className="picker-empty" role="presentation">
+            {t('notInTierYet', { list: later.map((x) => `${name(x.item)} (${t('tierTag', { tier: x.tier })})`).join(', ') })}
+          </li>
+        )}
       </ul>
     </div>
   );

@@ -127,10 +127,17 @@ export function QuickPick() {
         />
         {q.trim() ? (
           matches.length ? (
-            grid(
-              matches.map((i) => i.id),
-              10,
-            )
+            <>
+              {grid(
+                matches.map((i) => i.id),
+                10,
+              )}
+              {later.length > 0 && (
+                <p className="hint">
+                  {t('notInTierYet', { list: later.map((x) => `${name(x.item)} (${t('tierTag', { tier: x.tier })})`).join(', ') })}
+                </p>
+              )}
+            </>
           ) : (
             <p className="hint">
               {later.length

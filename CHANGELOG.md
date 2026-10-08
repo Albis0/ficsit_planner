@@ -2,6 +2,21 @@
 
 All notable changes to FICSIT Planner. Dates are when the version was finished.
 
+## 0.13.23 — 2026-10-08
+
+### Fixed
+
+- **Settings › Layout pictures.** In the Left and Right pictures the three machines now stand in a column beside the
+  panel instead of running past the frame, and the frame clips anything that would.
+- **A narrow side panel.** The "What I have / Power I want / My factories" switch wraps between words and shrinks its
+  type a little instead of running into the next button. A generator's name and its MW tag wrap onto two lines instead
+  of sitting on top of each other. The recipe kinds (Alternate, Standard, Converter, All) drop to a second row.
+
+### Changed
+
+- **Search above your tier.** A search on the first screen and in the item pickers now says which matches are not in
+  your tier yet even when others did match, with the closest tier first. Before, it only said so when nothing matched.
+
 ## 0.13.22 — 2026-10-08
 
 ### Added

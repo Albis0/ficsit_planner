@@ -102,7 +102,11 @@
 
 .segmented.size-modes button {
   padding: 8px 6px;
-  white-space: nowrap;
+  min-width: 0;
+  line-height: 1.15;
+  text-align: center;
+  /* Words wrap between each other, never inside; the type shrinks a little before it has to. */
+  font-size: min(16px, 4.6cqi);
 }
 
 .segmented.size-modes button[aria-checked='true'] {
@@ -198,6 +202,7 @@
 
 .gen-row-head {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   gap: 10px;
   padding: 3px 6px 3px 6px;
@@ -209,7 +214,7 @@
 
 /* "Coal-Powered Generator" wraps rather than losing its end beside the megawatts. */
 .gen-row-name {
-  flex: 1;
+  flex: 1 1 8em;
   min-width: 0;
   line-height: 1.1;
 }

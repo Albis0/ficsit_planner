@@ -262,6 +262,7 @@
   padding: 4px;
   background: var(--bg);
   border: 1px solid var(--line-2);
+  overflow: hidden;
 }
 
 .panel-diagram.top {
@@ -270,12 +271,12 @@
 }
 
 .panel-diagram.left {
-  grid-template: 9px 1fr / 38px 1fr;
+  grid-template: 9px 1fr / 38px minmax(0, 1fr);
   grid-template-areas: 'bar bar' 'panel floor';
 }
 
 .panel-diagram.right {
-  grid-template: 9px 1fr / 1fr 38px;
+  grid-template: 9px 1fr / minmax(0, 1fr) 38px;
   grid-template-areas: 'bar bar' 'floor panel';
 }
 
@@ -300,6 +301,13 @@
   align-items: center;
   justify-content: space-evenly;
   background: var(--floor);
+}
+
+/* Beside the floor there's less room across, so the three machines stand in a column. */
+.panel-diagram.left .pd-floor,
+.panel-diagram.right .pd-floor {
+  flex-direction: column;
+  justify-content: space-evenly;
 }
 
 .pd-floor span {
