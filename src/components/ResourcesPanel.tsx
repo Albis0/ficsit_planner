@@ -1,20 +1,12 @@
 import { useMemo, useState } from 'react';
 import { data, rawItems, resourceWeights } from '../lib/data';
-import {
-  type ExtractionSettings,
-  type ExtractionUse,
-  effectiveExtraction,
-  MINERS,
-  PURITIES,
-  type Purity,
-  planExtraction,
-} from '../lib/extraction';
+import { type ExtractionSettings, type ExtractionUse, effectiveExtraction, PURITIES, type Purity, planExtraction } from '../lib/extraction';
 import { useT } from '../lib/i18n';
-import { minerLabel } from '../lib/text';
 import { plantRecipe, plantValid } from '../lib/power';
 import { reachableRaw, useExports, usableRecipes } from '../lib/solution';
 import type { SolveResult } from '../lib/solver';
 import { activePowerPlan, aimOf, usePlan, useStore } from '../store';
+import { ExtractionControls } from './ExtractionControls';
 import { Icon } from './Icon';
 import { RateInput } from './RateInput';
 import { Slot } from './Slot';
@@ -28,7 +20,6 @@ export function ResourcesPanel({ result }: { result?: SolveResult }) {
   const setWeight = useStore((s) => s.setWeight);
   const updatePlan = useStore((s) => s.updatePlan);
   const tier = useStore((s) => s.tier);
-  const showLocked = useStore((s) => s.settings.showLocked);
   const aim = useStore(aimOf);
   const set = useStore((s) => s.set);
   const ex = effectiveExtraction(plan.extraction, tier);
@@ -56,49 +47,7 @@ export function ResourcesPanel({ result }: { result?: SolveResult }) {
     <div className="panel-body resources">
       <section className="stack extraction">
         <h3 className="section-title">{t('extraction')}</h3>
-        <div className="miner-picker" role="radiogroup" aria-label={t('miner')}>
-          {MINERS.filter((m) => showLocked || m.tier <= tier).map((m) => (
-            <button
-              key={m.id}
-              type="button"
-              role="radio"
-              aria-checked={ex.miner === m.id}
-              disabled={m.tier > tier}
-              title={m.tier > tier ? `${t('locked')} (T${m.tier})` : undefined}
-              onClick={() => setEx({ miner: m.id })}
-            >
-              <Icon id={m.id} size={44} />
-              <span>{minerLabel(name(m))}</span>
-            </button>
-          ))}
-        </div>
-        <div className="field">
-          <span className="control-label">{t('purity')}</span>
-          <div className="segmented wide" role="radiogroup" aria-label={t('purity')}>
-            {PURITIES.map((p) => (
-              <button key={p} type="button" role="radio" aria-checked={ex.purity === p} onClick={() => setEx({ purity: p })}>
-                {t(p)}
-              </button>
-            ))}
-          </div>
-        </div>
-        <div className="field">
-          <span className="control-label">{t('extractorClock')}</span>
-          <span className="item-card-rate">
-            <RateInput
-              value={Math.round(ex.clock * 10000) / 100}
-              label={t('extractorClock')}
-              onChange={(v) => setEx({ clock: Math.min(2.5, Math.max(0.01, v / 100)) })}
-            />
-            <span className="unit">%</span>
-          </span>
-        </div>
-        {ex.nodes && (
-          <label className="check-row small" title={t('capByNodesHint')}>
-            <input type="checkbox" checked={!!ex.capByNodes} onChange={(e) => setEx({ capByNodes: e.target.checked || undefined })} />
-            <span>{t('capByNodes')}</span>
-          </label>
-        )}
+        <ExtractionControls />
       </section>
 
       <section className="stack resource-list">

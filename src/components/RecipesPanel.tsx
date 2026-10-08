@@ -108,7 +108,12 @@ export function RecipesPanel() {
         <span className="recipe-main">
           <span className="recipe-name">
             {recipeLabel(name(r), r.kind)}
-            {r.kind !== 'standard' && <span className={`kind ${r.kind}`}>{t(r.kind)}</span>}
+            {r.kind !== 'standard' && (
+              <span className={`kind ${r.kind}`} title={t(r.kind)}>
+                <span className="when-wide">{t(r.kind)}</span>
+                <span className="when-narrow">{r.kind === 'alternate' ? t('altShort') : t('converterShort')}</span>
+              </span>
+            )}
             {(r.tier !== undefined || r.kind === 'alternate') && (
               <span className="recipe-tier" title={locked ? t('aboveTier') : undefined}>
                 T{recipeTier(r)}
@@ -149,7 +154,10 @@ export function RecipesPanel() {
           />
         </label>
         <div className="tier-picker">
-          <span className="control-label">{t('unlockedTier')}</span>
+          <span className="control-label" title={t('unlockedTier')}>
+            <span className="when-wide">{t('unlockedTier')}</span>
+            <span className="when-narrow">{t('tierShort')}</span>
+          </span>
           <div className="tier-steps" role="radiogroup" aria-label={t('unlockedTier')}>
             {tiers.map((step) => (
               <button
@@ -188,7 +196,8 @@ export function RecipesPanel() {
             {t('disableAll')}
           </button>
           <button type="button" className="text-button" disabled={atDefault} onClick={() => updatePlan({ enabled: defaultEnabled() })}>
-            {t('resetRecipes')}
+            <span className="when-wide">{t('resetRecipes')}</span>
+            <span className="when-narrow">{t('resetRecipesShort')}</span>
           </button>
         </div>
       </div>

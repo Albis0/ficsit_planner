@@ -2,6 +2,22 @@
 
 All notable changes to FICSIT Planner. Dates are when the version was finished.
 
+## 0.13.28 — 2026-10-09
+
+### Changed
+
+- **The side panel in a narrow width** (beside the floor, or on a phone). Recipes: the search, the tier steps, the kinds
+  and the bulk buttons take a row each, and a recipe is two lines (name and kind, then what goes in and out with the
+  machine and time at the end). Targets: each part is a box. A product is its name, an Own line and a Pool button and
+  its amount; Already on hand, Your inventory and Extraction fold to one line that says what is in them, and the three
+  buttons that add an item sit side by side. The tabs close up, and hide their counts under 360 px.
+- **Extraction** (miner, node purity, clock) can be set from the Targets tab in a narrow panel as well as from Resources.
+
+### Fixed
+
+- A long product name in the narrow panel ("Packaged Rocket Fuel") was cut or broken one letter to a line.
+- The cost choice under Resources ran past the edge of a narrow panel.
+
 ## 0.13.27 — 2026-10-09
 
 ### Changed

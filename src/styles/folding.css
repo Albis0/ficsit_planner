@@ -70,27 +70,104 @@
 @container side (max-width: 480px) {
   .item-card:not(.flat) {
     display: grid;
-    grid-template-columns: auto minmax(0, 1fr) auto;
+    grid-template-columns: auto minmax(0, 1fr) auto 30px;
     grid-template-areas:
-      'slot name remove'
-      'slot rate rate';
-    gap: 6px 12px;
+      'slot name name remove'
+      'slot rate rate rate';
+    align-items: center;
+    gap: 4px 10px;
+    padding: 8px;
+  }
+
+  /* With chips or a source under the name, the second line is theirs, and the amount sits at its end. */
+  .item-card.has-extra:not(.flat) {
+    grid-template-areas:
+      'slot name name remove'
+      'extra extra rate rate';
+  }
+
+  /* Where a pick comes from needs a line of its own for the list to be read. */
+  .item-card.has-extra:not(.flat):has(.supply-from) {
+    grid-template-areas:
+      'slot name name remove'
+      'slot rate rate rate'
+      'extra extra extra extra';
+  }
+
+  .item-card:not(.flat) .rate-input {
+    width: 70px;
+    padding: 5px 8px;
+    font-size: 18px;
+  }
+
+  .item-card:not(.flat) > .item-card-main {
+    display: contents;
   }
 
   .item-card:not(.flat) > .slot {
     grid-area: slot;
+    align-self: start;
+    width: 44px !important;
+    height: 44px !important;
+    --slot-size: 44px !important;
   }
 
-  .item-card:not(.flat) > .item-card-name {
+  .item-card:not(.flat) > .slot .icon {
+    width: 33px;
+    height: 33px;
+  }
+
+  .item-card:not(.flat) .item-card-name {
     grid-area: name;
+  }
+
+  .item-card:not(.flat) .item-card-extra {
+    grid-area: extra;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 4px 6px;
+    min-width: 0;
+  }
+
+  .item-card:not(.flat) .item-card-extra .line-toggle {
+    margin-top: 0;
+    min-height: 28px;
+    padding: 1px 7px;
+    white-space: nowrap;
+  }
+
+  .item-card:not(.flat) .item-card-rate {
+    gap: 4px;
+  }
+
+  .item-card:not(.flat) .item-card-rate .unit {
+    min-width: 0;
+    font-size: 13px;
+  }
+
+  .item-card:not(.flat) .item-card-extra .supply-from {
+    margin-top: 0;
+    flex: 1 1 auto;
+  }
+
+  .item-card:not(.flat) .item-card-extra .supply-from select {
+    flex: 1;
   }
 
   .item-card:not(.flat) > .item-card-rate {
     grid-area: rate;
+    justify-self: start;
+  }
+
+  .item-card.has-extra:not(.flat) > .item-card-rate {
+    justify-self: end;
   }
 
   .item-card:not(.flat) > .icon-button {
     grid-area: remove;
+    align-self: start;
+    justify-self: end;
   }
 
   .item-card-name {
@@ -166,27 +243,104 @@
 @container card-column (max-width: 440px) {
   .item-card:not(.flat) {
     display: grid;
-    grid-template-columns: auto minmax(0, 1fr) auto;
+    grid-template-columns: auto minmax(0, 1fr) auto 30px;
     grid-template-areas:
-      'slot name remove'
-      'slot rate rate';
-    gap: 6px 12px;
+      'slot name name remove'
+      'slot rate rate rate';
+    align-items: center;
+    gap: 4px 10px;
+    padding: 8px;
+  }
+
+  /* With chips or a source under the name, the second line is theirs, and the amount sits at its end. */
+  .item-card.has-extra:not(.flat) {
+    grid-template-areas:
+      'slot name name remove'
+      'extra extra rate rate';
+  }
+
+  /* Where a pick comes from needs a line of its own for the list to be read. */
+  .item-card.has-extra:not(.flat):has(.supply-from) {
+    grid-template-areas:
+      'slot name name remove'
+      'slot rate rate rate'
+      'extra extra extra extra';
+  }
+
+  .item-card:not(.flat) .rate-input {
+    width: 70px;
+    padding: 5px 8px;
+    font-size: 18px;
+  }
+
+  .item-card:not(.flat) > .item-card-main {
+    display: contents;
   }
 
   .item-card:not(.flat) > .slot {
     grid-area: slot;
+    align-self: start;
+    width: 44px !important;
+    height: 44px !important;
+    --slot-size: 44px !important;
   }
 
-  .item-card:not(.flat) > .item-card-name {
+  .item-card:not(.flat) > .slot .icon {
+    width: 33px;
+    height: 33px;
+  }
+
+  .item-card:not(.flat) .item-card-name {
     grid-area: name;
+  }
+
+  .item-card:not(.flat) .item-card-extra {
+    grid-area: extra;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 4px 6px;
+    min-width: 0;
+  }
+
+  .item-card:not(.flat) .item-card-extra .line-toggle {
+    margin-top: 0;
+    min-height: 28px;
+    padding: 1px 7px;
+    white-space: nowrap;
+  }
+
+  .item-card:not(.flat) .item-card-rate {
+    gap: 4px;
+  }
+
+  .item-card:not(.flat) .item-card-rate .unit {
+    min-width: 0;
+    font-size: 13px;
+  }
+
+  .item-card:not(.flat) .item-card-extra .supply-from {
+    margin-top: 0;
+    flex: 1 1 auto;
+  }
+
+  .item-card:not(.flat) .item-card-extra .supply-from select {
+    flex: 1;
   }
 
   .item-card:not(.flat) > .item-card-rate {
     grid-area: rate;
+    justify-self: start;
+  }
+
+  .item-card.has-extra:not(.flat) > .item-card-rate {
+    justify-self: end;
   }
 
   .item-card:not(.flat) > .icon-button {
     grid-area: remove;
+    align-self: start;
+    justify-self: end;
   }
 }
 
@@ -438,5 +592,338 @@
   .app[data-summary='compact'] .raw-chip .rate-input {
     min-width: 72px;
     width: auto;
+  }
+}
+
+/* ---------- A narrow panel: the side panel's three tabs, tighter ---------- */
+
+@container side (max-width: 480px) {
+  .when-narrow {
+    display: inline;
+  }
+
+  .when-wide {
+    display: none;
+  }
+
+  /* Targets: each part a box of its own; the ones used less fold to a line that says what is in them. */
+  .panel-body.targets {
+    padding: 10px 12px 20px;
+    gap: 10px;
+  }
+
+  .panel-body.targets > .stack {
+    gap: 6px;
+    padding: 6px 10px 10px;
+    background: var(--panel);
+    border: 1px solid var(--line);
+    border-radius: var(--radius-lg);
+  }
+
+  .panel-body.targets > .fold.mining {
+    display: flex;
+  }
+
+  .panel-body.targets > .stack > .section-title:first-child,
+  .panel-body.targets > .stack > .fold-top:first-child {
+    min-height: 32px;
+  }
+
+  .section-title:has(> .section-count) {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  .section-count {
+    display: inline;
+    font: 600 15px var(--font-body);
+    letter-spacing: 0;
+    color: var(--faint);
+  }
+
+  .fold-top {
+    flex-wrap: wrap;
+    max-width: none;
+    gap: 6px;
+  }
+
+  .fold-title {
+    flex: 1 1 auto;
+    min-width: 0;
+  }
+
+  .fold-head {
+    width: 100%;
+    min-height: 32px;
+    gap: 10px;
+    cursor: pointer;
+    pointer-events: auto;
+  }
+
+  .fold-name {
+    flex: none;
+  }
+
+  .fold-summary {
+    display: block;
+    flex: 1;
+    min-width: 0;
+    overflow: hidden;
+    text-align: right;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font: 600 15px var(--font-body);
+    letter-spacing: 0;
+    text-transform: none;
+    color: var(--faint);
+  }
+
+  .fold-chevron {
+    display: block;
+    flex: none;
+    width: 8px;
+    height: 8px;
+    margin: 0 4px 2px auto;
+    border: solid var(--faint);
+    border-width: 0 2px 2px 0;
+    transform: rotate(-45deg);
+    transition: transform 0.15s ease-out;
+  }
+
+  .fold[data-open='true'] .fold-summary {
+    display: none;
+  }
+
+  .fold[data-open='true'] .fold-chevron {
+    margin: 2px 4px 0 auto;
+    transform: rotate(45deg);
+  }
+
+  .fold-head:hover .fold-chevron {
+    border-color: var(--ficsit);
+  }
+
+  .panel-body.targets > .fold[data-open='false'] {
+    padding-block: 0;
+  }
+
+  .fold[data-open='false'] :is(.fold-body, .fold-actions) {
+    display: none;
+  }
+
+  .fold-actions {
+    flex: 1 0 100%;
+  }
+
+  .fold-actions .inventory-actions {
+    justify-content: flex-start;
+  }
+
+  .add-row {
+    flex-direction: row;
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+
+  .add-row > .add-button {
+    flex: 1 1 0;
+    min-height: 40px;
+    padding: 0 8px;
+    gap: 6px;
+    justify-content: center;
+    font-size: 16px;
+  }
+
+  .add-row > .picker {
+    flex: 1 1 100%;
+  }
+
+  .panel-body.targets > .stack > .add-button {
+    min-height: 44px;
+  }
+
+  /* Recipes: the tools in four short rows, a recipe in two lines. */
+  .recipe-tools {
+    gap: 8px;
+    padding: 10px 12px;
+  }
+
+  .recipe-tools .search-box .search {
+    padding-block: 8px;
+    font-size: 16px;
+  }
+
+  .tier-picker {
+    flex-direction: row;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .tier-picker .control-label {
+    flex: none;
+  }
+
+  .tier-steps {
+    flex: 1;
+    gap: 2px;
+  }
+
+  .tier-steps button {
+    height: 30px;
+    font-size: 16px;
+  }
+
+  .recipe-tools .segmented {
+    flex-wrap: nowrap;
+  }
+
+  .recipe-tools .segmented button {
+    flex: 1 1 0;
+    padding-inline: 2px;
+    font-size: 15px;
+    text-align: center;
+  }
+
+  .bulk {
+    gap: 2px 8px;
+  }
+
+  .bulk-count,
+  .bulk .text-button {
+    font-size: 14px;
+  }
+
+  .recipe-row:not(.locked) .recipe-tier {
+    display: none;
+  }
+
+  .recipe-list {
+    padding: 6px 12px 20px;
+  }
+
+  .recipe-group {
+    padding-bottom: 4px;
+  }
+
+  .recipe-group .section-title.with-icon {
+    margin-top: 8px;
+    font-size: 16px;
+  }
+
+  .recipe-row {
+    gap: 8px;
+    margin-top: 4px;
+    padding: 7px 10px;
+  }
+
+  .recipe-row input {
+    margin: 2px 0 0;
+  }
+
+  .recipe-main {
+    flex: 1;
+    flex-flow: row wrap;
+    align-items: center;
+    gap: 2px 8px;
+  }
+
+  .recipe-name {
+    flex: 1 0 100%;
+    font-size: 17px;
+  }
+
+  .recipe-name .kind {
+    margin-left: 6px;
+    padding: 0 5px;
+    font-size: 12px;
+  }
+
+  .recipe-name .recipe-tier {
+    margin-left: 6px;
+    font-size: 13px;
+  }
+
+  .recipe-io {
+    gap: 2px 4px;
+  }
+
+  .recipe-io .slot {
+    display: inline-flex;
+    align-items: center;
+    gap: 3px;
+    width: auto !important;
+    height: auto !important;
+    --slot-size: 22px !important;
+    background: none;
+    border: 0;
+    box-shadow: none;
+  }
+
+  .recipe-io .slot .icon {
+    width: 24px;
+    height: 24px;
+  }
+
+  .recipe-io .slot-count {
+    position: static;
+    font: 600 14px var(--font-body);
+    color: var(--dim);
+    text-shadow: none;
+  }
+
+  .io-in,
+  .io-out {
+    gap: 2px 6px;
+  }
+
+  .io-arrow {
+    margin: 0 2px;
+    font-size: 20px;
+  }
+
+  .recipe-machine {
+    margin-left: auto;
+    gap: 0;
+    font-size: 13px;
+  }
+
+  .recipe-machine .icon {
+    display: none;
+  }
+
+  .recipe-duration::before {
+    margin: 0 6px;
+  }
+
+  /* Resources: the cost choice wraps instead of running past the edge. */
+  .panel-body.resources .segmented.wide {
+    flex-wrap: wrap;
+  }
+
+  .panel-body.resources .segmented.wide button {
+    flex: 1 1 auto;
+  }
+}
+
+/* The numbers of recipes and factories add nothing at this width; the tab names need the room. */
+@container side (max-width: 360px) {
+  .side .tabs .tab-badge {
+    display: none;
+  }
+}
+
+/* A finger needs the tier steps in two rows of five, with the word above them. */
+@media (pointer: coarse) {
+  @container side (max-width: 480px) {
+    .tier-picker {
+      flex-direction: column;
+      align-items: stretch;
+      gap: 6px;
+    }
+
+    .tier-steps button {
+      height: 38px;
+    }
   }
 }

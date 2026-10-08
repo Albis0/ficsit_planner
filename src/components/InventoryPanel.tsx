@@ -8,6 +8,7 @@ import type { SolveInput, SolveResult } from '../lib/solver';
 import { useExports, withExports } from '../lib/solution';
 import { autoAssignAsync, solveAsync } from '../lib/solverClient';
 import { aimOf, usePlan, useStore } from '../store';
+import { Fold } from './Fold';
 import { Icon } from './Icon';
 import { RateInput } from './RateInput';
 
@@ -82,32 +83,37 @@ export function InventoryPanel({ result }: { result?: SolveResult }) {
     );
   };
 
+  const actions = (
+    <div className="inventory-actions">
+      <button
+        type="button"
+        className="ghost-button small"
+        title={t('useAllHint')}
+        disabled={!!busy || !result || (inventory.sloops === 0 && inventory.shards === 0)}
+        onClick={() => place(true)}
+      >
+        {busy === 'all' ? t('placing') : t('useAll')}
+      </button>
+      <button
+        type="button"
+        className="primary-button small"
+        title={t('autoPlaceHint')}
+        disabled={!!busy || !result || (inventory.sloops === 0 && inventory.shards === 0)}
+        onClick={() => place(false)}
+      >
+        {busy === 'place' ? t('placing') : t('autoPlace')}
+      </button>
+    </div>
+  );
+
   return (
-    <section className="stack inventory">
-      {/* The buttons sit with the title, so they're in view without scrolling the panel. */}
-      <div className="section-head">
-        <h3 className="section-title">{t('inventory')}</h3>
-        <div className="inventory-actions">
-          <button
-            type="button"
-            className="ghost-button small"
-            title={t('useAllHint')}
-            disabled={!!busy || !result || (inventory.sloops === 0 && inventory.shards === 0)}
-            onClick={() => place(true)}
-          >
-            {busy === 'all' ? t('placing') : t('useAll')}
-          </button>
-          <button
-            type="button"
-            className="primary-button small"
-            title={t('autoPlaceHint')}
-            disabled={!!busy || !result || (inventory.sloops === 0 && inventory.shards === 0)}
-            onClick={() => place(false)}
-          >
-            {busy === 'place' ? t('placing') : t('autoPlace')}
-          </button>
-        </div>
-      </div>
+    <Fold
+      id="inventory"
+      title={t('inventory')}
+      summary={t('inventorySummary', { sloops: inventory.sloops, shards: inventory.shards })}
+      actions={actions}
+      className="inventory"
+    >
       {row(SLOOP_ICON, t('sloops'), 'sloops', result?.sloops ?? 0)}
       {row(SHARD_ICON, t('shards'), 'shards', (result?.shards ?? 0) + extractorShards)}
       {tried && !busy && placed.length === 0 && overclocked.length === 0 && <p className="hint warn">{t('nothingPlaced')}</p>}
@@ -150,6 +156,6 @@ export function InventoryPanel({ result }: { result?: SolveResult }) {
           ))}
         </ul>
       )}
-    </section>
+    </Fold>
   );
 }

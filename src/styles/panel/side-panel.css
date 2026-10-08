@@ -153,10 +153,68 @@
 
 /* Each column opens on a title row of the same height, with or without buttons in it. */
 .panel-body.targets > .stack > .section-title:first-child,
-.panel-body.targets > .stack > .section-head:first-child {
+.panel-body.targets > .stack > .section-head:first-child,
+.panel-body.targets > .stack > .fold-top:first-child {
   min-height: 34px;
   display: flex;
   align-items: center;
+}
+
+/* A section that folds down to one line in a narrow panel (components/Fold.tsx); a plain titled column anywhere else. */
+.fold-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  max-width: 560px;
+}
+
+.fold-title {
+  margin: 0;
+}
+
+.fold-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  letter-spacing: inherit;
+  text-align: left;
+  text-transform: inherit;
+  cursor: default;
+  pointer-events: none;
+}
+
+.fold-summary,
+.fold-chevron,
+.section-count {
+  display: none;
+}
+
+.fold-body {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.panel-body.targets > .fold.mining {
+  display: none;
+}
+
+/* The buttons that add something to a list: one under the other, or side by side in a narrow panel. */
+.add-row {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+/* Two wordings of the same label: the short one is for a narrow panel (folding.css). */
+.when-narrow {
+  display: none;
 }
 
 .section-title {
@@ -194,6 +252,11 @@
   border-left: 0;
   background: transparent;
   padding: 0;
+}
+
+.item-card-main {
+  flex: 1;
+  min-width: 0;
 }
 
 .item-card-name {

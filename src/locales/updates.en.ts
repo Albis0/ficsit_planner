@@ -10,6 +10,15 @@ export type UpdateNote = [UpdateKind, string];
 
 export const UPDATES: { version: string; date: string; title?: string; notes: UpdateNote[] }[] = [
   {
+    version: '0.13.28',
+    date: '2026-10-09',
+    notes: [
+      ['changed', 'Side panel, narrow: Targets, Recipes and Resources fit a 300 px panel and a phone with less scrolling.'],
+      ['changed', 'Targets, narrow: Already on hand, Your inventory and Extraction fold to one line that says what is in them.'],
+      ['fixed', 'Targets, narrow: a long name such as Packaged Rocket Fuel is no longer cut or squeezed into a column.'],
+    ],
+  },
+  {
     version: '0.13.27',
     date: '2026-10-09',
     notes: [

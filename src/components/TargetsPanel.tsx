@@ -1,10 +1,14 @@
 import type { ReactNode } from 'react';
 import { craftableItems, data, itemLocked } from '../lib/data';
 import { useT } from '../lib/i18n';
+import { minerLabel } from '../lib/text';
+import { MINERS } from '../lib/extraction';
 import type { SolveResult, Target } from '../lib/solver';
 import { useExports } from '../lib/solution';
 import { usePool } from '../lib/overview';
 import { POOL, toggleLine, togglePooled, usePlan, useStore } from '../store';
+import { ExtractionControls, useExtraction } from './ExtractionControls';
+import { Fold } from './Fold';
 import { InventoryPanel } from './InventoryPanel';
 import { ItemPicker } from './ItemPicker';
 import { RateInput } from './RateInput';
@@ -30,12 +34,13 @@ export function Cards({
   const { t, name } = useT();
   return list.map((target, i) => {
     const item = data.items[target.item];
+    const more = extra?.(i);
     return (
-      <div className="item-card" key={target.item}>
+      <div className={`item-card ${more ? 'has-extra' : ''}`} key={target.item}>
         <Slot id={item.id} size={size} />
-        <span className="item-card-name">
-          {name(item)}
-          {extra?.(i)}
+        <span className="item-card-main">
+          <span className="item-card-name">{name(item)}</span>
+          {more && <span className="item-card-extra">{more}</span>}
         </span>
         <span className="item-card-rate">
           <RateInput value={target.rate} label={name(item)} onChange={(v) => onRate(i, v)} step />
@@ -69,7 +74,10 @@ export function TargetsPanel({ result }: { result?: SolveResult }) {
   return (
     <div className="panel-body targets">
       <section className="stack">
-        <h3 className="section-title">{t('productsTitle')}</h3>
+        <h3 className="section-title">
+          {t('productsTitle')}
+          <span className="section-count">{plan.targets.length}</span>
+        </h3>
         <Cards
           list={plan.targets}
           size={64}
@@ -97,7 +105,8 @@ export function TargetsPanel({ result }: { result?: SolveResult }) {
                   title={t('toPoolHint')}
                   onClick={() => s.updatePlan(togglePooled(item))}
                 >
-                  {t('toPool')}
+                  <span className="when-wide">{t('toPool')}</span>
+                  <span className="when-narrow">{t('toPoolShort')}</span>
                 </button>
               </>
             );
@@ -134,8 +143,7 @@ export function TargetsPanel({ result }: { result?: SolveResult }) {
         )}
       </section>
 
-      <section className="stack">
-        <h3 className="section-title">{t('suppliesTitle')}</h3>
+      <Fold id="supplies" title={t('suppliesTitle')} summary={plan.supplies.length} defaultOpen>
         <Cards
           list={plan.supplies}
           size={52}
@@ -171,33 +179,54 @@ export function TargetsPanel({ result }: { result?: SolveResult }) {
             );
           }}
         />
-        <ItemPicker
-          items={unlocked(supplyItems)}
-          hidden={later(supplyItems)}
-          label={t('addSupply')}
-          onPick={(id) => s.addSupply(id)}
-          exclude={plan.supplies.map((x) => x.item)}
-        />
-        {poolItems.length > 0 && (
-          <ItemPicker
-            items={poolItems}
-            label={t('takeFromPool')}
-            onPick={(id) => s.addSupply(id, Math.min(10, Math.floor((pool.find((l) => l.item === id)?.left ?? 10) * 100) / 100), POOL)}
-            exclude={plan.supplies.map((x) => x.item)}
-          />
-        )}
-        {others.length > 0 && (
+        <div className="add-row">
           <ItemPicker
             items={unlocked(supplyItems)}
             hidden={later(supplyItems)}
-            label={t('takeFromFactory')}
-            onPick={(id) => s.addSupply(id, 10, made.get(id) ?? others[0].id)}
+            label={t('addSupply')}
+            short={t('addSupplyShort')}
+            onPick={(id) => s.addSupply(id)}
             exclude={plan.supplies.map((x) => x.item)}
           />
-        )}
-      </section>
+          {poolItems.length > 0 && (
+            <ItemPicker
+              items={poolItems}
+              label={t('takeFromPool')}
+              short={t('takeFromPoolShort')}
+              onPick={(id) => s.addSupply(id, Math.min(10, Math.floor((pool.find((l) => l.item === id)?.left ?? 10) * 100) / 100), POOL)}
+              exclude={plan.supplies.map((x) => x.item)}
+            />
+          )}
+          {others.length > 0 && (
+            <ItemPicker
+              items={unlocked(supplyItems)}
+              hidden={later(supplyItems)}
+              label={t('takeFromFactory')}
+              short={t('takeFromFactoryShort')}
+              onPick={(id) => s.addSupply(id, 10, made.get(id) ?? others[0].id)}
+              exclude={plan.supplies.map((x) => x.item)}
+            />
+          )}
+        </div>
+      </Fold>
 
       <InventoryPanel result={result} />
+      <MiningFold />
     </div>
+  );
+}
+
+/** The miner, purity and clock again, folded to a line: in a narrow panel they sit here, not a tab away. */
+function MiningFold() {
+  const { t, name, num } = useT();
+  const { ex } = useExtraction();
+  const miner = MINERS.find((m) => m.id === ex.miner);
+  const summary = [miner && minerLabel(name(miner)), t(ex.purity), `${num(Math.round(ex.clock * 10000) / 100)}%`]
+    .filter(Boolean)
+    .join(' · ');
+  return (
+    <Fold id="mining" title={t('extraction')} summary={summary} className="mining">
+      <ExtractionControls />
+    </Fold>
   );
 }

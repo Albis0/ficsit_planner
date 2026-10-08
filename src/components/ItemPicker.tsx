@@ -8,6 +8,8 @@ import { Icon } from './Icon';
 interface Props {
   items: Item[];
   label: string;
+  /** A shorter label for the closed button when the panel is narrow. */
+  short?: string;
   onPick: (id: string) => void;
   exclude?: string[];
   /** Items left out of the list for being above the tier: a search that finds none of `items` says when these open up. */
@@ -15,7 +17,7 @@ interface Props {
 }
 
 /** A button that unfolds into a searchable item list. Type to filter, arrows to move, Enter to pick. */
-export function ItemPicker({ items, label, onPick, exclude = [], hidden }: Props) {
+export function ItemPicker({ items, label, short, onPick, exclude = [], hidden }: Props) {
   const { t, name } = useT();
   const [open, setOpen] = useState(false);
   const [q, setQ] = useState('');
@@ -65,7 +67,14 @@ export function ItemPicker({ items, label, onPick, exclude = [], hidden }: Props
         <span aria-hidden className="add-plus">
           +
         </span>
-        {label}
+        {short ? (
+          <>
+            <span className="when-wide">{label}</span>
+            <span className="when-narrow">{short}</span>
+          </>
+        ) : (
+          label
+        )}
       </button>
     );
   }
