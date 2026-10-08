@@ -1183,6 +1183,49 @@ const clash = (a, b) => a && b && a.x < b.x + b.width && b.x < a.x + a.width && 
   await open(factory([['Desc_Motor_C', 10]]));
   ok('off by default: no splitter cards', (await page.locator('.logistic-node').count()) === 0);
 
+  // The old address says there is a new one, and takes the plans along in a link. Both addresses are served from this build.
+  section = 'moved';
+  {
+    const ctx = await browser.newContext({ viewport: { width: 1366, height: 800 }, serviceWorkers: 'block' });
+    const old = await ctx.newPage();
+    for (const host of ['https://ficsit-planner.pages.dev', 'https://ficsitplanner.app']) {
+      await old.route(`${host}/**`, async (route) => {
+        const u = new globalThis.URL(route.request().url());
+        const r = await fetch(`http://127.0.0.1:4177${u.pathname}${u.search}`);
+        const headers = Object.fromEntries(r.headers);
+        delete headers['content-encoding'];
+        delete headers['content-length'];
+        await route.fulfill({ status: r.status, headers, body: Buffer.from(await r.arrayBuffer()) });
+      });
+    }
+    const mine = saved({
+      mode: 'factory',
+      plans: [
+        { id: 'a', name: 'Motors', targets: [{ item: 'Desc_Motor_C', rate: 10 }] },
+        { id: 'b', name: 'Plates', targets: [{ item: 'Desc_IronPlate_C', rate: 30 }] },
+      ],
+      active: 'a',
+    });
+    await old.goto('https://ficsit-planner.pages.dev/');
+    await old.evaluate((v) => {
+      localStorage.clear();
+      localStorage.setItem('ficsit-planner', v);
+    }, mine);
+    await old.goto('about:blank');
+    await old.goto('https://ficsit-planner.pages.dev/');
+    await old.waitForSelector('.toast.moved', { timeout: 30000 });
+    ok('the old address says there is a new one', /new address/.test(await old.locator('.toast.moved').innerText()));
+    await old.screenshot({ path: path.join(OUT, `${String(++shots).padStart(2, '0')}-moved-notice.png`) });
+    await old.getByRole('button', { name: 'Move my plans' }).click();
+    await old.waitForURL(/ficsitplanner\.app/, { timeout: 30000 });
+    await old.waitForSelector('.plan-tab-label', { timeout: 30000 });
+    await old.waitForTimeout(1500);
+    const tabs = await old.locator('.plan-tab-label').allInnerTexts();
+    ok('the plans arrive on the new address', tabs.includes('Motors') && tabs.includes('Plates'), tabs.join(', '));
+    ok('and the new address has no notice of its own', (await old.locator('.toast.moved').count()) === 0);
+    await ctx.close();
+  }
+
   // ── Big factories: laid out cleanly ──
   section = 'big';
   for (const [item, rate] of [

@@ -53,6 +53,15 @@
   border-left-color: var(--alert);
 }
 
+/* The one about the new address is a sentence, not a word: it wraps, and the buttons go under it when they have to. */
+.toast.moved {
+  right: 18px;
+  max-width: 620px;
+  flex-wrap: wrap;
+  white-space: normal;
+  gap: 8px 16px;
+}
+
 .toast .text-button.quiet {
   margin-left: -8px;
   color: var(--dim);

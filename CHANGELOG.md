@@ -2,6 +2,17 @@
 
 All notable changes to FICSIT Planner. Dates are when the version was finished.
 
+## 0.13.22 — 2026-10-08
+
+### Added
+
+- **A way to take your plans to the new address.** Plans, settings and the installed app are kept by the browser per
+  address, so ficsitplanner.app starts empty even though the old ficsit-planner.pages.dev has yours. On the old address
+  a note now says the app has moved and offers "Move my plans": every factory, every power plant with generators and
+  the settings go along in a link that opens on the new address as new tabs (an empty first tab gives way, and settings
+  come only if you haven't changed the new ones). When there are too many plans for a link, a backup file is saved
+  instead, to import under Settings › Your data. "Later" hides the note for a week. Nothing redirects yet.
+
 ## 0.13.21 — 2026-10-08
 
 ### Changed

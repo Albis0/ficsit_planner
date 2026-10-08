@@ -9,6 +9,16 @@ export type UpdateNote = [UpdateKind, string];
 
 export const UPDATES: { version: string; date: string; title?: string; notes: UpdateNote[] }[] = [
   {
+    version: '0.13.22',
+    date: '2026-10-08',
+    notes: [
+      [
+        'added',
+        'FICSIT Planner now lives at ficsitplanner.app. On the old address, Move my plans takes your factories, power plants and settings along.',
+      ],
+    ],
+  },
+  {
     version: '0.13.20',
     date: '2026-10-08',
     notes: [

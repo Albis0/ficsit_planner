@@ -6,6 +6,7 @@ import { Inspector } from './components/Inspector';
 import { MapNav } from './components/MapNav';
 import { MissingList } from './components/MissingList';
 import { MobileMenu, MobileNav } from './components/MobileChrome';
+import { MovedNotice } from './components/MovedNotice';
 import { ModeSwitch } from './components/ModeSwitch';
 import { OverviewPage } from './components/Overview';
 import { PlanTabs, ShareButton } from './components/PlanTabs';
@@ -517,6 +518,7 @@ export default function App() {
       {s.dialog === 'report' && <ReportDialog onClose={() => s.set({ dialog: undefined })} />}
       <TipLayer />
       <Notice />
+      <MovedNotice />
       <ClosedTab />
       <PwaStatus />
     </div>

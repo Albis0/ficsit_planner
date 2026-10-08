@@ -1,5 +1,7 @@
 import { describe, expect, test } from 'bun:test';
-import { decode, encode, openShared, pack, SHARE_HASH, sharedTabs, unpack } from '../src/lib/share';
+import { data } from '../src/lib/data';
+import { DEFAULT_SETTINGS } from '../src/lib/settings';
+import { decode, encode, hasWork, moveLink, NEW_URL, openShared, pack, SHARE_HASH, sharedTabs, unpack } from '../src/lib/share';
 import { newPlan, newPowerPlan, useStore } from '../src/store';
 
 const coal = { id: 'c', generator: 'Build_GeneratorCoal_C', fuel: 'Desc_Coal_C', by: 'auto' as const, amount: 0, clock: 1 };
@@ -104,5 +106,55 @@ describe('shared links', () => {
     expect(await openShared(`${SHARE_HASH}${await encode({ kind: 'something-else', plans: [] })}`)).toBe(false);
     expect(await openShared(`${SHARE_HASH}${await encode({ kind: 'ficsit-planner', plans: [{ targets: 'x' }] })}`)).toBe(true);
     expect(useStore.getState().plans.length).toBe(before + 1);
+  });
+
+  test('moving to the new address takes every factory, every plant that has generators, and the settings', async () => {
+    const a = factory('Frames');
+    const b = { ...newPlan('Rotors'), targets: [{ item: 'Desc_Rotor_C', rate: 5 }] };
+    const plant = { ...newPowerPlan('Coal plant'), plants: [coal], factories: 'all' as const };
+    const empty = newPowerPlan('Plant 2');
+    useStore.setState({
+      mode: 'factory',
+      plans: [a, b],
+      active: a.id,
+      power: [plant, empty],
+      activePower: plant.id,
+      settings: { ...DEFAULT_SETTINGS, cardScale: 1.3 },
+    });
+    expect(hasWork()).toBe(true);
+    const link = (await moveLink())!;
+    expect(link.startsWith(`${NEW_URL}/${SHARE_HASH}`)).toBe(true);
+
+    // The new address, in a browser that has nothing yet.
+    const blank = newPlan('Factory 1');
+    const first = newPowerPlan('Plant 1');
+    useStore.setState({
+      mode: 'codex',
+      plans: [blank],
+      active: blank.id,
+      power: [first],
+      activePower: first.id,
+      settings: DEFAULT_SETTINGS,
+    });
+    expect(hasWork()).toBe(false);
+    expect(await openShared(link.slice(NEW_URL.length + 1))).toBe(true);
+    const now = useStore.getState();
+    expect(now.plans.map((p) => p.name)).toEqual(['Frames', 'Rotors']);
+    expect(now.power.map((p) => p.name)).toEqual(['Coal plant']);
+    expect(now.settings.cardScale).toBe(1.3);
+    expect(now.plans[1].targets).toEqual(b.targets);
+  });
+
+  test('more plans than a link can hold give no link, and the backup file is the way', async () => {
+    const big = Array.from({ length: 300 }, (_, i) => ({
+      ...newPlan(`Factory ${i}`),
+      caps: Object.fromEntries(
+        Object.keys(data.items)
+          .slice(0, 80)
+          .map((id) => [id, Math.random() * 1000]),
+      ),
+    }));
+    useStore.setState({ plans: big, active: big[0].id });
+    expect(await moveLink()).toBeUndefined();
   });
 });

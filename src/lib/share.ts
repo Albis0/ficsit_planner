@@ -89,6 +89,37 @@ export async function shareLink(): Promise<string> {
   return `${location.origin}${location.pathname}${SHARE_HASH}${await encode(body)}`;
 }
 
+/** The address plans are moving from, and the one they move to. */
+export const OLD_HOST = 'ficsit-planner.pages.dev';
+export const NEW_URL = 'https://ficsitplanner.app';
+
+/**
+ * A link to the new address carrying everything in this browser: every factory, every plant that has generators, and
+ * the settings. Undefined when it would be longer than a link can be (then the backup file is the way).
+ */
+export async function moveLink(): Promise<string | undefined> {
+  const s = useStore.getState();
+  const body = {
+    kind: KIND,
+    v: 1,
+    from: 'factory',
+    plans: s.plans.map(pack),
+    power: s.power.filter((pp) => pp.plants.length > 0).map((pp) => ({ ...pp, chain: pack(pp.chain) })),
+    settings: s.settings,
+  };
+  const text = await encode(body);
+  return text.length > MAX_LINK ? undefined : `${NEW_URL}/${SHARE_HASH}${text}`;
+}
+
+/** Whether there's anything of the player's here worth moving: a factory with something in it, a plant, a hand-built floor. */
+export function hasWork(): boolean {
+  const s = useStore.getState();
+  return (
+    s.plans.some((p) => p.targets.length > 0 || p.supplies.length > 0 || !!p.model?.nodes.length) ||
+    s.power.some((p) => p.plants.length > 0)
+  );
+}
+
 /** Copies the link, or hands it to the phone's share sheet; says which happened. */
 export async function shareTab(name: string): Promise<'copied' | 'shared' | 'failed'> {
   try {
@@ -113,12 +144,19 @@ export async function shareTab(name: string): Promise<'copied' | 'shared' | 'fai
 /** Reads a link's tabs into the planner as new tabs and shows the first one. */
 export async function openShared(hash: string): Promise<boolean> {
   try {
-    const body = (await decode(hash.slice(SHARE_HASH.length))) as { kind?: unknown; from?: unknown; plans?: unknown; power?: unknown };
+    const body = (await decode(hash.slice(SHARE_HASH.length))) as {
+      kind?: unknown;
+      from?: unknown;
+      plans?: unknown;
+      power?: unknown;
+      settings?: unknown;
+    };
     if (body?.kind !== KIND || !Array.isArray(body.plans)) return false;
     const power = Array.isArray(body.power)
       ? body.power.map((pp) => (pp && typeof pp === 'object' ? { ...pp, chain: unpack((pp as { chain?: unknown }).chain) } : pp))
       : [];
-    const r = importData({ kind: KIND, plans: body.plans.map(unpack), power });
+    // Settings come along only in a link made to move everything; they are cleaned like a backup's, and yours stay if you changed them.
+    const r = importData({ kind: KIND, plans: body.plans.map(unpack), power, ...(body.settings ? { settings: body.settings } : {}) });
     if (!r.ok || (r.count === 0 && r.power === 0)) return false;
     const s = useStore.getState();
     // A plant's link opens on the plant; a factory's on the factory.

@@ -12,6 +12,11 @@ export const en = {
   fromAnywhere: 'on hand',
   thePool: 'the pool',
   ownLine: 'Own line',
+  movedText: 'FICSIT Planner has a new address: ficsitplanner.app. Your plans are saved in this browser for this address only.',
+  movedFile:
+    'There are too many plans for a link. A backup file was saved: open ficsitplanner.app and import it under Settings › Your data.',
+  moveMine: 'Move my plans',
+  openNewAddress: 'Open ficsitplanner.app',
   balancerTitle: 'Sharing a belt between them',
   balancerTree: 'Split {steps} ways, so every machine gets the same. Splitters needed: {n}.',
   balancerManifold:
