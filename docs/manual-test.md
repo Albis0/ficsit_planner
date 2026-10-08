@@ -7,7 +7,7 @@ It takes about 20 minutes on a desktop, plus 10 on a phone.
 
 ## Before you start
 
-- **Where:** the live site, <https://ficsit-planner.pages.dev>, or a local build: `bun run build`, then
+- **Where:** the live site, <https://ficsitplanner.app>, or a local build: `bun run build`, then
   `bun run preview` and open <http://localhost:4173>.
 - **Start clean:** open it in a private (incognito) window. The app keeps everything in the browser, so a normal
   window remembers your last session and skips the first-run steps.
@@ -256,5 +256,5 @@ Use a real phone if you can. A desktop browser's device mode is close but isn't 
 
 - [ ] **11.1** Paste the site link in Discord or a Reddit post draft. *Expect:* a large card with the FICSIT
   Planner image, title and description.
-- [ ] **11.2** Open <https://ficsit-planner.pages.dev/robots.txt>, `/sitemap.xml` and a made-up page like
+- [ ] **11.2** Open <https://ficsitplanner.app/robots.txt>, `/sitemap.xml` and a made-up page like
   `/nope`. *Expect:* the first two show plain text or XML, and the last shows "Page not found".

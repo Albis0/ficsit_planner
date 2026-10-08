@@ -2,6 +2,17 @@
 
 All notable changes to FICSIT Planner. Dates are when the version was finished.
 
+## 0.13.21 — 2026-10-08
+
+### Changed
+
+- **The site's own address is ficsitplanner.app.** The canonical link, the social preview address, `robots.txt` and
+  `sitemap.xml` (and the README) now name https://ficsitplanner.app. The old ficsit-planner.pages.dev stays open; nothing
+  redirects yet.
+- **The live deploy asks for a yes.** `bun run deploy` waits for "evet" typed at the prompt (or `--confirm evet` where
+  nothing can be typed) before it touches the live site, on top of the clean, pushed, CI-passed commit it already
+  needs. The preview deploy is unchanged.
+
 ## 0.13.20 — 2026-10-08
 
 ### Added

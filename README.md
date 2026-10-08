@@ -9,7 +9,7 @@
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-GPL--3.0--or--later-blue" alt="License: GPL-3.0-or-later"></a>
 </p>
 
-<p align="center"><b><a href="https://ficsit-planner.pages.dev">Open FICSIT Planner → ficsit-planner.pages.dev</a></b></p>
+<p align="center"><b><a href="https://ficsitplanner.app">Open FICSIT Planner → ficsitplanner.app</a></b></p>
 
 <p align="center">
   <img src="public/icons/Desc_SpaceElevatorPart_1_C.webp" width="40" alt="Smart Plating">
@@ -118,12 +118,12 @@ the command with `MSYS_NO_PATHCONV=1` if you want to stay in Git Bash.
 ### Hosting your own copy
 
 The build in `dist/` is a static site and runs on any static host. Only the in-app **Feedback** form needs a server:
-on [ficsit-planner.pages.dev](https://ficsit-planner.pages.dev) it posts to a Cloudflare Pages Function with a D1
+on [ficsitplanner.app](https://ficsitplanner.app) it posts to a Cloudflare Pages Function with a D1
 database (`functions/api/report.ts`, schema in `migrations/`). Without it the form offers to post the report as a GitHub
 issue instead. [docs/feedback.md](docs/feedback.md) covers what a report holds, how it's checked and stored, and
 the setup on Cloudflare.
 
-`SITE_URL` (default `https://ficsit-planner.pages.dev`) goes into the canonical link, the social preview tags,
+`SITE_URL` (default `https://ficsitplanner.app`) goes into the canonical link, the social preview tags,
 `robots.txt` and `sitemap.xml`, which the build writes. Set it when you host the site somewhere else, including the
 sub-folder if there is one: `SITE_URL=https://you.github.io/ficsit_planner`. The social preview image is
 `public/og-image.jpg` (1200 × 630).

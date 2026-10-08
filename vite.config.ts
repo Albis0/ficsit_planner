@@ -5,7 +5,7 @@ import pkg from './package.json' with { type: 'json' };
 
 // Public address of the site, for the canonical link, social previews, robots.txt and the sitemap.
 // Include the sub-folder when BASE_PATH is set, e.g. https://you.github.io/ficsit_planner.
-const SITE_URL = (process.env.SITE_URL ?? 'https://ficsit-planner.pages.dev').replace(/\/$/, '');
+const SITE_URL = (process.env.SITE_URL ?? 'https://ficsitplanner.app').replace(/\/$/, '');
 
 function seo(): Plugin {
   return {

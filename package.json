@@ -1,10 +1,10 @@
 {
   "name": "ficsit-planner",
   "private": true,
-  "version": "0.13.20",
+  "version": "0.13.21",
   "description": "Offline production planner for Satisfactory, as an installable web app",
   "license": "GPL-3.0-or-later",
-  "homepage": "https://ficsit-planner.pages.dev",
+  "homepage": "https://ficsitplanner.app",
   "repository": {
     "type": "git",
     "url": "https://github.com/Albis0/ficsit_planner.git"

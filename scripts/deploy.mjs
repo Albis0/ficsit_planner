@@ -3,7 +3,8 @@
 //   bun run deploy:preview   the preview address, with its own database; any local state is fine
 //   bun run deploy           the live site, only from a clean, pushed commit whose CI run passed
 //
-// Both run the checks and tests first and stop at the first failure.
+// Both run the checks and tests first and stop at the first failure. The live site also asks to be told "evet" first
+// (typed at the prompt, or --confirm evet when there is no terminal), so it is never deployed by accident.
 import { execFileSync, spawnSync } from 'node:child_process';
 import path from 'node:path';
 
@@ -23,7 +24,25 @@ const run = (label, cmd, args) => {
   if (r.status !== 0) stop(`${label} failed.`);
 };
 
+/** The live site goes up only when told so: "evet" typed here, or --confirm evet where nothing can be typed. */
+async function confirmLive() {
+  const flag = process.argv.indexOf('--confirm');
+  if (flag > -1) {
+    if (process.argv[flag + 1] !== 'evet') stop('--confirm needs the word evet.');
+    return;
+  }
+  if (!process.stdin.isTTY) stop('the live site needs a yes: run it in a terminal and type evet, or add --confirm evet.');
+  process.stdout.write('\nThis puts the live site (ficsitplanner.app and ficsit-planner.pages.dev) on this version.\nType evet to go on: ');
+  const answer = await new Promise((resolve) => {
+    process.stdin.setEncoding('utf8');
+    process.stdin.once('data', (d) => resolve(String(d).trim()));
+  });
+  process.stdin.pause();
+  if (answer !== 'evet') stop('not confirmed.');
+}
+
 if (!preview) {
+  await confirmLive();
   if (git('rev-parse', '--abbrev-ref', 'HEAD') !== 'main') stop('the live site is deployed from main only.');
   if (git('status', '--porcelain')) stop('there are uncommitted changes. Commit them (or try them with deploy:preview) first.');
   git('fetch', '--quiet', 'origin', 'main');
@@ -53,4 +72,8 @@ run(
     : [wrangler, 'd1', 'migrations', 'apply', 'ficsit-reports', '--remote'],
 );
 run('upload', 'node', [wrangler, 'pages', 'deploy', '--branch', preview ? 'preview' : 'main', ...(preview ? ['--commit-dirty=true'] : [])]);
-console.log(preview ? '\nPreview: https://preview.ficsit-planner.pages.dev' : '\nLive: https://ficsit-planner.pages.dev');
+console.log(
+  preview
+    ? '\nPreview: https://preview.ficsit-planner.pages.dev'
+    : '\nLive: https://ficsitplanner.app (and https://ficsit-planner.pages.dev)',
+);
