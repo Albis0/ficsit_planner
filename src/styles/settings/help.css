@@ -138,9 +138,9 @@
 }
 
 .update-earlier-title {
-  margin: 0 0 4px;
-  color: var(--faint);
-  font: 700 13px var(--font-display);
+  margin: 0 0 6px;
+  color: var(--dim);
+  font: 700 17px var(--font-display);
   letter-spacing: 0.12em;
   text-transform: uppercase;
 }

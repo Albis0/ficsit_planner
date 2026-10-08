@@ -48,6 +48,7 @@ import { fold } from './lib/fold';
 import { useMediaQuery } from './lib/useMediaQuery';
 import { useUndoKeys } from './lib/undoKeys';
 import { LATEST_UPDATE } from './locales/updates.en';
+import { useSolverLoading } from './lib/solverClient';
 import { modelFromSolve } from './lib/model/fromAuto';
 import { emptyModel, type Model } from './lib/model/types';
 import { calcAsync, solveAsync } from './lib/solverClient';
@@ -55,6 +56,20 @@ import { activePowerPlan, aimOf, POOL, usePlan, useStore } from './store';
 
 // Folding the panel moves the app's grid tracks: above the floor a row, beside it a column.
 const GRID = ['gridTemplateRows', 'gridTemplateColumns'] as const;
+
+/** The "Solving" tag over the floor; while the solver itself is still arriving, it says so and shows how far it is. */
+function Busy({ solverLoad }: { solverLoad?: number }) {
+  const { t } = useT();
+  if (solverLoad === undefined) return <div className="busy">{t('solving')}</div>;
+  return (
+    <div className="busy solver-loading" role="status">
+      <span>{t('loadingSolver')}</span>
+      <span className="busy-bar" role="progressbar" aria-valuemin={0} aria-valuemax={100} aria-valuenow={Math.round(solverLoad * 100)}>
+        <i style={{ width: `${Math.round(solverLoad * 100)}%` }} />
+      </span>
+    </div>
+  );
+}
 
 // The map pulls in Leaflet and its tiles, so it loads only when opened.
 const WorldMap = lazy(() => import('./components/WorldMap'));
@@ -128,6 +143,7 @@ export default function App() {
   const error = manual ? hand.error : solved.error;
   // Laying a floor out takes a moment the first time, while the layout engine loads.
   const [laying, setLaying] = useState(false);
+  const solverLoad = useSolverLoading();
   const busy = laying || (manual ? hand.busy : solved.busy);
   const lay = async <T,>(work: () => Promise<T>) => {
     setLaying(true);
@@ -383,7 +399,7 @@ export default function App() {
       <main className="floor">
         {codexMode && <CodexPage />}
         {mapMode && (
-          <Suspense fallback={null}>
+          <Suspense fallback={<div className="floor-message">{t('loadingMap')}</div>}>
             <WorldMap />
           </Suspense>
         )}
@@ -479,7 +495,7 @@ export default function App() {
               ) : (
                 <Inspector result={result} />
               ))}
-            {busy && <div className="busy">{t('solving')}</div>}
+            {busy && <Busy solverLoad={solverLoad} />}
             {shown && (
               <div className="floor-bar">
                 {!powerMode && (

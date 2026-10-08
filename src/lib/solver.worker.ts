@@ -17,12 +17,22 @@ export type SolverResponse =
   | { id: number; ok: true; value: SolveResult | Record<string, RecipeMod> | CalcResult }
   | { id: number; ok: false; failure: SolveFailure };
 
+/** The solver's own loading, 0 to 1, then 1 once it is ready. */
+export type SolverLoading = { loading: number };
+
 declare const self: DedicatedWorkerGlobalScope;
+
+// Starts loading the solver as soon as the worker starts, and says how far it got.
+const report = (loading: number) => self.postMessage({ loading } satisfies SolverLoading);
+report(0.01);
+getHighs(report)
+  .then(() => report(1))
+  .catch(() => report(1));
 
 self.onmessage = async ({ data: req }: MessageEvent<SolverRequest>) => {
   let reply: SolverResponse;
   try {
-    const highs = await getHighs();
+    const highs = await getHighs(report);
     applyGame(req.input.game);
     let value: SolveResult | Record<string, RecipeMod> | CalcResult;
     if (req.kind === 'model') value = calcModel(highs, req.input.model, req.input.tier);

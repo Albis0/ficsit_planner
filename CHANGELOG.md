@@ -2,6 +2,16 @@
 
 All notable changes to FICSIT Planner. Dates are when the version was finished.
 
+## 0.13.27 — 2026-10-09
+
+### Changed
+
+- **Settings › Updates** is written as patch notes, where first and then what changed, and the versions sit under 0.13 and
+  0.12 headings, each folded to a line.
+- **Loading on a slow connection.** Before the app starts the page says "Loading game data…" with a bar, and "Slow
+  connection, still loading." after a few seconds. On the floor, while the solver itself is still arriving, "Loading
+  the solver" and a bar replace "Solving", when it takes longer than a moment. Opening the map says "Loading the map…".
+
 ## 0.13.26 — 2026-10-08
 
 ### Added

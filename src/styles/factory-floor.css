@@ -38,6 +38,35 @@
   color: var(--ficsit);
 }
 
+/* The solver is still arriving: it says so, with a bar, but only if that takes a moment. */
+.busy.solver-loading {
+  display: grid;
+  gap: 6px;
+  opacity: 0;
+  animation: busy-in 0.3s 0.7s forwards;
+}
+
+.busy-bar {
+  width: 200px;
+  height: 6px;
+  overflow: hidden;
+  background: var(--panel);
+  border: 1px solid var(--line);
+}
+
+.busy-bar i {
+  display: block;
+  height: 100%;
+  background: var(--ficsit);
+  transition: width 0.2s;
+}
+
+@keyframes busy-in {
+  to {
+    opacity: 1;
+  }
+}
+
 /* Ends short of the direction and Fit buttons on the right (not zoomed, so the gap is undone from the bar's zoom). */
 .floor-bar {
   position: absolute;

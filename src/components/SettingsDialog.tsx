@@ -671,7 +671,7 @@ function UpdateNotes({ notes }: { notes: UpdateNote[] }) {
   );
 }
 
-/** The latest version in full, earlier ones folded to a line each. Opening it clears the dot on the gear. */
+/** The latest version in full, earlier ones folded to a line each under their 0.x heading. Opening it clears the dot on the gear. */
 function UpdatesSection() {
   const { t } = useT();
   const set = useStore((s) => s.set);
@@ -679,6 +679,14 @@ function UpdatesSection() {
     set({ seenUpdates: LATEST_UPDATE });
   }, [set]);
   const [latest, ...earlier] = UPDATES;
+  // The rest under 0.13 and 0.12, newest first, a folded line each.
+  const groups: [string, typeof earlier][] = [];
+  for (const u of earlier) {
+    const minor = u.version.split('.').slice(0, 2).join('.');
+    const g = groups.find((x) => x[0] === minor);
+    if (g) g[1].push(u);
+    else groups.push([minor, [u]]);
+  }
   return (
     <div className="updates">
       <section className="update latest">
@@ -689,10 +697,10 @@ function UpdatesSection() {
         {latest.title && <h4 className="update-name">{latest.title}</h4>}
         <UpdateNotes notes={latest.notes} />
       </section>
-      {earlier.length > 0 && (
-        <div className="update-earlier">
-          <h4 className="update-earlier-title">{t('earlierVersions')}</h4>
-          {earlier.map((u) => (
+      {groups.map(([minor, list]) => (
+        <div key={minor} className="update-earlier">
+          <h4 className="update-earlier-title">{minor}</h4>
+          {list.map((u) => (
             <details key={u.version} className="update">
               <summary className="update-head">
                 <span className="update-version">{u.version}</span>
@@ -703,7 +711,7 @@ function UpdatesSection() {
             </details>
           ))}
         </div>
-      )}
+      ))}
       <p className="update-made">
         FICSIT Planner {LATEST_UPDATE} · {t('madeWith')}
       </p>

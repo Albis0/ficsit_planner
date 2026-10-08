@@ -67,8 +67,13 @@
 
     <!-- Shown until the app starts, and to crawlers that don't run scripts. -->
     <style>
+      body {
+        margin: 0;
+        background: #151516;
+      }
       .boot {
-        min-height: 100%;
+        min-height: 100vh;
+        min-height: 100dvh;
         display: grid;
         place-content: center;
         gap: 12px;
@@ -88,7 +93,63 @@
         margin: 0;
         max-width: 34em;
       }
+      .boot-load {
+        display: grid;
+        gap: 8px;
+        justify-items: center;
+        margin-top: 8px;
+        color: #fa9549;
+        font: 700 16px / 1 'Arial Narrow', sans-serif;
+        letter-spacing: 0.06em;
+      }
+      .boot-bar {
+        position: relative;
+        width: min(260px, 70vw);
+        height: 6px;
+        overflow: hidden;
+        background: #292929;
+        border: 1px solid #474747;
+      }
+      .boot-bar i {
+        position: absolute;
+        inset: 0 auto 0 0;
+        width: 40%;
+        background: #fa9549;
+        animation: boot-slide 1.4s ease-in-out infinite;
+      }
+      .boot-slow {
+        opacity: 0;
+        animation: boot-show 0.4s 6s forwards;
+      }
+      @keyframes boot-slide {
+        from {
+          transform: translateX(-100%);
+        }
+        to {
+          transform: translateX(260%);
+        }
+      }
+      @keyframes boot-show {
+        to {
+          opacity: 1;
+        }
+      }
+      @media (prefers-reduced-motion: reduce) {
+        .boot-bar i {
+          width: 100%;
+          animation: none;
+          opacity: 0.6;
+        }
+      }
     </style>
+    <noscript>
+      <style>
+        .boot-load,
+        .boot-slow {
+          display: none;
+        }
+      </style>
+    </noscript>
   </head>
   <body>
     <div id="root">
@@ -98,6 +159,11 @@
           Production calculator for Satisfactory. Enter the items you want per minute to get the machines, recipes,
           belts and power.
         </p>
+        <div class="boot-load" role="status">
+          <span>Loading game data…</span>
+          <span class="boot-bar"><i></i></span>
+        </div>
+        <p class="boot-slow">Slow connection, still loading.</p>
         <noscript><p>FICSIT Planner needs JavaScript. Turn it on and reload the page.</p></noscript>
       </main>
     </div>
