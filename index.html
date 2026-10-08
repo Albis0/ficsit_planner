@@ -73,7 +73,6 @@
       }
       .boot {
         min-height: 100vh;
-        min-height: 100dvh;
         display: grid;
         place-content: center;
         gap: 12px;
@@ -82,6 +81,11 @@
         background: #151516;
         color: #a9aeb3;
         font: 16px / 1.5 'Segoe UI', system-ui, sans-serif;
+      }
+      @supports (height: 100dvh) {
+        .boot {
+          min-height: 100dvh;
+        }
       }
       .boot h1 {
         margin: 0;
