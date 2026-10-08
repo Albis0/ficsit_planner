@@ -449,10 +449,12 @@ function Canvas({ host, calc, onArrange }: { host: ModelHost; calc?: CalcResult;
       if (!choosing) return;
       const { flowAt, want } = choosing;
       let made: string | undefined;
+      let ioCard = false;
       host.edit((m) => {
         const { id: _, ...init } = placeChoice(m, c, flowAt, want);
         const added = addNode(m, init as Parameters<typeof addNode>[1]);
         made = added.id;
+        ioCard = panelless(init);
         if (!want || c.port === undefined) return added.model;
         return want.side === 'in'
           ? connect(added.model, want.node, want.port, added.id, c.port).model
@@ -461,7 +463,8 @@ function Canvas({ host, calc, onArrange }: { host: ModelHost; calc?: CalcResult;
       setChoosing(undefined);
       setPicked(new Set());
       if (made) {
-        set({ inspect: made });
+        // An output has no panel of its own; its amount is set in the side panel.
+        set({ inspect: ioCard ? undefined : made });
         setReveal(made);
       }
     },

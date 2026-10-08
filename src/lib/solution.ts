@@ -249,6 +249,8 @@ function entryFor(plan: Plan, tier: number, exports: Export[], aim: Aim, game: G
 /** One factory tab as it's worked out in the background: what it draws, and what it makes and takes. */
 export interface FactoryEntry extends FactoryDraw {
   manual: boolean;
+  /** The products the factory offers to the pool. */
+  pooled?: string[];
   result?: SolveResult;
   extraction?: ExtractionUse[];
 }
@@ -287,6 +289,7 @@ export function useFactoryEntries(enabled: boolean): FactoryEntry[] {
           mw: entry?.draw?.mw,
           failed: entry?.draw?.failed,
           manual: plan.floor === 'manual',
+          pooled: plan.pooled,
           result: entry?.result,
           extraction: entry?.extraction,
         };

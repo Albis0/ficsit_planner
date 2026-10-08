@@ -52,6 +52,7 @@ import { longestRunMid, SQUARE_TURN, squarePath } from './floor/squarePath';
 import { Glyph } from './Glyph';
 import { Icon } from './Icon';
 import { Slot } from './Slot';
+import { SurplusMake } from './SurplusMake';
 import { SplitBadge, SplitTo } from './SplitText';
 
 /** Hovered node and its direct neighbours; everything else fades so one line can be followed. */
@@ -281,6 +282,7 @@ function EndpointNode({ id, data: d }: NodeProps) {
   const { name, num, t } = useT();
   const { kind, item, rate } = d as EndpointNodeData;
   const faded = useFaded(id);
+  const factoryMode = useStore((s) => s.mode === 'factory');
   const ex = useContext(Extraction).get(item);
   const dir = useContext(Flow);
   const links = useContext(Links);
@@ -331,6 +333,7 @@ function EndpointNode({ id, data: d }: NodeProps) {
           )}
         </span>
       </span>
+      {kind === 'surplus' && factoryMode && <SurplusMake item={item} rate={rate} />}
       {feeds && <Handle type="source" position={outSide(dir)} />}
     </div>
   );

@@ -9,6 +9,18 @@ export type UpdateNote = [UpdateKind, string];
 
 export const UPDATES: { version: string; date: string; title?: string; notes: UpdateNote[] }[] = [
   {
+    version: '0.13.26',
+    date: '2026-10-08',
+    notes: [
+      ['added', 'Final products on the Manual floor: add one from the build menu, or end a belt in one, and build back from it.'],
+      [
+        'added',
+        'On the Auto floor a leftover card can be made into something: pick a recipe that takes it and the product is added for you.',
+      ],
+      ['added', 'Each product on the Auto floor has a “To the pool” button, so other factories and power plants can take it.'],
+    ],
+  },
+  {
     version: '0.13.25',
     date: '2026-10-08',
     notes: [

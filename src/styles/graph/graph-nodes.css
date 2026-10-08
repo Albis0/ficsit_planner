@@ -262,7 +262,31 @@
 }
 
 .endpoint-node.surplus {
+  position: relative;
   border-style: dashed;
+}
+
+/* What a leftover could be made into: a small button hanging under the card, so the card keeps its size. */
+.endpoint-make {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: calc(100% + 4px);
+  min-height: 28px;
+  padding: 2px 10px;
+  background: var(--raised);
+  border: 1px solid var(--line-2);
+  color: var(--dim);
+  font: 600 13px var(--font-body);
+  text-align: left;
+  cursor: pointer;
+}
+
+.endpoint-make:hover,
+.endpoint-make:focus-visible {
+  color: var(--paper);
+  border-color: var(--ficsit);
+  outline: none;
 }
 
 /* Already on hand: delivered, not built, so it looks like a different kind of thing. */

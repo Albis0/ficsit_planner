@@ -4,7 +4,7 @@ import { data } from './lib/data';
 import { isLang, type Lang } from './lib/lang';
 import { DEFAULT_EXTRACTION, type ExtractionSettings } from './lib/extraction';
 import type { Aim } from './lib/solution';
-import { generatorById } from './lib/data';
+import { generatorById, recipeById } from './lib/data';
 import { PLANT_NAMES, type Plant, type SizeBy, sizable } from './lib/power';
 import { POOL } from './lib/pool';
 import { cleanChoice, cleanNumber, cleanPlan, cleanPowerPlan, cleanSettings, gridToPower } from './lib/sanitize';
@@ -51,6 +51,8 @@ export interface Plan {
   built?: string[];
   /** Targets (by item) made on a line of their own, apart from the others; unset: everything is one line. */
   separate?: string[];
+  /** Targets (by item) offered to the pool: what they make is added to what the factory leaves over; unset: none are. */
+  pooled?: string[];
   /** What a raw resource costs this plan when the cost is set by hand (Resources › Cost › Custom). */
   weights?: Record<string, number>;
 }
@@ -132,6 +134,39 @@ export const toggleLine =
     const on = p.separate ?? [];
     const next = on.includes(item) ? on.filter((x) => x !== item) : [...on, item];
     return { separate: next.length ? next : undefined };
+  };
+
+/** The plan's products offered to the pool with one put in or taken out; for `updatePlan`. */
+export const togglePooled =
+  (item: string) =>
+  (p: Plan): Partial<Plan> => {
+    const on = p.pooled ?? [];
+    const next = on.includes(item) ? on.filter((x) => x !== item) : [...on, item];
+    return { pooled: next.length ? next : undefined };
+  };
+
+/**
+ * A product made from what the factory leaves over: the recipe takes `surplus` (`left` a minute of it), and its main
+ * output goes on the targets for as much as that leftover makes, offered to the pool. A product already targeted
+ * gets the amount added; for `updatePlan`.
+ */
+export const makeFromLeftover =
+  (recipe: string, surplus: string, left: number) =>
+  (p: Plan): Partial<Plan> => {
+    const r = recipeById.get(recipe);
+    const taken = r?.inputs.find((s) => s.item === surplus);
+    const made = r?.outputs.find((s) => s.item !== surplus);
+    if (!r || !taken || !made || taken.rate <= 0) return {};
+    const rate = Math.floor(((left * made.rate) / taken.rate) * 100) / 100;
+    if (rate <= 0) return {};
+    const has = p.targets.some((t) => t.item === made.item);
+    return {
+      targets: has
+        ? p.targets.map((t) => (t.item === made.item ? { ...t, rate: Math.round((t.rate + rate) * 100) / 100 } : t))
+        : [...p.targets, { item: made.item, rate }],
+      enabled: p.enabled.includes(recipe) ? p.enabled : [...p.enabled, recipe],
+      pooled: p.pooled?.includes(made.item) ? p.pooled : [...(p.pooled ?? []), made.item],
+    };
   };
 
 export const newPlan = (name: string): Plan => ({

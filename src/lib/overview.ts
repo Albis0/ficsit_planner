@@ -86,6 +86,13 @@ export function madeBeyond(surplus: Target[], given: Target[]): Target[] {
   return surplus.map((x) => ({ item: x.item, rate: x.rate - (have.get(x.item) ?? 0) })).filter((x) => x.rate > 1e-4);
 }
 
+/** What a factory gives the pool: what it leaves over, and the products it offers to it. */
+export function poolShare(e: Pick<FactoryEntry, 'result' | 'pooled'>): Target[] {
+  const r = e.result;
+  if (!r) return [];
+  return [...madeBeyond(r.surplus, r.supplies), ...(e.pooled ? r.targets.filter((t) => e.pooled?.includes(t.item)) : [])];
+}
+
 export function factoryRow(e: FactoryEntry, planned: boolean): FactoryRow {
   const r = e.result;
   return {
@@ -99,7 +106,7 @@ export function factoryRow(e: FactoryEntry, planned: boolean): FactoryRow {
     raw: r?.raw ?? [],
     brings: sumItems([r?.supplies ?? [], r?.missing ?? []]),
     surplus: r?.surplus ?? [],
-    leaves: r ? madeBeyond(r.surplus, r.supplies) : [],
+    leaves: poolShare(e),
     mw: e.mw ?? 0,
     machines: r ? sumOf(r.recipes) : 0,
     extractors: sumOf(e.extraction ?? []),
@@ -229,9 +236,7 @@ export function usePoolSources(forPlan: string | undefined, on: boolean): Map<st
   const rows = usePlantRows(draws, on);
   return useMemo(() => {
     const made = [
-      ...entries
-        .filter((e) => e.id !== forPlan)
-        .map((e) => ({ name: e.name, leaves: e.result ? madeBeyond(e.result.surplus, e.result.supplies) : [] })),
+      ...entries.filter((e) => e.id !== forPlan).map((e) => ({ name: e.name, leaves: poolShare(e) })),
       ...rows.map((p) => ({ name: p.name, leaves: p.leaves })),
     ];
     return poolSources(made);
@@ -252,10 +257,7 @@ export function usePool(forPlan: string | undefined, on: boolean, forPlant?: str
     if (!on) return [];
     const others = entries.filter((e) => e.id !== forPlan);
     return poolLines(
-      [
-        ...others.map((e) => (e.result ? madeBeyond(e.result.surplus, e.result.supplies) : [])),
-        ...rows.filter((p) => p.id !== forPlant).map((p) => p.leaves),
-      ],
+      [...others.map(poolShare), ...rows.filter((p) => p.id !== forPlant).map((p) => p.leaves)],
       [...takesFromPool(plans.filter((p) => p.id !== forPlan)), ...plantTakesFromPool(power.filter((p) => p.id !== forPlant))],
     );
   }, [on, entries, rows, plans, power, forPlan, forPlant]);

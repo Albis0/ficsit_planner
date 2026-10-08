@@ -29,6 +29,9 @@ export const en = {
   customCostHint: 'Set what each resource costs the plan below; the ones you leave keep their usual cost',
   costOf: 'Cost',
   ownLineHint: 'Make this product on a line of its own, apart from the others',
+  toPool: 'To the pool',
+  toPoolHint: 'Offer what this product makes to the pool, so other factories and power plants can take it',
+  makeFromIt: 'Make something from it',
   takeFromPool: 'Take from the pool',
   poolHas: '{n}/min in the pool',
   poolShort: 'The pool is {n}/min short',
@@ -840,7 +843,7 @@ export const en = {
   helpText_resources:
     'Caps on how much of each raw resource you can reach, and which miner and clock to count extractors with. Optimize By rarity spares scarce resources first; All equal counts them all the same; Fewest buildings keeps the building count down.',
   helpText_surplus:
-    'Byproducts the plan makes but doesn’t use, like Polymer Resin from Fuel. Sink them, store them or plan something that uses them.',
+    'Byproducts the plan makes but doesn’t use, like Polymer Resin from Fuel. Sink them, store them or plan something that uses them. “Make something from it” under a leftover card lists the recipes that take it; the one you pick is added to the products for as much as the leftover makes, and offered to the pool.',
   helpBelts: 'The Mk label on belts',
   helpText_belts: 'The slowest belt or pipe you’ve unlocked that carries that flow.',
   helpText_clock:
@@ -1055,6 +1058,8 @@ export const en = {
   choose_make: 'Production',
   choose_raw: 'Resources',
   choose_logistic: 'Logistics',
+  choose_end: 'Products',
+  chooseEndSub: 'Final product',
   choose_special: 'Special',
   cardMenu: 'Card',
   copy: 'Copy',

@@ -117,6 +117,9 @@ export function cleanPlan(saved: unknown, fallback: Plan): Plan {
   const separate = Array.isArray(p.separate)
     ? [...new Set(p.separate.filter((i): i is string => typeof i === 'string' && aims.some((t) => t.item === i)))]
     : [];
+  const pooled = Array.isArray(p.pooled)
+    ? [...new Set(p.pooled.filter((i): i is string => typeof i === 'string' && aims.some((t) => t.item === i)))]
+    : [];
   return {
     id: text(p.id, fallback.id, 40),
     name: text(p.name, fallback.name),
@@ -134,6 +137,7 @@ export function cleanPlan(saved: unknown, fallback: Plan): Plan {
     ...(model ? { model } : {}),
     ...(built.length ? { built } : {}),
     ...(separate.length ? { separate } : {}),
+    ...(pooled.length ? { pooled } : {}),
     ...(Object.keys(weights).length ? { weights } : {}),
   };
 }

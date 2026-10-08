@@ -452,11 +452,44 @@ describe('the chooser', () => {
       expect(r.inputs[c.port!].item).toBe(ORE);
     }
     expect(make.some((c) => c.init.k === 'machine' && c.init.recipe === SMELT)).toBe(true);
-    // No miners for a belt that's already carrying something; a splitter, merger and sink. Outputs come from the
-    // side panel, not the build menu.
+    // No miners for a belt that's already carrying something; a splitter, merger and sink, and the belt's item as a
+    // final product. Inputs come from the side panel, not the build menu.
     expect(list.some((c) => c.tab === 'raw')).toBe(false);
     expect(list.filter((c) => c.tab === 'logistic').map((c) => c.key)).toEqual(['l:splitter', 'l:merger', 'sink']);
-    expect(list.some((c) => c.init.k === 'out' || c.init.k === 'in')).toBe(false);
+    expect(list.filter((c) => c.tab === 'end').map((c) => c.key)).toEqual([`o:${ORE}`]);
+    expect(list.some((c) => c.init.k === 'in')).toBe(false);
+  });
+
+  test('a final product can be put down on its own, any item that can be made, and ends a belt of that item', () => {
+    const all = choicesFor(undefined, 9).filter((c) => c.tab === 'end');
+    expect(all.length).toBeGreaterThan(50);
+    const plate = all.find((c) => c.key === 'o:Desc_IronPlate_C')!;
+    expect(plate.init).toMatchObject({ k: 'out', item: 'Desc_IronPlate_C' });
+    expect(plate.port).toBeUndefined();
+    expect(choiceWords(plate)).toContain('Iron Plate');
+    // On a belt it goes on the belt's end.
+    const m = model([miner('m')], []);
+    const end = choicesFor(wantAt(m, 9, 'm', 'out', 0), 9).find((c) => c.tab === 'end')!;
+    expect(end.port).toBe(0);
+    const card = placeChoice(m, end, { x: 600, y: 300 }, wantAt(m, 9, 'm', 'out', 0));
+    expect(card).toMatchObject({ k: 'out', item: ORE });
+    // A belt with nothing known on it ends in nothing.
+    const bare = model([{ id: 's', ...at, k: 'logistic', kind: 'splitter' }], []);
+    expect(choicesFor(wantAt(bare, 9, 's', 'out', 0), 9).some((c) => c.tab === 'end')).toBe(false);
+  });
+
+  test('a belt let go from a product card lists what makes the product, to build back from it', () => {
+    const product: MNode = { id: 'o', ...at, k: 'out', item: 'Desc_IronPlate_C' };
+    const want = wantAt(model([product], []), 9, 'o', 'in', 0);
+    expect(want).toMatchObject({ side: 'out', item: 'Desc_IronPlate_C' });
+    const make = choicesFor(want, 9).filter((c) => c.tab === 'make');
+    expect(make.length).toBeGreaterThan(0);
+    for (const c of make) {
+      if (c.init.k !== 'machine') throw new Error('not a machine');
+      expect(data.recipes.find((r) => r.id === c.init.recipe)!.outputs[c.port!].item).toBe('Desc_IronPlate_C');
+    }
+    // No final product to put before a final product.
+    expect(choicesFor(want, 9).some((c) => c.tab === 'end')).toBe(false);
   });
 
   test('an input wanting iron ore lists the miner and what makes it', () => {

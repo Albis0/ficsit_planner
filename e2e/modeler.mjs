@@ -1095,11 +1095,12 @@ const clash = (a, b) => a && b && a.x < b.x + b.width && b.x < a.x + a.width && 
       ['Desc_Computer_C', 5],
     ]),
   );
-  ok('every product has an Own line switch', (await page.locator('.line-toggle').count()) === 2);
+  const ownLine = page.locator('.line-toggle', { hasText: 'Own line' });
+  ok('every product has an Own line switch', (await ownLine.count()) === 2);
   const machinesBefore = await page.locator('.readout-value').nth(1).innerText();
-  await page.locator('.line-toggle').nth(1).click();
+  await ownLine.nth(1).click();
   await wait(2500);
-  ok('the switch is on', (await page.locator('.line-toggle[aria-pressed="true"]').count()) === 1);
+  ok('the switch is on', (await page.locator('.line-toggle[aria-pressed="true"]', { hasText: 'Own line' }).count()) === 1);
   ok(
     'the floor shows a tag over each of the two lines',
     (await page.locator('.line-tag').count()) === 2,
@@ -1116,7 +1117,7 @@ const clash = (a, b) => a && b && a.x < b.x + b.width && b.x < a.x + a.width && 
     `${machinesBefore} -> ${machinesApart}`,
   );
   await shot('lines');
-  await page.locator('.line-toggle').nth(1).click();
+  await ownLine.nth(1).click();
   await wait(2500);
   ok('switched off, the floor is one line again', (await page.locator('.line-tag').count()) === 0);
 
@@ -1890,8 +1891,8 @@ const clash = (a, b) => a && b && a.x < b.x + b.width && b.x < a.x + a.width && 
   await addHere();
   const fourTabs = await page.locator('.chooser-tabs button').allInnerTexts();
   ok(
-    'the build menu: Production, Resources, Logistics, Special',
-    fourTabs.join('|').replace(/\s+/g, '') === 'Production|Resources|Logistics|Special',
+    'the build menu: Production, Resources, Products, Logistics, Special',
+    fourTabs.join('|').replace(/\s+/g, '') === 'Production|Resources|Products|Logistics|Special',
     fourTabs.join(' | '),
   );
   await page.locator('.chooser-tabs button', { hasText: 'Resources' }).click();

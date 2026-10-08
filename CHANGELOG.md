@@ -2,6 +2,19 @@
 
 All notable changes to FICSIT Planner. Dates are when the version was finished.
 
+## 0.13.26 — 2026-10-08
+
+### Added
+
+- **Final products on the Manual floor.** The build menu has a Products tab with every item that can be made, and a
+  belt let go from a machine's output offers the item it carries as the product that ends it. Letting a belt go from a
+  product card's input lists the machines that make it, so a floor can be built back from what you want.
+- **Make something from a leftover on the Auto floor.** A leftover card has a "Make something from it" button that lists
+  the recipes taking that item. Picking one adds its product to the targets for as much as the leftover makes, and offers
+  it to the pool.
+- **To the pool** on each product in the Auto side panel: what the product makes is added to what the factory leaves
+  over, so other factories and power plants can take it from the pool.
+
 ## 0.13.25 — 2026-10-08
 
 ### Added

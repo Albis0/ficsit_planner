@@ -1,4 +1,4 @@
-import { data, rawTier, recipeById, recipeTier, SPECIAL_ITEMS } from '../data';
+import { craftableItems, data, itemTier, rawTier, recipeById, recipeTier, SPECIAL_ITEMS } from '../data';
 import { type ExtractionSettings, effectiveExtraction } from '../extraction';
 import { compile } from './calc/compile';
 import type { NodeInit } from './ops';
@@ -8,16 +8,16 @@ import { cardSize, dirOf, endSpot, freeSpot } from './layout';
 
 /*
   What can be put down on a hand-built floor, as the chooser lists it: recipes, miners and pumps, splitters and
-  mergers, things coming in and going out. Opened from a belt let go on the floor, it lists only what fits that belt's
-  end, and says which end of the new card the belt goes on.
+  mergers, and the final products that leave the floor. Opened from a belt let go on the floor, it lists only what fits
+  that belt's end, and says which end of the new card the belt goes on.
 */
 
 /**
- * Special: gear made in the factory (ammo, equipment, power shards), kept apart from the parts. What leaves the floor
- * or comes into it is added in the side panel, not here.
+ * Special: gear made in the factory (ammo, equipment, power shards), kept apart from the parts. End: a final product,
+ * the card a finished item leaves the floor on. What comes into the floor from outside is added in the side panel.
  */
-export type ChoiceTab = 'make' | 'raw' | 'logistic' | 'special';
-export const CHOICE_TABS: ChoiceTab[] = ['make', 'raw', 'logistic', 'special'];
+export type ChoiceTab = 'make' | 'raw' | 'end' | 'logistic' | 'special';
+export const CHOICE_TABS: ChoiceTab[] = ['make', 'raw', 'end', 'logistic', 'special'];
 
 /** A belt end waiting for something: the side of the new card it goes on, and what it carries. */
 export interface Want {
@@ -150,6 +150,24 @@ export function choicesFor(want: Want | undefined, tier: number, rules: ChoiceRu
         tier: Math.max(e.tier, rawTier(item.id) ?? 0),
       });
     }
+
+  // A final product: the item on a belt waiting for an end, or any item that can be made. Built backwards from there by
+  // letting a belt go from its input.
+  if (!want || (want.side === 'in' && want.item)) {
+    const items = want?.item ? [data.items[want.item]] : craftableItems;
+    const ends = items
+      .filter(Boolean)
+      .map((i) => ({ i, tier: itemTier(i.id) ?? 0 }))
+      .sort((a, b) => Number(a.tier > tier) - Number(b.tier > tier) || a.i.name.localeCompare(b.i.name));
+    for (const { i, tier: needs } of ends)
+      out.push({
+        key: `o:${i.id}`,
+        tab: 'end',
+        init: { k: 'out', item: i.id, x: 0, y: 0 },
+        ...(want ? { port: 0 } : {}),
+        tier: needs,
+      });
+  }
 
   // Splitters, mergers, junctions and the sink.
   for (const { kind, medium } of LOGISTIC) {
