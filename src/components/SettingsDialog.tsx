@@ -569,6 +569,7 @@ const HELP: { title: HelpKey; terms: [HelpKey, HelpKey][] }[] = [
       ['ownLine', 'helpText_ownLine'],
       ['helpManual', 'helpText_manual'],
       ['helpSplit', 'helpText_split'],
+      ['helpUndo', 'helpText_undo'],
       ['rawInput', 'helpText_rawInput'],
       ['inventory', 'helpText_inventory'],
       ['useAll', 'helpText_useAll'],

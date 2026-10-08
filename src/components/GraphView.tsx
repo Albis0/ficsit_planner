@@ -40,12 +40,13 @@ import {
 } from '../lib/graph';
 import { useT } from '../lib/i18n';
 import { LOGISTICS } from '../lib/model/catalog';
+import { autoScope, canRedo, canUndo, powerScope } from '../lib/model/history';
 import { generatorById } from '../lib/data';
 import { pipeColor } from '../lib/pipe';
 import { minerLabel, recipeLabel } from '../lib/text';
 import { COARSE, useMediaQuery } from '../lib/useMediaQuery';
 import type { SolveResult } from '../lib/solver';
-import { toggleBuilt, usePlan, useStore } from '../store';
+import { activePowerPlan, toggleBuilt, usePlan, useStore } from '../store';
 import { beltStroke } from './floor/BeltStroke';
 import { longestRunMid, SQUARE_TURN, squarePath } from './floor/squarePath';
 import { Glyph } from './Glyph';
@@ -618,13 +619,18 @@ function LineTag({ data: d }: NodeProps) {
 
 /** A splitter, merger or junction on a belt: the building's picture, small. */
 function LogisticNode({ id, data: d }: NodeProps) {
-  const { kind } = d as LogisticNodeData;
+  const { kind, rate } = d as LogisticNodeData;
+  const { num, t } = useT();
   const faded = useFaded(id);
   const dir = useContext(Flow);
   return (
     <div className={`logistic-node ${faded ? 'faded' : ''}`} title={LOGISTICS[kind].name}>
       <Handle type="target" position={inSide(dir)} />
-      <Icon id={LOGISTICS[kind].icon} size={52} />
+      <Icon id={LOGISTICS[kind].icon} size={44} />
+      <span className="logistic-rate">
+        {num(rate)}
+        <small>{t('perMin')}</small>
+      </span>
       <Handle type="source" position={outSide(dir)} />
     </div>
   );
@@ -639,8 +645,35 @@ function FloorControls() {
   const flow = useReactFlow();
   const dir = useContext(Flow);
   const set = useStore((s) => s.set);
+  const undoPlan = useStore((s) => s.undoPlan);
+  const redoPlan = useStore((s) => s.redoPlan);
+  const scope = useStore((s) => (s.mode === 'power' ? powerScope(activePowerPlan(s).id) : autoScope(s.active)));
+  // Read so the buttons follow each edit: what's on the undo list changes with the plan.
+  useStore((s) => (s.mode === 'power' ? activePowerPlan(s) : s.plans.find((p) => p.id === s.active)));
   return (
     <div className="floor-controls">
+      <div className="tool-group floor-undo">
+        <button
+          type="button"
+          className="tool-button"
+          aria-label={t('undo')}
+          title={t('undoKey')}
+          disabled={!canUndo(scope)}
+          onClick={undoPlan}
+        >
+          <Glyph name="undo" size={22} />
+        </button>
+        <button
+          type="button"
+          className="tool-button"
+          aria-label={t('redo')}
+          title={t('redoKey')}
+          disabled={!canRedo(scope)}
+          onClick={redoPlan}
+        >
+          <Glyph name="redo" size={22} />
+        </button>
+      </div>
       <div className="segmented" role="radiogroup" aria-label={t('direction')}>
         <button type="button" role="radio" aria-checked={dir === 'LR'} title={t('leftToRight')} onClick={() => set({ graphDir: 'LR' })}>
           <span aria-hidden>→</span>

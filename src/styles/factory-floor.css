@@ -114,3 +114,8 @@
   color: var(--ficsit);
   border-color: var(--ficsit);
 }
+
+/* Undo and redo in the floor's corner: a dimmed button keeps its metal, so the belts and cards behind don't show through. */
+.floor-undo .tool-button:disabled {
+  opacity: 1;
+}

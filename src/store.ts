@@ -11,7 +11,7 @@ import { cleanChoice, cleanNumber, cleanPlan, cleanPowerPlan, cleanSettings, gri
 import { DEFAULT_SETTINGS, type Settings } from './lib/settings';
 import type { RecipeMod, Target } from './lib/solver';
 import { cleanMapFilter, DEFAULT_MAP_FILTER, type MapFilter } from './lib/world';
-import { forget, record, redo, undo } from './lib/model/history';
+import { autoScope, forget, powerScope, record, redo, undo } from './lib/model/history';
 import { floorTargets, sameTargets, withTargets } from './lib/model/targets';
 import { emptyModel, type Model } from './lib/model/types';
 import type { Carrier } from './lib/transport';
@@ -286,6 +286,9 @@ interface State {
   editModel: (plan: string, fn: (m: Model) => Model, merge?: string) => void;
   undoModel: (plan: string) => void;
   redoModel: (plan: string) => void;
+  /** Undo and redo for the Auto floor's plan, or the power plant, on screen. */
+  undoPlan: () => void;
+  redoPlan: () => void;
 }
 
 const first = newPlan('Factory 1');
@@ -305,6 +308,10 @@ export function dropSource(plans: Plan[], gone: string | ((id: string) => boolea
       : p,
   );
 }
+
+/** Whether a patch would change anything in what it's applied to. */
+const changes = (before: object, patch: object) =>
+  Object.entries(patch).some(([k, v]) => JSON.stringify(v) !== JSON.stringify((before as Record<string, unknown>)[k]));
 
 /** What other factory tabs take from this one: it makes these on top of its own targets. */
 export function exportsOf(plans: Plan[], id: string): { item: string; rate: number; to: string }[] {
@@ -362,18 +369,27 @@ export const persisted = (s: State): Persisted => ({
 export const useStore = create<State>()(
   persist(
     (set, get) => {
-      // Edits to the power plant on screen.
-      const power = (fn: (p: PowerPlan) => Partial<PowerPlan>) => {
+      // Edits to the power plant on screen; the plant as it was goes on its undo list.
+      const power = (fn: (p: PowerPlan) => Partial<PowerPlan>, merge?: string) => {
         const id = activePowerPlan(get()).id;
-        set({ power: get().power.map((p) => (p.id === id ? { ...p, ...fn(p) } : p)) });
+        set({
+          power: get().power.map((p) => {
+            if (p.id !== id) return p;
+            const patch = fn(p);
+            if (changes(p, patch)) record(powerScope(id), p, merge);
+            return { ...p, ...patch };
+          }),
+        });
       };
-      // Plan edits go to whatever is on screen: the active factory, or the power plant's fuel plan.
-      const update = (fn: (p: Plan) => Partial<Plan>) => {
-        if (get().mode === 'power') return power((pp) => ({ chain: { ...pp.chain, ...fn(pp.chain) } }));
+      // Plan edits go to whatever is on screen: the active factory, or the power plant's fuel plan. On the Auto floor
+      // the plan as it was goes on the tab's undo list; edits sharing a merge key a moment apart undo as one.
+      const update = (fn: (p: Plan) => Partial<Plan>, merge?: string) => {
+        if (get().mode === 'power') return power((pp) => ({ chain: { ...pp.chain, ...fn(pp.chain) } }), merge);
         set({
           plans: get().plans.map((p) => {
             if (p.id !== get().active) return p;
             const patch = fn(p);
+            if (p.floor !== 'manual' && changes(p, patch)) record(autoScope(p.id), p, merge);
             // Targets and a hand-built floor's products are one list: new targets reach its output cards, one step to undo.
             if (patch.targets && p.model && !patch.model) {
               const model = withTargets(p.model, patch.targets);
@@ -391,7 +407,31 @@ export const useStore = create<State>()(
         const targets = floorTargets(model, p.targets);
         return sameTargets(targets, p.targets) ? { ...p, model } : { ...p, model, targets };
       };
-      const plants = (fn: (list: Plant[]) => Plant[]) => power((pp) => ({ plants: fn(pp.plants) }));
+      /** Steps the Auto floor's plan, or the power plant, on screen back or forward one edit. */
+      const stepPlan = (step: typeof undo) => {
+        if (get().mode === 'power') {
+          const id = activePowerPlan(get()).id;
+          const cur = get().power.find((p) => p.id === id);
+          const snap = step(powerScope(id), cur);
+          // Which factories a plant feeds is set from the factory tabs too, so it stays as it is.
+          if (snap) set({ power: get().power.map((p) => (p.id === id ? { ...snap, factories: p.factories } : p)), inspect: undefined });
+          return;
+        }
+        const id = get().active;
+        const cur = get().plans.find((p) => p.id === id);
+        if (!cur || cur.floor === 'manual') return;
+        const snap = step(autoScope(id), cur);
+        if (!snap) return;
+        // The tab keeps its name, and its hand-built floor as it is except for the targets it shares with the plan.
+        const { floor: _f, model: _m, name: _n, ...rest } = snap;
+        const model = cur.model && withTargets(cur.model, rest.targets);
+        if (model && model !== cur.model) record(id, cur.model, 'targets');
+        set({
+          plans: get().plans.map((p) => (p.id === id ? { ...rest, name: p.name, ...(model ? { model } : {}) } : p)),
+          inspect: undefined,
+        });
+      };
+      const plants = (fn: (list: Plant[]) => Plant[], merge?: string) => power((pp) => ({ plants: fn(pp.plants) }), merge);
 
       return {
         lang: 'en',
@@ -421,7 +461,7 @@ export const useStore = create<State>()(
               : { ...patch, overview: undefined },
           ),
         setSettings: (patch) => set({ settings: { ...get().settings, ...patch } }),
-        updatePower: (patch) => power(() => patch),
+        updatePower: (patch) => power(() => patch, `power:${Object.keys(patch).join()}`),
         setPowered: (factory, on) => {
           const plans = get().plans;
           const current = activePowerPlan(get()).id;
@@ -494,9 +534,14 @@ export const useStore = create<State>()(
             return [...list, plant];
           });
         },
-        updatePlant: (id, patch) => plants((list) => list.map((p) => (p.id === id ? { ...p, ...patch } : p))),
+        updatePlant: (id, patch) =>
+          plants((list) => list.map((p) => (p.id === id ? { ...p, ...patch } : p)), `plant:${id}:${Object.keys(patch).join()}`),
         removePlant: (id) => plants((list) => list.filter((p) => p.id !== id)),
-        updatePlan: (patch) => update(typeof patch === 'function' ? patch : () => patch),
+        updatePlan: (patch) =>
+          update(
+            typeof patch === 'function' ? patch : () => patch,
+            typeof patch === 'function' ? undefined : `plan:${Object.keys(patch).join()}`,
+          ),
         addPlan: (name) => {
           const p = newPlan(name);
           set({ plans: [...get().plans, p], active: p.id, inspect: undefined });
@@ -562,7 +607,7 @@ export const useStore = create<State>()(
         renamePlan: (id, name) => set({ plans: get().plans.map((p) => (p.id === id ? { ...p, name } : p)) }),
 
         addTarget: (item) => update((p) => (p.targets.some((t) => t.item === item) ? {} : { targets: [...p.targets, { item, rate: 10 }] })),
-        setTarget: (i, rate) => update((p) => ({ targets: p.targets.map((t, j) => (j === i ? { ...t, rate } : t)) })),
+        setTarget: (i, rate) => update((p) => ({ targets: p.targets.map((t, j) => (j === i ? { ...t, rate } : t)) }), `target:${i}`),
         removeTarget: (i) => update((p) => ({ targets: p.targets.filter((_, j) => j !== i) })),
         addSupply: (item, rate = 10, from) =>
           update((p) =>
@@ -576,7 +621,7 @@ export const useStore = create<State>()(
               return from ? { ...rest, from } : rest;
             }),
           })),
-        setSupply: (i, rate) => update((p) => ({ supplies: p.supplies.map((t, j) => (j === i ? { ...t, rate } : t)) })),
+        setSupply: (i, rate) => update((p) => ({ supplies: p.supplies.map((t, j) => (j === i ? { ...t, rate } : t)) }), `supply:${i}`),
         removeSupply: (i) => update((p) => ({ supplies: p.supplies.filter((_, j) => j !== i) })),
         toggleRecipe: (id, on) =>
           update((p) => {
@@ -600,28 +645,28 @@ export const useStore = create<State>()(
             if (cap === undefined) delete caps[item];
             else caps[item] = cap;
             return { caps };
-          }),
+          }, `cap:${item}`),
         setWeight: (item, weight) =>
           update((p) => {
             const weights = { ...p.weights };
             if (weight === undefined) delete weights[item];
             else weights[item] = weight;
             return { weights: Object.keys(weights).length ? weights : undefined };
-          }),
+          }, `weight:${item}`),
         setFixed: (item, rate) =>
           update((p) => {
             const fixed = { ...p.fixed };
             if (rate === undefined) delete fixed[item];
             else fixed[item] = rate;
             return { fixed };
-          }),
+          }, `fixed:${item}`),
         setMod: (recipe, mod) =>
           update((p) => {
             const mods = { ...p.mods };
             if (!mod || (mod.clock === 1 && mod.sloops === 0)) delete mods[recipe];
             else mods[recipe] = mod;
             return { mods };
-          }),
+          }, `mod:${recipe}`),
         setFloor: (id, floor, model) => {
           if (model) forget(id);
           set({
@@ -653,6 +698,8 @@ export const useStore = create<State>()(
           const next = redo(id, plan?.model);
           if (next) set({ plans: get().plans.map((p) => (p.id === id ? withFloor(p, next) : p)) });
         },
+        undoPlan: () => stepPlan(undo),
+        redoPlan: () => stepPlan(redo),
       };
     },
     {

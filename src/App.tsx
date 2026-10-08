@@ -46,6 +46,7 @@ import { factoryInput, powerInput, powerLoad, useExports, useFactoryDraws, useSo
 import { failureText } from './lib/solveFailure';
 import { fold } from './lib/fold';
 import { useMediaQuery } from './lib/useMediaQuery';
+import { useUndoKeys } from './lib/undoKeys';
 import { LATEST_UPDATE } from './locales/updates.en';
 import { modelFromSolve } from './lib/model/fromAuto';
 import { emptyModel, type Model } from './lib/model/types';
@@ -120,6 +121,7 @@ export default function App() {
   const overviewOn = !!s.overview && !bookMode;
   useCodexRoute();
   useSharedLinks();
+  useUndoKeys(!bookMode && !manual && !overviewOn);
   const pp = activePowerPlan(s);
   const solved = powerMode ? power : factory;
   const result = manual ? hand.adapted?.result : solved.result;

@@ -826,6 +826,9 @@ export const en = {
   helpManual: 'Auto and Manual floors',
   helpText_manual:
     'Auto works the machines out from your targets. Manual is a floor you build yourself: place machines, lay belts, set counts, and the numbers follow. Rebuild as Manual turns an Auto floor into one you can edit.',
+  helpUndo: 'Undo and redo',
+  helpText_undo:
+    'The two arrows in the floor’s corner, or Ctrl+Z and Ctrl+Y, step back and forward through what you changed on the Auto floor and in the power planner: targets, recipes, what’s on hand, limits and clocks. Each tab keeps its own list until the page is reloaded. The Manual floor has its own undo.',
   helpSplit: 'Splitters and mergers',
   helpText_split:
     'Where one belt feeds several machines or several belts meet. A belt that needs more than one belt’s worth shows as that many belts side by side, with the count on its label, like “3 × Mk.5”.',

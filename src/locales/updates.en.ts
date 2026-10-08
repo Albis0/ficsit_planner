@@ -9,6 +9,17 @@ export type UpdateNote = [UpdateKind, string];
 
 export const UPDATES: { version: string; date: string; title?: string; notes: UpdateNote[] }[] = [
   {
+    version: '0.13.25',
+    date: '2026-10-08',
+    notes: [
+      ['added', 'Undo and redo on the Auto floor and in the power planner: two buttons in the floor’s corner, or Ctrl+Z and Ctrl+Y.'],
+      [
+        'changed',
+        'Splitters and mergers on the Auto floor look like the ones you build on the Manual floor, with the amount passing through.',
+      ],
+    ],
+  },
+  {
     version: '0.13.24',
     date: '2026-10-08',
     notes: [

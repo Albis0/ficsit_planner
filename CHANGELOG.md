@@ -2,6 +2,20 @@
 
 All notable changes to FICSIT Planner. Dates are when the version was finished.
 
+## 0.13.25 — 2026-10-08
+
+### Added
+
+- **Undo and redo on the Auto floor and the power planner.** Two buttons in the floor's bottom corner, and Ctrl+Z,
+  Ctrl+Y or Ctrl+Shift+Z outside a text field. They step through targets, recipes, what's on hand, limits, clock
+  changes and the plant's settings. Each factory tab and each power plant has its own list, kept until the page is
+  reloaded; the Manual floor keeps its own.
+
+### Changed
+
+- **Splitters, mergers and junctions on the Auto floor** are drawn as the same square the Manual floor builds, the
+  building and what passes through it per minute, instead of a small round badge.
+
 ## 0.13.24 — 2026-10-08
 
 ### Changed

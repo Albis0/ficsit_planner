@@ -51,6 +51,8 @@ export interface PowerEdgeData extends Record<string, unknown> {
 export interface LogisticNodeData extends Record<string, unknown> {
   kind: 'splitter' | 'merger' | 'junction';
   item: string;
+  /** What passes through it, per minute. */
+  rate: number;
 }
 
 export interface EndpointNodeData extends Record<string, unknown> {
@@ -111,7 +113,7 @@ function handlesFor(size: { width: number; height: number }, sides: { target: bo
 
 export const SIZE = {
   machine: { width: 310, height: 130 },
-  logistic: { width: 84, height: 84 },
+  logistic: { width: 96, height: 96 },
   endpoint: { width: 330, height: 100 },
   grid: { width: 300, height: 124 },
   consumer: { width: 260, height: 84 },
@@ -367,13 +369,13 @@ function addLogistics(
       data: { item, rate, transport, lanes } satisfies FlowEdgeData,
     };
   };
-  const logistic = (kind: LogisticNodeData['kind'], item: string): string => {
+  const logistic = (kind: LogisticNodeData['kind'], item: string, rate: number): string => {
     const id = `${kind}:${n++}`;
     nodes.push({
       id,
       type: 'logistic',
       position: { x: 0, y: 0 },
-      data: { kind, item } satisfies LogisticNodeData,
+      data: { kind, item, rate } satisfies LogisticNodeData,
       ...box(SIZE.logistic),
       handles: [],
     });
@@ -402,15 +404,9 @@ function addLogistics(
     while (left.length) {
       const last = left.length <= FAN;
       const take = last ? left : left.slice(0, FAN - 1);
-      const id = logistic(kind, item);
-      edges.push(
-        make(
-          feed,
-          id,
-          item,
-          left.reduce((s, e) => s + rateOf(e), 0),
-        ),
-      );
+      const through = left.reduce((s, e) => s + rateOf(e), 0);
+      const id = logistic(kind, item, through);
+      edges.push(make(feed, id, item, through));
       for (const e of take) edges.push(make(id, e.target, item, rateOf(e)));
       left = left.slice(take.length);
       feed = id;
@@ -428,15 +424,9 @@ function addLogistics(
     while (left.length) {
       const last = left.length <= FAN;
       const take = last ? left : left.slice(0, FAN - 1);
-      const id = logistic(kind, item);
-      edges.push(
-        make(
-          id,
-          feed,
-          item,
-          left.reduce((s, e) => s + rateOf(e), 0),
-        ),
-      );
+      const through = left.reduce((s, e) => s + rateOf(e), 0);
+      const id = logistic(kind, item, through);
+      edges.push(make(id, feed, item, through));
       for (const e of take) edges.push(make(e.source, id, item, rateOf(e)));
       left = left.slice(take.length);
       feed = id;
