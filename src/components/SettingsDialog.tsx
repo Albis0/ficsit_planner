@@ -423,6 +423,9 @@ function FloorSection() {
           onChange={(v) => set({ autoBelts: v })}
         />
       </Row>
+      <Row label={t('autoSplitters')} hint={t('autoSplittersHint')}>
+        <Toggle label={t('autoSplitters')} on={s.autoSplitters} onChange={(v) => set({ autoSplitters: v })} />
+      </Row>
       <Row label={t('beltLabels')} hint={t('beltLabelsHint')}>
         <Choice
           label={t('beltLabels')}

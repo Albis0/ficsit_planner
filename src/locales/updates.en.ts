@@ -9,6 +9,20 @@ export type UpdateNote = [UpdateKind, string];
 
 export const UPDATES: { version: string; date: string; title?: string; notes: UpdateNote[] }[] = [
   {
+    version: '0.13.20',
+    date: '2026-10-08',
+    notes: [
+      [
+        'added',
+        'Settings › Factory floor › Splitters and mergers draws them on the Auto floor where a belt feeds or is fed by several machines.',
+      ],
+      [
+        'added',
+        'A machine’s panel says how to share a belt between its machines: a tree of splitters, or a manifold with a loop back. Thanks to u/Worth-Computer8639.',
+      ],
+    ],
+  },
+  {
     version: '0.13.19',
     date: '2026-10-07',
     notes: [

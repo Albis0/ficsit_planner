@@ -1156,6 +1156,33 @@ const clash = (a, b) => a && b && a.x < b.x + b.width && b.x < a.x + a.width && 
   ok('Custom cost puts a cost box on every resource', (await page.locator('.cost-field').count()) > 0);
   await shot('custom-cost');
 
+  // Splitters and mergers on the Auto floor, and how a belt is shared out between a line's machines.
+  section = 'splitters';
+  await open(
+    saved({
+      mode: 'factory',
+      plans: [{ id: 'f1', name: 'Factory 1', targets: [{ item: 'Desc_Motor_C', rate: 10 }] }],
+      active: 'f1',
+      settings: { autoSplitters: true },
+    }),
+  );
+  await page.click('.deck-toggle');
+  await wait(600);
+  ok(
+    'splitters and mergers are drawn on the Auto floor',
+    (await page.locator('.logistic-node').count()) > 0,
+    `${await page.locator('.logistic-node').count()}`,
+  );
+  ok('no cards on top of each other', (await overlaps()).length === 0, (await overlaps()).join(' '));
+  await page.click('.floor-controls .floor-button >> nth=-1');
+  await wait(600);
+  await shot('splitters');
+  await page.locator('.react-flow__node-machine .machine-node').first().click();
+  await wait(700);
+  ok('a machine panel says how to share a belt between its machines', (await page.locator('.inspector-balancer').count()) === 1);
+  await open(factory([['Desc_Motor_C', 10]]));
+  ok('off by default: no splitter cards', (await page.locator('.logistic-node').count()) === 0);
+
   // ── Big factories: laid out cleanly ──
   section = 'big';
   for (const [item, rate] of [

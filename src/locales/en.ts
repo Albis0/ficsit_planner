@@ -12,6 +12,12 @@ export const en = {
   fromAnywhere: 'on hand',
   thePool: 'the pool',
   ownLine: 'Own line',
+  balancerTitle: 'Sharing a belt between them',
+  balancerTree: 'Split {steps} ways, so every machine gets the same. Splitters needed: {n}.',
+  balancerManifold:
+    'A splitter at each machine (splitters needed: {n}), with the end of the belt looping back to the start so nothing backs up.',
+  balancerNearest: 'With {near} machines it would split evenly.',
+  thenWord: 'then',
   capByNodes: 'Plan with my nodes',
   capByNodesHint: 'No more of a resource than the nodes you set give, at the clock above',
   customCost: 'Custom',
@@ -338,6 +344,9 @@ export const en = {
   spacing: 'Spacing',
   spacingHint: 'Room between machines.',
   autoBelts: 'Belt shape',
+  autoSplitters: 'Splitters and mergers',
+  autoSplittersHint:
+    'The Auto floor draws the splitter, merger or junction a belt needs where it feeds several machines or comes from several, as on the Manual floor.',
   autoBeltsHint: 'The Auto floor’s belts: curved, or in straight runs with square turns like the Manual floor’s.',
   beltCurve: 'Curved',
   beltSquare: 'Square',

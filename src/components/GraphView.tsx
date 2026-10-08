@@ -30,6 +30,7 @@ import {
   type EndpointNodeData,
   type FlowEdgeData,
   type LineTagData,
+  type LogisticNodeData,
   type MachineNodeData,
   type Point,
   type PowerEdgeData,
@@ -38,6 +39,7 @@ import {
   runExtra,
 } from '../lib/graph';
 import { useT } from '../lib/i18n';
+import { LOGISTICS } from '../lib/model/catalog';
 import { generatorById } from '../lib/data';
 import { pipeColor } from '../lib/pipe';
 import { minerLabel, recipeLabel } from '../lib/text';
@@ -614,7 +616,21 @@ function LineTag({ data: d }: NodeProps) {
   return <div className="line-tag">{items.map((i) => name(data.items[i])).join(', ')}</div>;
 }
 
-const nodeTypes = { machine: MachineNode, endpoint: EndpointNode, power: PowerNode, line: LineTag };
+/** A splitter, merger or junction on a belt: the building's picture, small. */
+function LogisticNode({ id, data: d }: NodeProps) {
+  const { kind } = d as LogisticNodeData;
+  const faded = useFaded(id);
+  const dir = useContext(Flow);
+  return (
+    <div className={`logistic-node ${faded ? 'faded' : ''}`} title={LOGISTICS[kind].name}>
+      <Handle type="target" position={inSide(dir)} />
+      <Icon id={LOGISTICS[kind].icon} size={52} />
+      <Handle type="source" position={outSide(dir)} />
+    </div>
+  );
+}
+
+const nodeTypes = { machine: MachineNode, endpoint: EndpointNode, power: PowerNode, line: LineTag, logistic: LogisticNode };
 const edgeTypes = { flow: FlowEdge, power: PowerEdge };
 
 /** The direction switch (left to right or top to bottom) and fit to screen. */
@@ -874,6 +890,7 @@ export function GraphView({
   const splitLines = useStore((s) => s.settings.splitLines);
   const spacing = useStore((s) => s.settings.spacing);
   const squareBelts = useStore((s) => s.settings.autoBelts === 'square');
+  const splitters = useStore((s) => s.settings.autoSplitters);
   // Uncontrolled flow remounted per solve: nodes stay draggable, and each new solve lays out fresh.
   const { nodes, edges, dir, key, sig } = useMemo(() => {
     const box = document.querySelector('.floor-view')?.getBoundingClientRect();
@@ -886,6 +903,7 @@ export function GraphView({
       consumers,
       splitLines,
       squareBelts,
+      splitters,
     });
     return {
       ...g,
@@ -896,7 +914,7 @@ export function GraphView({
           .sort()
           .join('|') + g.dir,
     };
-  }, [result, tier, chosen, scale, text, spacing, consumers, splitLines, squareBelts]);
+  }, [result, tier, chosen, scale, text, spacing, consumers, splitLines, squareBelts, splitters]);
   const exMap = useMemo(() => new Map(extraction.map((u) => [u.item, u])), [extraction]);
   // Ticking a machine built changes nothing the layout is made from, so the floor isn't laid out again for it.
   const ticked = usePlan().built;

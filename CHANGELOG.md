@@ -2,6 +2,18 @@
 
 All notable changes to FICSIT Planner. Dates are when the version was finished.
 
+## 0.13.20 — 2026-10-08
+
+### Added
+
+- **Splitters and mergers on the Auto floor** (Settings › Factory floor › Splitters and mergers, off by default): where a
+  belt feeds several machines it gets a splitter, where several belts feed one machine a merger (a junction for pipes),
+  three at a time, as on the Manual floor, so the floor shows what would be built.
+- **How to share a belt between a line's machines**, in the machine's panel: when the count splits evenly in 2s and 3s
+  (2, 3, 4, 6, 8, 9, 12 ...) a tree with the fewest splitters, drawn small; otherwise a splitter at each machine with the
+  end of the belt looping back to the start, and the nearest count that would split evenly. Thanks to
+  u/Worth-Computer8639.
+
 ## 0.13.19 — 2026-10-07
 
 ### Added

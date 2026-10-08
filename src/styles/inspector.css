@@ -326,3 +326,37 @@
   font: 600 12px var(--font-body);
   color: var(--supply);
 }
+
+/* How a belt is shared out between the line's machines: the title, then its lines under it. */
+.inspector-stats > .inspector-balancer {
+  flex-wrap: wrap;
+  row-gap: 6px;
+}
+
+.inspector-stats .inspector-balancer dd {
+  flex-basis: 100%;
+  font: 400 15px / 1.4 var(--font-body);
+  color: var(--paper);
+}
+
+.inspector-stats .inspector-balancer dd.hint {
+  font-size: 13px;
+  color: var(--dim);
+}
+
+.balancer-tree {
+  display: block;
+  max-width: 100%;
+  height: auto;
+  max-height: 120px;
+  overflow: visible;
+}
+
+.balancer-tree line {
+  stroke: var(--line-2);
+  stroke-width: 2;
+}
+
+.balancer-tree circle {
+  fill: var(--ficsit);
+}

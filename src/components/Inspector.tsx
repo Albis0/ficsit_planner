@@ -9,6 +9,7 @@ import { buildGroups, groupsLabel, isPipe } from '../lib/groups';
 import { amplification, NO_MOD, shardsFor, type SolveResult } from '../lib/solver';
 import { matchFlows, splitByDestination } from '../lib/split';
 import { toggleBuilt, usePlan, useStore } from '../store';
+import { Balancer } from './Balancer';
 import { Icon } from './Icon';
 import { RateInput } from './RateInput';
 import { useSplitText } from './SplitText';
@@ -198,6 +199,7 @@ export function Inspector({ result }: { result: SolveResult }) {
             <dd className="hint groups-why">{words.extra(split)}</dd>
           </div>
         )}
+        {use.recipe.kind !== 'power' && <Balancer n={use.built} />}
         <div>
           <dt>{t('power')}</dt>
           <dd className="power">{num(use.power)} MW</dd>

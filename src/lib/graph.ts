@@ -47,6 +47,11 @@ export interface PowerEdgeData extends Record<string, unknown> {
   route?: Route;
 }
 
+export interface LogisticNodeData extends Record<string, unknown> {
+  kind: 'splitter' | 'merger' | 'junction';
+  item: string;
+}
+
 export interface EndpointNodeData extends Record<string, unknown> {
   kind: EndpointKind;
   item: string;
@@ -103,6 +108,7 @@ function handlesFor(size: { width: number; height: number }, sides: { target: bo
 
 export const SIZE = {
   machine: { width: 310, height: 130 },
+  logistic: { width: 84, height: 84 },
   endpoint: { width: 330, height: 100 },
   grid: { width: 300, height: 124 },
   consumer: { width: 260, height: 84 },
@@ -157,6 +163,8 @@ export interface GraphOptions {
   splitLines?: 'one' | 'each';
   /** Belts in straight runs with square turns, as on the hand-built floor, instead of curves. */
   squareBelts?: boolean;
+  /** A splitter, merger or pipe junction where a belt feeds several machines or several belts feed one. */
+  splitters?: boolean;
 }
 
 export interface LineTagData extends Record<string, unknown> {
@@ -315,11 +323,121 @@ function buildGraphOne(result: SolveResult, tier: number, opts: GraphOptions = {
     for (const [a, b, rate] of pair(sources, targets)) belt(a, b, f.item, rate);
   }
 
+  if (opts.splitters) addLogistics(nodes, edges, sides, box, tier);
   if (result.grid) addGrid(result, nodes, edges, sides, opts.consumers ?? [], box);
 
   const dir = layout(nodes, edges, opts);
   for (const n of nodes) n.handles = handlesFor({ width: n.width!, height: n.height! }, sides.get(n.id)!, dir);
   return { nodes, edges, dir };
+}
+
+/** Up to three belts out of a splitter (three into a merger); more than that chains another one on. */
+const FAN = 3;
+
+/**
+ * A belt that feeds several machines gets a splitter, and several belts into one machine a merger (a junction for
+ * pipes), chained three at a time like on the Manual floor, so the floor shows what would be built.
+ */
+function addLogistics(
+  nodes: Node[],
+  edges: Edge[],
+  sides: Map<string, { source: boolean; target: boolean }>,
+  box: (size: Box) => Box,
+  tier: number,
+) {
+  let n = 0;
+  const seen = new Map<string, number>();
+  const unique = (id: string) => {
+    const c = (seen.get(id) ?? 0) + 1;
+    seen.set(id, c);
+    return c > 1 ? `${id}#${c}` : id;
+  };
+  const flowEdges = () => edges.filter((e) => e.type === 'flow');
+  const make = (from: string, to: string, item: string, rate: number): Edge => {
+    const { transport, lanes } = transportFor(data.items[item], rate, tier);
+    return {
+      id: unique(`${from}>${to}>${item}`),
+      source: from,
+      target: to,
+      type: 'flow',
+      data: { item, rate, transport, lanes } satisfies FlowEdgeData,
+    };
+  };
+  const logistic = (kind: LogisticNodeData['kind'], item: string): string => {
+    const id = `${kind}:${n++}`;
+    nodes.push({
+      id,
+      type: 'logistic',
+      position: { x: 0, y: 0 },
+      data: { kind, item } satisfies LogisticNodeData,
+      ...box(SIZE.logistic),
+      handles: [],
+    });
+    sides.set(id, { source: true, target: true });
+    return id;
+  };
+  const group = (key: (e: Edge) => string) => {
+    const by = new Map<string, Edge[]>();
+    for (const e of flowEdges()) by.set(key(e), [...(by.get(key(e)) ?? []), e]);
+    return [...by.values()].filter((list) => list.length > 1);
+  };
+  const rateOf = (e: Edge) => (e.data as FlowEdgeData).rate;
+  const itemOf = (e: Edge) => (e.data as FlowEdgeData).item;
+  const pipe = (item: string) => data.items[item]?.form !== 'solid';
+  const drop = (gone: Edge[]) => {
+    for (const e of gone) edges.splice(edges.indexOf(e), 1);
+  };
+
+  // Splitters: one output going to several places.
+  for (const list of group((e) => `${e.source}|${itemOf(e)}`)) {
+    const item = itemOf(list[0]);
+    const kind = pipe(item) ? 'junction' : 'splitter';
+    drop(list);
+    let feed = list[0].source;
+    let left = [...list].sort((a, b) => rateOf(b) - rateOf(a));
+    while (left.length) {
+      const last = left.length <= FAN;
+      const take = last ? left : left.slice(0, FAN - 1);
+      const id = logistic(kind, item);
+      edges.push(
+        make(
+          feed,
+          id,
+          item,
+          left.reduce((s, e) => s + rateOf(e), 0),
+        ),
+      );
+      for (const e of take) edges.push(make(id, e.target, item, rateOf(e)));
+      left = left.slice(take.length);
+      feed = id;
+    }
+  }
+  // Mergers: several belts into one input.
+  for (const list of group((e) => `${e.target}|${itemOf(e)}`)) {
+    const item = itemOf(list[0]);
+    const kind = pipe(item) ? 'junction' : 'merger';
+    drop(list);
+    const into = list[0].target;
+    let left = [...list].sort((a, b) => rateOf(b) - rateOf(a));
+    let feed = into;
+    // The first merger is the one next to the machine; each further one feeds the one before it.
+    while (left.length) {
+      const last = left.length <= FAN;
+      const take = last ? left : left.slice(0, FAN - 1);
+      const id = logistic(kind, item);
+      edges.push(
+        make(
+          id,
+          feed,
+          item,
+          left.reduce((s, e) => s + rateOf(e), 0),
+        ),
+      );
+      for (const e of take) edges.push(make(e.source, id, item, rateOf(e)));
+      left = left.slice(take.length);
+      feed = id;
+    }
+  }
 }
 
 /** Two lists of ends matched largest first, as few belts as it takes: [from, to, rate] each. */
