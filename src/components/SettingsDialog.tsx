@@ -15,6 +15,8 @@ import {
 } from '../lib/settings';
 import { exportAll, importFile, wipeLocal } from '../lib/backup';
 import meta from '../data/meta.json';
+import { UpdateAsk } from './PollCard';
+import { setPollsOn, usePollsOn } from '../lib/polls';
 import { LATEST_UPDATE, UPDATES, type UpdateKind, type UpdateNote } from '../locales/updates.en';
 import { useStore } from '../store';
 import { RateInput } from './RateInput';
@@ -725,6 +727,7 @@ function UpdatesSection() {
         </header>
         {latest.title && <h4 className="update-name">{latest.title}</h4>}
         <UpdateNotes notes={latest.notes} />
+        {latest.ask && <UpdateAsk version={latest.version} question={latest.ask} />}
       </section>
       {groups.map(([minor, list]) => (
         <div key={minor} className="update-earlier">
@@ -737,6 +740,7 @@ function UpdatesSection() {
                 <span className="update-count">{u.notes.length === 1 ? t('oneChange') : t('changeCount', { n: u.notes.length })}</span>
               </summary>
               <UpdateNotes notes={u.notes} />
+              {u.ask && <UpdateAsk version={u.version} question={u.ask} />}
             </details>
           ))}
         </div>
@@ -751,6 +755,7 @@ function UpdatesSection() {
 function InterfaceSection() {
   const { t } = useT();
   const [s, set] = useSettings();
+  const asking = usePollsOn();
   return (
     <>
       <div className="setting column">
@@ -776,6 +781,9 @@ function InterfaceSection() {
         </div>
       </div>
       <Percent k="uiScale" label={t('uiSize')} hint={t('uiSizeHint')} />
+      <Row label={t('pollSetting')} hint={t('pollSettingHint')}>
+        <Toggle label={t('pollSetting')} on={asking} onChange={setPollsOn} />
+      </Row>
       <Row label={t('showLockedSetting')} hint={t('showLockedSettingHint')}>
         <Toggle label={t('showLockedSetting')} on={s.showLocked} onChange={(v) => set({ showLocked: v })} />
       </Row>

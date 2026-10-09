@@ -325,3 +325,123 @@
   gap: 10px;
   margin-top: 12px;
 }
+
+/* The question that comes after a part of the app was tried: a note in the corner with a rating and, once picked, a field. */
+.toast.poll {
+  right: auto;
+  width: min(380px, calc(100vw - 36px));
+  flex-direction: column;
+  align-items: stretch;
+  gap: 10px;
+  padding: 12px 14px;
+  white-space: normal;
+}
+
+.poll-head {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+}
+
+.poll-question {
+  flex: 1;
+  margin: 0;
+  font-size: 15px;
+  line-height: 1.35;
+}
+
+.poll-x {
+  flex: none;
+  width: 28px;
+  height: 28px;
+  margin: -4px -6px 0 0;
+  color: var(--dim);
+  font-size: 22px;
+  line-height: 1;
+  background: none;
+  border: 0;
+  cursor: pointer;
+}
+
+.poll-x:hover {
+  color: var(--paper);
+}
+
+.poll-form {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.poll-scale {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.poll-end {
+  flex: none;
+  color: var(--dim);
+  font-size: 13px;
+}
+
+.poll-rating {
+  display: flex;
+  flex: 1;
+  gap: 4px;
+}
+
+.poll-pick {
+  flex: 1;
+  height: 34px;
+  color: var(--paper);
+  font: 600 15px var(--font-display);
+  background: #1a1a1a;
+  border: 1px solid var(--button-edge);
+  border-radius: var(--radius);
+  cursor: pointer;
+}
+
+.poll-pick:hover {
+  border-color: var(--ficsit);
+}
+
+.poll-pick[aria-checked='true'] {
+  color: #1a1a1a;
+  background: var(--ficsit);
+  border-color: var(--ficsit);
+}
+
+.poll-send {
+  align-self: flex-end;
+}
+
+.poll-foot {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.poll-foot .text-button.quiet {
+  margin-left: 0;
+}
+
+/* Under a version in Settings › Updates. */
+.update-ask {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: 14px;
+  padding-top: 12px;
+  border-top: 1px solid var(--line-2);
+}
+
+.update-ask .poll-form {
+  max-width: 420px;
+}
+
+.poll-thanks {
+  margin: 0;
+  color: var(--dim);
+  font-size: 14px;
+}

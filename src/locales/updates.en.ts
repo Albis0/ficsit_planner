@@ -8,11 +8,17 @@ export type UpdateKind = 'added' | 'fixed' | 'changed';
 
 export type UpdateNote = [UpdateKind, string];
 
-export const UPDATES: { version: string; date: string; title?: string; notes: UpdateNote[] }[] = [
+/** `ask` puts a question with a rating and a note under the version in Settings › Updates. */
+export const UPDATES: { version: string; date: string; title?: string; notes: UpdateNote[]; ask?: string }[] = [
   {
     version: '0.13.33',
     date: '2026-10-09',
+    ask: 'How do the pipe junctions and the Sink option work for you?',
     notes: [
+      [
+        'added',
+        'Settings › Updates can ask what you think of a version, and a part of the app can ask a couple of minutes after you first try it. Later, Close and “Don’t ask again” are on every question, and Settings › Interface has a switch for them.',
+      ],
       [
         'changed',
         'A liquid leftover can be sunk: its menu starts with "Sink it as Packaged …", which adds a Packager, tells you how many Empty Canisters a minute it needs and what the packed parts score in the AWESOME Sink.',

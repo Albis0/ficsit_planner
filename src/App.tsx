@@ -7,6 +7,7 @@ import { MapNav } from './components/MapNav';
 import { MissingList } from './components/MissingList';
 import { MobileMenu, MobileNav } from './components/MobileChrome';
 import { MovedNotice } from './components/MovedNotice';
+import { PollCard } from './components/PollCard';
 import { ModeSwitch } from './components/ModeSwitch';
 import { OverviewPage } from './components/Overview';
 import { PlanTabs, ShareButton } from './components/PlanTabs';
@@ -47,6 +48,7 @@ import { failureText } from './lib/solveFailure';
 import { fold } from './lib/fold';
 import { useMediaQuery } from './lib/useMediaQuery';
 import { useUndoKeys } from './lib/undoKeys';
+import { startPolls } from './lib/polls';
 import { LATEST_UPDATE } from './locales/updates.en';
 import { useSolverLoading, useSolverReady } from './lib/solverClient';
 import { bootDone, bootText } from './lib/boot';
@@ -149,6 +151,7 @@ export default function App() {
   const solverReady = useSolverReady();
   // The opening screen tells how far along things are, and goes once the solver is ready and the first answer is in.
   const answered = !!result || !!error;
+  useEffect(startPolls, []);
   useEffect(() => {
     if (!solverReady)
       return bootText(solverLoad === undefined ? t('loadingGame') : `${t('loadingSolver')} ${Math.round(solverLoad * 100)}%`);
@@ -556,6 +559,7 @@ export default function App() {
       <TipLayer />
       <Notice />
       <MovedNotice />
+      <PollCard />
       <ClosedTab />
       <PwaStatus />
     </div>

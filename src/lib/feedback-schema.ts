@@ -52,7 +52,7 @@ export const LIMITS = {
 const UNSAFE = /[\u0000-\u0008\u000B\u000C\u000E-\u001F\u007F-\u009F\u202A-\u202E\u2066-\u2069]/g;
 
 /** Free text keeps its line breaks (as \n only); one-line fields lose them, so they can't fake extra rows or headings. */
-const str = (x: unknown, max: number, lines = false) =>
+export const str = (x: unknown, max: number, lines = false) =>
   typeof x === 'string'
     ? x
         .replace(UNSAFE, '')

@@ -4,6 +4,13 @@ All notable changes to FICSIT Planner. Dates are when the version was finished.
 
 ## 0.13.33 — 2026-10-09
 
+### Added
+
+- **Short questions.** A version can ask what you think of it under Settings › Updates (a rating from 1 to 5 and a
+  note), and a part of the app can ask a couple of minutes after you first try it: at most one question a session and
+  one every few days, with Later, Close and "Don't ask again". Settings › Interface has a switch for them. An answer
+  carries the rating, the note, the version and which address it came in on, nothing that identifies anyone.
+
 ### Changed
 
 - **A liquid leftover can be sunk.** The menu under a leftover card (Make something from it) now starts with "Sink it

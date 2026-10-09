@@ -28,7 +28,7 @@ const json = (body: unknown, status = 200) =>
  * hour. The hash sits in `hits` as a counter for that hour, with no finer time, and is never stored
  * with a report; the secret was generated on upload and never shown, so nobody can turn it back.
  */
-async function senderKeys(request: Request, salt: string, hour: string): Promise<{ near: string; site: string }> {
+export async function senderKeys(request: Request, salt: string, hour: string): Promise<{ near: string; site: string }> {
   const ip = request.headers.get('cf-connecting-ip') ?? '';
   const v6 = ip.includes(':');
   const hash = async (scope: string, part: string) => {
