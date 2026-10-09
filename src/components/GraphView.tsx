@@ -546,7 +546,7 @@ function FlowEdge({ id, source, target, sourceX, sourceY, targetX, targetY, sour
   let ly: number;
   if (route && !moved(from, route.from) && !moved(to, route.to)) {
     // As laid out: follow the route around the machines, through the label's reserved spot.
-    if (square && route.square) {
+    if ((square || route.loop) && route.square) {
       // Straight runs with square turns, as on the Manual floor, the label on the longest run.
       const sq = squarePath({ x: sourceX, y: sourceY }, route.square, { x: targetX, y: targetY }, dir === 'TB');
       path = sq.path;
@@ -568,16 +568,32 @@ function FlowEdge({ id, source, target, sourceX, sourceY, targetX, targetY, sour
   const showLabel = labels === 'always' || lit || (labels === 'auto' && zoom !== 'far');
   const state = `${faded ? 'faded' : ''} ${lit ? 'lit' : ''} ${still ? 'still' : ''}`;
   const { body, color: tierColor, ink } = beltStroke({ path, item, transport, lanes: drawn, state, oneColor });
+  // A belt running back against the flow: a blue road under it, a "back to" label, and a mark where it climbs to its input.
+  const loop = !!route?.loop;
+  const entry = loop && !moved(from, route.from) && !moved(to, route.to) ? route.loop : undefined;
 
   return (
     <>
+      {loop && <path d={path} className={`loop-under ${state}`} style={{ strokeWidth: 14 + 4 * (drawn - 1) }} />}
       {body}
+      {entry && (
+        <EdgeLabelRenderer>
+          <div className="edge-anchor" style={{ transform: `translate(-50%, -50%) translate(${entry.x}px, ${entry.y}px)` }}>
+            <span
+              className={`loop-mark ${state}`}
+              title={t('loopBack', { item: name(it), rate: num(rate), to: nodeName(toNode?.data, name) })}
+            >
+              ↺
+            </span>
+          </div>
+        </EdgeLabelRenderer>
+      )}
       {showLabel && (
         <EdgeLabelRenderer>
           <div className="edge-anchor" style={{ transform: `translate(-50%, -50%) translate(${lx}px, ${ly}px)` }}>
             <button
               type="button"
-              className={`edge-label pickable nopan ${state} ${picked ? 'picked' : ''}`}
+              className={`edge-label pickable nopan ${state} ${picked ? 'picked' : ''} ${loop ? 'loop' : ''}`}
               title={name(it)}
               tabIndex={-1}
               aria-pressed={picked}
@@ -586,13 +602,20 @@ function FlowEdge({ id, source, target, sourceX, sourceY, targetX, targetY, sour
                 pick(picked ? undefined : id);
               }}
             >
-              <Icon id={item} size={zoom === 'near' ? 30 : 24} />
+              {loop ? (
+                <span className="loop-glyph" aria-hidden>
+                  ↺
+                </span>
+              ) : (
+                <Icon id={item} size={zoom === 'near' ? 30 : 24} />
+              )}
               <span className="edge-text">
-                {zoom === 'near' && <span className="edge-item">{name(it)}</span>}
+                {zoom === 'near' && !loop && <span className="edge-item">{name(it)}</span>}
                 <span className="edge-meta">
                   <span className="edge-rate">
-                    {num(rate)}
-                    {t('perMin')}
+                    {loop
+                      ? t('loopBack', { item: name(it), rate: num(rate), to: nodeName(toNode?.data, name) })
+                      : `${num(rate)}${t('perMin')}`}
                   </span>
                   <span className="edge-tier" style={{ background: tierColor, ...(ink ? { color: ink } : {}) }}>
                     {lanes > 1 && `${lanes} × `}

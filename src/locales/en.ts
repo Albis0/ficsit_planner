@@ -319,6 +319,7 @@ export const en = {
   belowReserve: 'Under your {pct}% spare capacity ({mw} MW)',
   spareBy: '+{mw} MW spare',
   shortBy: '{mw} MW short',
+  loopBack: '{item} {rate}/min back to {to}',
   boostTag: '+{boost}% boost',
   nothingToPower: 'Nothing to power yet',
   nothingToPowerHint: 'Tick a factory, or size the plant by the power you want.',

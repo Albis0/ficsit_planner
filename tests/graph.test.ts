@@ -131,3 +131,48 @@ test('with square belts every belt label sits on its route, and none covers a ca
   expect(overLabels).toBeLessThanOrEqual(Math.ceil(labels.length / 5));
   expect(overCards).toBeLessThanOrEqual(Math.ceil(labels.length / 5));
 });
+
+test('a belt running back against the flow goes round under the cards in square runs and is marked as a loop', () => {
+  const r = solve(highs, {
+    targets: [{ item: 'Desc_AluminumIngot_C', rate: 60 }],
+    supplies: [],
+    enabledRecipes: new Set(data.recipes.filter((x) => x.kind === 'standard').map((x) => x.id)),
+    resourceCaps: {},
+    objective: 'resources',
+  });
+  type Route = { loop?: { x: number; y: number }; square?: { x: number; y: number }[]; labelAt?: { x: number; y: number } };
+  for (const dir of ['LR', 'TB'] as const) {
+    const { nodes, edges } = buildGraph(r, 9, { dir });
+    const byId = new Map(nodes.map((n) => [n.id, n]));
+    const along = (id: string, end: 'out' | 'in') => {
+      const n = byId.get(id)!;
+      return dir === 'LR' ? n.position.x + (end === 'out' ? (n.width ?? 0) : 0) : n.position.y + (end === 'out' ? (n.height ?? 0) : 0);
+    };
+    const loops = edges.filter((e) => (e.data as { route?: Route }).route?.loop);
+    // Water out of the scrap refinery back into the alumina one.
+    expect(loops.length).toBeGreaterThan(0);
+    for (const e of edges) {
+      const back = along(e.target, 'in') <= along(e.source, 'out');
+      expect(!!(e.data as { route?: Route }).route?.loop).toBe(back);
+    }
+    for (const e of loops) {
+      const route = (e.data as { route: Route }).route;
+      expect(route.square).toHaveLength(4);
+      expect(route.labelAt).toBeDefined();
+      // The run round the cards stays clear of every card in its way.
+      const run = route.square!.slice(1, 3);
+      const across = (p: { x: number; y: number }) => (dir === 'LR' ? p.y : p.x);
+      const lo = Math.min(...run.map((p) => (dir === 'LR' ? p.x : p.y)));
+      const hi = Math.max(...run.map((p) => (dir === 'LR' ? p.x : p.y)));
+      for (const n of nodes) {
+        const [u, v, du, dv] =
+          dir === 'LR'
+            ? [n.position.x, n.position.y, n.width ?? 0, n.height ?? 0]
+            : [n.position.y, n.position.x, n.height ?? 0, n.width ?? 0];
+        if (u >= hi || u + du <= lo) continue;
+        const at = across(run[0]);
+        expect(at <= v || at >= v + dv).toBe(true);
+      }
+    }
+  }
+});

@@ -78,6 +78,8 @@ export interface Route {
   square?: Point[];
   /** With square belts: where the label sits on that route, clear of the cards and of other labels. */
   labelAt?: Point;
+  /** A belt that runs back against the flow goes round under the cards in square runs; this is the turn where it climbs to its input. */
+  loop?: Point;
 }
 
 export interface FlowEdgeData extends Record<string, unknown> {
@@ -229,6 +231,7 @@ export function buildGraph(result: SolveResult, tier: number, opts: GraphOptions
         to: at(data.route.to),
         ...(data.route.square ? { square: data.route.square.map(at) } : {}),
         ...(data.route.labelAt ? { labelAt: at(data.route.labelAt) } : {}),
+        ...(data.route.loop ? { loop: at(data.route.loop) } : {}),
       };
       edges.push({ ...e, id: id(e.id), source: id(e.source), target: id(e.target), data: { ...data, route } });
     }
@@ -549,7 +552,7 @@ function squareUp(nodes: Node[], edges: Edge[], dir: Direction, text: number) {
     const [p, s] = [pos.get(id)!, size.get(id)!];
     return dir === 'LR' ? { x: p.x, y: p.y + s.h / 2 } : { x: p.x + s.w / 2, y: p.y };
   };
-  const flow = edges.filter((e) => e.type === 'flow' && (e.data as FlowEdgeData).route);
+  const flow = edges.filter((e) => e.type === 'flow' && (e.data as FlowEdgeData).route && !(e.data as FlowEdgeData).route!.loop);
   const bends = squareBends(
     flow.map((e) => ({
       id: e.id,
@@ -652,6 +655,72 @@ function layout(nodes: Node[], edges: Edge[], opts: GraphOptions): Direction {
     const r = pick.routes.get(e.id)!;
     (e.data as FlowEdgeData | PowerEdgeData).route = { ...r, from: pick.pos.get(e.source)!, to: pick.pos.get(e.target)! };
   }
+  loopBack(nodes, edges, pick.dir, opts.text ?? 1);
   if (opts.squareBelts) squareUp(nodes, edges, pick.dir, opts.text ?? 1);
   return pick.dir;
+}
+
+/** How far a returning belt's first and last runs stand off the cards, and how far under the lowest card it runs, in floor units. */
+const LOOP = { stub: 30, under: 46, lane: 62 };
+
+/**
+ * Belts that run back against the flow (water out of a later machine into an earlier one) go round under the cards:
+ * out of the output, down past the lowest card in their way, back along it and up into the input. They are drawn in
+ * straight runs whatever the belt style, nearer ones tucked inside wider ones.
+ */
+function loopBack(nodes: Node[], edges: Edge[], dir: Direction, text: number) {
+  const uv = (p: Point): [number, number] => (dir === 'LR' ? [p.x, p.y] : [p.y, p.x]);
+  const xy = (u: number, v: number): Point => (dir === 'LR' ? { x: u, y: v } : { x: v, y: u });
+  const box = new Map(
+    nodes.map((n) => {
+      const [u, v] = uv(n.position);
+      const [du, dv] = dir === 'LR' ? [n.width ?? 0, n.height ?? 0] : [n.height ?? 0, n.width ?? 0];
+      return [n.id, { u, v, du, dv }] as const;
+    }),
+  );
+  const loops = edges
+    .filter((e) => e.type === 'flow' && (e.data as FlowEdgeData).route)
+    .map((e) => {
+      const [s, t] = [box.get(e.source)!, box.get(e.target)!];
+      return { e, from: [s.u + s.du, s.v + s.dv / 2] as const, to: [t.u, t.v + t.dv / 2] as const };
+    })
+    .filter((l) => l.to[0] <= l.from[0])
+    .sort((a, b) => a.from[0] - a.to[0] - (b.from[0] - b.to[0]));
+  const box2 = { w: 300 * text, h: LABEL_BOX.height * text };
+  const cards: Rect[] = nodes.map((n) => ({ x: n.position.x - 4, y: n.position.y - 4, w: (n.width ?? 0) + 8, h: (n.height ?? 0) + 8 }));
+  const taken: Rect[] = edges
+    .filter((e) => !loops.some((l) => l.e === e))
+    .flatMap((e) => ((e.data as FlowEdgeData | PowerEdgeData).route?.label ? [(e.data as FlowEdgeData).route!.label] : []))
+    .map((p) => ({
+      x: p.x - (LABEL_BOX.width * text) / 2,
+      y: p.y - (LABEL_BOX.height * text) / 2,
+      w: LABEL_BOX.width * text,
+      h: LABEL_BOX.height * text,
+    }));
+  for (const [lane, l] of loops.entries()) {
+    const [lo, hi] = [l.to[0] - LOOP.stub, l.from[0] + LOOP.stub];
+    let [near, far] = [Math.min(l.from[1], l.to[1]), Math.max(l.from[1], l.to[1])];
+    for (const b of box.values()) {
+      if (b.u >= hi || b.u + b.du <= lo) continue;
+      near = Math.min(near, b.v);
+      far = Math.max(far, b.v + b.dv);
+    }
+    // Under the cards on a floor running right; on one running down, round whichever side is nearer.
+    const left = dir === 'TB' && (l.from[1] + l.to[1]) / 2 - near < far - (l.from[1] + l.to[1]) / 2;
+    const v = left ? near - LOOP.under - lane * LOOP.lane : far + LOOP.under + lane * LOOP.lane;
+    const route = (l.e.data as FlowEdgeData).route!;
+    route.square = [xy(hi, l.from[1]), xy(hi, v), xy(lo, v), xy(lo, l.to[1])];
+    // The label slides along the run to where it covers least: cards, the other belts' labels, the loops' labels already put down.
+    let best: { p: Point; cost: number } | undefined;
+    for (const t of [0.5, 0.3, 0.7, 0.15, 0.85]) {
+      const p = xy(lo + (hi - lo) * t, v);
+      const r = { x: p.x - box2.w / 2, y: p.y - box2.h / 2, w: box2.w, h: box2.h };
+      const cost = [...cards, ...taken].reduce((sum, c) => sum + overlap(r, c), 0);
+      if (!best || cost < best.cost) best = { p, cost };
+      if (cost === 0) break;
+    }
+    route.labelAt = best!.p;
+    taken.push({ x: best!.p.x - box2.w / 2, y: best!.p.y - box2.h / 2, w: box2.w, h: box2.h });
+    route.loop = xy(lo, l.to[1]);
+  }
 }

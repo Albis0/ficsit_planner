@@ -123,6 +123,64 @@
   color: var(--fluid);
 }
 
+/* A belt running back against the flow: a wide blue road under it, a blue label, and a round mark where it climbs to its input. */
+.loop-under {
+  fill: none;
+  stroke: var(--fluid);
+  stroke-opacity: 0.5;
+  stroke-linejoin: round;
+  pointer-events: none;
+}
+
+.loop-under.faded {
+  stroke-opacity: 0.1;
+}
+
+.loop-under.lit {
+  stroke-opacity: 0.8;
+}
+
+.edge-label.loop {
+  border-color: var(--fluid);
+  background: #1b2b38;
+}
+
+.edge-label.loop .edge-rate {
+  font-size: 16px;
+  color: var(--paper);
+}
+
+.edge-label.loop .edge-tier {
+  color: var(--fluid);
+}
+
+.loop-glyph {
+  display: grid;
+  place-items: center;
+  width: 22px;
+  height: 22px;
+  font-size: 18px;
+  line-height: 1;
+  color: var(--fluid);
+}
+
+.loop-mark {
+  display: grid;
+  place-items: center;
+  width: 26px;
+  height: 26px;
+  border: 2px solid var(--fluid);
+  border-radius: 50%;
+  background: #1b2b38;
+  font-size: 16px;
+  line-height: 1;
+  color: var(--paper);
+}
+
+.loop-mark.faded {
+  opacity: 0.2;
+}
+
 .react-flow__pane {
   cursor: grab;
 }

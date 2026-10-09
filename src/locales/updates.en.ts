@@ -10,6 +10,20 @@ export type UpdateNote = [UpdateKind, string];
 
 export const UPDATES: { version: string; date: string; title?: string; notes: UpdateNote[] }[] = [
   {
+    version: '0.13.30',
+    date: '2026-10-09',
+    notes: [
+      [
+        'changed',
+        'Factory floor: a belt that runs back to an earlier machine (the water that comes out of one refinery and goes into another one before it) goes round under the cards in a thick blue path instead of cutting back across them.',
+      ],
+      [
+        'added',
+        'Factory floor: that belt’s label says where it goes, like “Water 30/min back to Alumina Solution”, and a small ↺ stands where it climbs into its input.',
+      ],
+    ],
+  },
+  {
     version: '0.13.29',
     date: '2026-10-09',
     notes: [

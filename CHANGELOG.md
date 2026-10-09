@@ -2,6 +2,17 @@
 
 All notable changes to FICSIT Planner. Dates are when the version was finished.
 
+## 0.13.30 — 2026-10-09
+
+### Changed
+
+- **Belts that run back.** A belt that goes back to a machine earlier in the line (water from the scrap refinery into
+  the alumina one) no longer cuts back across the cards. It leaves its output, goes round under the cards (on a floor
+  running down, round the nearer side), and climbs into its input in straight runs with rounded turns, on a thick blue
+  path, whatever the Auto belts setting says. Several of these nest, the shorter ones inside the longer.
+- **Its label** reads “Water 30/min back to Alumina Solution” with the belt's tier, and a small ↺ marks the turn where
+  it climbs into the input. The label slides along the path to a spot clear of the cards and the other labels.
+
 ## 0.13.29 — 2026-10-09
 
 ### Changed
