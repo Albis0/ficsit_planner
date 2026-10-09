@@ -1,4 +1,4 @@
-import { createContext, useEffect, useRef, useState } from 'react';
+import { createContext, Fragment, useEffect, useRef, useState } from 'react';
 import { data } from '../lib/data';
 import { useT } from '../lib/i18n';
 import { LOGISTICS } from '../lib/model/catalog';
@@ -16,6 +16,7 @@ export type Spot =
   | 'spacing'
   | 'belts'
   | 'splitters'
+  | 'lines'
   | 'labels'
   | 'motion'
   | 'grid'
@@ -121,7 +122,22 @@ export function Preview({ settings: s, spot }: { settings: Settings; spot?: Spot
   const add = (key: string, x1: number, y1: number, x2: number, y2: number, item: string, lanes: number, rate: number) =>
     belts.push({ key, path: beltPath(x1, y1, x2, y2, square), item, lanes, rate, at: [(x1 + x2) / 2, (y1 + y2) / 2] });
   const out = g.xM + g.mw;
-  if (s.autoSplitters) {
+  // Pointing at 'Lines feeding several places': one line that goes to two places, as a card each or as one card.
+  const lines = spot === 'lines';
+  const each = s.splitLines === 'each';
+  const plate = 'Desc_IronPlate_C';
+  if (lines) {
+    const ys = each ? [g.yA, g.yB] : [g.cy];
+    for (const [i, y] of ys.entries()) add(`in${i}`, g.ew, y, g.xM, y, ingot, 1, 30 * (each ? 1 : 2));
+    // A card each: each card's belt goes to its own place. One card: its belts go to both.
+    if (each) {
+      add('a', out, g.yA, g.xO, g.yA, plate, 1, 20);
+      add('b', out, g.yB, g.xO, g.yB, plate, 1, 20);
+    } else {
+      add('a', out, g.cy, g.xO, g.yA, plate, 1, 20);
+      add('b', out, g.cy, g.xO, g.yB, plate, 1, 20);
+    }
+  } else if (s.autoSplitters) {
     add('in', g.ew, g.cy, g.xS, g.cy, ingot, 2, 240);
     add('a', g.xS + g.sw, g.cy, g.xM, g.yA, ingot, 1, 120);
     add('b', g.xS + g.sw, g.cy, g.xM, g.yB, ingot, 1, 120);
@@ -129,8 +145,10 @@ export function Preview({ settings: s, spot }: { settings: Settings; spot?: Spot
     add('a', g.ew, g.cy, g.xM, g.yA, ingot, 1, 120);
     add('b', g.ew, g.cy, g.xM, g.yB, ingot, 1, 120);
   }
-  add('plates', out, g.yA, g.xO, g.cy, 'Desc_IronPlate_C', 1, 80);
-  add('screws', out, g.yB, g.xO, g.cy, 'Desc_IronScrew_C', 1, 100);
+  if (!lines) {
+    add('plates', out, g.yA, g.xO, g.cy, 'Desc_IronPlate_C', 1, 80);
+    add('screws', out, g.yB, g.xO, g.cy, 'Desc_IronScrew_C', 1, 100);
+  }
 
   const drawn = belts.map((b) => ({ ...b, ...beltStroke({ path: b.path, item: b.item, transport, lanes: b.lanes, oneColor }) }));
 
@@ -158,8 +176,8 @@ export function Preview({ settings: s, spot }: { settings: Settings; spot?: Spot
     </div>
   );
 
-  const endpoint = (kind: 'supply' | 'target', item: string, rate: number, left: number, spots: string) => (
-    <div className="preview-spot" data-for={`size text ${spots}`} style={{ left, top: g.cy - g.eh / 2, width: g.ew, height: g.eh }}>
+  const endpoint = (kind: 'supply' | 'target', item: string, rate: number, left: number, spots: string, mid = g.cy) => (
+    <div className="preview-spot" data-for={`size text ${spots}`} style={{ left, top: mid - g.eh / 2, width: g.ew, height: g.eh }}>
       <div className={`endpoint-node ${kind}`}>
         <Slot id={item} size={60} tone={kind === 'target' ? 'target' : 'default'} />
         <span className="endpoint-text">
@@ -196,8 +214,11 @@ export function Preview({ settings: s, spot }: { settings: Settings; spot?: Spot
           }}
         >
           <div className="preview-inner">
-            {!compact && endpoint('supply', ingot, 240, 0, '')}
-            {s.autoSplitters && (
+            {!compact && !lines && endpoint('supply', ingot, 240, 0, '')}
+            {!compact &&
+              lines &&
+              (each ? [g.yA, g.yB] : [g.cy]).map((y) => <Fragment key={y}>{endpoint('supply', ingot, each ? 30 : 60, 0, '', y)}</Fragment>)}
+            {s.autoSplitters && !lines && (
               <div className="preview-spot" data-for="splitters" style={{ left: geo.xS, top: geo.cy - 48, width: geo.sw, height: 96 }}>
                 <div className="logistic-node">
                   <Icon id={LOGISTICS.splitter.icon} size={44} />
@@ -215,9 +236,26 @@ export function Preview({ settings: s, spot }: { settings: Settings; spot?: Spot
                 ))}
               </g>
             </svg>
-            {machine(plates, 2, 0, 'standard')}
-            {machine(screws, 2, geo.yB - geo.mh / 2, 'alternate')}
-            {!compact && endpoint('target', 'Desc_IronPlateReinforced_C', 6, geo.xO, 'accent')}
+            {lines ? (
+              <>
+                {each ? (
+                  <>
+                    {machine(plates, 1, 0, '')}
+                    {machine(plates, 1, geo.yB - geo.mh / 2, '')}
+                  </>
+                ) : (
+                  machine(plates, 2, geo.cy - geo.mh / 2, '')
+                )}
+                {!compact && endpoint('target', 'Desc_IronPlateReinforced_C', 6, geo.xO, '', geo.yA)}
+                {!compact && endpoint('target', 'Desc_Rotor_C', 6, geo.xO, '', geo.yB)}
+              </>
+            ) : (
+              <>
+                {machine(plates, 2, 0, 'standard')}
+                {machine(screws, 2, geo.yB - geo.mh / 2, 'alternate')}
+                {!compact && endpoint('target', 'Desc_IronPlateReinforced_C', 6, geo.xO, 'accent')}
+              </>
+            )}
             {s.beltLabels !== 'never' &&
               drawn.map((b) => (
                 <div key={b.key} className="preview-anchor" style={{ left: b.at[0], top: b.at[1] }}>

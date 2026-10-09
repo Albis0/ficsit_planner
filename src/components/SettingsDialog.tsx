@@ -426,7 +426,7 @@ function FloorSection() {
       <Percent k="cardScale" label={t('cardSize')} hint={t('cardSizeHint')} spot="size" />
       <Percent k="textScale" label={t('textSize')} hint={t('textSizeHint')} spot="text" />
       <Percent k="spacing" label={t('spacing')} hint={t('spacingHint')} spot="spacing" />
-      <Row label={t('splitLines')} hint={t('splitLinesHint')}>
+      <Row label={t('splitLines')} hint={t('splitLinesHint')} spot="lines">
         <Choice
           label={t('splitLines')}
           value={s.splitLines}

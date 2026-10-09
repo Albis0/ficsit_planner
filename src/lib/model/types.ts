@@ -73,6 +73,8 @@ export interface IoNode extends Base {
   lim?: number;
   /** An output for what's left over, or an input for something nothing here makes. */
   tag?: 'spare' | 'bring';
+  /** An input taken from the shared pool (POOL) or from another factory tab (its id), not from storage or a train. */
+  from?: string;
 }
 
 export interface LogisticNode extends Base {

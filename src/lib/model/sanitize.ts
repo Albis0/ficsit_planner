@@ -121,7 +121,15 @@ function node(x: unknown): MNode | undefined {
       if (o.k === 'in' && !item) return undefined;
       const lim = rate(o.lim);
       const tag = o.k === 'out' ? (o.tag === 'spare' ? 'spare' : undefined) : o.tag === 'bring' ? 'bring' : undefined;
-      return { ...base, k: o.k, ...(item ? { item } : {}), ...(lim !== undefined ? { lim } : {}), ...(tag ? { tag } : {}) };
+      const from = o.k === 'in' && typeof o.from === 'string' && o.from ? o.from : undefined;
+      return {
+        ...base,
+        k: o.k,
+        ...(item ? { item } : {}),
+        ...(lim !== undefined ? { lim } : {}),
+        ...(tag ? { tag } : {}),
+        ...(from ? { from } : {}),
+      };
     }
     case 'logistic': {
       const kind = oneOf<LogisticKind>(o.kind, LOGISTIC_KINDS, 'splitter');

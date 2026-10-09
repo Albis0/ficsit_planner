@@ -41,6 +41,10 @@ export const UPDATES: { version: string; date: string; title?: string; notes: Up
         'added',
         'Settings: point at a setting (tap it on a phone) and a thin orange ring shows in the preview what it changes. The preview shows on narrow windows and phones too.',
       ],
+      [
+        'added',
+        'Settings: point at “Lines feeding several places” and the preview shows one line going to two places, as a card each or as one card.',
+      ],
     ],
   },
   {
@@ -111,7 +115,11 @@ export const UPDATES: { version: string; date: string; title?: string; notes: Up
     notes: [
       ['added', 'Manual floor: final products. Place one from the build menu or end a belt in one, then build back from it.'],
       ['added', 'Auto floor: leftover cards get “Make something from it”. Pick a recipe and its product is added.'],
-      ['added', 'Auto floor: “To the pool” on every product, so other factories and plants can take it.'],
+      [
+        'added',
+        'Auto floor: “To the pool” on every product, so other factories and plants can take it. The output card has the button too.',
+      ],
+      ['added', 'Manual floor: “Take from the pool” and “Take from another factory” under Comes in, like on the Auto floor.'],
       [
         'changed',
         'Auto floor: the strip for pinned inputs is one slim line, and “Make default” turns the scaled amounts into the targets.',

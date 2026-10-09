@@ -1,4 +1,5 @@
-import type { Plan, PowerPlan } from '../store';
+import type { Plan, PowerPlan, Supply } from '../store';
+import type { IoNode } from './model/types';
 import type { Target } from './solver';
 
 /** What a supply's `from` holds when it's taken from the shared pool: what every factory and plant leaves over, added up. */
@@ -19,9 +20,27 @@ const total = (lists: Target[][]) => {
   return sum;
 };
 
+/**
+ * What a factory takes in from elsewhere: its list of supplies, and on a hand-built floor the input cards that say where
+ * they come from, each for its limit. A card stands in for a supply of the same item.
+ */
+export function suppliesOf(p: Pick<Plan, 'supplies' | 'model'>): Supply[] {
+  const cards = (p.model?.nodes ?? []).filter((n): n is IoNode => n.k === 'in' && !!n.item && !!n.from && (n.lim ?? 0) > 0);
+  if (cards.length === 0) return p.supplies;
+  const by = new Set(cards.map((n) => n.item));
+  return [
+    ...p.supplies.filter((x) => !by.has(x.item)),
+    ...cards.map((n) => ({ item: n.item as string, rate: n.lim as number, from: n.from })),
+  ];
+}
+
 /** What the factory tabs take from the pool, per tab. */
-export const takesFromPool = (plans: Pick<Plan, 'supplies'>[]): Target[][] =>
-  plans.map((p) => p.supplies.filter((x) => x.from === POOL).map(({ item, rate }) => ({ item, rate })));
+export const takesFromPool = (plans: Pick<Plan, 'supplies' | 'model'>[]): Target[][] =>
+  plans.map((p) =>
+    suppliesOf(p)
+      .filter((x) => x.from === POOL)
+      .map(({ item, rate }) => ({ item, rate })),
+  );
 
 /** What the power plants take from the pool, per plant: the fuel they're sized to that comes from it. */
 export const plantTakesFromPool = (plants: Pick<PowerPlan, 'have'>[]): Target[][] =>

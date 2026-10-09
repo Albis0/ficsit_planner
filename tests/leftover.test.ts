@@ -2,7 +2,10 @@ import { describe, expect, test } from 'bun:test';
 import { cleanPlan } from '../src/lib/sanitize';
 import { poolShare } from '../src/lib/overview';
 import type { SolveResult } from '../src/lib/solver';
-import { makeFromLeftover, newPlan, togglePooled } from '../src/store';
+import { addNode } from '../src/lib/model/ops';
+import { emptyModel } from '../src/lib/model/types';
+import { takesFromPool, POOL } from '../src/lib/pool';
+import { dropSource, exportsOf, makeFromLeftover, newPlan, togglePooled } from '../src/store';
 import { packsForSink, recipesTaking } from '../src/components/SurplusMake';
 import { data } from '../src/lib/data';
 
@@ -92,5 +95,32 @@ describe('offering a product to the pool', () => {
     const patch = makeFromLeftover('Recipe_PackagedOilResidue_C', HOR, 30)(plan());
     expect(patch.targets).toContainEqual({ item: 'Desc_PackagedOilResidue_C', rate: 30 });
     expect(recipesTaking('Desc_IronPlate_C', all, 9).some((r) => packsForSink(r, 'Desc_IronPlate_C'))).toBe(false);
+  });
+});
+
+describe('input cards on a hand-built floor that name their source', () => {
+  const hand = (from?: string) => {
+    const p = newPlan('Hand');
+    const model = addNode(emptyModel(), { k: 'in', item: HOR, lim: 12, ...(from ? { from } : {}), x: 0, y: 0 }).model;
+    return { ...p, floor: 'manual' as const, model };
+  };
+
+  test('a card from the pool counts as taking from the pool, one without a source does not', () => {
+    expect(takesFromPool([hand(POOL)])).toEqual([[{ item: HOR, rate: 12 }]]);
+    expect(takesFromPool([hand()])).toEqual([[]]);
+  });
+
+  test('a card from a factory is an export of that factory, for the card limit', () => {
+    const other = newPlan('Other');
+    const mine = hand(other.id);
+    expect(exportsOf([other, mine], other.id)).toEqual([{ item: HOR, rate: 12, to: mine.id }]);
+  });
+
+  test('taking from a factory that is gone leaves the card as plain stock', () => {
+    const other = newPlan('Other');
+    const [kept] = dropSource([hand(other.id)], other.id);
+    const card = kept.model?.nodes.find((n) => n.k === 'in');
+    expect(card && 'from' in card).toBe(false);
+    expect(dropSource([hand(POOL)], 'x')[0].model?.nodes.some((n) => n.k === 'in' && n.from === POOL)).toBe(true);
   });
 });

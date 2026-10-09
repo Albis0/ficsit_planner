@@ -34,6 +34,7 @@ export const en = {
   ownLineHint: 'Make this product on a line of its own, apart from the others',
   toPool: 'To the pool',
   toPoolShort: 'Pool',
+  inPool: 'In the pool',
   toPoolHint: 'Offer what this product makes to the pool, so other factories and power plants can take it',
   makeFromIt: 'Make something from it',
   sinkIt: 'Sink it as {item}',

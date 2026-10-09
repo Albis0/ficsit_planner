@@ -30,6 +30,8 @@ All notable changes to FICSIT Planner. Dates are when the version was finished.
   change it: card and text size, spacing, belt shape, splitters, labels, moving belts, grid and belt colours.
 - **Point at a setting to see what it changes.** The row you point at (tap it on a phone) gets an orange line on its left,
   and a thin orange ring marks the spots in the preview that setting changes.
+- Pointing at Lines feeding several places shows one line going to two places: a card for each place, or one card with
+  both belts.
 - On a phone the preview shrinks to a strip above the rows, with the stock and the product left off so the machines stay
   readable. It shows on narrow windows now too; it used to be hidden below 1100 px.
 
@@ -98,7 +100,11 @@ All notable changes to FICSIT Planner. Dates are when the version was finished.
   the recipes taking that item. Picking one adds its product to the targets for as much as the leftover makes, and offers
   it to the pool.
 - **To the pool** on each product in the Auto side panel: what the product makes is added to what the factory leaves
-  over, so other factories and power plants can take it from the pool.
+  over, so other factories and power plants can take it from the pool. The output card on the floor has the same button,
+  and says "In the pool" when it is on.
+- **Take from the pool and from another factory on the Manual floor.** Under Comes in, next to the item picker, the same
+  two buttons as on the Auto floor. The input card lands on the floor with its source named, and counts against the pool
+  or the other factory like an Auto supply.
 
 ### Changed
 

@@ -76,6 +76,14 @@ export function importData(parsed: unknown): ImportResult {
     const added = dropSource(cleaned, (from) => !ids.has(from)).map((p) => ({
       ...p,
       supplies: p.supplies.map((x) => (x.from && x.from !== POOL ? { ...x, from: ids.get(x.from)! } : x)),
+      ...(p.model
+        ? {
+            model: {
+              ...p.model,
+              nodes: p.model.nodes.map((n) => (n.k === 'in' && n.from && n.from !== POOL ? { ...n, from: ids.get(n.from)! } : n)),
+            },
+          }
+        : {}),
     }));
     const fileIds = added.map((p) => p.id);
     // Files from before plant tabs carry one power grid instead.

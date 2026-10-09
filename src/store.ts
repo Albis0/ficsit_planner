@@ -6,7 +6,7 @@ import { DEFAULT_EXTRACTION, type ExtractionSettings } from './lib/extraction';
 import type { Aim } from './lib/solution';
 import { generatorById, recipeById } from './lib/data';
 import { PLANT_NAMES, type Plant, type SizeBy, sizable } from './lib/power';
-import { POOL } from './lib/pool';
+import { POOL, suppliesOf } from './lib/pool';
 import { cleanChoice, cleanNumber, cleanPlan, cleanPowerPlan, cleanSettings, gridToPower } from './lib/sanitize';
 import { DEFAULT_SETTINGS, type Settings } from './lib/settings';
 import type { RecipeMod, Target } from './lib/solver';
@@ -353,12 +353,18 @@ export function dropSource(plans: Plan[], gone: string | ((id: string) => boolea
   const test = typeof gone === 'string' ? (id: string) => id === gone : gone;
   // The pool is always there.
   const missing = (id: string) => id !== POOL && test(id);
-  return plans.map((p) =>
-    p.supplies.some((x) => x.from && missing(x.from))
-      ? { ...p, supplies: p.supplies.map(({ from, ...x }) => (from && !missing(from) ? { ...x, from } : x)) }
-      : p,
-  );
+  const lost = (x: { from?: string }) => !!x.from && missing(x.from);
+  return plans.map((p) => {
+    let q = p;
+    if (p.supplies.some(lost)) q = { ...q, supplies: p.supplies.map(({ from, ...x }) => (from && !missing(from) ? { ...x, from } : x)) };
+    // The input cards of a hand-built floor name their source too.
+    if (p.model?.nodes.some((n) => n.k === 'in' && lost(n)))
+      q = { ...q, model: { ...p.model, nodes: p.model.nodes.map((n) => (n.k === 'in' && lost(n) ? omitFrom(n) : n)) } };
+    return q;
+  });
 }
+
+const omitFrom = <T extends { from?: string }>({ from: _, ...rest }: T) => rest;
 
 /** Whether a patch would change anything in what it's applied to. */
 const changes = (before: object, patch: object) =>
@@ -367,7 +373,11 @@ const changes = (before: object, patch: object) =>
 /** What other factory tabs take from this one: it makes these on top of its own targets. */
 export function exportsOf(plans: Plan[], id: string): { item: string; rate: number; to: string }[] {
   return plans.flatMap((q) =>
-    q.id === id ? [] : q.supplies.filter((x) => x.from === id && x.rate > 0).map((x) => ({ item: x.item, rate: x.rate, to: q.id })),
+    q.id === id
+      ? []
+      : suppliesOf(q)
+          .filter((x) => x.from === id && x.rate > 0)
+          .map((x) => ({ item: x.item, rate: x.rate, to: q.id })),
   );
 }
 

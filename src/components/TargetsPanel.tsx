@@ -13,6 +13,7 @@ import { InventoryPanel } from './InventoryPanel';
 import { ItemPicker } from './ItemPicker';
 import { RateInput } from './RateInput';
 import { Slot } from './Slot';
+import { SupplyAdd } from './SupplyAdd';
 
 const supplyItems = Object.values(data.items).filter((i) => !i.raw);
 
@@ -66,10 +67,6 @@ export function TargetsPanel({ result }: { result?: SolveResult }) {
   // The pool (what the other factories and the plants leave over) is worked out only once there is something to take it from.
   const poolOn = others.length > 0 || s.power.some((p) => p.plants.length > 0);
   const pool = usePool(plan.id, poolOn);
-  const poolItems = unlocked(supplyItems).filter((i) => (pool.find((l) => l.item === i.id)?.left ?? 0) > 0.01);
-  // Taken from the tab that already makes it, if one does; the source can be changed on the card.
-  const made = new Map<string, string>();
-  for (const o of others) for (const x of o.targets) if (!made.has(x.item)) made.set(x.item, o.id);
 
   return (
     <div className="panel-body targets">
@@ -179,35 +176,12 @@ export function TargetsPanel({ result }: { result?: SolveResult }) {
             );
           }}
         />
-        <div className="add-row">
-          <ItemPicker
-            items={unlocked(supplyItems)}
-            hidden={later(supplyItems)}
-            label={t('addSupply')}
-            short={t('addSupplyShort')}
-            onPick={(id) => s.addSupply(id)}
-            exclude={plan.supplies.map((x) => x.item)}
-          />
-          {poolItems.length > 0 && (
-            <ItemPicker
-              items={poolItems}
-              label={t('takeFromPool')}
-              short={t('takeFromPoolShort')}
-              onPick={(id) => s.addSupply(id, Math.min(10, Math.floor((pool.find((l) => l.item === id)?.left ?? 10) * 100) / 100), POOL)}
-              exclude={plan.supplies.map((x) => x.item)}
-            />
-          )}
-          {others.length > 0 && (
-            <ItemPicker
-              items={unlocked(supplyItems)}
-              hidden={later(supplyItems)}
-              label={t('takeFromFactory')}
-              short={t('takeFromFactoryShort')}
-              onPick={(id) => s.addSupply(id, 10, made.get(id) ?? others[0].id)}
-              exclude={plan.supplies.map((x) => x.item)}
-            />
-          )}
-        </div>
+        <SupplyAdd
+          items={unlocked(supplyItems)}
+          hidden={later(supplyItems)}
+          exclude={plan.supplies.map((x) => x.item)}
+          onAdd={(id, rate, from) => s.addSupply(id, rate, from)}
+        />
       </Fold>
 
       <InventoryPanel result={result} />

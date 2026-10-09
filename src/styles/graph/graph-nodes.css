@@ -289,6 +289,17 @@
   outline: none;
 }
 
+.endpoint-pool[aria-pressed='true'] {
+  background: var(--ficsit);
+  border-color: var(--ficsit);
+  color: var(--ficsit-ink);
+}
+
+.endpoint-pool[aria-pressed='true']:hover {
+  color: var(--ficsit-ink);
+  border-color: var(--paper);
+}
+
 /* Already on hand: delivered, not built, so it looks like a different kind of thing. */
 .endpoint-node.supply {
   --accent: var(--supply);

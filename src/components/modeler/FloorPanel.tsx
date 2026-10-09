@@ -5,7 +5,9 @@ import { addNode, removeNodes, updateNode } from '../../lib/model/ops';
 import { ioSpot } from '../../lib/model/targets';
 import type { IoNode, Model } from '../../lib/model/types';
 import type { SolveResult } from '../../lib/solver';
+import { POOL } from '../../lib/pool';
 import { useStore } from '../../store';
+import { SupplyAdd } from '../SupplyAdd';
 import { ItemPicker } from '../ItemPicker';
 import { SinkPoints } from '../Summary';
 import { RateInput } from '../RateInput';
@@ -39,15 +41,16 @@ export function FloorPanel({ host, calc, result }: { host: ModelHost; calc?: Cal
   const set = useStore((s) => s.set);
   const tier = useStore((s) => s.tier);
   const showLocked = useStore((s) => s.settings.showLocked);
+  const plans = useStore((s) => s.plans);
   const { model } = host;
   const shown = calc?.mode === 'off' ? undefined : calc;
   const outs = model.nodes.filter((n): n is IoNode => n.k === 'out' && n.tag !== 'spare');
   const ins = model.nodes.filter((n): n is IoNode => n.k === 'in');
 
-  const add = (kind: 'in' | 'out', item: string) => {
+  const add = (kind: 'in' | 'out', item: string, extra: Partial<IoNode> = {}) => {
     let made = '';
     host.edit((m) => {
-      const added = addNode(m, { k: kind, item, ...ioSpot(m, kind) });
+      const added = addNode(m, { k: kind, item, ...extra, ...ioSpot(m, kind) });
       made = added.id;
       return added.model;
     });
@@ -75,6 +78,11 @@ export function FloorPanel({ host, calc, result }: { host: ModelHost; calc?: Cal
           }}
         >
           {it ? name(it) : t('anything')}
+          {n.from && (
+            <small className="floor-io-now">
+              {t('fromFactoryLabel', { name: n.from === POOL ? t('thePool') : (plans.find((p) => p.id === n.from)?.name ?? '') })}
+            </small>
+          )}
           {differs && <small className="floor-io-now">{t('floorNow', { n: num(flow.rate) })}</small>}
         </button>
         <span className="item-card-rate">
@@ -138,11 +146,10 @@ export function FloorPanel({ host, calc, result }: { host: ModelHost; calc?: Cal
       <section className="stack">
         <h3 className="section-title">{t('floorComesIn')}</h3>
         {ins.map((n) => row(n, 52))}
-        <ItemPicker
+        <SupplyAdd
           items={inItems}
-          label={t('addSupply')}
-          onPick={(id) => add('in', id)}
           exclude={ins.flatMap((n) => (n.item ? [n.item] : []))}
+          onAdd={(id, rate, from) => add('in', id, from ? { lim: rate, from } : {})}
         />
       </section>
     </div>
