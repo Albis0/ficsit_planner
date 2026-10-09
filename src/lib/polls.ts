@@ -26,10 +26,10 @@ export const POLLS: PollDef[] = [
     used: (s) => s.mode === 'factory' && s.plans.find((p) => p.id === s.active)?.floor === 'manual',
   },
   {
-    id: 'pool',
-    question: 'Taking items from another factory: how is that working for you?',
+    id: 'global',
+    question: 'The All page and the shared pool between factories: how is that working for you?',
     wait: 150,
-    used: (s) => s.plans.some((p) => p.supplies.some((x) => x.from === 'pool')),
+    used: (s) => s.overview || s.plans.some((p) => p.supplies.some((x) => x.from === 'pool')),
   },
 ];
 
