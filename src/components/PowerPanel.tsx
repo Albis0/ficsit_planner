@@ -160,51 +160,59 @@ function GenRow({ plant, result }: { plant: Plant; result?: SolveResult }) {
       <div className="gen-row-foot">
         {auto ? (
           <>
-            {use ? (
-              <button
-                type="button"
-                className="gen-count"
-                title={t('inspectPowerHint')}
-                aria-pressed={inspected === use.recipe.id}
-                // Pressed again, it closes the generator's panel on the floor.
-                onClick={() => set({ inspect: inspected === use.recipe.id ? undefined : use.recipe.id })}
-              >
-                <b>{use.built}</b> × {num(use.clock * 100)}%
-              </button>
-            ) : (
-              <span className="gen-count idle">{result && !locked ? t('notNeeded') : '–'}</span>
-            )}
-            <span className="gen-mode">{t('autoSized')}</span>
-            {use && (
-              <button type="button" className="text-button" onClick={() => put(fixedAs(use))}>
-                {t('fixCount')}
-              </button>
-            )}
-            {fillButton}
+            <div className="gen-row-info">
+              {use ? (
+                <button
+                  type="button"
+                  className="gen-count"
+                  title={t('inspectPowerHint')}
+                  aria-pressed={inspected === use.recipe.id}
+                  // Pressed again, it closes the generator's panel on the floor.
+                  onClick={() => set({ inspect: inspected === use.recipe.id ? undefined : use.recipe.id })}
+                >
+                  <b>{use.built}</b> × {num(use.clock * 100)}%
+                </button>
+              ) : (
+                <span className="gen-count idle">{result && !locked ? t('notNeeded') : '–'}</span>
+              )}
+              <span className="gen-mode">{t('autoSized')}</span>
+            </div>
+            <div className="gen-row-actions">
+              {use && (
+                <button type="button" className="text-button" onClick={() => put(fixedAs(use))}>
+                  {t('fixCount')}
+                </button>
+              )}
+              {fillButton}
+            </div>
           </>
         ) : (
           <>
-            <span className="mini-stepper">
-              <button
-                type="button"
-                aria-label={t('fewerMachines')}
-                disabled={count <= 0}
-                onClick={() => put({ by: 'count', amount: count - 1 })}
-              >
-                −
-              </button>
-              <b>{count}</b>
-              <button type="button" aria-label={t('moreMachines')} onClick={() => put({ by: 'count', amount: count + 1 })}>
-                +
-              </button>
-            </span>
-            <span className="gen-mode">{g.kind === 'augmenter' ? t('augmenters') : t('generatorsSet')}</span>
-            {sizable(g) && (
-              <button type="button" className="text-button" onClick={() => put({ by: 'auto' })}>
-                {t('backToAuto')}
-              </button>
-            )}
-            {fillButton}
+            <div className="gen-row-info">
+              <span className="mini-stepper">
+                <button
+                  type="button"
+                  aria-label={t('fewerMachines')}
+                  disabled={count <= 0}
+                  onClick={() => put({ by: 'count', amount: count - 1 })}
+                >
+                  −
+                </button>
+                <b>{count}</b>
+                <button type="button" aria-label={t('moreMachines')} onClick={() => put({ by: 'count', amount: count + 1 })}>
+                  +
+                </button>
+              </span>
+              <span className="gen-mode">{g.kind === 'augmenter' ? t('augmenters') : t('generatorsSet')}</span>
+            </div>
+            <div className="gen-row-actions">
+              {sizable(g) && (
+                <button type="button" className="text-button" onClick={() => put({ by: 'auto' })}>
+                  {t('backToAuto')}
+                </button>
+              )}
+              {fillButton}
+            </div>
           </>
         )}
       </div>

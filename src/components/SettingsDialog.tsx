@@ -1,4 +1,5 @@
 import { DEFAULT_GAME, GAME_RANGE, type GameRules } from '../lib/game';
+import { PHONE, useMediaQuery } from '../lib/useMediaQuery';
 import { createContext, useContext, useEffect, useRef, useState } from 'react';
 import { useT } from '../lib/i18n';
 import {
@@ -328,6 +329,8 @@ function LayoutSection() {
   const { t } = useT();
   const [s, set] = useSettings();
   const { dir: graphDir, setDir } = useContext(Draft)!;
+  // A phone gives the panel its own screen, so where it sits is not a choice there.
+  const phone = useMediaQuery(PHONE);
   const sides: { id: PanelSide; label: string }[] = [
     { id: 'top', label: t('panelTop') },
     { id: 'left', label: t('panelLeft') },
@@ -335,27 +338,29 @@ function LayoutSection() {
   ];
   return (
     <>
-      <div className="setting column">
-        <div className="setting-text">
-          <span className="setting-label">{t('panelSide')}</span>
-          <span className="setting-hint">{t('panelSideHint')}</span>
+      {!phone && (
+        <div className="setting column">
+          <div className="setting-text">
+            <span className="setting-label">{t('panelSide')}</span>
+            <span className="setting-hint">{t('panelSideHint')}</span>
+          </div>
+          <div className="panel-sides" role="radiogroup" aria-label={t('panelSide')}>
+            {sides.map((o) => (
+              <button
+                key={o.id}
+                type="button"
+                role="radio"
+                aria-checked={s.panel === o.id}
+                className="panel-side"
+                onClick={() => set({ panel: o.id })}
+              >
+                <PanelDiagram side={o.id} />
+                <span>{o.label}</span>
+              </button>
+            ))}
+          </div>
         </div>
-        <div className="panel-sides" role="radiogroup" aria-label={t('panelSide')}>
-          {sides.map((o) => (
-            <button
-              key={o.id}
-              type="button"
-              role="radio"
-              aria-checked={s.panel === o.id}
-              className="panel-side"
-              onClick={() => set({ panel: o.id })}
-            >
-              <PanelDiagram side={o.id} />
-              <span>{o.label}</span>
-            </button>
-          ))}
-        </div>
-      </div>
+      )}
       <Row label={t('direction')} hint={t('directionHint')}>
         <Choice
           label={t('direction')}

@@ -73,6 +73,12 @@ export const UPDATES: { version: string; date: string; title?: string; notes: Up
         'changed',
         'Codex: the first page groups the categories under Items, Build and research and The world, as tall tiles with the count in the corner.',
       ],
+      ['added', 'Top bar: right-click a factory or plant, on the bar or in the list, for Rename, Duplicate and Delete.'],
+      ['changed', 'Codex search: AWESOME Shop entries say Buy instead of Unlock.'],
+      [
+        'changed',
+        'Manual floor: the switch for outputs with no belt is called “Output with no belt”, with the choices “Counts as spare” and “Machine stops”.',
+      ],
     ],
   },
   {
@@ -82,6 +88,11 @@ export const UPDATES: { version: string; date: string; title?: string; notes: Up
       ['changed', 'Side panel, narrow: Targets, Recipes and Resources fit a 300 px panel and a phone with less scrolling.'],
       ['changed', 'Targets, narrow: Already on hand, Your inventory and Extraction fold to one line that says what is in them.'],
       ['fixed', 'Targets, narrow: a long name such as Packaged Rocket Fuel is no longer cut or squeezed into a column.'],
+      ['fixed', 'Targets, narrow: Own line and Pool are the same size.'],
+      [
+        'changed',
+        'Power, narrow: a generator’s count and what sizes it sit on the left, Fix the count and Fill to 100% stacked on the right. The remove button is a plain cross at the end of the title.',
+      ],
     ],
   },
   {
@@ -123,6 +134,7 @@ export const UPDATES: { version: string; date: string; title?: string; notes: Up
     date: '2026-10-08',
     notes: [
       ['fixed', 'Settings › Layout: the Left and Right pictures stay inside their frame in a narrow window.'],
+      ['changed', 'Settings › Layout: Panel position is not shown on a phone, where the panel always has its own screen.'],
       ['fixed', 'Narrow side panel: the sizing switch and generator name stay in their boxes, and the recipe kinds drop to a second row.'],
       ['changed', 'Search also names matching parts above your tier, closest tier first, even when something else matched.'],
     ],

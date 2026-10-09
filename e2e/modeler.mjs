@@ -565,11 +565,11 @@ const clash = (a, b) => a && b && a.x < b.x + b.width && b.x < a.x + a.width && 
   );
   ok('the totals count it as left over', /Surplus\s*45/.test(await page.locator('.floor').innerText()));
   await shot('a7-left-over');
-  await page.locator('.open-outputs button:has-text("Fill up")').click();
+  await page.locator('.open-outputs button:has-text("Machine stops")').click();
   await settle();
   ok('open outputs backing up, as in the game: it stops', (await card(ironSmelter.id).innerText()).includes('Output not connected'));
   await shot('a7-stall');
-  await page.locator('.open-outputs button:has-text("Left over")').click();
+  await page.locator('.open-outputs button:has-text("Counts as spare")').click();
   await settle();
   await page.locator('.tool-button[aria-label="Numbers"]').click();
   await settle();
@@ -759,7 +759,7 @@ const clash = (a, b) => a && b && a.x < b.x + b.width && b.x < a.x + a.width && 
   await page.mouse.click(at.x, at.y, { button: 'right' });
   await wait(300);
   const menu = await page.locator('.chooser').boundingBox();
-  await page.mouse.click(menu.x > 400 ? menu.x - 100 : menu.x + menu.width + 100, menu.y + 40);
+  await page.mouse.click(menu.x > 400 ? menu.x - 100 : menu.x + menu.width + 100, menu.y + 220);
   await wait(300);
   ok('a click outside closes it', !(await page.locator('.chooser').count()));
   // Settings › Factory floor: add with a double click instead; then a right click adds nothing.
@@ -905,7 +905,7 @@ const clash = (a, b) => a && b && a.x < b.x + b.width && b.x < a.x + a.width && 
 
   section = 'B4';
   // Open outputs backing up as in the game: then every open output needs a belt.
-  await page.locator('.open-outputs button:has-text("Fill up")').click();
+  await page.locator('.open-outputs button:has-text("Machine stops")').click();
   await settle();
   const openText = await page
     .locator('.open-ends')
@@ -940,7 +940,7 @@ const clash = (a, b) => a && b && a.x < b.x + b.width && b.x < a.x + a.width && 
     await page.keyboard.press('Escape');
   }
   ok('nothing left open', !(await page.locator('.open-ends').count()));
-  await page.locator('.open-outputs button:has-text("Left over")').click();
+  await page.locator('.open-outputs button:has-text("Counts as spare")').click();
   await settle();
   const allStates = await page.$$eval('.react-flow__node .run-state', (l) => l.map((x) => x.textContent));
   ok(

@@ -1,4 +1,4 @@
-import { type CSSProperties, useEffect, useRef, useState } from 'react';
+import { type CSSProperties, type MouseEvent as ReactMouseEvent, useCallback, useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { useT } from '../lib/i18n';
 import { useOverview } from '../lib/overview';
@@ -6,6 +6,7 @@ import { shareTab } from '../lib/share';
 import { useStore } from '../store';
 import { Glyph } from './Glyph';
 import { Icon } from './Icon';
+import { CardMenu } from './modeler/CardMenu';
 
 /** The tabs on screen: factories in the factory planner, power plants in the power planner. */
 function useTabs() {
@@ -102,6 +103,55 @@ export function ShareButton({ className = 'chrome-button', onDone }: { className
       <span className="chrome-label">{shared === 'copied' ? t('linkCopied') : shared === 'failed' ? t('shareFailed') : t('share')}</span>
     </button>
   );
+}
+
+/** A right click on a tab or a row of the list: rename, duplicate and delete for that one, wherever it is. */
+function useRowMenu() {
+  const { t } = useT();
+  const set = useStore((s) => s.set);
+  const zoom = useStore((s) => s.settings.uiScale);
+  const [at, setAt] = useState<{ x: number; y: number; id: string; plant: boolean }>();
+  const close = useCallback(() => setAt(undefined), []);
+  const items = at && [
+    {
+      label: t('rename'),
+      onPick: () =>
+        set(
+          at.plant
+            ? { mode: 'power', activePower: at.id, overview: undefined, inspect: undefined, renaming: at.id }
+            : { mode: 'factory', active: at.id, overview: undefined, inspect: undefined, renaming: at.id },
+        ),
+    },
+    {
+      label: t('duplicate'),
+      onPick: () => (at.plant ? useStore.getState().duplicatePowerPlan(at.id) : useStore.getState().duplicatePlan(at.id)),
+    },
+    {
+      label: t('deletePlan'),
+      danger: true,
+      onPick: () => {
+        const s = useStore.getState();
+        const name = (at.plant ? s.power : s.plans).find((x) => x.id === at.id)?.name ?? '';
+        const before = { plans: s.plans, power: s.power, active: s.active, activePower: s.activePower };
+        if (at.plant) s.removePowerPlan(at.id);
+        else s.removePlan(at.id);
+        set({ closed: { name, before } });
+      },
+    },
+  ];
+  return {
+    open: (e: ReactMouseEvent, id: string, plant: boolean) => {
+      e.preventDefault();
+      setAt({ x: e.clientX, y: e.clientY, id, plant });
+    },
+    menu:
+      at && items
+        ? createPortal(
+            <CardMenu at={{ x: at.x / zoom, y: at.y / zoom }} items={items} onClose={close} fixed />,
+            document.querySelector('.app') ?? document.body,
+          )
+        : null,
+  };
 }
 
 /** Rename, duplicate and delete for the tab on screen; a deleted tab can be brought back from the toast. */
@@ -221,6 +271,7 @@ function PlanList({ at, onClose }: { at: { x: number; y: number }; onClose: () =
   const o = useOverview();
   const zoom = useStore((s) => s.settings.uiScale);
   const box = useRef<HTMLDivElement>(null);
+  const rowMenu = useRowMenu();
   const [dragging, setDragging] = useState<string>();
   const many = o.factories.length + o.plants.filter((p) => !p.empty).length > 1;
   const power = mode === 'power';
@@ -307,6 +358,7 @@ function PlanList({ at, onClose }: { at: { x: number; y: number }; onClose: () =
         </div>
       )}
       {o.factories.map((f) => (
+        // biome-ignore lint/a11y/noStaticElementInteractions: a right click is a shortcut to the row's menu; the row's buttons do the same by keyboard
         <div
           key={f.id}
           className="plan-row"
@@ -314,6 +366,7 @@ function PlanList({ at, onClose }: { at: { x: number; y: number }; onClose: () =
           data-id={f.id}
           data-current={(!overview && !power && f.id === active) || undefined}
           data-dragging={dragging === f.id || undefined}
+          onContextMenu={(e) => rowMenu.open(e, f.id, false)}
         >
           {grip(f.id, f.name, 'f')}
           <button
@@ -331,6 +384,7 @@ function PlanList({ at, onClose }: { at: { x: number; y: number }; onClose: () =
       ))}
       <h3 className="plan-list-head">{t('ovPlants')}</h3>
       {o.plants.map((p) => (
+        // biome-ignore lint/a11y/noStaticElementInteractions: a right click is a shortcut to the row's menu; the row's buttons do the same by keyboard
         <div
           key={p.id}
           className="plan-row power"
@@ -338,6 +392,7 @@ function PlanList({ at, onClose }: { at: { x: number; y: number }; onClose: () =
           data-id={p.id}
           data-current={(!overview && power && p.id === activePower) || undefined}
           data-dragging={dragging === p.id || undefined}
+          onContextMenu={(e) => rowMenu.open(e, p.id, true)}
         >
           {grip(p.id, p.name, 'p')}
           <button
@@ -362,6 +417,7 @@ function PlanList({ at, onClose }: { at: { x: number; y: number }; onClose: () =
           <span aria-hidden>+</span> {t('newPlant')}
         </button>
       </div>
+      {rowMenu.menu}
     </div>
   );
 }
@@ -380,6 +436,7 @@ export function PlanTabs() {
   const box = useRef<HTMLElement>(null);
   const list = useRef<HTMLDivElement>(null);
   const [open, setOpen] = useState<{ x: number; y: number }>();
+  const rowMenu = useRowMenu();
 
   useEffect(() => {
     if (editing) input.current?.select();
@@ -388,7 +445,10 @@ export function PlanTabs() {
   useEffect(() => {
     if (!open) return;
     const away = (e: PointerEvent) =>
-      !box.current?.contains(e.target as Node) && !list.current?.contains(e.target as Node) && setOpen(undefined);
+      !box.current?.contains(e.target as Node) &&
+      !list.current?.contains(e.target as Node) &&
+      !(e.target as Element).closest?.('.card-menu') &&
+      setOpen(undefined);
     const key = (e: KeyboardEvent) => e.key === 'Escape' && setOpen(undefined);
     document.addEventListener('pointerdown', away);
     document.addEventListener('keydown', key);
@@ -426,6 +486,7 @@ export function PlanTabs() {
           title={`${shown}\n${t('renameHint')}`}
           aria-haspopup="menu"
           aria-expanded={!!open}
+          onContextMenu={(e) => !overview && current && rowMenu.open(e, current.id, tabs.power)}
           onClick={(e) => {
             const r = e.currentTarget.getBoundingClientRect();
             setOpen((o) => (o ? undefined : { x: r.left, y: r.bottom }));
@@ -446,6 +507,7 @@ export function PlanTabs() {
         +
       </button>
       <TabMenu />
+      {rowMenu.menu}
       {open &&
         createPortal(
           <div ref={list} className="plan-list-frame">

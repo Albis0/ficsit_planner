@@ -75,7 +75,11 @@ export function CodexNav() {
                     <CodexLink page={e.page} className="codex-hit">
                       {e.icon ? <Icon id={e.icon} size={32} /> : <span className="codex-hit-blank" />}
                       <span className="codex-hit-name">{e.name}</span>
-                      <span className="codex-hit-kind">{t(`pageKind_${e.page.kind}` as 'pageKind_item')}</span>
+                      <span className="codex-hit-kind">
+                        {e.page.kind === 'schematic' && index?.schematic.get(e.page.id)?.type === 'shop'
+                          ? t('pageKind_shop')
+                          : t(`pageKind_${e.page.kind}` as 'pageKind_item')}
+                      </span>
                     </CodexLink>
                   </li>
                 ))}

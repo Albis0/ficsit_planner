@@ -202,7 +202,7 @@
 
 .gen-row-head {
   display: flex;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
   align-items: center;
   gap: 10px;
   padding: 3px 6px 3px 6px;
@@ -214,7 +214,7 @@
 
 /* "Coal-Powered Generator" wraps rather than losing its end beside the megawatts. */
 .gen-row-name {
-  flex: 1 1 8em;
+  flex: 1 1 0;
   min-width: 0;
   line-height: 1.1;
 }
@@ -238,16 +238,18 @@
   flex: none;
   width: 26px;
   height: 26px;
-  margin-right: 10px;
+  margin-right: 8px;
   display: grid;
   place-items: center;
   padding: 0;
   border: 0;
-  background: rgb(0 0 0 / 0.15);
+  background: transparent;
   color: inherit;
+  opacity: 0.75;
 }
 
 .gen-row-remove:hover {
+  opacity: 1;
   background: var(--alert);
   color: #1a0806;
 }
@@ -304,12 +306,29 @@
 }
 
 .gen-row-foot {
-  display: flex;
-  flex-wrap: wrap;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
   align-items: center;
-  gap: 6px 12px;
+  gap: 2px 12px;
   padding-top: 10px;
   border-top: 1px solid var(--line);
+}
+
+/* Count and what sizes it on the left, the two things to do with it stacked on the right. */
+.gen-row-info {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 1px;
+  min-width: 0;
+}
+
+.gen-row-actions {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 4px;
+  white-space: nowrap;
 }
 
 .gen-count {
@@ -335,7 +354,6 @@ button.gen-count[aria-pressed='true'] {
 }
 
 .gen-mode {
-  flex: 1;
   color: var(--faint);
   font-size: 14px;
 }

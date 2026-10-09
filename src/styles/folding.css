@@ -135,6 +135,9 @@
     min-height: 28px;
     padding: 1px 7px;
     white-space: nowrap;
+    flex: 1 1 96px;
+    min-width: 0;
+    text-align: center;
   }
 
   .item-card:not(.flat) .item-card-rate {
@@ -308,6 +311,9 @@
     min-height: 28px;
     padding: 1px 7px;
     white-space: nowrap;
+    flex: 1 1 96px;
+    min-width: 0;
+    text-align: center;
   }
 
   .item-card:not(.flat) .item-card-rate {

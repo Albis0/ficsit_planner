@@ -57,6 +57,10 @@ All notable changes to FICSIT Planner. Dates are when the version was finished.
 - **The Codex's first page** groups its categories under Items, Build and research and The world as tall tiles with the
   count in a corner, and the guides come after.
 
+### Added
+
+- **Right click on a factory or plant.** On the top bar's name or on a row of the list: Rename, Duplicate and Delete for that one, in the game's own menu.
+
 ## 0.13.28 — 2026-10-09
 
 ### Changed
