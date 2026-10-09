@@ -211,27 +211,31 @@
   text-transform: uppercase;
 }
 
-/* Home: the categories as big cards. */
+/* Home: the categories as tall tiles, a row of four under each of three headings. */
 .codex-cat-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
   gap: 12px;
 }
 
 .codex-cat-card {
   position: relative;
-  display: grid;
-  grid-template-columns: 64px minmax(0, 1fr) auto;
-  column-gap: 14px;
+  display: flex;
+  flex-direction: column;
   align-items: center;
-  padding: 14px 14px 14px 16px;
+  justify-content: flex-end;
+  gap: 10px;
+  min-height: 150px;
+  padding: 16px 10px 14px;
   background: var(--panel);
   border: 1px solid var(--line);
+  text-align: center;
   text-decoration: none;
   transition: border-color 100ms;
 }
 
 .codex-cat-card .icon {
+  margin-top: auto;
   filter: drop-shadow(0 3px 3px rgb(0 0 0 / 0.5));
 }
 
@@ -241,13 +245,18 @@
 }
 
 .codex-cat-card-name {
-  font: 700 18px / 1.15 var(--font-display);
-  text-transform: uppercase;
-  letter-spacing: 0.03em;
+  font: 700 19px / 1.15 var(--font-display);
+  letter-spacing: 0.02em;
 }
 
 .codex-cat-card-count {
-  font: 700 15px / 1.4 var(--font-display);
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  padding: 1px 8px;
+  border-radius: 10px;
+  background: rgb(0 0 0 / 0.4);
+  font: 700 14px / 1.4 var(--font-display);
   color: var(--codex);
 }
 
@@ -1091,7 +1100,7 @@ a.codex-flow:hover {
   align-self: flex-start;
 }
 
-/* Phone: the categories two to a row, the count under the name, so more of them show without scrolling. */
+/* Phone: the tiles two to a row. */
 @media (max-width: 600px) {
   .codex-cat-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -1099,22 +1108,11 @@ a.codex-flow:hover {
   }
 
   .codex-cat-card {
-    grid-template-columns: 44px minmax(0, 1fr);
-    column-gap: 10px;
-    padding: 10px 10px 10px 12px;
-  }
-
-  .codex-cat-card .icon {
-    grid-row: 1 / span 2;
-    width: 44px;
-    height: 44px;
+    min-height: 128px;
+    padding: 12px 6px 10px;
   }
 
   .codex-cat-card-name {
     font-size: 16px;
-  }
-
-  .codex-cat-card-count {
-    grid-column: 2;
   }
 }

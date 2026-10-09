@@ -298,6 +298,8 @@ interface State {
   duplicatePlan: (id: string) => void;
   removePlan: (id: string) => void;
   renamePlan: (id: string, name: string) => void;
+  /** Puts a factory tab (or, with `power`, a power plant tab) at a new place in the list. */
+  moveTab: (id: string, to: number, power?: boolean) => void;
 
   addTarget: (item: string) => void;
   setTarget: (i: number, rate: number) => void;
@@ -640,6 +642,18 @@ export const useStore = create<State>()(
           set({ plans: dropSource(plans, id), active, power, inspect: undefined });
         },
         renamePlan: (id, name) => set({ plans: get().plans.map((p) => (p.id === id ? { ...p, name } : p)) }),
+        moveTab: (id, to, power) => {
+          const move = <T extends { id: string }>(list: T[]): T[] | undefined => {
+            const from = list.findIndex((p) => p.id === id);
+            const at = Math.max(0, Math.min(list.length - 1, to));
+            if (from < 0 || from === at) return undefined;
+            const next = [...list];
+            next.splice(at, 0, ...next.splice(from, 1));
+            return next;
+          };
+          const moved = power ? move(get().power) : move(get().plans);
+          if (moved) set(power ? { power: moved as PowerPlan[] } : { plans: moved as Plan[] });
+        },
 
         addTarget: (item) => update((p) => (p.targets.some((t) => t.item === item) ? {} : { targets: [...p.targets, { item, rate: 10 }] })),
         setTarget: (i, rate) => update((p) => ({ targets: p.targets.map((t, j) => (j === i ? { ...t, rate } : t)) }), `target:${i}`),

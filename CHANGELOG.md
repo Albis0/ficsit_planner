@@ -2,6 +2,19 @@
 
 All notable changes to FICSIT Planner. Dates are when the version was finished.
 
+## 0.13.29 — 2026-10-09
+
+### Changed
+
+- **Factory tabs are one button.** The row of tabs, with its arrows, fade and scroll bar, is gone. The top bar shows
+  the factory or power plant on screen with a ▾; it opens a list of every factory (with All at the top once there are
+  two things to compare) and every power plant, each with the MW it draws or makes, and the new factory and new power
+  plant buttons at the foot. Same list on a phone, spanning the width under the bar. Double-click the name to rename it;
+  + and ⋯ stay beside it (+ is in the list only on narrow phones).
+- **Put the tabs in another order.** Each row has a grip to drag; with the grip focused, the arrow keys move it too.
+- **The Codex's first page** groups its categories under Items, Build and research and The world as tall tiles with the
+  count in a corner, and the guides come after.
+
 ## 0.13.28 — 2026-10-09
 
 ### Changed

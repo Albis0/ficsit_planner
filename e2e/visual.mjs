@@ -148,7 +148,8 @@ const SCREENS = [
       activePower: 'pp',
     }),
     act: async (page) => {
-      await page.locator('.plan-all .plan-tab-name').click();
+      await page.click('.plan-current');
+      await page.locator('.plan-row.all .plan-row-name').click();
       await page.waitForFunction(() => document.querySelectorAll('.ov-note').length === 0, null, { timeout: 30000 });
       await page.waitForTimeout(800);
     },

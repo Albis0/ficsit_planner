@@ -1,6 +1,7 @@
-import { useEffect, useRef, useState } from 'react';
+import { type CSSProperties, useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { useT } from '../lib/i18n';
+import { useOverview } from '../lib/overview';
 import { shareTab } from '../lib/share';
 import { useStore } from '../store';
 import { Glyph } from './Glyph';
@@ -196,147 +197,262 @@ function TabMenu() {
   );
 }
 
-/** Tabs across the top bar: switch, double-click to rename, duplicate or delete the active one. */
+/** Which way a dragged row is moved: the row under the pointer, within its own group. */
+function rowUnder(list: HTMLElement | null, group: string, own: string, y: number): number {
+  const rows = [...(list?.querySelectorAll<HTMLElement>(`[data-group="${group}"]`) ?? [])].filter((r) => r.dataset.id !== own);
+  return rows.filter((r) => {
+    const box = r.getBoundingClientRect();
+    return y > box.top + box.height / 2;
+  }).length;
+}
+
+/**
+ * Every factory and power plant in one list: pick one to open it, drag the grip to put it in another place,
+ * add a new one at the bottom. "All" (the page with everything side by side) heads the factories once there are two things to compare.
+ */
+function PlanList({ at, onClose }: { at: { x: number; y: number }; onClose: () => void }) {
+  const { t, num } = useT();
+  const set = useStore((s) => s.set);
+  const moveTab = useStore((s) => s.moveTab);
+  const mode = useStore((s) => s.mode);
+  const active = useStore((s) => s.active);
+  const activePower = useStore((s) => s.activePower);
+  const overview = useStore((s) => !!s.overview);
+  const o = useOverview();
+  const zoom = useStore((s) => s.settings.uiScale);
+  const box = useRef<HTMLDivElement>(null);
+  const [dragging, setDragging] = useState<string>();
+  const many = o.factories.length + o.plants.filter((p) => !p.empty).length > 1;
+  const power = mode === 'power';
+
+  const add = (isPlant: boolean) => {
+    const s = useStore.getState();
+    const nextName = (base: string, names: string[]) => {
+      let n = names.length + 1;
+      while (names.includes(`${base} ${n}`)) n++;
+      return `${base} ${n}`;
+    };
+    set({ overview: undefined, mode: isPlant ? 'power' : 'factory' });
+    if (isPlant)
+      s.addPowerPlan(
+        nextName(
+          t('plantName'),
+          s.power.map((p) => p.name),
+        ),
+      );
+    else
+      s.addPlan(
+        nextName(
+          t('planName'),
+          s.plans.map((p) => p.name),
+        ),
+      );
+    onClose();
+  };
+
+  const grip = (id: string, name: string, group: 'f' | 'p') => {
+    const here = () => (group === 'f' ? o.factories : o.plants).findIndex((x) => x.id === id);
+    return (
+      <button
+        type="button"
+        className="plan-grip"
+        aria-label={t('moveTab', { name })}
+        title={t('moveTab', { name })}
+        onPointerDown={(e) => {
+          e.preventDefault();
+          e.currentTarget.setPointerCapture(e.pointerId);
+          setDragging(id);
+        }}
+        onPointerMove={(e) => {
+          if (dragging !== id) return;
+          const to = rowUnder(box.current, group, id, e.clientY);
+          if (to !== here()) moveTab(id, to, group === 'p');
+        }}
+        onPointerUp={() => setDragging(undefined)}
+        onPointerCancel={() => setDragging(undefined)}
+        onKeyDown={(e) => {
+          if (e.key !== 'ArrowUp' && e.key !== 'ArrowDown') return;
+          e.preventDefault();
+          moveTab(id, here() + (e.key === 'ArrowUp' ? -1 : 1), group === 'p');
+        }}
+      >
+        <span aria-hidden />
+      </button>
+    );
+  };
+
+  return (
+    <div
+      className="plan-list"
+      role="menu"
+      aria-label={t('tabList')}
+      ref={box}
+      style={{ '--x': `${at.x / zoom}px`, '--y': `${at.y / zoom}px` } as CSSProperties}
+    >
+      <h3 className="plan-list-head">{t('ovFactories')}</h3>
+      {many && (
+        <div className="plan-row all" data-current={overview || undefined}>
+          <span className="plan-grip-gap" />
+          <button
+            type="button"
+            className="plan-row-name"
+            onClick={() => {
+              set({ overview: true, inspect: undefined });
+              onClose();
+            }}
+          >
+            <span className="plan-row-label">{t('overviewTab')}</span>
+            <span className="plan-row-mw">{t('allTogether')}</span>
+          </button>
+        </div>
+      )}
+      {o.factories.map((f) => (
+        <div
+          key={f.id}
+          className="plan-row"
+          data-group="f"
+          data-id={f.id}
+          data-current={(!overview && !power && f.id === active) || undefined}
+          data-dragging={dragging === f.id || undefined}
+        >
+          {grip(f.id, f.name, 'f')}
+          <button
+            type="button"
+            className="plan-row-name"
+            onClick={() => {
+              set({ mode: 'factory', active: f.id, inspect: undefined });
+              onClose();
+            }}
+          >
+            <span className="plan-row-label">{f.name}</span>
+            <span className="plan-row-mw">{f.pending || f.failed || f.empty ? '' : `${num(f.mw)} MW`}</span>
+          </button>
+        </div>
+      ))}
+      <h3 className="plan-list-head">{t('ovPlants')}</h3>
+      {o.plants.map((p) => (
+        <div
+          key={p.id}
+          className="plan-row power"
+          data-group="p"
+          data-id={p.id}
+          data-current={(!overview && power && p.id === activePower) || undefined}
+          data-dragging={dragging === p.id || undefined}
+        >
+          {grip(p.id, p.name, 'p')}
+          <button
+            type="button"
+            className="plan-row-name"
+            onClick={() => {
+              set({ mode: 'power', activePower: p.id, inspect: undefined });
+              onClose();
+            }}
+          >
+            {p.icon && <Icon id={p.icon} size={22} className="plan-tab-icon" />}
+            <span className="plan-row-label">{p.name}</span>
+            <span className="plan-row-mw">{p.pending || p.failed || p.empty ? '' : `${num(p.made)} MW`}</span>
+          </button>
+        </div>
+      ))}
+      <div className="plan-list-add">
+        <button type="button" className="primary" onClick={() => add(false)}>
+          <span aria-hidden>+</span> {t('newPlan')}
+        </button>
+        <button type="button" onClick={() => add(true)}>
+          <span aria-hidden>+</span> {t('newPlant')}
+        </button>
+      </div>
+    </div>
+  );
+}
+
+/**
+ * The top bar's one tab: the factory or power plant on screen, with a ▾ that opens the list of all of them. Double-click
+ * renames it; + adds another of the same kind, ⋯ has rename, duplicate and delete.
+ */
 export function PlanTabs() {
   const { t } = useT();
   const tabs = useTabs();
   const editing = useStore((s) => s.renaming);
   const set = useStore((s) => s.set);
   const overview = useStore((s) => !!s.overview);
-  // Every factory and plant on one page: worth a tab once there are two things to compare.
-  const many = useStore((s) => s.plans.length + s.power.filter((p) => p.plants.length > 0).length > 1);
   const input = useRef<HTMLInputElement>(null);
+  const box = useRef<HTMLElement>(null);
+  const list = useRef<HTMLDivElement>(null);
+  const [open, setOpen] = useState<{ x: number; y: number }>();
 
   useEffect(() => {
     if (editing) input.current?.select();
   }, [editing]);
 
-  const stopEditing = () => set({ renaming: undefined });
-
-  // More tabs than room: they scroll sideways (the mouse wheel too). Arrows at both ends, a thin bar showing which
-  // part of the row is in view and a fade on each side that has more make it clear where the rest is. The tab on
-  // screen is kept in view, and the new tab and ⋯ buttons stay put after the row.
-  const strip = useRef<HTMLDivElement>(null);
-  const [view, setView] = useState({ overflow: false, left: false, right: false, start: 0, size: 1 });
-  // biome-ignore lint/correctness/useExhaustiveDependencies: a tab added or removed changes what overflows.
   useEffect(() => {
-    const el = strip.current;
-    if (!el) return;
-    const measure = () =>
-      setView({
-        overflow: el.scrollWidth > el.clientWidth + 2,
-        left: el.scrollLeft > 2,
-        right: el.scrollLeft + el.clientWidth < el.scrollWidth - 2,
-        start: el.scrollLeft / el.scrollWidth,
-        size: el.clientWidth / el.scrollWidth,
-      });
-    const wheel = (e: WheelEvent) => {
-      if (el.scrollWidth <= el.clientWidth || Math.abs(e.deltaX) > Math.abs(e.deltaY)) return;
-      e.preventDefault();
-      el.scrollLeft += e.deltaY;
-    };
-    measure();
-    el.addEventListener('scroll', measure, { passive: true });
-    el.addEventListener('wheel', wheel, { passive: false });
-    const resize = new ResizeObserver(measure);
-    resize.observe(el);
-    for (const c of el.children) resize.observe(c);
+    if (!open) return;
+    const away = (e: PointerEvent) =>
+      !box.current?.contains(e.target as Node) && !list.current?.contains(e.target as Node) && setOpen(undefined);
+    const key = (e: KeyboardEvent) => e.key === 'Escape' && setOpen(undefined);
+    document.addEventListener('pointerdown', away);
+    document.addEventListener('keydown', key);
     return () => {
-      el.removeEventListener('scroll', measure);
-      el.removeEventListener('wheel', wheel);
-      resize.disconnect();
+      document.removeEventListener('pointerdown', away);
+      document.removeEventListener('keydown', key);
     };
-  }, [tabs.list.length]);
-  // biome-ignore lint/correctness/useExhaustiveDependencies: runs when the tab on screen or the number of tabs changes.
-  useEffect(() => {
-    strip.current?.querySelector('[aria-current="page"]')?.scrollIntoView({ block: 'nearest', inline: 'nearest' });
-  }, [tabs.active, tabs.list.length]);
-  const nudge = (dir: 1 | -1) => strip.current?.scrollBy({ left: dir * strip.current.clientWidth * 0.7, behavior: 'smooth' });
-  const arrow = (dir: 1 | -1) =>
-    view.overflow && (
-      <button
-        type="button"
-        className={`tabs-nudge ${dir < 0 ? 'left' : 'right'}`}
-        aria-label={dir < 0 ? t('tabsEarlier') : t('tabsLater')}
-        title={dir < 0 ? t('tabsEarlier') : t('tabsLater')}
-        disabled={dir < 0 ? !view.left : !view.right}
-        onClick={() => nudge(dir)}
-      >
-        <Glyph name={dir < 0 ? 'chevronLeft' : 'chevronRight'} size={18} />
-      </button>
-    );
+  }, [open]);
+
+  const stopEditing = () => set({ renaming: undefined });
+  const current = tabs.list.find((p) => p.id === tabs.active);
+  const shown = overview ? t('overviewTab') : (current?.name ?? '');
 
   return (
-    <nav className={`plan-tabs ${tabs.power ? 'power' : ''}`} aria-label={tabs.label}>
-      {arrow(-1)}
-      <div className="plan-tabs-frame" data-more-left={view.left || undefined} data-more-right={view.right || undefined}>
-        <div className="plan-tabs-strip" ref={strip}>
-          {many && (
-            <span className="plan-tab plan-all" aria-current={overview ? 'page' : undefined}>
-              <button
-                type="button"
-                className="plan-tab-name"
-                title={t('overviewTabHint')}
-                onClick={() => set({ overview: true, inspect: undefined })}
-              >
-                <span className="plan-tab-label">{t('overviewTab')}</span>
-              </button>
-            </span>
-          )}
-          {tabs.list.map((p) =>
-            editing === p.id ? (
-              <input
-                key={p.id}
-                ref={input}
-                className="plan-tab editing"
-                defaultValue={p.name}
-                aria-label={t('rename')}
-                onBlur={(e) => {
-                  tabs.rename(p.id, e.target.value.trim() || p.name);
-                  stopEditing();
-                }}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter') e.currentTarget.blur();
-                  if (e.key === 'Escape') stopEditing();
-                }}
-              />
-            ) : (
-              <span key={p.id} className="plan-tab" aria-current={!overview && p.id === tabs.active ? 'page' : undefined}>
-                <button
-                  type="button"
-                  className="plan-tab-name"
-                  title={`${p.name}\n${t('renameHint')}`}
-                  onClick={() => tabs.select(p.id)}
-                  onDoubleClick={() => set({ renaming: p.id })}
-                  onAuxClick={(e) => e.button === 1 && tabs.remove(p.id)}
-                >
-                  {p.icon && <Icon id={p.icon} size={22} className="plan-tab-icon" />}
-                  <span className="plan-tab-label">{p.name}</span>
-                </button>
-                <button
-                  type="button"
-                  className="plan-tab-close"
-                  aria-label={t('closeTab', { name: p.name })}
-                  title={t('closeTab', { name: p.name })}
-                  onClick={() => tabs.remove(p.id)}
-                >
-                  <Glyph name="close" size={14} />
-                </button>
-              </span>
-            ),
-          )}
-        </div>
-        {view.overflow && (
-          <span className="tabs-track" aria-hidden>
-            <span style={{ left: `${view.start * 100}%`, width: `${view.size * 100}%` }} />
-          </span>
-        )}
-      </div>
-      {arrow(1)}
+    <nav className={`plan-tabs ${tabs.power ? 'power' : ''}`} aria-label={tabs.label} ref={box}>
+      {editing && current && editing === current.id && !overview ? (
+        <input
+          ref={input}
+          className="plan-tab editing"
+          defaultValue={current.name}
+          aria-label={t('rename')}
+          onBlur={(e) => {
+            tabs.rename(current.id, e.target.value.trim() || current.name);
+            stopEditing();
+          }}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter') e.currentTarget.blur();
+            if (e.key === 'Escape') stopEditing();
+          }}
+        />
+      ) : (
+        <button
+          type="button"
+          className="plan-current"
+          title={`${shown}\n${t('renameHint')}`}
+          aria-haspopup="menu"
+          aria-expanded={!!open}
+          onClick={(e) => {
+            const r = e.currentTarget.getBoundingClientRect();
+            setOpen((o) => (o ? undefined : { x: r.left, y: r.bottom }));
+          }}
+          onDoubleClick={() => {
+            if (!overview && current) {
+              setOpen(undefined);
+              set({ renaming: current.id });
+            }
+          }}
+        >
+          {!overview && current?.icon && <Icon id={current.icon} size={22} className="plan-tab-icon" />}
+          <span className="plan-tab-label">{shown}</span>
+          <span className="plan-caret" aria-hidden />
+        </button>
+      )}
       <button type="button" className="plan-add" aria-label={tabs.addLabel} title={tabs.addLabel} onClick={tabs.add}>
         +
       </button>
       <TabMenu />
+      {open &&
+        createPortal(
+          <div ref={list} className="plan-list-frame">
+            <PlanList at={open} onClose={() => setOpen(undefined)} />
+          </div>,
+          document.querySelector('.app') ?? document.body,
+        )}
     </nav>
   );
 }

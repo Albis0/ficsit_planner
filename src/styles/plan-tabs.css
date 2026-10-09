@@ -1,5 +1,6 @@
 /* ---------- Plan tabs ---------- */
 
+/* One button for the factory or plant on screen; the list of all of them opens under it. */
 .plan-tabs {
   flex: 1;
   min-width: 0;
@@ -8,114 +9,38 @@
   align-self: stretch;
 }
 
-/*
-  The tabs scroll sideways when there are more than fit; + and ⋯ stay after them. Which way the rest lies shows
-  three ways: an arrow button at each end (dimmed at the end that has nothing more), a fade on each side that has
-  more, and a thin bar along the top showing which part of the row is in view.
-*/
-.plan-tabs-frame {
+.plan-current {
   position: relative;
   flex: 0 1 auto;
   min-width: 0;
-  display: flex;
-}
-
-.plan-tabs-strip {
-  flex: 1;
-  min-width: 0;
-  display: flex;
-  align-items: stretch;
-  gap: 2px;
-  overflow-x: auto;
-  scrollbar-width: none;
-  overscroll-behavior-x: contain;
-}
-
-.plan-tabs-strip::-webkit-scrollbar {
-  display: none;
-}
-
-.plan-tabs-frame[data-more-left] .plan-tabs-strip {
-  mask-image: linear-gradient(90deg, transparent, #000 44px);
-}
-
-.plan-tabs-frame[data-more-right] .plan-tabs-strip {
-  mask-image: linear-gradient(90deg, #000 calc(100% - 44px), transparent);
-}
-
-.plan-tabs-frame[data-more-left][data-more-right] .plan-tabs-strip {
-  mask-image: linear-gradient(90deg, transparent, #000 44px, #000 calc(100% - 44px), transparent);
-}
-
-.tabs-track {
-  position: absolute;
-  inset: 0 0 auto;
-  height: 3px;
-  background: rgb(255 255 255 / 0.07);
-  pointer-events: none;
-}
-
-.tabs-track span {
-  position: absolute;
-  top: 0;
-  bottom: 0;
-  border-radius: 2px;
-  background: var(--mode, var(--ficsit));
-  transition: left 120ms ease-out;
-}
-
-/* The arrows are the game's small dark buttons. */
-.tabs-nudge {
-  flex: none;
-  align-self: center;
-  display: grid;
-  place-items: center;
-  width: 30px;
-  height: 36px;
-  margin: 0 4px;
-  padding: 0;
-  color: var(--paper);
-  background: linear-gradient(180deg, var(--button-top), var(--button-bottom));
-  border: 1px solid var(--button-edge);
-  border-radius: var(--radius);
-  box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.12);
-}
-
-.tabs-nudge:hover:not(:disabled) {
-  color: var(--ficsit);
-}
-
-.tabs-nudge:disabled {
-  opacity: 0.3;
-  cursor: default;
-}
-
-.plan-tab {
-  position: relative;
-  flex: none;
-  max-width: 280px;
-  padding: 0 6px 0 0;
+  max-width: 420px;
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  padding: 0 14px 0 20px;
   border: 0;
-  background: transparent;
+  background: var(--panel-2);
+  color: var(--paper);
   font: 600 19px var(--font-display);
   letter-spacing: 0.02em;
-  color: var(--faint);
   white-space: nowrap;
 }
 
-/* The name selects the tab (double-click renames, middle-click closes); the × beside it closes it. */
-.plan-tab-name {
-  min-width: 0;
-  height: 100%;
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  padding: 0 4px 0 18px;
-  border: 0;
-  background: transparent;
-  color: inherit;
-  font: inherit;
-  letter-spacing: inherit;
+.plan-current::after {
+  content: '';
+  position: absolute;
+  inset: 0 0 auto;
+  height: 4px;
+  background: var(--ficsit);
+}
+
+.plan-tabs.power .plan-current::after {
+  background: var(--power);
+}
+
+.plan-current:hover,
+.plan-current[aria-expanded='true'] {
+  background: var(--raised);
 }
 
 .plan-tab-label {
@@ -124,56 +49,17 @@
   text-overflow: ellipsis;
 }
 
-.plan-tab-close {
+.plan-caret {
   flex: none;
-  display: grid;
-  place-items: center;
-  width: 24px;
-  height: 24px;
-  padding: 0;
-  border: 0;
-  border-radius: 5px;
-  background: transparent;
-  color: var(--faint);
-  opacity: 0;
+  width: 0;
+  height: 0;
+  border: 5px solid transparent;
+  border-top-color: var(--faint);
+  border-bottom-width: 0;
 }
 
-.plan-tab:hover .plan-tab-close,
-.plan-tab[aria-current='page'] .plan-tab-close,
-.plan-tab-close:focus-visible {
-  opacity: 1;
-}
-
-.plan-tab-close:hover {
-  background: var(--raised);
-  color: var(--paper);
-}
-
-@media (hover: none) {
-  .plan-tab:not([aria-current='page']) .plan-tab-close {
-    display: none;
-  }
-}
-
-.plan-tab:hover,
-.plan-tab[aria-current='page'] {
-  color: var(--paper);
-  background: var(--panel-2);
-}
-
-.plan-tab[aria-current='page']::after {
-  content: '';
-  position: absolute;
-  inset: auto 0 0;
-  height: 4px;
-  background: var(--ficsit);
-}
-
-/* Power plant tabs: the plant's first generator beside its name, the power colour under the one on screen. */
-.plan-tab {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
+.plan-current:hover .plan-caret {
+  border-top-color: var(--paper);
 }
 
 .plan-tab-icon {
@@ -181,18 +67,15 @@
   margin-left: -4px;
 }
 
-.plan-tabs.power .plan-tab[aria-current='page']::after {
-  background: var(--power);
-}
-
 .plan-tab.editing {
   width: 220px;
-  margin: 10px 0;
+  margin: 10px 0 10px 8px;
   padding: 0 12px;
   background: var(--bg);
   border: 1px solid var(--ficsit);
   outline: none;
   color: var(--paper);
+  font: 600 19px var(--font-display);
 }
 
 .plan-add {
@@ -207,6 +90,170 @@
 
 .plan-add:hover {
   color: var(--ficsit);
+}
+
+/* The list: one column of every factory, then every power plant, and the two "new" buttons at the foot. */
+.plan-list-frame {
+  display: contents;
+}
+
+.plan-list {
+  position: fixed;
+  z-index: 60;
+  zoom: var(--ui-scale, 1);
+  left: var(--x);
+  top: var(--y);
+  width: 360px;
+  max-width: calc(100vw - 16px);
+  max-height: calc(100dvh - var(--y) - 16px);
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  background: var(--panel);
+  border: 1px solid var(--line-2);
+  border-top: 3px solid var(--mode, var(--ficsit));
+  box-shadow: 0 10px 24px rgb(0 0 0 / 0.5);
+}
+
+.plan-list-head {
+  margin: 0;
+  padding: 12px 14px 4px;
+  font: 700 12px var(--font-display);
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--faint);
+}
+
+.plan-row {
+  position: relative;
+  display: flex;
+  align-items: stretch;
+  border-top: 1px solid var(--line);
+}
+
+.plan-row.all {
+  border-bottom: 1px solid var(--line);
+}
+
+.plan-row:hover {
+  background: var(--panel-2);
+}
+
+.plan-row[data-current] {
+  background: var(--panel-2);
+  box-shadow: inset 3px 0 0 var(--ficsit);
+}
+
+.plan-row.power[data-current] {
+  box-shadow: inset 3px 0 0 var(--power);
+}
+
+.plan-row[data-dragging] {
+  background: var(--raised);
+}
+
+.plan-row-name {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 11px 14px 11px 4px;
+  border: 0;
+  background: transparent;
+  color: var(--paper);
+  font: 600 18px var(--font-display);
+  letter-spacing: 0.02em;
+  text-align: left;
+}
+
+.plan-row-label {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.plan-row-mw {
+  flex: none;
+  color: var(--dim);
+  font-size: 15px;
+  font-weight: 500;
+}
+
+/* The grip: three short lines, dragged to put the row somewhere else. */
+.plan-grip,
+.plan-grip-gap {
+  flex: none;
+  width: 30px;
+}
+
+.plan-grip {
+  display: grid;
+  place-items: center;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--faint);
+  cursor: grab;
+  touch-action: none;
+}
+
+.plan-grip span {
+  width: 10px;
+  height: 8px;
+  background: repeating-linear-gradient(180deg, currentColor 0 2px, transparent 2px 4px);
+}
+
+.plan-grip:hover,
+.plan-grip:focus-visible,
+.plan-row[data-dragging] .plan-grip {
+  color: var(--ficsit);
+}
+
+.plan-row[data-dragging] .plan-grip {
+  cursor: grabbing;
+}
+
+.plan-list-add {
+  display: flex;
+  flex-direction: column;
+  margin-top: 6px;
+  border-top: 1px solid var(--line-2);
+}
+
+.plan-list-add button {
+  padding: 11px 14px;
+  border: 0;
+  background: transparent;
+  color: var(--dim);
+  font: 700 17px var(--font-display);
+  letter-spacing: 0.02em;
+  text-align: left;
+}
+
+.plan-list-add button.primary {
+  color: var(--ficsit);
+}
+
+.plan-list-add button:hover {
+  background: var(--panel-2);
+  color: var(--paper);
+}
+
+.plan-list-add button.primary:hover {
+  color: var(--ficsit);
+}
+
+/* On a phone the list spans the width under the bar. */
+@media (max-width: 900px) {
+  .plan-list {
+    left: 8px;
+    right: 8px;
+    width: auto;
+    max-width: 480px;
+  }
 }
 
 /* The ⋯ after the tabs: rename, duplicate and delete for the tab on screen, out of the way of a stray click. */

@@ -363,7 +363,6 @@
 
 /* Fingers: everything that's pressed gets at least a 32 px target. */
 @media (pointer: coarse) {
-  .plan-tab-close,
   .gen-row-remove {
     width: 32px;
     height: 32px;

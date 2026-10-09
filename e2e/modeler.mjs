@@ -1004,11 +1004,16 @@ const clash = (a, b) => a && b && a.x < b.x + b.width && b.x < a.x + a.width && 
   await settle();
   await wait(800);
   const floorPower = (await page.locator('.readout.power .readout-value').first().innerText()).replace(/\s+/g, ' ');
-  ok('no All tab while there is only one tab', (await page.locator('.plan-all').count()) === 0);
+  await page.click('.plan-current');
+  await wait(300);
+  ok('no All row while there is only one tab', (await page.locator('.plan-row.all').count()) === 0);
+  await page.keyboard.press('Escape');
   await page.click('.plan-add');
   await wait(500);
-  ok('the All tab shows with two factories', (await page.locator('.plan-all').count()) === 1);
-  await page.locator('.plan-all .plan-tab-name').click();
+  await page.click('.plan-current');
+  await wait(300);
+  ok('the All row shows with two factories', (await page.locator('.plan-row.all').count()) === 1);
+  await page.locator('.plan-row.all .plan-row-name').click();
   await wait(2500);
   ok(
     'the All page replaces the floor',
@@ -1051,7 +1056,9 @@ const clash = (a, b) => a && b && a.x < b.x + b.width && b.x < a.x + a.width && 
   await wait(2500);
   ok('and goes red when more is taken than there is', (await page.locator('.supply-pool.short').count()) === 1, await poolNote());
   ok('the graph says the supply comes from the pool', /From the pool/i.test(await page.locator('.react-flow').innerText()));
-  await page.locator('.plan-all .plan-tab-name').click();
+  await page.click('.plan-current');
+  await wait(300);
+  await page.locator('.plan-row.all .plan-row-name').click();
   await wait(2500);
   ok(
     'the All page shows the pool short',
@@ -1221,7 +1228,10 @@ const clash = (a, b) => a && b && a.x < b.x + b.width && b.x < a.x + a.width && 
     await old.waitForURL(/ficsitplanner\.app/, { timeout: 30000 });
     await old.waitForSelector('.plan-tab-label', { timeout: 30000 });
     await old.waitForTimeout(1500);
-    const tabs = await old.locator('.plan-tab-label').allInnerTexts();
+    // Read the plans that arrived from what the page keeps, whichever way its top bar lists them.
+    const tabs = await old.evaluate(
+      () => JSON.parse(localStorage.getItem('ficsit-planner') ?? '{}').state?.plans?.map((p) => p.name) ?? [],
+    );
     ok('the plans arrive on the new address', tabs.includes('Motors') && tabs.includes('Plates'), tabs.join(', '));
     ok('and the new address has no notice of its own', (await old.locator('.toast.moved').count()) === 0);
     await ctx.close();

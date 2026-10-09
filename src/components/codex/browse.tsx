@@ -1,6 +1,5 @@
 import { useMemo, useState } from 'react';
 import {
-  CATEGORIES,
   type Category,
   type CodexIndex,
   type Entry,
@@ -275,6 +274,13 @@ export function entryOf(key: string, index: CodexIndex, t: ReturnType<typeof use
 /** Guides that start a new player off, shown on the Codex's front page. */
 export const FEATURED: GuideId[] = ['start', 'elevator', 'power', 'alternates', 'oil', 'nuclear'];
 
+/** The categories on the Codex's first page, in three groups. */
+const HOME_GROUPS: [string, Category[]][] = [
+  ['items', ['parts', 'resources', 'equipment', 'vehicles']],
+  ['build', ['buildings', 'alternates', 'milestones', 'research']],
+  ['world', ['shop', 'world', 'creatures', 'guides']],
+];
+
 export function Home({ index }: { index: CodexIndex }) {
   const { t } = useT();
   const [recent] = useState(() =>
@@ -285,15 +291,20 @@ export function Home({ index }: { index: CodexIndex }) {
   return (
     <>
       <h2 className="codex-title">{t('codex')}</h2>
-      <div className="codex-cat-grid">
-        {CATEGORIES.map((c) => (
-          <CodexLink key={c} page={{ kind: 'cat', id: c }} className="codex-cat-card">
-            <Icon id={CATEGORY_ICON[c]} size={64} />
-            <span className="codex-cat-card-name">{t(`cat_${c}`)}</span>
-            <span className="codex-cat-card-count">{countOf(c, index)}</span>
-          </CodexLink>
-        ))}
-      </div>
+      {HOME_GROUPS.map(([group, cats]) => (
+        <section key={group} className="codex-section">
+          <h3 className="codex-h">{t(`codexGroup_${group}` as 'codexGroup_items')}</h3>
+          <div className="codex-cat-grid">
+            {cats.map((c) => (
+              <CodexLink key={c} page={{ kind: 'cat', id: c }} className="codex-cat-card">
+                <Icon id={CATEGORY_ICON[c]} size={72} />
+                <span className="codex-cat-card-name">{t(`cat_${c}`)}</span>
+                <span className="codex-cat-card-count">{countOf(c, index)}</span>
+              </CodexLink>
+            ))}
+          </div>
+        </section>
+      ))}
       <section className="codex-section">
         <h3 className="codex-h">{t('codexGuidesTitle')}</h3>
         <div className="codex-guide-cards">

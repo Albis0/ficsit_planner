@@ -10,6 +10,24 @@ export type UpdateNote = [UpdateKind, string];
 
 export const UPDATES: { version: string; date: string; title?: string; notes: UpdateNote[] }[] = [
   {
+    version: '0.13.29',
+    date: '2026-10-09',
+    notes: [
+      [
+        'changed',
+        'Top bar: the row of factory tabs is one button with the name on screen. It opens a list of every factory and power plant, with each one’s MW.',
+      ],
+      [
+        'added',
+        'Top bar: drag the grip beside a factory or plant in that list to put it in another place. The new factory and new power plant buttons are at the foot of the list.',
+      ],
+      [
+        'changed',
+        'Codex: the first page groups the categories under Items, Build and research and The world, as tall tiles with the count in the corner.',
+      ],
+    ],
+  },
+  {
     version: '0.13.28',
     date: '2026-10-09',
     notes: [

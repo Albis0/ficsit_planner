@@ -63,31 +63,28 @@
 }
 
 /*
-  Phones keep the top bar for the tabs: the logo alone stands for the name, and the tab row is swiped rather than
-  stepped with arrows, so the room goes to the tab names. Closing a tab is in the ⋯ menu there.
+  Phones keep the top bar for the tab: the logo alone stands for the name, so the room goes to the factory's name.
+  Closing a tab is in the ⋯ menu there.
 */
 @media (max-width: 900px) {
-  .brand-name,
-  .tabs-nudge,
-  .plan-tab-close {
+  .brand-name {
     display: none;
   }
 
-  /* Tight enough that a name like "Factory 12" still shows whole beside the four mode buttons. */
-  .plan-tab {
-    padding-right: 4px;
-  }
-
-  .plan-tab-name {
-    padding-left: 10px;
-  }
-
-  .plan-tabs-frame {
+  .plan-current {
     flex: 1 1 auto;
+    padding: 0 10px 0 12px;
   }
 
   .plan-add {
     width: 30px;
+  }
+
+  /* Narrow phones: the list has its own "new" buttons, and the name needs the room. */
+  @media (max-width: 600px) {
+    .plan-add {
+      display: none;
+    }
   }
 
   .mode-switch button {

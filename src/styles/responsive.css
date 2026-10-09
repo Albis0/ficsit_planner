@@ -244,13 +244,8 @@
     display: none;
   }
 
-  .plan-tab {
-    padding: 0 4px 0 0;
+  .plan-current {
     font-size: 17px;
-  }
-
-  .plan-tab-name {
-    padding-left: 14px;
   }
 
   .plan-tab.editing {
