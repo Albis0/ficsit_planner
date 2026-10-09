@@ -36,6 +36,8 @@ export const en = {
   toPoolShort: 'Pool',
   toPoolHint: 'Offer what this product makes to the pool, so other factories and power plants can take it',
   makeFromIt: 'Make something from it',
+  sinkIt: 'Sink it as {item}',
+  sinkItNote: 'Adds a {machine} and needs {n} {can} a minute.',
   takeFromPool: 'Take from the pool',
   poolHas: '{n}/min in the pool',
   poolShort: 'The pool is {n}/min short',

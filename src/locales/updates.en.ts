@@ -10,6 +10,16 @@ export type UpdateNote = [UpdateKind, string];
 
 export const UPDATES: { version: string; date: string; title?: string; notes: UpdateNote[] }[] = [
   {
+    version: '0.13.33',
+    date: '2026-10-09',
+    notes: [
+      [
+        'changed',
+        'A liquid leftover can be sunk: its menu starts with "Sink it as Packaged …", which adds a Packager, tells you how many Empty Canisters a minute it needs and what the packed parts score in the AWESOME Sink.',
+      ],
+    ],
+  },
+  {
     version: '0.13.32',
     date: '2026-10-09',
     notes: [

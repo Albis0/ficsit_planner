@@ -3,7 +3,7 @@ import { cleanPlan } from '../src/lib/sanitize';
 import { poolShare } from '../src/lib/overview';
 import type { SolveResult } from '../src/lib/solver';
 import { makeFromLeftover, newPlan, togglePooled } from '../src/store';
-import { recipesTaking } from '../src/components/SurplusMake';
+import { packsForSink, recipesTaking } from '../src/components/SurplusMake';
 import { data } from '../src/lib/data';
 
 const HOR = 'Desc_HeavyOilResidue_C';
@@ -83,5 +83,14 @@ describe('offering a product to the pool', () => {
     const saved = cleanPlan({ ...base, targets: [{ item: FUEL, rate: 5 }], pooled: [FUEL, 'Desc_Gone_C', 3] }, base);
     expect(saved.pooled).toEqual([FUEL]);
     expect(cleanPlan({ ...base, pooled: [] }, base).pooled).toBeUndefined();
+  });
+
+  test('a liquid leftover can be packed into a part the Sink takes, a solid one needs no packing', () => {
+    const all = new Set(data.recipes.map((r) => r.id));
+    const packing = recipesTaking(HOR, all, 9).filter((r) => packsForSink(r, HOR));
+    expect(packing.map((r) => r.id)).toContain('Recipe_PackagedOilResidue_C');
+    const patch = makeFromLeftover('Recipe_PackagedOilResidue_C', HOR, 30)(plan());
+    expect(patch.targets).toContainEqual({ item: 'Desc_PackagedOilResidue_C', rate: 30 });
+    expect(recipesTaking('Desc_IronPlate_C', all, 9).some((r) => packsForSink(r, 'Desc_IronPlate_C'))).toBe(false);
   });
 });

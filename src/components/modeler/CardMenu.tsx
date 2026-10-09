@@ -6,6 +6,10 @@ export interface CardMenuItem {
   /** Its keyboard shortcut, shown on the right. */
   keys?: string;
   danger?: boolean;
+  /** A line under the label that says what picking it does. */
+  note?: string;
+  /** Marks a pick that sends something to the AWESOME Sink. */
+  sink?: boolean;
   onPick: () => void;
 }
 
@@ -54,13 +58,16 @@ export function CardMenu({
           key={it.label}
           type="button"
           role="menuitem"
-          className={it.danger ? 'danger' : undefined}
+          className={it.danger ? 'danger' : it.sink ? 'sink' : undefined}
           onClick={() => {
             onClose();
             it.onPick();
           }}
         >
-          <span>{it.label}</span>
+          <span>
+            {it.label}
+            {it.note && <small className="menu-note">{it.note}</small>}
+          </span>
           {it.keys && <kbd>{it.keys}</kbd>}
         </button>
       ))}

@@ -2,6 +2,15 @@
 
 All notable changes to FICSIT Planner. Dates are when the version was finished.
 
+## 0.13.33 — 2026-10-09
+
+### Changed
+
+- **A liquid leftover can be sunk.** The menu under a leftover card (Make something from it) now starts with "Sink it
+  as Packaged …" when the leftover is a liquid: it adds a Packager, says how many Empty Canisters a minute it needs and
+  how many Sink points a minute the packed parts are worth. The packed part goes to the pool, so the All page's Sink row
+  counts it.
+
 ## 0.13.32 — 2026-10-09
 
 ### Changed
