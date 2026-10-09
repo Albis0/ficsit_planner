@@ -118,12 +118,16 @@ export const UPDATES: { version: string; date: string; title?: string; notes: Up
     date: '2026-10-08',
     notes: [
       ['added', 'Manual floor: final products. Place one from the build menu or end a belt in one, then build back from it.'],
-      ['added', 'Auto floor: leftover cards get “Make something from it”. Pick a recipe and its product is added.'],
+      [
+        'added',
+        'Auto floor: leftover cards get “Make something from it”. Pick a recipe and its product is added, made from that leftover even when the line was a line of its own.',
+      ],
       [
         'added',
         'Auto floor: “To the pool” on every product, so other factories and plants can take it. The output card has the button too.',
       ],
       ['added', 'Manual floor: “Take from the pool” and “Take from another factory” under Comes in, like on the Auto floor.'],
+      ['changed', 'Manual floor: “Output with no belt” is a drawer; open the tab to pick Counts as spare or Machine stops.'],
       [
         'changed',
         'Auto floor: the strip for pinned inputs is one slim line, and “Make default” turns the scaled amounts into the targets.',
@@ -148,7 +152,10 @@ export const UPDATES: { version: string; date: string; title?: string; notes: Up
     date: '2026-10-08',
     notes: [
       ['changed', 'Auto floor: a flow bigger than one belt is drawn as that many belts side by side, up to six, labelled like “3 × Mk.5”.'],
-      ['changed', 'Floors: belts side by side keep apart round a bend and run together only where they meet a splitter, merger or card.'],
+      [
+        'changed',
+        'Floors: belts side by side keep apart round a bend, and a card’s end is as wide as the belts that meet it, so they go in in parallel. They close up only at a splitter or merger.',
+      ],
       [
         'fixed',
         'Manual floor: the build menu finds the splitter, merger and pipeline junction when you search for them (“split”, “pipe”).',

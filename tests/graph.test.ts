@@ -222,3 +222,25 @@ test('a splitter has one input and three outputs, a merger three inputs and one 
     expect(new Set(used).size).toBe(used.length);
   }
 });
+
+test('belts side by side go into a card through an end as wide as they are, not through one point', () => {
+  const r = solve(highs, {
+    targets: [{ item: 'Desc_IronPlate_C', rate: 1000 }],
+    supplies: [],
+    enabledRecipes: standard(),
+    resourceCaps: {},
+    objective: 'resources',
+  });
+  const { nodes, edges } = buildGraph(r, 3);
+  const many = edges.filter((e) => (e.data as { lanes: number }).lanes > 1);
+  expect(many.length).toBeGreaterThan(0);
+  for (const e of many) {
+    const d = e.data as { lanes: number; wide?: { from: boolean; to: boolean } };
+    expect(d.wide).toEqual({ from: true, to: true });
+    const need = Math.min(d.lanes, 6) * 10;
+    const out = nodes.find((n) => n.id === e.source)!.handles!.find((h) => h.type === 'source')!;
+    const into = nodes.find((n) => n.id === e.target)!.handles!.find((h) => h.type === 'target')!;
+    expect(out.height).toBeGreaterThanOrEqual(need);
+    expect(into.height).toBeGreaterThanOrEqual(need);
+  }
+});

@@ -415,11 +415,81 @@
 .open-outputs {
   display: flex;
   align-items: center;
+}
+
+.open-outputs[data-open] {
   gap: 8px;
 }
 
 .open-outputs .segmented button {
   white-space: nowrap;
+}
+
+/* The drawer: a tab with the setting and its choice, and the two choices sliding out of it to the right. */
+.drawer-tab {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 5px 10px;
+  background: var(--panel);
+  border: 1px solid var(--button-edge);
+  border-radius: var(--radius);
+  box-shadow: 0 2px 6px rgb(0 0 0 / 0.3);
+  cursor: pointer;
+}
+
+.drawer-tab:hover .tool-label {
+  color: var(--paper);
+}
+
+.drawer-now {
+  font: 600 14px var(--font-display);
+  color: var(--dim);
+  white-space: nowrap;
+}
+
+.drawer-arrow {
+  font: 700 18px / 1 var(--font-display);
+  color: var(--dim);
+  transition: transform 0.2s ease-out;
+}
+
+.open-outputs[data-open] .drawer-arrow {
+  transform: rotate(180deg);
+}
+
+.open-outputs[data-open] .drawer-now {
+  display: none;
+}
+
+.drawer-slide {
+  display: grid;
+  grid-template-columns: 0fr;
+  transition: grid-template-columns 0.2s ease-out;
+}
+
+.open-outputs[data-open] .drawer-slide {
+  grid-template-columns: 1fr;
+}
+
+.drawer-inner {
+  min-width: 0;
+  overflow: hidden;
+  /* Shut, it is out of sight and out of reach, not just squeezed to nothing. */
+  visibility: hidden;
+  transition: visibility 0s 0.2s;
+}
+
+.open-outputs[data-open] .drawer-inner {
+  visibility: visible;
+  transition-delay: 0s;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .drawer-slide,
+  .drawer-arrow {
+    transition: none;
+  }
 }
 
 .tool-label {

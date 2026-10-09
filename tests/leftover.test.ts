@@ -124,3 +124,48 @@ describe('input cards on a hand-built floor that name their source', () => {
     expect(dropSource([hand(POOL)], 'x')[0].model?.nodes.some((n) => n.k === 'in' && n.from === POOL)).toBe(true);
   });
 });
+
+describe('making something from the leftover of a line of its own', () => {
+  const RUBBER = 'Desc_Rubber_C';
+  const PLASTIC = 'Desc_Plastic_C';
+  const own = () => ({
+    ...newPlan('Lines'),
+    targets: [
+      { item: PLASTIC, rate: 100 },
+      { item: RUBBER, rate: 100 },
+    ],
+    separate: [PLASTIC, RUBBER],
+  });
+
+  test('the line the leftover comes from stops being a line of its own, the other one stays', () => {
+    const patch = makeFromLeftover(RESIDUAL, HOR, 50, [PLASTIC])(own());
+    expect(patch.separate).toEqual([RUBBER]);
+    expect(makeFromLeftover(RESIDUAL, HOR, 50, [PLASTIC, RUBBER])(own()).separate).toBeUndefined();
+    // Without the line, nothing about the lines changes.
+    expect('separate' in makeFromLeftover(RESIDUAL, HOR, 50)(own())).toBe(false);
+  });
+
+  test('what is made from it takes the leftover and no oil of its own', async () => {
+    const { default: loadHighs } = await import('highs');
+    const { solve, solveInLines } = await import('../src/lib/solver').then(async (m) => ({
+      solve: m.solve,
+      solveInLines: (await import('../src/lib/lines')).solveInLines,
+    }));
+    const highs = await loadHighs();
+    const p = own();
+    const patch = makeFromLeftover(RESIDUAL, HOR, 50, [PLASTIC])(p);
+    const enabled = new Set(patch.enabled);
+    const input = {
+      targets: patch.targets ?? p.targets,
+      supplies: [],
+      enabledRecipes: enabled,
+      resourceCaps: {},
+      objective: 'resources' as const,
+      lines: patch.separate ?? [],
+    };
+    const r = solveInLines((i) => solve(highs, i), input);
+    const oil = r.raw.find((x) => x.item === 'Desc_LiquidOil_C')?.rate ?? 0;
+    // 150 for the plastic, 150 for the rubber, none more for the fuel.
+    expect(oil).toBeCloseTo(300, 3);
+  });
+});

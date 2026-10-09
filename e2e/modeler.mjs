@@ -35,6 +35,16 @@ let page;
 let shots = 0;
 const errors = [];
 
+// The choice for an output with no belt sits in a drawer: open it first when it is shut.
+async function chooseOpenOutput(label) {
+  const tab = page.locator('.open-outputs .drawer-tab');
+  if ((await tab.getAttribute('aria-expanded')) !== 'true') {
+    await tab.click();
+    await page.waitForTimeout(300);
+  }
+  await page.locator(`.open-outputs [role=radio]:has-text("${label}")`).click();
+}
+
 function ok(step, pass, info = '') {
   results.push({ section, step, pass: !!pass, info });
   console.log(`${pass ? 'ok  ' : 'FAIL'} ${section} ${step}${info ? ` — ${info}` : ''}`);
@@ -565,11 +575,11 @@ const clash = (a, b) => a && b && a.x < b.x + b.width && b.x < a.x + a.width && 
   );
   ok('the totals count it as left over', /Surplus\s*45/.test(await page.locator('.floor').innerText()));
   await shot('a7-left-over');
-  await page.locator('.open-outputs button:has-text("Machine stops")').click();
+  await chooseOpenOutput('Machine stops');
   await settle();
   ok('open outputs backing up, as in the game: it stops', (await card(ironSmelter.id).innerText()).includes('Output not connected'));
   await shot('a7-stall');
-  await page.locator('.open-outputs button:has-text("Counts as spare")').click();
+  await chooseOpenOutput('Counts as spare');
   await settle();
   await page.locator('.tool-button[aria-label="Numbers"]').click();
   await settle();
@@ -905,7 +915,7 @@ const clash = (a, b) => a && b && a.x < b.x + b.width && b.x < a.x + a.width && 
 
   section = 'B4';
   // Open outputs backing up as in the game: then every open output needs a belt.
-  await page.locator('.open-outputs button:has-text("Machine stops")').click();
+  await chooseOpenOutput('Machine stops');
   await settle();
   const openText = await page
     .locator('.open-ends')
@@ -940,7 +950,7 @@ const clash = (a, b) => a && b && a.x < b.x + b.width && b.x < a.x + a.width && 
     await page.keyboard.press('Escape');
   }
   ok('nothing left open', !(await page.locator('.open-ends').count()));
-  await page.locator('.open-outputs button:has-text("Counts as spare")').click();
+  await chooseOpenOutput('Counts as spare');
   await settle();
   const allStates = await page.$$eval('.react-flow__node .run-state', (l) => l.map((x) => x.textContent));
   ok(
@@ -1656,10 +1666,12 @@ const clash = (a, b) => a && b && a.x < b.x + b.width && b.x < a.x + a.width && 
   await page.keyboard.press('Escape');
   await wait(300);
 
-  // Open outputs: the words a caption beside the switch, not a part of it.
+  // Open outputs: a drawer, its tab naming the setting and the choice, the switch inside it with no caption of its own.
   ok(
-    'Open outputs is a caption beside its switch',
-    (await page.locator('.open-outputs > .tool-label').count()) === 1 && !(await page.locator('.segmented .tool-label').count()),
+    'Open outputs is a drawer: a tab, and the switch inside it',
+    (await page.locator('.open-outputs > .drawer-tab .tool-label').count()) === 1 &&
+      (await page.locator('.open-outputs .drawer-slide .segmented').count()) === 1 &&
+      !(await page.locator('.segmented .tool-label').count()),
   );
 
   // Laying a belt by clicks: the strip low over the floor, clear of the toolbar.

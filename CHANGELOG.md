@@ -101,7 +101,8 @@ All notable changes to FICSIT Planner. Dates are when the version was finished.
   product card's input lists the machines that make it, so a floor can be built back from what you want.
 - **Make something from a leftover on the Auto floor.** A leftover card has a "Make something from it" button that lists
   the recipes taking that item. Picking one adds its product to the targets for as much as the leftover makes, and offers
-  it to the pool.
+  it to the pool. When the leftover comes from a line of its own (Own line), that line joins the rest, so what is made
+  from it uses the leftover and does not build a line of its own with oil of its own.
 - **To the pool** on each product in the Auto side panel: what the product makes is added to what the factory leaves
   over, so other factories and power plants can take it from the pool. The output card on the floor has the same button,
   and says "In the pool" when it is on.
@@ -111,6 +112,8 @@ All notable changes to FICSIT Planner. Dates are when the version was finished.
 
 ### Changed
 
+- **Output with no belt** on the Manual floor is a drawer: a tab with the setting and its choice, and the two choices
+  (Counts as spare, Machine stops) slide out of it when you open it.
 - **Pinned inputs** show as one slim line above the totals: the factor, the scaled targets, **Make default** and Unpin all.
   Make default turns the scaled amounts into the targets and lets go of the pins, in one step to undo.
 
@@ -143,7 +146,8 @@ All notable changes to FICSIT Planner. Dates are when the version was finished.
 - **Belts that carry more than one belt's worth.** The Auto floor draws that many ordinary belts side by side (up to six)
   instead of one fat belt, and the label reads "3 × Mk.5". The Manual floor draws its extra lines the same way. Each
   belt is a path of its own that follows the bends, and they run together only at the splitter, merger or card they meet,
-  so they no longer pile up on each other round a corner.
+  so they no longer pile up on each other round a corner. A card's end is as wide as the belts that meet it (up to six),
+  so they go in parallel into the card; only splitters and mergers draw them closing up.
 - **Build menu search** finds the splitter, the merger and the pipeline junction by what they do: "split" or "pipe" finds
   the junction, which is the pipe splitter. Searching for them found nothing before.
 - **From the pool.** The card now names who leaves the item over: up to two factories or plants, then "+ N".

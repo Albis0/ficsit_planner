@@ -21,6 +21,8 @@ export interface MachineNodeData extends Record<string, unknown> {
   split?: Split;
   /** A card of its own for one of those groups: `use` is then just this group's machines. */
   part?: SplitGroup;
+  /** How many belts side by side meet each end of the card. */
+  ports?: { in?: number; out?: number };
 }
 
 /** Who draws from the grid: a factory, the fuel chain itself, what the player typed in, or the output sent on. */
@@ -59,6 +61,10 @@ export interface LogisticNodeData extends Record<string, unknown> {
 }
 
 export interface EndpointNodeData extends Record<string, unknown> {
+  /** How many belts side by side meet each end of the card. */
+  ports?: { in?: number; out?: number };
+  /** The products of the line this card belongs to, when the factory is built as lines of their own. */
+  line?: string[];
   kind: EndpointKind;
   item: string;
   rate: number;
@@ -91,10 +97,20 @@ export interface FlowEdgeData extends Record<string, unknown> {
   transport: Transport;
   /** Belts/pipes side by side when the best unlocked one can't carry it alone. */
   lanes: number;
+  /** Which ends are as wide as the belts (a card's end), so those belts run in parallel into it instead of joining. */
+  wide?: { from: boolean; to: boolean };
   route?: Route;
 }
 
 const HANDLE = { width: 10, height: 18 };
+
+/** The most belts side by side that are drawn as such; past that the label's count says how many. */
+export const MAX_LANES = 6;
+/** Centre to centre between belts side by side. */
+export const LANE_PITCH = 10;
+
+/** How long a card's end is: as wide as the belts side by side that meet it, so they go in parallel. */
+const endLength = (lanes: number | undefined, room: number) => Math.min(room - 6, Math.max(HANDLE.height, (lanes ?? 0) * LANE_PITCH));
 
 /** Where along its side each of `n` ends of a splitter or merger sits, as a share of the side: one in the middle, three evenly. */
 export const portSpots = (n: number): number[] => (n <= 1 ? [0.5] : Array.from({ length: n }, (_, i) => (i + 1) / (n + 1)));
@@ -112,6 +128,7 @@ function handlesFor(
   sides: { target: boolean; source: boolean },
   dir: Direction,
   ends?: { ins: number; outs: number },
+  wide?: { in?: number; out?: number },
 ): NodeHandle[] {
   const list: NodeHandle[] = [];
   if (ends) {
@@ -142,15 +159,30 @@ function handlesFor(
   }
   if (dir === 'TB') {
     // Same handle turned on its side.
-    const x = size.width / 2 - HANDLE.height / 2;
-    const flat = { width: HANDLE.height, height: HANDLE.width };
-    if (sides.target) list.push({ type: 'target', position: Position.Top, x, y: -flat.height / 2, ...flat });
-    if (sides.source) list.push({ type: 'source', position: Position.Bottom, x, y: size.height - flat.height / 2, ...flat });
+    if (sides.target) {
+      const flat = { width: endLength(wide?.in, size.width), height: HANDLE.width };
+      list.push({ type: 'target', position: Position.Top, x: size.width / 2 - flat.width / 2, y: -flat.height / 2, ...flat });
+    }
+    if (sides.source) {
+      const flat = { width: endLength(wide?.out, size.width), height: HANDLE.width };
+      list.push({
+        type: 'source',
+        position: Position.Bottom,
+        x: size.width / 2 - flat.width / 2,
+        y: size.height - flat.height / 2,
+        ...flat,
+      });
+    }
     return list;
   }
-  const y = size.height / 2 - HANDLE.height / 2;
-  if (sides.target) list.push({ type: 'target', position: Position.Left, x: -HANDLE.width / 2, y, ...HANDLE });
-  if (sides.source) list.push({ type: 'source', position: Position.Right, x: size.width - HANDLE.width / 2, y, ...HANDLE });
+  if (sides.target) {
+    const h = { width: HANDLE.width, height: endLength(wide?.in, size.height) };
+    list.push({ type: 'target', position: Position.Left, x: -h.width / 2, y: size.height / 2 - h.height / 2, ...h });
+  }
+  if (sides.source) {
+    const h = { width: HANDLE.width, height: endLength(wide?.out, size.height) };
+    list.push({ type: 'source', position: Position.Right, x: size.width - h.width / 2, y: size.height / 2 - h.height / 2, ...h });
+  }
   return list;
 }
 
@@ -261,7 +293,9 @@ export function buildGraph(result: SolveResult, tier: number, opts: GraphOptions
       focusable: false,
       handles: [],
     });
-    for (const n of g.nodes) nodes.push({ ...n, id: id(n.id), position: at(n.position) });
+    // A leftover card of a line of its own says which products that line makes, so what is made from it joins them.
+    const owned = (n: Node) => (n.type === 'endpoint' ? { ...n, data: { ...n.data, line: line.items } } : n);
+    for (const n of g.nodes) nodes.push({ ...owned(n), id: id(n.id), position: at(n.position) });
     for (const e of g.edges) {
       const data = e.data as FlowEdgeData;
       const route = data.route && {
@@ -392,11 +426,37 @@ function buildGraphOne(result: SolveResult, tier: number, opts: GraphOptions = {
 
   const dir = layout(nodes, edges, opts);
   if (opts.splitters) assignPorts(nodes, edges, dir);
+  widenEnds(nodes, edges);
   for (const n of nodes) {
     const d = n.type === 'logistic' ? (n.data as LogisticNodeData) : undefined;
-    n.handles = handlesFor({ width: n.width!, height: n.height! }, sides.get(n.id)!, dir, d && { ins: d.ins, outs: d.outs });
+    const ports = n.type === 'machine' || n.type === 'endpoint' ? (n.data as MachineNodeData).ports : undefined;
+    n.handles = handlesFor({ width: n.width!, height: n.height! }, sides.get(n.id)!, dir, d && { ins: d.ins, outs: d.outs }, ports);
   }
   return { nodes, edges, dir };
+}
+
+/**
+ * A card's end as wide as the most belts side by side that meet it, so a line of 14 belts enters the card as a ribbon
+ * and not through one point. The ends of splitters and mergers stay small: their belts join there.
+ */
+function widenEnds(nodes: Node[], edges: Edge[]) {
+  const ports = new Map<string, { in?: number; out?: number }>();
+  const type = new Map(nodes.map((n) => [n.id, n.type]));
+  const card = (id: string) => type.get(id) === 'machine' || type.get(id) === 'endpoint';
+  for (const e of edges) {
+    if (e.type !== 'flow') continue;
+    const d = e.data as FlowEdgeData;
+    const lanes = Math.min(d.lanes, MAX_LANES);
+    if (lanes < 2) continue;
+    const wide = { from: card(e.source), to: card(e.target) };
+    e.data = { ...d, wide };
+    if (wide.from) ports.set(e.source, { ...ports.get(e.source), out: Math.max(ports.get(e.source)?.out ?? 0, lanes) });
+    if (wide.to) ports.set(e.target, { ...ports.get(e.target), in: Math.max(ports.get(e.target)?.in ?? 0, lanes) });
+  }
+  for (const n of nodes) {
+    const p = ports.get(n.id);
+    if (p) n.data = { ...n.data, ports: p };
+  }
 }
 
 /**

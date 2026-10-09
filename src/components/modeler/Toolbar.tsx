@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { useT } from '../../lib/i18n';
 import { canRedo, canUndo } from '../../lib/model/history';
 import { Glyph, type GlyphName } from '../Glyph';
@@ -51,6 +52,7 @@ export function ModelToolbar({
 }) {
   const { t } = useT();
   const { model } = host;
+  const [drawer, setDrawer] = useState(false);
   const numbers = model.calc !== 'off';
   const setStall = (on: boolean) =>
     host.edit((x) => {
@@ -74,17 +76,33 @@ export function ModelToolbar({
           onClick={() => host.edit((x) => ({ ...x, calc: numbers ? 'off' : 'basic' }))}
         />
       </div>
-      <div className="open-outputs">
-        <span className="tool-label" id="open-outputs-label">
-          {t('openOutputs')}
-        </span>
-        <div className="segmented" role="radiogroup" aria-labelledby="open-outputs-label">
-          <button type="button" role="radio" aria-checked={!model.stall} title={t('openLeftOverHint')} onClick={() => setStall(false)}>
-            {t('openLeftOver')}
-          </button>
-          <button type="button" role="radio" aria-checked={!!model.stall} title={t('openFillHint')} onClick={() => setStall(true)}>
-            {t('openFill')}
-          </button>
+      <div className="open-outputs" data-open={drawer ? '' : undefined}>
+        {/* A drawer: the tab names the setting and the choice it holds; opened, the two choices slide out beside it. */}
+        <button
+          type="button"
+          className="drawer-tab"
+          id="open-outputs-label"
+          aria-expanded={drawer}
+          aria-controls="open-outputs-drawer"
+          onClick={() => setDrawer(!drawer)}
+        >
+          <span className="tool-label">{t('openOutputs')}</span>
+          <span className="drawer-now">{model.stall ? t('openFill') : t('openLeftOver')}</span>
+          <span className="drawer-arrow" aria-hidden>
+            ›
+          </span>
+        </button>
+        <div className="drawer-slide" id="open-outputs-drawer" inert={!drawer}>
+          <div className="drawer-inner">
+            <div className="segmented" role="radiogroup" aria-labelledby="open-outputs-label">
+              <button type="button" role="radio" aria-checked={!model.stall} title={t('openLeftOverHint')} onClick={() => setStall(false)}>
+                {t('openLeftOver')}
+              </button>
+              <button type="button" role="radio" aria-checked={!!model.stall} title={t('openFillHint')} onClick={() => setStall(true)}>
+                {t('openFill')}
+              </button>
+            </div>
+          </div>
         </div>
       </div>
       {unbounded && <span className="run-state bad">{t('unboundedHint')}</span>}

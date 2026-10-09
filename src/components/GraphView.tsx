@@ -31,7 +31,9 @@ import {
   type EndpointNodeData,
   type FlowEdgeData,
   type LineTagData,
+  LANE_PITCH,
   type LogisticNodeData,
+  MAX_LANES,
   portSpots,
   type MachineNodeData,
   type Point,
@@ -49,7 +51,7 @@ import { minerLabel, recipeLabel } from '../lib/text';
 import { COARSE, useMediaQuery } from '../lib/useMediaQuery';
 import type { SolveResult } from '../lib/solver';
 import { activePowerPlan, toggleBuilt, togglePooled, usePlan, useStore } from '../store';
-import { beltStroke, LANE_PITCH } from './floor/BeltStroke';
+import { beltStroke } from './floor/BeltStroke';
 import { longestRunMid, SQUARE_TURN, squarePath } from './floor/squarePath';
 import { Glyph } from './Glyph';
 import { Icon } from './Icon';
@@ -139,11 +141,18 @@ function GroupsBadge({ use }: { use: MachineNodeData['use'] }) {
   );
 }
 
+/** A card's end for belts: as wide as the belts side by side that meet it, so they go in parallel. */
+function PortHandle({ type, lanes }: { type: 'source' | 'target'; lanes?: number }) {
+  const dir = useContext(Flow);
+  const length = lanes && lanes > 1 ? lanes * LANE_PITCH : undefined;
+  const style = length ? (dir === 'TB' ? { width: length } : { height: length }) : undefined;
+  return <Handle type={type} position={type === 'target' ? inSide(dir) : outSide(dir)} style={style} />;
+}
+
 /** A row of generators: the strip names the fuel and what they put on the grid, the building below. */
 function GeneratorNode({ id, data: d, selected }: NodeProps) {
   const { name, num } = useT();
-  const { use, generation = 0 } = d as MachineNodeData;
-  const dir = useContext(Flow);
+  const { use, generation = 0, ports } = d as MachineNodeData;
   const faded = useFaded(id);
   const gen = generatorById.get(use.recipe.machine);
   const fuel = use.recipe.inputs.find((i) => data.items[i.item]?.energy)?.item;
@@ -152,7 +161,7 @@ function GeneratorNode({ id, data: d, selected }: NodeProps) {
       className={`machine-node power gen-${gen?.kind ?? 'fuel'} ${faded ? 'faded' : ''} ${selected ? 'selected' : ''}`}
       style={{ ['--run-extra' as string]: runExtra(use), ...(use.shards > 0 ? { ['--mod-bar' as string]: 'var(--shard)' } : {}) }}
     >
-      <Handle type="target" position={inSide(dir)} />
+      <PortHandle type="target" lanes={ports?.in} />
       <div className="machine-strip">
         <Icon id={fuel ?? use.recipe.machine} size={30} className="strip-icon" />
         <span className="machine-product">{fuel ? name(data.items[fuel]) : name(gen)}</span>
@@ -173,7 +182,7 @@ function GeneratorNode({ id, data: d, selected }: NodeProps) {
           </span>
         </span>
       </div>
-      <Handle type="source" position={outSide(dir)} />
+      <PortHandle type="source" lanes={ports?.out} />
     </div>
   );
 }
@@ -181,8 +190,7 @@ function GeneratorNode({ id, data: d, selected }: NodeProps) {
 function MachineNode(props: NodeProps) {
   const { id, data: d, selected } = props;
   const { name, num } = useT();
-  const { use, split, part } = d as MachineNodeData;
-  const dir = useContext(Flow);
+  const { use, split, part, ports } = d as MachineNodeData;
   const { recipe } = use;
   const faded = useFaded(id);
   const done = useContext(Built).built.has(recipe.id);
@@ -193,7 +201,7 @@ function MachineNode(props: NodeProps) {
       className={`machine-node ${recipe.kind} ${faded ? 'faded' : ''} ${selected ? 'selected' : ''} ${done ? 'done' : ''}`}
       style={{ ['--run-extra' as string]: cardExtra(use, split ?? part), ...(bar ? { ['--mod-bar' as string]: bar } : {}) }}
     >
-      <Handle type="target" position={inSide(dir)} />
+      <PortHandle type="target" lanes={ports?.in} />
       {/* The in-game build menu look: a coloured strip naming what it makes, the building and its draw below. */}
       <div className="machine-strip">
         <Icon id={recipe.outputs[0].item} size={30} className="strip-icon" />
@@ -220,7 +228,7 @@ function MachineNode(props: NodeProps) {
           {part && <SplitTo part={part} />}
         </span>
       </div>
-      <Handle type="source" position={outSide(dir)} />
+      <PortHandle type="source" lanes={ports?.out} />
     </div>
   );
 }
@@ -300,11 +308,10 @@ function PoolToggle({ item }: { item: string }) {
 
 function EndpointNode({ id, data: d }: NodeProps) {
   const { name, num, t } = useT();
-  const { kind, item, rate } = d as EndpointNodeData;
+  const { kind, item, rate, line, ports } = d as EndpointNodeData;
   const faded = useFaded(id);
   const factoryMode = useStore((s) => s.mode === 'factory');
   const ex = useContext(Extraction).get(item);
-  const dir = useContext(Flow);
   const links = useContext(Links);
   const sent = kind === 'target' ? links?.to.get(item) : undefined;
   const source = kind === 'supply' ? links?.from.get(item) : undefined;
@@ -321,7 +328,7 @@ function EndpointNode({ id, data: d }: NodeProps) {
       className={`endpoint-node ${kind} ${faded ? 'faded' : ''}`}
       style={it.form !== 'solid' ? { ['--fluid-color' as string]: pipeColor(it) ?? 'var(--fluid)' } : undefined}
     >
-      {!feeds && <Handle type="target" position={inSide(dir)} />}
+      {!feeds && <PortHandle type="target" lanes={ports?.in} />}
       <Slot id={item} size={60} tone={kind === 'target' ? 'target' : 'default'} />
       <span className="endpoint-text">
         <span className="endpoint-kind">{label}</span>
@@ -353,9 +360,9 @@ function EndpointNode({ id, data: d }: NodeProps) {
           )}
         </span>
       </span>
-      {kind === 'surplus' && factoryMode && <SurplusMake item={item} rate={rate} />}
+      {kind === 'surplus' && factoryMode && <SurplusMake item={item} rate={rate} line={line} />}
       {kind === 'target' && factoryMode && <PoolToggle item={item} />}
-      {feeds && <Handle type="source" position={outSide(dir)} />}
+      {feeds && <PortHandle type="source" lanes={ports?.out} />}
     </div>
   );
 }
@@ -542,8 +549,6 @@ function nodeName(node: unknown, name: (x: { name: string }) => string): string 
 
 const moved = (a: Point | undefined, b: Point) => !a || Math.abs(a.x - b.x) > 0.5 || Math.abs(a.y - b.y) > 0.5;
 
-const MAX_DRAWN_LANES = 6;
-
 /** A conveyor belt (rails, bed, moving slats) or a pipe (casing, flowing fluid) along the edge. */
 function FlowEdge({ id, source, target, sourceX, sourceY, targetX, targetY, sourcePosition, targetPosition, data: d }: EdgeProps) {
   const { name, num, t } = useT();
@@ -553,7 +558,7 @@ function FlowEdge({ id, source, target, sourceX, sourceY, targetX, targetY, sour
   const labels = useStore((s) => s.settings.beltLabels);
   const square = useStore((s) => s.settings.autoBelts === 'square');
   const oneColor = useStore((s) => s.settings.beltColors === 'one');
-  const { item, rate, transport, lanes, route } = d as FlowEdgeData;
+  const { item, rate, transport, lanes, route, wide } = d as FlowEdgeData;
   const it = data.items[item];
   const dir = useContext(Flow);
   const fromNode = useInternalNode(source);
@@ -583,12 +588,12 @@ function FlowEdge({ id, source, target, sourceX, sourceY, targetX, targetY, sour
     [path, lx, ly] = getBezierPath({ sourceX, sourceY, targetX, targetY, sourcePosition, targetPosition });
   }
   // Side by side lines widen the belt, up to a point: past a few, the label's "123×" says how many.
-  const drawn = Math.min(lanes, MAX_DRAWN_LANES);
+  const drawn = Math.min(lanes, MAX_LANES);
   const lit = focus.edge ? picked : focus.node !== undefined && (source === focus.node || target === focus.node);
   const faded = (focus.node !== undefined || focus.edge !== undefined) && !lit;
   const showLabel = labels === 'always' || lit || (labels === 'auto' && zoom !== 'far');
   const state = `${faded ? 'faded' : ''} ${lit ? 'lit' : ''} ${still ? 'still' : ''}`;
-  const { body, color: tierColor, ink } = beltStroke({ path, item, transport, lanes: drawn, state, oneColor });
+  const { body, color: tierColor, ink } = beltStroke({ path, item, transport, lanes: drawn, state, oneColor, wide });
   // A belt running back against the flow: a blue road under it, a "back to" label, and a mark where it climbs to its input.
   const loop = !!route?.loop;
   const entry = loop && !moved(from, route.from) && !moved(to, route.to) ? route.loop : undefined;

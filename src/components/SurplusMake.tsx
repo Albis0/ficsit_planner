@@ -30,7 +30,7 @@ export function packsForSink(r: { inputs: { item: string }[]; outputs: { item: s
  * The button under a leftover card: what the leftover could be made into. Picking a recipe puts its product on the
  * factory's targets, for as much as the leftover makes, and offers it to the pool.
  */
-export function SurplusMake({ item, rate }: { item: string; rate: number }) {
+export function SurplusMake({ item, rate, line }: { item: string; rate: number; line?: string[] }) {
   const { t, name, num } = useT();
   const enabled = useStore((s) => s.plans.find((p) => p.id === s.active)?.enabled);
   const tier = useStore((s) => s.tier);
@@ -61,14 +61,14 @@ export function SurplusMake({ item, rate }: { item: string; rate: number }) {
         }),
         keys: `${num(Math.round(parts * data.items[made.item].sink))} ${t('sinkPts')}`,
         sink: true,
-        onPick: () => update(makeFromLeftover(r.id, item, rate)),
+        onPick: () => update(makeFromLeftover(r.id, item, rate, line)),
       };
     }
     return {
       // A recipe named like its product (Residual Fuel makes fuel, Petroleum Coke makes coke) says it once.
       label: how === product ? product : `${product} · ${how}`,
       keys: taken && made ? `${num(Math.floor(((rate * made.rate) / taken.rate) * 100) / 100)}${t('perMin')}` : undefined,
-      onPick: () => update(makeFromLeftover(r.id, item, rate)),
+      onPick: () => update(makeFromLeftover(r.id, item, rate, line)),
     };
   });
 

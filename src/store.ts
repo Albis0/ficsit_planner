@@ -165,7 +165,7 @@ export const togglePooled =
  * gets the amount added; for `updatePlan`.
  */
 export const makeFromLeftover =
-  (recipe: string, surplus: string, left: number) =>
+  (recipe: string, surplus: string, left: number, line?: string[]) =>
   (p: Plan): Partial<Plan> => {
     const r = recipeById.get(recipe);
     const taken = r?.inputs.find((s) => s.item === surplus);
@@ -179,6 +179,11 @@ export const makeFromLeftover =
         ? p.targets.map((t) => (t.item === made.item ? { ...t, rate: Math.round((t.rate + rate) * 100) / 100 } : t))
         : [...p.targets, { item: made.item, rate }],
       enabled: p.enabled.includes(recipe) ? p.enabled : [...p.enabled, recipe],
+      // The line the leftover comes from stops being a line of its own, so the new product is made with it, from its
+      // leftover, and not on a line of its own with oil of its own.
+      ...(line?.some((i) => p.separate?.includes(i))
+        ? { separate: p.separate?.filter((i) => !line.includes(i)).length ? p.separate?.filter((i) => !line.includes(i)) : undefined }
+        : {}),
       pooled: p.pooled?.includes(made.item) ? p.pooled : [...(p.pooled ?? []), made.item],
     };
   };

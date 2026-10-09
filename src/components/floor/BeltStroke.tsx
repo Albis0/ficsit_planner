@@ -1,6 +1,7 @@
 import { useMemo, type ReactNode } from 'react';
 import { BELT_COLORS } from '../../lib/belts';
 import { data, type Transport } from '../../lib/data';
+import { LANE_PITCH } from '../../lib/graph';
 import { pipeColor } from '../../lib/pipe';
 import { inkOn } from '../../lib/settings';
 
@@ -24,8 +25,6 @@ const lengthOf = (d: string) => {
   return ruler.getTotalLength();
 };
 
-/** Centre to centre between belts side by side. */
-export const LANE_PITCH = 10;
 // How far from a handle the belts run together into one, and how far apart the points are that a belt is drawn through.
 const FAN = 30;
 const STEP = 6;
@@ -36,9 +35,9 @@ const lanesCache = new Map<string, string[]>();
  * The path shifted sideways into `lanes` paths side by side, `pitch` apart, each following the bends of the first. They
  * run together into the path's two ends, so what meets a handle is one belt. Null where it can't be measured.
  */
-export function lanePaths(path: string, lanes: number, pitch = LANE_PITCH): string[] | null {
+export function lanePaths(path: string, lanes: number, pitch = LANE_PITCH, wide = { from: false, to: false }): string[] | null {
   if (lanes < 2 || typeof document === 'undefined') return null;
-  const key = `${lanes}|${pitch}|${path}`;
+  const key = `${lanes}|${pitch}|${wide.from}|${wide.to}|${path}`;
   const hit = lanesCache.get(key);
   if (hit) return hit;
   const probe = document.createElementNS('http://www.w3.org/2000/svg', 'path');
@@ -56,7 +55,8 @@ export function lanePaths(path: string, lanes: number, pitch = LANE_PITCH): stri
     const ty = b.y - a.y;
     const m = Math.hypot(tx, ty) || 1;
     // Full spread in the middle, none at either end.
-    const edge = Math.min(1, Math.min(at, len - at) / FAN);
+    // An end as wide as the belts takes them in parallel, so they don't close up there.
+    const edge = Math.min(wide.from ? 1 : at / FAN, wide.to ? 1 : (len - at) / FAN, 1);
     const spread = edge * edge * (3 - 2 * edge);
     for (let i = 0; i < lanes; i++) {
       const o = (i - (lanes - 1) / 2) * pitch * spread;
@@ -123,6 +123,7 @@ export function beltStroke({
   lanes = 1,
   state = '',
   oneColor = false,
+  wide,
 }: {
   path: string;
   item: string;
@@ -130,6 +131,8 @@ export function beltStroke({
   lanes?: number;
   state?: string;
   oneColor?: boolean;
+  /** Which ends are as wide as the belts side by side. */
+  wide?: { from: boolean; to: boolean };
 }): { body: ReactNode; color: string; ink?: string } {
   const it = data.items[item];
   if (it && it.form !== 'solid') {
@@ -149,7 +152,7 @@ export function beltStroke({
   }
   const mk = beltIndex(transport.id);
   const color = oneColor ? BELT_COLORS[0] : BELT_COLORS[Math.min(mk, BELT_COLORS.length - 1)];
-  const apart = lanePaths(path, lanes);
+  const apart = lanePaths(path, lanes, LANE_PITCH, wide);
   if (apart) {
     // Each belt is its own path, so the line stays readable round a bend and the belts join only at the handles.
     const speed = 2 / Math.sqrt(mk + 1);
