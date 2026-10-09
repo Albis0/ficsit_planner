@@ -226,7 +226,8 @@ export function inspectPage(opts) {
         );
     }
   for (const label of document.querySelectorAll('.edge-label')) {
-    if (!shown(label)) continue;
+    // The settings preview has its own little floor, drawn over the page's.
+    if (!shown(label) || label.closest('.settings-preview')) continue;
     const l = label.getBoundingClientRect();
     for (const n of nodes) {
       const x = Math.min(l.right, n.r.right) - Math.max(l.left, n.r.left);

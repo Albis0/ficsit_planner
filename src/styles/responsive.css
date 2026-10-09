@@ -731,10 +731,6 @@
     min-width: 52px;
     padding: 0 10px;
   }
-
-  .settings-preview {
-    display: none;
-  }
 }
 
 @media (max-width: 900px) {

@@ -2,6 +2,19 @@
 
 All notable changes to FICSIT Planner. Dates are when the version was finished.
 
+## 0.13.31 — 2026-10-09
+
+### Changed
+
+- **Settings preview is a small real floor.** Under Factory floor and Colours, the preview is no longer two fixed cards:
+  it is a stock of Iron Ingots, two machines (one standard, one alternate recipe) and the product, with belts and labels
+  drawn by the same code as the floor, and a splitter when Splitters and mergers is on. It follows every setting as you
+  change it: card and text size, spacing, belt shape, splitters, labels, moving belts, grid and belt colours.
+- **Point at a setting to see what it changes.** The row you point at (tap it on a phone) gets an orange line on its left,
+  and a thin orange ring marks the spots in the preview that setting changes.
+- On a phone the preview shrinks to a strip above the rows, with the stock and the product left off so the machines stay
+  readable. It shows on narrow windows now too; it used to be hidden below 1100 px.
+
 ## 0.13.30 — 2026-10-09
 
 ### Changed

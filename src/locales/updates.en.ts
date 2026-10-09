@@ -10,6 +10,20 @@ export type UpdateNote = [UpdateKind, string];
 
 export const UPDATES: { version: string; date: string; title?: string; notes: UpdateNote[] }[] = [
   {
+    version: '0.13.31',
+    date: '2026-10-09',
+    notes: [
+      [
+        'changed',
+        'Settings: the preview under Factory floor and Colours is a small real floor now, with cards, belts, labels and a splitter drawn like the real thing. It follows every setting as you change it.',
+      ],
+      [
+        'added',
+        'Settings: point at a setting (tap it on a phone) and a thin orange ring shows in the preview what it changes. The preview shows on narrow windows and phones too.',
+      ],
+    ],
+  },
+  {
     version: '0.13.30',
     date: '2026-10-09',
     notes: [

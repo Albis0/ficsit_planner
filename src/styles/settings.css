@@ -83,7 +83,8 @@
   align-items: center;
   gap: 12px 32px;
   min-height: 82px;
-  padding: 14px 0;
+  padding: 14px 10px;
+  margin: 0 -10px;
   border-bottom: 1px solid var(--line);
 }
 
@@ -404,7 +405,7 @@
 
 /*
   Live preview on top of the floor and colour settings, the full width of the rows, staying in view
-  while the rows scroll under it.
+  while the rows scroll under it. It is a small real floor: the same cards, belts and labels, drawn from the draft.
 */
 .settings-preview {
   position: sticky;
@@ -415,23 +416,9 @@
   background: var(--panel);
 }
 
-.settings-preview figcaption {
-  position: absolute;
-  top: 14px;
-  left: 10px;
-  z-index: 1;
-  font: 700 13px var(--font-display);
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
-  color: var(--faint);
-}
-
 .preview-floor {
   position: relative;
-  height: 170px;
   overflow: hidden;
-  display: grid;
-  place-items: center;
   background: var(--floor);
   border: 1px solid var(--line);
 }
@@ -447,35 +434,72 @@
     24px 24px;
 }
 
-.preview-stage {
-  zoom: 0.6;
-  position: relative;
-  display: flex;
-  align-items: center;
+.preview-scene {
+  position: absolute;
+  top: 0;
+  left: 0;
+  transform-origin: 0 0;
+  pointer-events: none;
+  user-select: none;
 }
 
-/* A card for each place the screws go: stacked, the belt leaves from the top one. */
-.preview-floor:has(.preview-stage.split) {
-  height: 230px;
+.preview-inner {
+  position: absolute;
+  inset: 14px;
 }
 
-.preview-stage.split {
-  --card-h: calc((130px + 32px) * (0.3 + 0.7 * var(--card-text, 1)));
-  align-items: flex-start;
+.preview-spot,
+.preview-anchor {
+  position: absolute;
 }
 
-.preview-split {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
+.preview-anchor {
+  transform: translate(-50%, -50%);
 }
 
-.preview-stage.split .preview-belt {
-  margin-top: calc(var(--card-h) / 2 - 10px);
+.preview-belts {
+  position: absolute;
+  left: 0;
+  top: 0;
+  overflow: visible;
 }
 
-.preview-stage.split .preview-label {
-  top: calc(var(--card-h) / 2);
+.preview-belts path {
+  fill: none;
+}
+
+.preview-spot .logistic-node {
+  width: 100%;
+  height: 100%;
+}
+
+/* The row being pointed at: a thin ring on every spot it changes. */
+.settings-preview[data-focus='size'] [data-for~='size'],
+.settings-preview[data-focus='text'] [data-for~='text'],
+.settings-preview[data-focus='splitters'] [data-for~='splitters'],
+.settings-preview[data-focus='labels'] [data-for~='labels'],
+.settings-preview[data-focus='accent'] [data-for~='accent'],
+.settings-preview[data-focus='standard'] [data-for~='standard'],
+.settings-preview[data-focus='alternate'] [data-for~='alternate'] {
+  outline: 3px solid var(--ficsit);
+  outline-offset: 5px;
+}
+
+.settings-preview[data-focus='grid'] .preview-floor {
+  outline: 2px dashed var(--ficsit);
+  outline-offset: -4px;
+}
+
+.settings-preview[data-focus='belts'] [data-for~='belts'],
+.settings-preview[data-focus='motion'] [data-for~='motion'],
+.settings-preview[data-focus='beltColors'] [data-for~='beltColors'],
+.settings-preview[data-focus='spacing'] [data-for~='spacing'] {
+  filter: drop-shadow(0 0 2px var(--ficsit)) drop-shadow(0 0 2px var(--ficsit)) drop-shadow(0 0 5px var(--ficsit));
+}
+
+.setting[data-hot] {
+  background: var(--panel-2);
+  box-shadow: inset 3px 0 var(--ficsit);
 }
 
 .preview-stage.split .preview-card.b {
