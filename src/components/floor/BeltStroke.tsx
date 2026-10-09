@@ -124,7 +124,7 @@ export function beltStroke({
   state = '',
   oneColor = false,
   wide,
-  maxWidth,
+  pitch: apartBy = LANE_PITCH,
 }: {
   path: string;
   item: string;
@@ -134,8 +134,8 @@ export function beltStroke({
   oneColor?: boolean;
   /** Which ends are as wide as the belts side by side. */
   wide?: { from: boolean; to: boolean };
-  /** The most the belts side by side may take across, where the ends are small and close to others. */
-  maxWidth?: number;
+  /** How far apart the belts side by side run, centre to centre. */
+  pitch?: number;
 }): { body: ReactNode; color: string; ink?: string } {
   const it = data.items[item];
   if (it && it.form !== 'solid') {
@@ -155,8 +155,8 @@ export function beltStroke({
   }
   const mk = beltIndex(transport.id);
   const color = oneColor ? BELT_COLORS[0] : BELT_COLORS[Math.min(mk, BELT_COLORS.length - 1)];
-  const across = Math.max(5, Math.min(LANE_PITCH, (maxWidth ?? Number.POSITIVE_INFINITY) / lanes));
-  const apart = lanePaths(path, lanes, across, wide);
+  const across = Math.min(10, apartBy);
+  const apart = lanePaths(path, lanes, apartBy, wide);
   if (apart) {
     // Each belt is its own path, so the line stays readable round a bend and the belts join only at the handles.
     const speed = 2 / Math.sqrt(mk + 1);

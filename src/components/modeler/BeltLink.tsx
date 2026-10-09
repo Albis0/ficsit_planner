@@ -14,6 +14,7 @@ import type { Transport } from '../../lib/data';
 import type { MLink } from '../../lib/model/types';
 import { useStore } from '../../store';
 import { beltStroke } from '../floor/BeltStroke';
+import { PORT_CELL } from './PartNode';
 import { longestRunMid, SQUARE_TURN as TURN, squarePath } from '../floor/squarePath';
 import { Icon } from '../Icon';
 
@@ -75,7 +76,7 @@ export function BeltLink({ sourceX, sourceY, targetX, targetY, sourcePosition, t
     state,
     oneColor,
     wide: { from: true, to: true },
-    maxWidth: 40,
+    pitch: PORT_CELL,
   });
   // A belt too short for its label (a machine into the splitter beside it) goes without one; the splitter says it.
   const short = !link.lbl && Math.hypot(targetX - sourceX, targetY - sourceY) < SHORT;

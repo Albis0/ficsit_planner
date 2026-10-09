@@ -115,6 +115,8 @@ export interface PartData extends Record<string, unknown> {
   node: MNode;
   /** Which ends have a belt on them. */
   wired: { ins: boolean[]; outs: boolean[] };
+  /** How many belts side by side each end has: it shows that many squares, one for each belt. */
+  lanes?: { ins: number[]; outs: number[] };
   /** Which ends need one and have none: a splitter's spare outputs don't. */
   open?: OpenEnds;
 }
@@ -157,6 +159,7 @@ function End({
   wired,
   open,
   spare,
+  lanes = 1,
 }: {
   side: 'in' | 'out';
   i: number;
@@ -168,6 +171,8 @@ function End({
   wired: boolean;
   open: boolean;
   spare?: number;
+  /** Belts side by side on this end. */
+  lanes?: number;
 }) {
   const { t, name, num } = useT();
   const item = port.item ? data.items[port.item] : undefined;
@@ -176,12 +181,23 @@ function End({
       type={side === 'in' ? 'target' : 'source'}
       position={down ? (side === 'in' ? Position.Top : Position.Bottom) : side === 'in' ? Position.Left : Position.Right}
       id={`${side === 'in' ? 'i' : 'o'}${i}`}
-      className={`port ${side} ${down ? 'down' : ''} ${wired ? 'wired' : open ? 'open' : 'free'} ${port.medium === 'pipe' ? 'pipe' : ''}`}
+      className={`port ${side} ${down ? 'down' : ''} ${wired ? 'wired' : open ? 'open' : 'free'} ${port.medium === 'pipe' ? 'pipe' : ''} ${lanes > 1 ? 'multi' : ''}`}
       // Measured from inside the card's left edge, which is thicker on some cards: taken off so every end sits on its grid line.
-      style={down ? { left: `calc(${at.x}px - var(--edge-l, 1px))` } : { top: at.y }}
+      // Several belts side by side: that many squares in a row along the edge, centred on the same spot.
+      style={{
+        ...(down ? { left: `calc(${at.x}px - var(--edge-l, 1px))` } : { top: at.y }),
+        ...(lanes > 1 ? (down ? { width: lanes * PORT_CELL } : { height: lanes * PORT_CELL }) : {}),
+      }}
       title={item ? name(item) : undefined}
     >
-      {item && <Icon id={item.id} size={18} />}
+      {item && lanes > 1
+        ? Array.from({ length: lanes }, (_, k) => (
+            // biome-ignore lint/suspicious/noArrayIndexKey: the squares are alike, one for each belt.
+            <span className="port-cell" key={k}>
+              <Icon id={item.id} size={16} />
+            </span>
+          ))
+        : item && <Icon id={item.id} size={18} />}
       {spare !== undefined && spare > 1e-9 && (
         <span className="port-spare">
           {num(spare)}
@@ -192,7 +208,10 @@ function End({
   );
 }
 
-function Ends({ node, wired, open }: PartData) {
+/** The size of one square at an end of a card; belts side by side run this far apart, one into each square. */
+export const PORT_CELL = 22;
+
+function Ends({ node, wired, open, lanes }: PartData) {
   const ports = portsOf(node);
   const dir = useContext(FloorDir);
   const down = dir === 'TB';
@@ -210,6 +229,7 @@ function Ends({ node, wired, open }: PartData) {
           port={p}
           wired={wired.ins[i]}
           open={!!open?.ins[i]}
+          lanes={lanes?.ins[i]}
         />
       ))}
       {ports.outs.map((p, i) => (
@@ -223,6 +243,7 @@ function Ends({ node, wired, open }: PartData) {
           port={p}
           wired={wired.outs[i]}
           open={!!open?.outs[i]}
+          lanes={lanes?.outs[i]}
           spare={wired.outs[i] ? undefined : spare?.[i]}
         />
       ))}

@@ -216,15 +216,23 @@ function Canvas({ host, calc, onArrange }: { host: ModelHost; calc?: CalcResult;
     (m: Model, keep?: Node[], letGo = false, pick: ReadonlySet<string> = new Set()): Node[] => {
       const open = openEnds(m);
       const wired = new Map<string, { ins: boolean[]; outs: boolean[] }>();
+      const lanes = new Map<string, { ins: number[]; outs: number[] }>();
       for (const n of m.nodes) {
         const p = portsOf(n);
         wired.set(n.id, { ins: p.ins.map(() => false), outs: p.outs.map(() => false) });
+        lanes.set(n.id, { ins: p.ins.map(() => 1), outs: p.outs.map(() => 1) });
       }
       for (const l of m.links) {
         const a = wired.get(l.a);
         const b = wired.get(l.b);
         if (a && l.ap < a.outs.length) a.outs[l.ap] = true;
         if (b && l.bp < b.ins.length) b.ins[l.bp] = true;
+        // An end holds as many belts side by side as the line on it has, up to six.
+        const n = Math.min(6, l.lanes ?? 1);
+        const la = lanes.get(l.a);
+        const lb = lanes.get(l.b);
+        if (la && l.ap < la.outs.length) la.outs[l.ap] = Math.max(la.outs[l.ap], n);
+        if (lb && l.bp < lb.ins.length) lb.ins[l.bp] = Math.max(lb.ins[l.bp], n);
       }
       const was = new Map(keep?.map((n) => [n.id, n]));
       return m.nodes.filter(isPart).map((n) => ({
@@ -232,7 +240,7 @@ function Canvas({ host, calc, onArrange }: { host: ModelHost; calc?: CalcResult;
         id: n.id,
         type: 'part',
         position: { x: n.x, y: n.y },
-        data: { node: n, wired: wired.get(n.id)!, open: open.get(n.id) } satisfies PartData,
+        data: { node: n, wired: wired.get(n.id)!, lanes: lanes.get(n.id), open: open.get(n.id) } satisfies PartData,
         selected: inspect === n.id || pick.has(n.id) || (!letGo && was.get(n.id)?.selected),
       }));
     },

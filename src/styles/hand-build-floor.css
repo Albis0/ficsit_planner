@@ -37,6 +37,34 @@
   bottom: -14px;
 }
 
+/* Belts side by side: a square for each, in a row along the edge. */
+.react-flow__handle.port.multi {
+  display: flex;
+  flex-direction: column;
+  padding: 0;
+}
+
+.react-flow__handle.port.multi.down {
+  flex-direction: row;
+}
+
+.react-flow__handle.port .port-cell {
+  flex: 1 1 0;
+  display: grid;
+  place-items: center;
+  min-width: 0;
+  min-height: 0;
+}
+
+.react-flow__handle.port .port-cell + .port-cell {
+  border-top: 1px solid var(--line-2);
+}
+
+.react-flow__handle.port.multi.down .port-cell + .port-cell {
+  border-top: 0;
+  border-left: 1px solid var(--line-2);
+}
+
 .react-flow__handle.port.open {
   border-style: dashed;
   border-color: var(--ficsit);
