@@ -442,7 +442,9 @@
 /* A caption beside the switch, not a part of it. */
 .open-outputs {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
+  row-gap: 6px;
 }
 
 .open-outputs[data-open] {
@@ -491,6 +493,8 @@
 }
 
 .drawer-slide {
+  /* Never squeezed under the choices' width: where the row is short, it drops below the tab instead. */
+  flex: none;
   display: grid;
   grid-template-columns: 0fr;
   transition: grid-template-columns 0.2s ease-out;
