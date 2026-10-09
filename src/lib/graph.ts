@@ -53,6 +53,9 @@ export interface LogisticNodeData extends Record<string, unknown> {
   item: string;
   /** What passes through it, per minute. */
   rate: number;
+  /** How many ends it has on each side: one in and three out for a splitter, three in and one out for a merger. */
+  ins: number;
+  outs: number;
 }
 
 export interface EndpointNodeData extends Record<string, unknown> {
@@ -93,12 +96,50 @@ export interface FlowEdgeData extends Record<string, unknown> {
 
 const HANDLE = { width: 10, height: 18 };
 
+/** Where along its side each of `n` ends of a splitter or merger sits, as a share of the side: one in the middle, three evenly. */
+export const portSpots = (n: number): number[] => (n <= 1 ? [0.5] : Array.from({ length: n }, (_, i) => (i + 1) / (n + 1)));
+
+/** Which of `total` ends the `used` ones sit on, in order: one in the middle, two on the outer ends, three on all. */
+const slotsFor = (used: number, total: number): number[] =>
+  total <= 1 ? [0] : used === 1 ? [Math.floor(total / 2)] : used === 2 && total === 3 ? [0, 2] : Array.from({ length: used }, (_, i) => i);
+
 /**
  * Handle positions spelled out up front. Without them React Flow assumes top/bottom handles for any
  * node it hasn't measured yet, and a belt can end up entering the output from above.
  */
-function handlesFor(size: { width: number; height: number }, sides: { target: boolean; source: boolean }, dir: Direction): NodeHandle[] {
+function handlesFor(
+  size: { width: number; height: number },
+  sides: { target: boolean; source: boolean },
+  dir: Direction,
+  ends?: { ins: number; outs: number },
+): NodeHandle[] {
   const list: NodeHandle[] = [];
+  if (ends) {
+    // A splitter or merger: its ends spread along the side, each with an id the belts name.
+    const down = dir === 'TB';
+    const [w, h] = down ? [HANDLE.height, HANDLE.width] : [HANDLE.width, HANDLE.height];
+    for (const [i, at] of portSpots(ends.ins).entries())
+      list.push({
+        id: `i${i}`,
+        type: 'target',
+        position: down ? Position.Top : Position.Left,
+        x: down ? at * size.width - w / 2 : -w / 2,
+        y: down ? -h / 2 : at * size.height - h / 2,
+        width: w,
+        height: h,
+      });
+    for (const [i, at] of portSpots(ends.outs).entries())
+      list.push({
+        id: `o${i}`,
+        type: 'source',
+        position: down ? Position.Bottom : Position.Right,
+        x: down ? at * size.width - w / 2 : size.width - w / 2,
+        y: down ? size.height - h / 2 : at * size.height - h / 2,
+        width: w,
+        height: h,
+      });
+    return list;
+  }
   if (dir === 'TB') {
     // Same handle turned on its side.
     const x = size.width / 2 - HANDLE.height / 2;
@@ -312,6 +353,7 @@ function buildGraphOne(result: SolveResult, tier: number, opts: GraphOptions = {
       data: { item, rate, transport, lanes } satisfies FlowEdgeData,
     });
   };
+  const shared = new Map<string, { sources: Map<string, number>; targets: Map<string, number> }>();
   for (const f of flows) {
     if (f.from === f.to) continue;
     const from = cards.get(f.from);
@@ -329,15 +371,57 @@ function buildGraphOne(result: SolveResult, tier: number, opts: GraphOptions = {
         ? from.map((c) => ({ id: c.id, rate: f.rate * c.share }))
         : [{ id: f.from, rate: f.rate }];
     const targets = to ? to.map((c) => ({ id: c.id, rate: f.rate * c.share })) : [{ id: f.to, rate: f.rate }];
-    for (const [a, b, rate] of pair(sources, targets)) belt(a, b, f.item, rate);
+    if (own) {
+      for (const [a, b, rate] of pair(sources, targets)) belt(a, b, f.item, rate);
+      continue;
+    }
+    // Shared out by group size: kept for the whole item and matched once below, so two groups' byproducts meet their
+    // destinations in as few belts as it takes, not one set of belts for every flow.
+    const by = shared.get(f.item) ?? { sources: new Map<string, number>(), targets: new Map<string, number>() };
+    shared.set(f.item, by);
+    for (const x of sources) by.sources.set(x.id, (by.sources.get(x.id) ?? 0) + x.rate);
+    for (const x of targets) by.targets.set(x.id, (by.targets.get(x.id) ?? 0) + x.rate);
+  }
+  for (const [item, by] of shared) {
+    const list = (m: Map<string, number>) => [...m].map(([id, rate]) => ({ id, rate }));
+    for (const [a, b, rate] of pair(list(by.sources), list(by.targets))) if (a !== b) belt(a, b, item, rate);
   }
 
   if (opts.splitters) addLogistics(nodes, edges, sides, box, tier);
   if (result.grid) addGrid(result, nodes, edges, sides, opts.consumers ?? [], box);
 
   const dir = layout(nodes, edges, opts);
-  for (const n of nodes) n.handles = handlesFor({ width: n.width!, height: n.height! }, sides.get(n.id)!, dir);
+  if (opts.splitters) assignPorts(nodes, edges, dir);
+  for (const n of nodes) {
+    const d = n.type === 'logistic' ? (n.data as LogisticNodeData) : undefined;
+    n.handles = handlesFor({ width: n.width!, height: n.height! }, sides.get(n.id)!, dir, d && { ins: d.ins, outs: d.outs });
+  }
   return { nodes, edges, dir };
+}
+
+/**
+ * Each belt of a splitter or merger takes one of its ends, in the order its other end sits on the floor, so belts leaving
+ * one side don't cross each other. Run once the cards have their places.
+ */
+function assignPorts(nodes: Node[], edges: Edge[], dir: Direction) {
+  const at = new Map(nodes.map((n) => [n.id, n]));
+  const across = (id: string) => {
+    const n = at.get(id);
+    if (!n) return 0;
+    return dir === 'TB' ? n.position.x + (n.width ?? 0) / 2 : n.position.y + (n.height ?? 0) / 2;
+  };
+  for (const n of nodes) {
+    if (n.type !== 'logistic') continue;
+    const d = n.data as LogisticNodeData;
+    const outs = edges.filter((e) => e.source === n.id).sort((a, b) => across(a.target) - across(b.target));
+    const ins = edges.filter((e) => e.target === n.id).sort((a, b) => across(a.source) - across(b.source));
+    slotsFor(outs.length, d.outs).forEach((slot, i) => {
+      outs[i].sourceHandle = `o${slot}`;
+    });
+    slotsFor(ins.length, d.ins).forEach((slot, i) => {
+      ins[i].targetHandle = `i${slot}`;
+    });
+  }
 }
 
 /** Up to three belts out of a splitter (three into a merger); more than that chains another one on. */
@@ -372,13 +456,13 @@ function addLogistics(
       data: { item, rate, transport, lanes } satisfies FlowEdgeData,
     };
   };
-  const logistic = (kind: LogisticNodeData['kind'], item: string, rate: number): string => {
+  const logistic = (kind: LogisticNodeData['kind'], item: string, rate: number, merge: boolean): string => {
     const id = `${kind}:${n++}`;
     nodes.push({
       id,
       type: 'logistic',
       position: { x: 0, y: 0 },
-      data: { kind, item, rate } satisfies LogisticNodeData,
+      data: { kind, item, rate, ins: merge ? FAN : 1, outs: merge ? 1 : FAN } satisfies LogisticNodeData,
       ...box(SIZE.logistic),
       handles: [],
     });
@@ -408,7 +492,7 @@ function addLogistics(
       const last = left.length <= FAN;
       const take = last ? left : left.slice(0, FAN - 1);
       const through = left.reduce((s, e) => s + rateOf(e), 0);
-      const id = logistic(kind, item, through);
+      const id = logistic(kind, item, through, false);
       edges.push(make(feed, id, item, through));
       for (const e of take) edges.push(make(id, e.target, item, rateOf(e)));
       left = left.slice(take.length);
@@ -428,7 +512,7 @@ function addLogistics(
       const last = left.length <= FAN;
       const take = last ? left : left.slice(0, FAN - 1);
       const through = left.reduce((s, e) => s + rateOf(e), 0);
-      const id = logistic(kind, item, through);
+      const id = logistic(kind, item, through, true);
       edges.push(make(id, feed, item, through));
       for (const e of take) edges.push(make(e.source, id, item, rateOf(e)));
       left = left.slice(take.length);

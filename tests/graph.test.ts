@@ -176,3 +176,49 @@ test('a belt running back against the flow goes round under the cards in square 
     }
   }
 });
+
+const standard = () => new Set(data.recipes.filter((x) => x.kind === 'standard').map((x) => x.id));
+
+test('byproducts of a line split by destination meet their destinations in as few pipes as it takes', () => {
+  const r = solve(highs, {
+    targets: [
+      { item: 'Desc_Plastic_C', rate: 30 },
+      { item: 'Desc_PackagedOilResidue_C', rate: 15 },
+    ],
+    supplies: [],
+    enabledRecipes: standard(),
+    resourceCaps: {},
+    objective: 'resources',
+  });
+  const { nodes, edges } = buildGraph(r, 9, { splitters: true, splitLines: 'each' });
+  // One junction for the crude oil going to two refineries; the leftover goes straight to the packager and the surplus.
+  expect(nodes.filter((n) => n.type === 'logistic')).toHaveLength(1);
+  const pairs = edges.map((e) => `${e.source}>${e.target}`);
+  expect(new Set(pairs).size).toBe(pairs.length);
+});
+
+test('a splitter has one input and three outputs, a merger three inputs and one output, and each belt names its end', () => {
+  const r = solve(highs, {
+    targets: [{ item: 'Desc_IronPlateReinforced_C', rate: 30 }],
+    supplies: [],
+    enabledRecipes: standard(),
+    resourceCaps: {},
+    objective: 'resources',
+  });
+  const { nodes, edges } = buildGraph(r, 9, { splitters: true });
+  const logistic = nodes.filter((n) => n.type === 'logistic');
+  expect(logistic.length).toBeGreaterThan(0);
+  for (const n of logistic) {
+    const ids = (n.handles ?? []).map((h) => h.id);
+    const merger = (n.data as { ins: number }).ins === 3;
+    expect(ids.filter((i) => i?.startsWith('i'))).toHaveLength(merger ? 3 : 1);
+    expect(ids.filter((i) => i?.startsWith('o'))).toHaveLength(merger ? 1 : 3);
+    const used = [
+      ...edges.filter((e) => e.source === n.id).map((e) => e.sourceHandle),
+      ...edges.filter((e) => e.target === n.id).map((e) => e.targetHandle),
+    ];
+    expect(used.every((h) => !!h && ids.includes(h))).toBe(true);
+    // No two belts on one end.
+    expect(new Set(used).size).toBe(used.length);
+  }
+});

@@ -10,6 +10,9 @@ All notable changes to FICSIT Planner. Dates are when the version was finished.
   as Packaged …" when the leftover is a liquid: it adds a Packager, says how many Empty Canisters a minute it needs and
   how many Sink points a minute the packed parts are worth. The packed part goes to the pool, so the All page's Sink row
   counts it.
+- **A plainer pipe network.** When a line is drawn as a card for each place it goes, the leftovers of its cards are
+  matched to where they go once for the whole item, not once per flow. Plastic 30 with Packaged Heavy Oil Residue 15 went
+  from five junctions and crossing pipes to one junction and no crossings.
 
 ## 0.13.32 — 2026-10-09
 
@@ -123,7 +126,9 @@ All notable changes to FICSIT Planner. Dates are when the version was finished.
 ### Changed
 
 - **Splitters, mergers and junctions on the Auto floor** are drawn as the same square the Manual floor builds, the
-  building and what passes through it per minute, instead of a small round badge.
+  building and what passes through it per minute, instead of a small round badge. A splitter has one input and three
+  outputs, a merger three inputs and one output (a pipe junction the same), as in the game; the ends with no belt on
+  them are dim, and the belts take the ends in the order their other ends sit, so they don't cross.
 - **Cards on the Auto floor snap to the grid** when dragged, the same 40 px grid the lines show and the Manual floor uses.
 
 ### Fixed
@@ -136,7 +141,11 @@ All notable changes to FICSIT Planner. Dates are when the version was finished.
 ### Changed
 
 - **Belts that carry more than one belt's worth.** The Auto floor draws that many ordinary belts side by side (up to six)
-  instead of one fat belt, and the label reads "3 × Mk.5". The Manual floor draws its extra lines the same way.
+  instead of one fat belt, and the label reads "3 × Mk.5". The Manual floor draws its extra lines the same way. Each
+  belt is a path of its own that follows the bends, and they run together only at the splitter, merger or card they meet,
+  so they no longer pile up on each other round a corner.
+- **Build menu search** finds the splitter, the merger and the pipeline junction by what they do: "split" or "pipe" finds
+  the junction, which is the pipe splitter. Searching for them found nothing before.
 - **From the pool.** The card now names who leaves the item over: up to two factories or plants, then "+ N".
 - **Codex search.** Results are grouped under Parts, Resources, Buildings and so on, each group keeping the search's
   own order.

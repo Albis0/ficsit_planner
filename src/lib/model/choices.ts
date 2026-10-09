@@ -1,6 +1,7 @@
 import { craftableItems, data, itemTier, rawTier, recipeById, recipeTier, SPECIAL_ITEMS } from '../data';
 import { type ExtractionSettings, effectiveExtraction } from '../extraction';
 import { compile } from './calc/compile';
+import { LOGISTICS, SINK } from './catalog';
 import type { NodeInit } from './ops';
 import { extractorById, type Medium, mediumOf, portsOf } from './ports';
 import type { LogisticKind, MNode, Model } from './types';
@@ -180,6 +181,12 @@ export function choicesFor(want: Want | undefined, tier: number, rules: ChoiceRu
   return out;
 }
 
+const LOGISTIC_WORDS: Partial<Record<LogisticKind, string[]>> = {
+  splitter: ['split', 'belt', 'conveyor'],
+  merger: ['merge', 'belt', 'conveyor'],
+  junction: ['pipe', 'pipeline', 'split', 'splitter', 'merge', 'merger', 'fluid'],
+};
+
 /** The words a choice is found by: its recipe, building and every item it takes or makes. */
 export function choiceWords(c: Choice): string[] {
   const n = c.init;
@@ -190,6 +197,9 @@ export function choiceWords(c: Choice): string[] {
   }
   if (n.k === 'extract') return [data.items[n.item]?.name ?? '', extractorById.get(n.extractor)?.name ?? ''];
   if (n.k === 'in' || n.k === 'out') return [n.item ? (data.items[n.item]?.name ?? '') : ''];
+  // Splitters, mergers and junctions are found by what they do as well as by name: a pipe splitter is a junction.
+  if (n.k === 'logistic') return [LOGISTICS[n.kind].name, ...(LOGISTIC_WORDS[n.kind] ?? [])];
+  if (n.k === 'sink') return [SINK.name, 'sink', 'trash', 'delete'];
   return [];
 }
 

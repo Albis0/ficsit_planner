@@ -903,3 +903,14 @@ describe('belt label spots', () => {
     expect(moved.links[0].pts).toBeUndefined();
   });
 });
+
+test('the build menu finds a splitter, a merger and a pipe junction by what they do, a pipe splitter being a junction', async () => {
+  const { choiceWords } = await import('../src/lib/model/choices');
+  const junction = { key: 'l:junction', tab: 'logistic', init: { k: 'logistic', kind: 'junction', x: 0, y: 0 }, tier: 0 } as never;
+  const words = choiceWords(junction).join(' ').toLowerCase();
+  expect(words).toContain('junction');
+  expect(words).toContain('split');
+  expect(words).toContain('pipe');
+  const splitter = { key: 'l:splitter', tab: 'logistic', init: { k: 'logistic', kind: 'splitter', x: 0, y: 0 }, tier: 0 } as never;
+  expect(choiceWords(splitter).join(' ').toLowerCase()).toContain('splitter');
+});

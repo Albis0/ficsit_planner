@@ -24,6 +24,51 @@ const lengthOf = (d: string) => {
   return ruler.getTotalLength();
 };
 
+/** Centre to centre between belts side by side. */
+export const LANE_PITCH = 10;
+// How far from a handle the belts run together into one, and how far apart the points are that a belt is drawn through.
+const FAN = 30;
+const STEP = 6;
+const MAX_POINTS = 240;
+const lanesCache = new Map<string, string[]>();
+
+/**
+ * The path shifted sideways into `lanes` paths side by side, `pitch` apart, each following the bends of the first. They
+ * run together into the path's two ends, so what meets a handle is one belt. Null where it can't be measured.
+ */
+export function lanePaths(path: string, lanes: number, pitch = LANE_PITCH): string[] | null {
+  if (lanes < 2 || typeof document === 'undefined') return null;
+  const key = `${lanes}|${pitch}|${path}`;
+  const hit = lanesCache.get(key);
+  if (hit) return hit;
+  const probe = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+  probe.setAttribute('d', path);
+  const len = probe.getTotalLength();
+  if (!(len > 1)) return null;
+  const n = Math.min(MAX_POINTS, Math.max(2, Math.ceil(len / STEP)));
+  const out = Array.from({ length: lanes }, () => '');
+  for (let k = 0; k <= n; k++) {
+    const at = (k / n) * len;
+    const a = probe.getPointAtLength(Math.max(0, at - 1));
+    const b = probe.getPointAtLength(Math.min(len, at + 1));
+    const p = probe.getPointAtLength(at);
+    const tx = b.x - a.x;
+    const ty = b.y - a.y;
+    const m = Math.hypot(tx, ty) || 1;
+    // Full spread in the middle, none at either end.
+    const edge = Math.min(1, Math.min(at, len - at) / FAN);
+    const spread = edge * edge * (3 - 2 * edge);
+    for (let i = 0; i < lanes; i++) {
+      const o = (i - (lanes - 1) / 2) * pitch * spread;
+      out[i] += `${k === 0 ? 'M' : 'L'}${(p.x - (ty / m) * o).toFixed(1)},${(p.y + (tx / m) * o).toFixed(1)} `;
+    }
+  }
+  const paths = out.map((d) => d.trim());
+  lanesCache.set(key, paths);
+  if (lanesCache.size > 400) lanesCache.delete(lanesCache.keys().next().value as string);
+  return paths;
+}
+
 /** Small chevrons running along a belt's path, each one following its curve. `speed` is the seconds one slat takes (20px). */
 export function BeltChevrons({
   path,
@@ -31,18 +76,21 @@ export function BeltChevrons({
   speed,
   lanes = 1,
   pitch = 0,
+  most = MAX_CHEVRONS,
 }: {
   path: string;
   width: number;
   speed: number;
   lanes?: number;
   pitch?: number;
+  /** The most chevrons on this path. */
+  most?: number;
 }) {
   const { count, seconds } = useMemo(() => {
     const len = lengthOf(path);
-    const n = Math.max(1, Math.min(MAX_CHEVRONS, Math.round(len / SPACING)));
+    const n = Math.max(1, Math.min(most, Math.round(len / SPACING)));
     return { count: n, seconds: Math.max(0.5, len / (20 / speed)) };
-  }, [path, speed]);
+  }, [path, speed, most]);
   const h = Math.max(2.5, width / 2);
   // One chevron per belt side by side, all in one shape so the slats stay in step.
   const d = Array.from({ length: lanes }, (_, i) => {
@@ -101,6 +149,31 @@ export function beltStroke({
   }
   const mk = beltIndex(transport.id);
   const color = oneColor ? BELT_COLORS[0] : BELT_COLORS[Math.min(mk, BELT_COLORS.length - 1)];
+  const apart = lanePaths(path, lanes);
+  if (apart) {
+    // Each belt is its own path, so the line stays readable round a bend and the belts join only at the handles.
+    const speed = 2 / Math.sqrt(mk + 1);
+    return {
+      color,
+      body: (
+        <g className={`belt-edge ${state}`} style={{ ['--belt' as string]: color, ['--belt-speed' as string]: `${speed}s` }}>
+          {/* All the rails first, then the beds, so where the belts run together the rails never cut across a bed. */}
+          {apart.map((d, i) => (
+            // biome-ignore lint/suspicious/noArrayIndexKey: the belts of one line are alike and only ever redrawn together.
+            <path key={i} d={d} className="belt-rails" style={{ strokeWidth: 10 }} />
+          ))}
+          {apart.map((d, i) => (
+            // biome-ignore lint/suspicious/noArrayIndexKey: as above.
+            <path key={i} d={d} className="belt-bed" style={{ strokeWidth: 6 }} />
+          ))}
+          {apart.map((d, i) => (
+            // biome-ignore lint/suspicious/noArrayIndexKey: as above.
+            <BeltChevrons key={i} path={d} width={6} speed={speed} most={Math.max(24, Math.floor((MAX_CHEVRONS * 2) / apart.length))} />
+          ))}
+        </g>
+      ),
+    };
+  }
   // One belt is a 7px bed in 2.5px rails. Several are that many beds side by side, a wall between each.
   const [bed, wall] = lanes > 1 ? [6, 2] : [7, 2.5];
   const pitch = bed + wall;

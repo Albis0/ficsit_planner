@@ -128,6 +128,27 @@ async function run(size) {
         await open(factory([item]));
         await check(`factory ${item}`);
       });
+    // Two lines of the same pipe network with splitters drawn: crude oil, a leftover that is packaged, and plastic.
+    await step('factory pipes with splitters', async () => {
+      await open(
+        saved({
+          mode: 'factory',
+          plans: [
+            {
+              id: 'f1',
+              name: 'Factory 1',
+              targets: [
+                { item: 'Desc_Plastic_C', rate: 30 },
+                { item: 'Desc_PackagedOilResidue_C', rate: 15 },
+              ],
+            },
+          ],
+          active: 'f1',
+          settings: { autoSplitters: true },
+        }),
+      );
+      await check('factory pipes with splitters');
+    });
     for (const item of sample(products, 4).slice(0, QUICK ? 4 : 40))
       await step(`list ${item}`, async () => {
         await open(factory([item], { view: 'table' }));

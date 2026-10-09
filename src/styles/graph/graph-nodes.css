@@ -423,6 +423,11 @@
   color: var(--dim);
 }
 
+/* A splitter's or merger's ends with no belt on them are dim, so three are always there to read. */
+.logistic-node .react-flow__handle.spare {
+  opacity: 0.6;
+}
+
 .logistic-node.faded {
   opacity: 0.35;
 }

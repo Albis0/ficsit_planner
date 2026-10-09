@@ -32,6 +32,7 @@ import {
   type FlowEdgeData,
   type LineTagData,
   type LogisticNodeData,
+  portSpots,
   type MachineNodeData,
   type Point,
   type PowerEdgeData,
@@ -48,7 +49,7 @@ import { minerLabel, recipeLabel } from '../lib/text';
 import { COARSE, useMediaQuery } from '../lib/useMediaQuery';
 import type { SolveResult } from '../lib/solver';
 import { activePowerPlan, toggleBuilt, togglePooled, usePlan, useStore } from '../store';
-import { beltStroke } from './floor/BeltStroke';
+import { beltStroke, LANE_PITCH } from './floor/BeltStroke';
 import { longestRunMid, SQUARE_TURN, squarePath } from './floor/squarePath';
 import { Glyph } from './Glyph';
 import { Icon } from './Icon';
@@ -594,7 +595,7 @@ function FlowEdge({ id, source, target, sourceX, sourceY, targetX, targetY, sour
 
   return (
     <>
-      {loop && <path d={path} className={`loop-under ${state}`} style={{ strokeWidth: 14 + 4 * (drawn - 1) }} />}
+      {loop && <path d={path} className={`loop-under ${state}`} style={{ strokeWidth: 14 + LANE_PITCH * (drawn - 1) }} />}
       {body}
       {entry && (
         <EdgeLabelRenderer>
@@ -665,19 +666,36 @@ function LineTag({ data: d }: NodeProps) {
 
 /** A splitter, merger or junction on a belt: the building's picture, small. */
 function LogisticNode({ id, data: d }: NodeProps) {
-  const { kind, rate } = d as LogisticNodeData;
+  const { kind, rate, ins, outs } = d as LogisticNodeData;
   const { num, t } = useT();
   const faded = useFaded(id);
   const dir = useContext(Flow);
+  // Which ends have a belt on them; the others stay dim.
+  const wired = useFlowStore((s) =>
+    s.edges.flatMap((e) => (e.source === id ? [e.sourceHandle] : e.target === id ? [e.targetHandle] : [])).join(),
+  );
+  const along = (at: number) => (dir === 'TB' ? { left: `${at * 100}%` } : { top: `${at * 100}%` });
+  const end = (side: 'i' | 'o', n: number) =>
+    portSpots(n).map((at, i) => (
+      <Handle
+        // biome-ignore lint/suspicious/noArrayIndexKey: the ends are fixed by the building and numbered by position.
+        key={`${side}${i}`}
+        id={`${side}${i}`}
+        type={side === 'i' ? 'target' : 'source'}
+        position={side === 'i' ? inSide(dir) : outSide(dir)}
+        className={wired.split(',').includes(`${side}${i}`) ? 'wired' : 'spare'}
+        style={along(at)}
+      />
+    ));
   return (
     <div className={`logistic-node ${faded ? 'faded' : ''}`} title={LOGISTICS[kind].name}>
-      <Handle type="target" position={inSide(dir)} />
+      {end('i', ins)}
       <Icon id={LOGISTICS[kind].icon} size={44} />
       <span className="logistic-rate">
         {num(rate)}
         <small>{t('perMin')}</small>
       </span>
-      <Handle type="source" position={outSide(dir)} />
+      {end('o', outs)}
     </div>
   );
 }

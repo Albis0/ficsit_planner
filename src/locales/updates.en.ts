@@ -17,6 +17,10 @@ export const UPDATES: { version: string; date: string; title?: string; notes: Up
         'changed',
         'A liquid leftover can be sunk: its menu starts with "Sink it as Packaged …", which adds a Packager, tells you how many Empty Canisters a minute it needs and what the packed parts score in the AWESOME Sink.',
       ],
+      [
+        'changed',
+        'Auto floor: the pipes of a line drawn as a card for each place it goes are matched once, so a pipe network has far fewer junctions and no crossings.',
+      ],
     ],
   },
   {
@@ -131,7 +135,10 @@ export const UPDATES: { version: string; date: string; title?: string; notes: Up
     date: '2026-10-08',
     notes: [
       ['added', 'Auto floor and power planner: undo and redo, from the buttons in the corner or with Ctrl+Z and Ctrl+Y.'],
-      ['changed', 'Auto floor: splitters and mergers look like the Manual floor’s and show the amount passing through.'],
+      [
+        'changed',
+        'Auto floor: splitters and mergers look like the Manual floor’s, show the amount passing through and have three outputs (three inputs for a merger), as in the game.',
+      ],
       ['changed', 'Auto floor: cards you drag snap to the grid, like on the Manual floor.'],
       ['fixed', 'Auto floor: clicking one card of a line drawn as several cards centres that card, not the first one.'],
     ],
@@ -141,6 +148,11 @@ export const UPDATES: { version: string; date: string; title?: string; notes: Up
     date: '2026-10-08',
     notes: [
       ['changed', 'Auto floor: a flow bigger than one belt is drawn as that many belts side by side, up to six, labelled like “3 × Mk.5”.'],
+      ['changed', 'Floors: belts side by side keep apart round a bend and run together only where they meet a splitter, merger or card.'],
+      [
+        'fixed',
+        'Manual floor: the build menu finds the splitter, merger and pipeline junction when you search for them (“split”, “pipe”).',
+      ],
       ['changed', '“From the pool” cards name the factories and plants that leave the item over.'],
       ['changed', 'Codex search groups its results under Parts, Resources, Buildings and the other headings.'],
       ['fixed', 'Auto floor: belt labels stay off card headers and other labels when there is room to move them.'],
