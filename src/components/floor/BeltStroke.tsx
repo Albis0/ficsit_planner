@@ -124,6 +124,7 @@ export function beltStroke({
   state = '',
   oneColor = false,
   wide,
+  maxWidth,
 }: {
   path: string;
   item: string;
@@ -133,6 +134,8 @@ export function beltStroke({
   oneColor?: boolean;
   /** Which ends are as wide as the belts side by side. */
   wide?: { from: boolean; to: boolean };
+  /** The most the belts side by side may take across, where the ends are small and close to others. */
+  maxWidth?: number;
 }): { body: ReactNode; color: string; ink?: string } {
   const it = data.items[item];
   if (it && it.form !== 'solid') {
@@ -152,7 +155,8 @@ export function beltStroke({
   }
   const mk = beltIndex(transport.id);
   const color = oneColor ? BELT_COLORS[0] : BELT_COLORS[Math.min(mk, BELT_COLORS.length - 1)];
-  const apart = lanePaths(path, lanes, LANE_PITCH, wide);
+  const across = Math.max(5, Math.min(LANE_PITCH, (maxWidth ?? Number.POSITIVE_INFINITY) / lanes));
+  const apart = lanePaths(path, lanes, across, wide);
   if (apart) {
     // Each belt is its own path, so the line stays readable round a bend and the belts join only at the handles.
     const speed = 2 / Math.sqrt(mk + 1);
@@ -163,15 +167,21 @@ export function beltStroke({
           {/* All the rails first, then the beds, so where the belts run together the rails never cut across a bed. */}
           {apart.map((d, i) => (
             // biome-ignore lint/suspicious/noArrayIndexKey: the belts of one line are alike and only ever redrawn together.
-            <path key={i} d={d} className="belt-rails" style={{ strokeWidth: 10 }} />
+            <path key={i} d={d} className="belt-rails" style={{ strokeWidth: across }} />
           ))}
           {apart.map((d, i) => (
             // biome-ignore lint/suspicious/noArrayIndexKey: as above.
-            <path key={i} d={d} className="belt-bed" style={{ strokeWidth: 6 }} />
+            <path key={i} d={d} className="belt-bed" style={{ strokeWidth: Math.max(2, across - 4) }} />
           ))}
           {apart.map((d, i) => (
-            // biome-ignore lint/suspicious/noArrayIndexKey: as above.
-            <BeltChevrons key={i} path={d} width={6} speed={speed} most={Math.max(24, Math.floor((MAX_CHEVRONS * 2) / apart.length))} />
+            <BeltChevrons
+              // biome-ignore lint/suspicious/noArrayIndexKey: as above.
+              key={i}
+              path={d}
+              width={Math.max(2, across - 4)}
+              speed={speed}
+              most={Math.max(24, Math.floor((MAX_CHEVRONS * 2) / apart.length))}
+            />
           ))}
         </g>
       ),
