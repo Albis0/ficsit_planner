@@ -418,6 +418,10 @@
   gap: 8px;
 }
 
+.open-outputs .segmented button {
+  white-space: nowrap;
+}
+
 .tool-label {
   font: 600 12px var(--font-display);
   letter-spacing: 0.08em;
