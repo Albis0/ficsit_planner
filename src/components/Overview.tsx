@@ -1,13 +1,30 @@
 import type { ReactNode } from 'react';
+import { data } from '../lib/data';
 import { useT } from '../lib/i18n';
 import { type FactoryRow, type PlantRow, useOverview } from '../lib/overview';
+import type { PoolParty } from '../lib/pool';
 import { useStore } from '../store';
 import { Icon } from './Icon';
-import { RateChips, SinkPoints } from './Summary';
+import { RateChips } from './Summary';
 
 /** A list of items as icon-and-rate chips, or a dash when there are none. */
 const Chips = ({ list, muted }: { list: { item: string; rate: number }[]; muted?: boolean }) =>
   list.length ? <RateChips list={list} muted={muted} /> : <span className="ov-none">–</span>;
+
+/** The factories and plants on one side of a pool item: a chip each, with how much, opening its tab. */
+const Who = ({ list, open }: { list: PoolParty[]; open: (id: string, power: boolean) => void }) =>
+  list.length ? (
+    <span className="ov-who-list">
+      {list.map((w) => (
+        <button key={w.id} type="button" className="ov-who" onClick={() => open(w.id, w.power)}>
+          {w.name}
+          <small>{w.rate.toFixed(w.rate < 10 ? 1 : 0)}</small>
+        </button>
+      ))}
+    </span>
+  ) : (
+    <span className="ov-none">–</span>
+  );
 
 const Cell = ({ label, children }: { label: string; children: ReactNode }) => <td data-label={label}>{children}</td>;
 
@@ -15,7 +32,7 @@ const Cell = ({ label, children }: { label: string; children: ReactNode }) => <t
  * The "All" tab: every factory and power plant on one page, and the totals under them. Read-only; a row opens its tab.
  */
 export function OverviewPage() {
-  const { t, num } = useT();
+  const { t, num, name } = useT();
   const set = useStore((s) => s.set);
   const o = useOverview();
   const { totals } = o;
@@ -56,11 +73,18 @@ export function OverviewPage() {
             <span className="readout-label">{t('extractors')}</span>
             <span className="readout-value">{totals.extractors}</span>
           </div>
+          {o.sink > 0 && (
+            <div className="readout sink">
+              <span className="readout-label">{t('ovSink')}</span>
+              <span className="readout-value">
+                {num(o.sink)} <small>{t('sinkPts')}</small>
+              </span>
+            </div>
+          )}
           {left.length > 0 && (
             <div className="readout fill">
               <span className="readout-label">{t('ovPoolLeft')}</span>
               <RateChips list={left} muted />
-              <SinkPoints list={left} />
             </div>
           )}
           {short.length > 0 && (
@@ -73,6 +97,62 @@ export function OverviewPage() {
       </div>
 
       <div className="ov-scroll">
+        {o.pool.length > 0 && (
+          <section className="ov-section">
+            <h2 className="ov-title">{t('ovPool')}</h2>
+            <table className="ov-table pool">
+              <thead>
+                <tr>
+                  <th>{t('ovPoolItem')}</th>
+                  <th>{t('ovGivenBy')}</th>
+                  <th>{t('ovTakenBy')}</th>
+                  <th className="num">{t('ovPoolRest')}</th>
+                </tr>
+              </thead>
+              <tbody>
+                {o.pool.map((l) => (
+                  <tr key={l.item}>
+                    <td className="ov-name">
+                      <span className="ov-item">
+                        <Icon id={l.item} size={30} />
+                        {name(data.items[l.item])}
+                      </span>
+                    </td>
+                    <Cell label={t('ovGivenBy')}>
+                      <Who list={l.givers} open={open} />
+                    </Cell>
+                    <Cell label={t('ovTakenBy')}>
+                      <Who list={l.takers} open={open} />
+                    </Cell>
+                    <td className="num" data-label={t('ovPoolRest')}>
+                      <span className={`ov-left ${l.left > 0.01 ? 'plus' : l.left < -0.01 ? 'minus' : ''}`}>
+                        {Math.abs(l.left) < 0.01 ? '0' : `${l.left > 0 ? '+' : '−'}${num(Math.abs(l.left))}`}
+                        <small>{t('perMin')}</small>
+                      </span>
+                    </td>
+                  </tr>
+                ))}
+                {o.sink > 0 && (
+                  <tr className="ov-sink-row">
+                    <td className="ov-name">
+                      <span className="ov-item">
+                        <Icon id="Build_ResourceSink_C" size={30} />
+                        {t('ovSink')}
+                      </span>
+                    </td>
+                    <td colSpan={2} className="ov-sink-note">
+                      {t('ovSinkRow')}
+                    </td>
+                    <td className="num">
+                      {num(o.sink)} <small>{t('sinkPts')}</small>
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </section>
+        )}
+
         <section className="ov-section">
           <h2 className="ov-title">{t('ovFactories')}</h2>
           <table className="ov-table">

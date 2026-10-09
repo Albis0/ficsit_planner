@@ -50,3 +50,21 @@ export function poolLines(surplus: Target[][], takes: Target[][]): PoolLine[] {
     })
     .sort((a, b) => b.left - a.left);
 }
+
+/** One factory or plant on either side of an item in the pool, with how much of it. */
+export interface PoolParty {
+  id: string;
+  name: string;
+  power: boolean;
+  rate: number;
+}
+
+/** Who stands behind each item's total, the largest first: the ones that leave it over, or the ones that take it. */
+export function poolParties(sides: { id: string; name: string; power: boolean; list: Target[] }[]): Map<string, PoolParty[]> {
+  const by = new Map<string, PoolParty[]>();
+  for (const s of sides)
+    for (const x of s.list)
+      if (x.rate > 1e-9) by.set(x.item, [...(by.get(x.item) ?? []), { id: s.id, name: s.name, power: s.power, rate: x.rate }]);
+  for (const list of by.values()) list.sort((a, b) => b.rate - a.rate);
+  return by;
+}

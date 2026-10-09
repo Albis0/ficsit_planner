@@ -452,3 +452,86 @@
     padding: 14px 12px 60px;
   }
 }
+
+/* The pool table: who gives, who takes, what is left, and the Sink under it. */
+.ov-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  font: 700 20px var(--font-display);
+}
+
+.ov-who-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.ov-who {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 6px;
+  padding: 3px 9px;
+  border: 1px solid var(--line-2);
+  border-radius: var(--radius-lg);
+  background: var(--panel-2);
+  color: var(--paper);
+  font: 600 15px var(--font-body);
+  cursor: pointer;
+}
+
+.ov-who small {
+  font-size: 13px;
+  color: var(--dim);
+}
+
+.ov-who:hover {
+  border-color: var(--ficsit);
+}
+
+.ov-left {
+  color: var(--faint);
+}
+
+.ov-left.plus {
+  color: var(--supply);
+}
+
+.ov-left.minus {
+  color: var(--alert);
+}
+
+.ov-left small {
+  margin-left: 4px;
+  font-size: 13px;
+}
+
+.ov-table .ov-sink-row td {
+  background: color-mix(in srgb, var(--sink) 8%, var(--panel));
+}
+
+.ov-table .ov-sink-row td:first-child {
+  box-shadow: inset 3px 0 var(--sink);
+}
+
+.ov-sink-note {
+  color: var(--dim);
+  font: 500 15px var(--font-body);
+}
+
+.ov-sink-row td.num,
+.ov-sink-row td.num small {
+  color: var(--sink);
+}
+
+.readout.sink {
+  border-color: var(--sink);
+}
+
+.readout.sink .readout-value {
+  color: var(--sink);
+}
+
+.readout.sink .readout-value small {
+  font-size: 14px;
+}

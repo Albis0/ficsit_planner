@@ -1019,7 +1019,7 @@ const clash = (a, b) => a && b && a.x < b.x + b.width && b.x < a.x + a.width && 
     'the All page replaces the floor',
     (await page.locator('.overview').count()) === 1 && (await page.locator('.react-flow').count()) === 0,
   );
-  const rowsText = await page.$$eval('.ov-table:not(.plants) tbody tr', (l) => l.map((r) => r.textContent.replace(/\s+/g, ' ')));
+  const rowsText = await page.$$eval('.ov-table:not(.plants):not(.pool) tbody tr', (l) => l.map((r) => r.textContent.replace(/\s+/g, ' ')));
   ok('a row per factory, the empty one says so', rowsText.length === 2 && /Nothing planned/.test(rowsText[1]), rowsText.join(' | '));
   ok('the hand-built factory is marked', (await page.locator('.ov-tag').count()) === 1);
   const rowPower = rowsText[0].match(/([\d.,]+)\s*MW/)?.[1];

@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { aimOf, type PowerPlan, useStore } from '../store';
-import { type PoolLine, plantTakesFromPool, poolLines, poolSources, takesFromPool } from './pool';
+import { sinkPerMin } from './data';
+import { type PoolLine, type PoolParty, plantTakesFromPool, poolLines, poolParties, poolSources, takesFromPool } from './pool';
 import { effectiveExtraction, type ExtractionUse, planExtraction } from './extraction';
 import type { GameRules } from './game';
 import { type FactoryDraw, type FactoryEntry, powerInput, powerLoad, useFactoryEntries } from './solution';
@@ -49,12 +50,20 @@ export interface PlantRow {
   leaves: Target[];
 }
 
+/** One item in the pool with the factories and plants on both sides of it. */
+export interface PoolRow extends PoolLine {
+  givers: PoolParty[];
+  takers: PoolParty[];
+}
+
 export interface Overview {
   factories: FactoryRow[];
   plants: PlantRow[];
   totals: Totals;
   /** What every factory and plant leaves over, less what's taken from it. */
-  pool: PoolLine[];
+  pool: PoolRow[];
+  /** Sink points a minute for what's left in the pool. */
+  sink: number;
   pending: boolean;
 }
 
@@ -216,14 +225,25 @@ export function useOverview(): Overview {
       const planned = !!plan && (plan.floor === 'manual' ? !!plan.model?.nodes.length : plan.targets.length > 0);
       return factoryRow(e, planned || (e.result?.recipes.length ?? 0) > 0);
     });
+    const given = poolParties([
+      ...factories.map((f) => ({ id: f.id, name: f.name, power: false, list: f.leaves })),
+      ...rows.map((p) => ({ id: p.id, name: p.name, power: true, list: p.leaves })),
+    ]);
+    const planTakes = takesFromPool(plans);
+    const plantTakes = plantTakesFromPool(power);
+    const taken = poolParties([
+      ...plans.map((p, i) => ({ id: p.id, name: p.name, power: false, list: planTakes[i] })),
+      ...power.map((p, i) => ({ id: p.id, name: p.name, power: true, list: plantTakes[i] })),
+    ]);
+    const pool = poolLines([...factories.map((f) => f.leaves), ...rows.map((p) => p.leaves)], [...planTakes, ...plantTakes]).map(
+      (l): PoolRow => ({ ...l, givers: given.get(l.item) ?? [], takers: taken.get(l.item) ?? [] }),
+    );
     return {
       factories,
       plants: rows,
       totals: totalsOf(factories, rows),
-      pool: poolLines(
-        [...factories.map((f) => f.leaves), ...rows.map((p) => p.leaves)],
-        [...takesFromPool(plans), ...plantTakesFromPool(power)],
-      ),
+      pool,
+      sink: Math.round(sinkPerMin(pool.filter((l) => l.left > 0.01).map((l) => ({ item: l.item, rate: l.left })))),
       pending: factories.some((f) => f.pending) || rows.some((p) => p.pending),
     };
   }, [entries, plans, power, rows]);

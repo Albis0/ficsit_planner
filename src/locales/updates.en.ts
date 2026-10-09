@@ -10,6 +10,16 @@ export type UpdateNote = [UpdateKind, string];
 
 export const UPDATES: { version: string; date: string; title?: string; notes: UpdateNote[] }[] = [
   {
+    version: '0.13.32',
+    date: '2026-10-09',
+    notes: [
+      [
+        'changed',
+        'The All page has a Pool table: for each item, who gives it, who takes it and what is left (green, or red when it is short). An AWESOME Sink row and tile show the sink points a minute for what is left.',
+      ],
+    ],
+  },
+  {
     version: '0.13.31',
     date: '2026-10-09',
     notes: [

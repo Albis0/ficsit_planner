@@ -2,6 +2,15 @@
 
 All notable changes to FICSIT Planner. Dates are when the version was finished.
 
+## 0.13.32 — 2026-10-09
+
+### Changed
+
+- **The All page shows the pool.** A Pool table sits above the factories: for every item in the pool it lists the
+  factories and power plants that give it and the ones that take it (click one to open its tab), and what is left, green
+  when there is some and red when more is taken than there is. Under it, an AWESOME Sink row scores what is left, and the
+  totals strip has a Sink tile with the points a minute. Sink figures are pink.
+
 ## 0.13.31 — 2026-10-09
 
 ### Changed

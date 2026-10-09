@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'bun:test';
-import { plantTakesFromPool, poolLines, poolSources, takesFromPool } from '../src/lib/pool';
+import { plantTakesFromPool, poolLines, poolParties, poolSources, takesFromPool } from '../src/lib/pool';
 import { cleanPlan, cleanPowerPlan } from '../src/lib/sanitize';
 import { powerInput } from '../src/lib/solution';
 import { dropSource, exportsOf, newPlan, newPowerPlan, POOL, type Plan } from '../src/store';
@@ -110,5 +110,25 @@ describe('the shared pool', () => {
       { item: 'Desc_CompactedCoal_C', rate: 30, from: POOL },
       { item: 'Desc_Coal_C', rate: 10 },
     ]);
+  });
+
+  test('each item in the pool lists who stands behind it, the largest first, and skips empty shares', () => {
+    const by = poolParties([
+      {
+        id: 'a',
+        name: 'A',
+        power: false,
+        list: [
+          { item: 'x', rate: 10 },
+          { item: 'y', rate: 0 },
+        ],
+      },
+      { id: 'b', name: 'B', power: true, list: [{ item: 'x', rate: 40 }] },
+    ]);
+    expect(by.get('x')).toEqual([
+      { id: 'b', name: 'B', power: true, rate: 40 },
+      { id: 'a', name: 'A', power: false, rate: 10 },
+    ]);
+    expect(by.has('y')).toBe(false);
   });
 });
