@@ -88,7 +88,6 @@ export const UPDATES: { version: string; date: string; title?: string; notes: Up
     version: '0.13.27',
     date: '2026-10-09',
     notes: [
-      ['changed', 'Settings › Updates: notes written as patch notes, with the versions under 0.13 and 0.12 headings.'],
       ['changed', 'Slow connection: the start page says it is loading game data, and the floor says when the solver is still arriving.'],
     ],
   },
