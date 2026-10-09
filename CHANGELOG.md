@@ -81,9 +81,11 @@ All notable changes to FICSIT Planner. Dates are when the version was finished.
 
 ### Changed
 
-- **Loading on a slow connection.** Before the app starts the page says "Loading game data…" with a bar, and "Slow
-  connection, still loading." after a few seconds. On the floor, while the solver itself is still arriving, "Loading
-  the solver" and a bar replace "Solving", when it takes longer than a moment. Opening the map says "Loading the map…".
+- **Loading.** The start page stays until the game data, the solver and your first floor are worked out, and its line
+  tells which one it is waiting for: "Loading game data…", "Loading the solver 40%", "Working out your factory". After
+  20 seconds it goes either way. On a slow connection it still says "Slow connection, still loading." after a few
+  seconds. On the floor, while the solver is still arriving, "Loading the solver" and a bar replace "Solving", when it
+  takes longer than a moment. Opening the map says "Loading the map…".
 
 ## 0.13.26 — 2026-10-08
 
@@ -98,6 +100,11 @@ All notable changes to FICSIT Planner. Dates are when the version was finished.
 - **To the pool** on each product in the Auto side panel: what the product makes is added to what the factory leaves
   over, so other factories and power plants can take it from the pool.
 
+### Changed
+
+- **Pinned inputs** show as one slim line above the totals: the factor, the scaled targets, **Make default** and Unpin all.
+  Make default turns the scaled amounts into the targets and lets go of the pins, in one step to undo.
+
 ## 0.13.25 — 2026-10-08
 
 ### Added
@@ -111,6 +118,12 @@ All notable changes to FICSIT Planner. Dates are when the version was finished.
 
 - **Splitters, mergers and junctions on the Auto floor** are drawn as the same square the Manual floor builds, the
   building and what passes through it per minute, instead of a small round badge.
+- **Cards on the Auto floor snap to the grid** when dragged, the same 40 px grid the lines show and the Manual floor uses.
+
+### Fixed
+
+- **Clicking one card of a line drawn as several cards** (Settings › Layout) centres the card you clicked, not the line's
+  first one.
 
 ## 0.13.24 — 2026-10-08
 

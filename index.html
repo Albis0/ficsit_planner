@@ -72,6 +72,11 @@
         background: #151516;
       }
       .boot {
+        position: fixed;
+        inset: 0;
+        z-index: 100000;
+        overflow: auto;
+        transition: opacity 0.2s;
         min-height: 100vh;
         display: grid;
         place-content: center;
@@ -81,6 +86,10 @@
         background: #151516;
         color: #a9aeb3;
         font: 16px / 1.5 'Segoe UI', system-ui, sans-serif;
+      }
+      .boot.boot-out {
+        opacity: 0;
+        pointer-events: none;
       }
       @supports (height: 100dvh) {
         .boot {
@@ -156,21 +165,20 @@
     </noscript>
   </head>
   <body>
-    <div id="root">
-      <main class="boot">
-        <h1>FICSIT Planner</h1>
-        <p>
-          Production calculator for Satisfactory. Enter the items you want per minute to get the machines, recipes,
-          belts and power.
-        </p>
-        <div class="boot-load" role="status">
-          <span>Loading game data…</span>
-          <span class="boot-bar"><i></i></span>
-        </div>
-        <p class="boot-slow">Slow connection, still loading.</p>
-        <noscript><p>FICSIT Planner needs JavaScript. Turn it on and reload the page.</p></noscript>
-      </main>
-    </div>
+    <div id="root"></div>
+    <main class="boot" id="boot">
+      <h1>FICSIT Planner</h1>
+      <p>
+        Production calculator for Satisfactory. Enter the items you want per minute to get the machines, recipes,
+        belts and power.
+      </p>
+      <div class="boot-load" role="status">
+        <span id="boot-text">Loading game data…</span>
+        <span class="boot-bar"><i></i></span>
+      </div>
+      <p class="boot-slow">Slow connection, still loading.</p>
+      <noscript><p>FICSIT Planner needs JavaScript. Turn it on and reload the page.</p></noscript>
+    </main>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>

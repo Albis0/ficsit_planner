@@ -48,7 +48,8 @@ import { fold } from './lib/fold';
 import { useMediaQuery } from './lib/useMediaQuery';
 import { useUndoKeys } from './lib/undoKeys';
 import { LATEST_UPDATE } from './locales/updates.en';
-import { useSolverLoading } from './lib/solverClient';
+import { useSolverLoading, useSolverReady } from './lib/solverClient';
+import { bootDone, bootText } from './lib/boot';
 import { modelFromSolve } from './lib/model/fromAuto';
 import { emptyModel, type Model } from './lib/model/types';
 import { calcAsync, solveAsync } from './lib/solverClient';
@@ -145,6 +146,17 @@ export default function App() {
   const [laying, setLaying] = useState(false);
   const solverLoad = useSolverLoading();
   const busy = laying || (manual ? hand.busy : solved.busy);
+  const solverReady = useSolverReady();
+  // The opening screen tells how far along things are, and goes once the solver is ready and the first answer is in.
+  const answered = !!result || !!error;
+  useEffect(() => {
+    if (!solverReady)
+      return bootText(solverLoad === undefined ? t('loadingGame') : `${t('loadingSolver')} ${Math.round(solverLoad * 100)}%`);
+    if (busy) return bootText(t('workingOut'));
+    // Nothing to work out (an empty plan, the Codex) shows up as idle; a plan about to be solved starts within a moment.
+    const timer = setTimeout(bootDone, answered ? 0 : 320);
+    return () => clearTimeout(timer);
+  }, [solverReady, solverLoad, busy, answered, t]);
   const lay = async <T,>(work: () => Promise<T>) => {
     setLaying(true);
     try {

@@ -52,9 +52,15 @@ import { ErrorBoundary } from './components/ErrorBoundary';
 import './lib/install';
 // Highlights glide between picks in a row of choices.
 import './lib/slide';
+import { bootDone } from './lib/boot';
+import { startSolver } from './lib/solverClient';
 
 // Additions kept on this machine only, if there are any.
 import.meta.glob('./lib/*.local.ts', { eager: true });
+
+// The solver loads while the page does; the opening screen goes once the app says it is ready, or after 20 seconds.
+startSolver();
+setTimeout(bootDone, 20000);
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>

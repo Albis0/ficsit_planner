@@ -7,7 +7,7 @@ import { showInPanel } from '../lib/panel';
 import { splitExtras } from '../lib/split';
 import type { SolveResult } from '../lib/solver';
 import { recipeLabel } from '../lib/text';
-import { usePlan, useStore } from '../store';
+import { keepScaled, usePlan, useStore } from '../store';
 import { Glyph } from './Glyph';
 import { Icon } from './Icon';
 import { MissingList } from './MissingList';
@@ -132,15 +132,21 @@ export function Summary({ result, extraction }: { result: SolveResult; extractio
       )}
       {pinned && (
         <div className="scaled" role="status">
-          <span>{t('scaledBanner')}</span>
-          <b>×{num(result.scale)}</b>
-          {result.targets.map((x) => (
-            <span key={x.item} className="chip">
-              <Icon id={x.item} size={24} />
-              {num(x.rate)}
-              {t('perMin')}
-            </span>
-          ))}
+          <span className="scaled-title">
+            {t('scaledBanner')} <b>×{num(result.scale)}</b>
+          </span>
+          <span className="scaled-chips">
+            {result.targets.map((x) => (
+              <span key={x.item} className="chip" title={name(data.items[x.item])}>
+                <Icon id={x.item} size={20} />
+                {num(x.rate)}
+                {t('perMin')}
+              </span>
+            ))}
+          </span>
+          <button type="button" className="text-button" title={t('makeDefaultHint')} onClick={() => updatePlan(keepScaled(result.targets))}>
+            {t('makeDefault')}
+          </button>
           <button type="button" className="text-button" onClick={() => updatePlan({ fixed: {} })}>
             {t('unpinAll')}
           </button>

@@ -99,7 +99,10 @@ export const UPDATES: { version: string; date: string; title?: string; notes: Up
     version: '0.13.27',
     date: '2026-10-09',
     notes: [
-      ['changed', 'Slow connection: the start page says it is loading game data, and the floor says when the solver is still arriving.'],
+      [
+        'changed',
+        'The start page stays until the game data, the solver and your first floor are ready, and says which of them it is waiting for.',
+      ],
     ],
   },
   {
@@ -109,6 +112,10 @@ export const UPDATES: { version: string; date: string; title?: string; notes: Up
       ['added', 'Manual floor: final products. Place one from the build menu or end a belt in one, then build back from it.'],
       ['added', 'Auto floor: leftover cards get “Make something from it”. Pick a recipe and its product is added.'],
       ['added', 'Auto floor: “To the pool” on every product, so other factories and plants can take it.'],
+      [
+        'changed',
+        'Auto floor: the strip for pinned inputs is one slim line, and “Make default” turns the scaled amounts into the targets.',
+      ],
     ],
   },
   {
@@ -117,6 +124,8 @@ export const UPDATES: { version: string; date: string; title?: string; notes: Up
     notes: [
       ['added', 'Auto floor and power planner: undo and redo, from the buttons in the corner or with Ctrl+Z and Ctrl+Y.'],
       ['changed', 'Auto floor: splitters and mergers look like the Manual floor’s and show the amount passing through.'],
+      ['changed', 'Auto floor: cards you drag snap to the grid, like on the Manual floor.'],
+      ['fixed', 'Auto floor: clicking one card of a line drawn as several cards centres that card, not the first one.'],
     ],
   },
   {

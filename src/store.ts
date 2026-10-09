@@ -136,6 +136,20 @@ export const toggleLine =
     return { separate: next.length ? next : undefined };
   };
 
+/**
+ * The targets as they were scaled to the pinned inputs become the real targets and the pins are let go, so the plan
+ * keeps making what it showed; for `updatePlan`. A target's rate is rounded to three places.
+ */
+export const keepScaled =
+  (scaled: { item: string; rate: number }[]) =>
+  (p: Plan): Partial<Plan> => ({
+    targets: p.targets.map((x) => {
+      const hit = scaled.find((y) => y.item === x.item);
+      return hit ? { ...x, rate: Math.round(hit.rate * 1000) / 1000 } : x;
+    }),
+    fixed: {},
+  });
+
 /** The plan's products offered to the pool with one put in or taken out; for `updatePlan`. */
 export const togglePooled =
   (item: string) =>

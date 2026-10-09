@@ -22,6 +22,7 @@ import { createContext, useContext, useEffect, useMemo, useRef, useState } from 
 import { groupClocks } from '../lib/clocks';
 import { buildGroups, groupsLabel, isPipe } from '../lib/groups';
 import { data } from '../lib/data';
+import { GRID } from '../lib/model/layout';
 import type { ExtractionUse } from '../lib/extraction';
 import {
   buildGraph,
@@ -827,11 +828,14 @@ function Canvas({ nodes, edges, sig, dir }: { nodes: Node[]; edges: Edge[]; sig:
   const flow = useReactFlow();
   const { toggle } = useContext(Built);
   const opening = useRef<number>(undefined);
+  // Which card of a split line was clicked: the view and the lit-up belts follow that one, not the line's first card.
+  const [clicked, setClicked] = useState<string>();
   useEffect(() => () => clearTimeout(opening.current), []);
   useEffect(() => {
     if (!inspect) return;
     // A line drawn as a card per destination is found by its first card.
-    const node = flow.getNodes().find((n) => isCard(n.id, inspect));
+    const nodes = flow.getNodes();
+    const node = nodes.find((n) => n.id === clicked && isCard(n.id, inspect)) ?? nodes.find((n) => isCard(n.id, inspect));
     if (!node) return;
     const zoom = Math.max(flow.getZoom(), 0.9);
     // On a phone the machine panel is a sheet over the floor's lower part: centre the machine in what's left above it.
@@ -842,7 +846,7 @@ function Canvas({ nodes, edges, sig, dir }: { nodes: Node[]; edges: Edge[]; sig:
       zoom,
       duration: 300,
     });
-  }, [inspect, flow]);
+  }, [inspect, clicked, flow]);
 
   // Escape puts the machine panel away, unless a dialog or a field has the key.
   useEffect(() => {
@@ -857,7 +861,8 @@ function Canvas({ nodes, edges, sig, dir }: { nodes: Node[]; edges: Edge[]; sig:
   }, [inspect, set]);
 
   // A machine that's gone from the plan (its recipe was just unticked) focuses nothing, so the floor doesn't dim.
-  const inspected = inspect ? [...neighbours.keys()].find((id) => isCard(id, inspect)) : undefined;
+  const cards = inspect ? [...neighbours.keys()].filter((id) => isCard(id, inspect)) : [];
+  const inspected = cards.find((id) => id === clicked) ?? cards[0];
   // A clicked belt lights itself and the two machines it joins; otherwise the machine under the pointer, or the
   // selected one, lights its belts and neighbours.
   const picked = edge ? edges.find((e) => e.id === edge) : undefined;
@@ -880,6 +885,8 @@ function Canvas({ nodes, edges, sig, dir }: { nodes: Node[]; edges: Edge[]; sig:
           edgeTypes={edgeTypes}
           nodesConnectable={false}
           nodesDraggable={!coarse}
+          snapToGrid
+          snapGrid={[GRID, GRID]}
           edgesFocusable={false}
           minZoom={minZoom}
           maxZoom={2}
@@ -906,6 +913,7 @@ function Canvas({ nodes, edges, sig, dir }: { nodes: Node[]; edges: Edge[]; sig:
             clearTimeout(opening.current);
             if (e.detail > 1 || n.type !== 'machine') return;
             const recipe = (n.data as MachineNodeData).use.recipe.id;
+            setClicked(n.id);
             if (!toggle) set({ inspect: recipe });
             else opening.current = window.setTimeout(() => set({ inspect: recipe }), DOUBLE);
           }}
@@ -921,8 +929,8 @@ function Canvas({ nodes, edges, sig, dir }: { nodes: Node[]; edges: Edge[]; sig:
           }}
         >
           {/* Foundation grid: minor lines every 8 m tile, a heavier seam every 4 tiles. */}
-          {gridLines && <Background id="minor" variant={BackgroundVariant.Lines} gap={40} lineWidth={1} color="#2f2f2f" />}
-          {gridLines && <Background id="major" variant={BackgroundVariant.Lines} gap={160} lineWidth={1} color="#3b3b3b" />}
+          {gridLines && <Background id="minor" variant={BackgroundVariant.Lines} gap={GRID} lineWidth={1} color="#2f2f2f" />}
+          {gridLines && <Background id="major" variant={BackgroundVariant.Lines} gap={GRID * 4} lineWidth={1} color="#3b3b3b" />}
           <FloorControls />
         </ReactFlow>
       </PickEdge.Provider>

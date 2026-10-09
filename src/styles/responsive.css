@@ -383,10 +383,13 @@
     height: 30px;
   }
 
-  .missing-banner,
-  .scaled {
+  .missing-banner {
     padding: 10px 14px;
     font-size: 15px;
+  }
+
+  .scaled {
+    padding: 6px 14px;
   }
 
   /* Floor controls. */

@@ -33,24 +33,45 @@
   width: 96px;
 }
 
+/* One slim line: the factor, what the targets came to, then the two buttons. Chips that don't fit scroll. */
 .scaled {
   flex-basis: 100%;
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: 8px 16px;
-  padding: 10px 22px;
+  gap: 4px 14px;
+  padding: 6px 22px;
   background: color-mix(in srgb, var(--ficsit) 14%, var(--panel));
-  font-size: 16px;
+  font-size: 14px;
+  /* First in the summary, so a tall list of raw inputs doesn't push it out of sight. */
+  order: -1;
+}
+
+.scaled-title {
+  flex: none;
 }
 
 .scaled b {
-  font: 700 24px var(--font-display);
+  font: 700 18px var(--font-display);
   color: var(--ficsit);
 }
 
+.scaled-chips {
+  flex: 1 1 0;
+  min-width: 0;
+  display: flex;
+  gap: 4px 12px;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
 .scaled .chip {
-  font: 700 18px var(--font-display);
+  flex: none;
+  font: 700 15px var(--font-display);
+}
+
+.scaled .text-button {
+  flex: none;
 }
 
 .pin-held {

@@ -29,6 +29,16 @@ export function useSolverLoading(): number | undefined {
   );
   return v > 0 && v < 1 ? v : undefined;
 }
+/** Whether the solver has finished loading. */
+export function useSolverReady(): boolean {
+  return useSyncExternalStore(
+    (l) => {
+      listeners.add(l);
+      return () => listeners.delete(l);
+    },
+    () => loaded >= 1,
+  );
+}
 let nextId = 0;
 const pending = new Map<number, Pending>();
 
@@ -55,6 +65,9 @@ function getWorker(): Worker {
   worker = w;
   return w;
 }
+
+/** Starts the worker, and with it the solver's loading, before anything asks it to solve. */
+export const startSolver = () => void getWorker();
 
 type Request = SolverRequest extends infer R ? (R extends SolverRequest ? Omit<R, 'id'> : never) : never;
 

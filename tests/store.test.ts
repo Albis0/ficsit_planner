@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'bun:test';
 import { data } from '../src/lib/data';
-import { mergeState, migrateState, newPlan, newPowerPlan, poweredBy, useStore } from '../src/store';
+import { keepScaled, mergeState, migrateState, newPlan, newPowerPlan, poweredBy, useStore } from '../src/store';
 
 const current = () => useStore.getState();
 const realRecipe = data.recipes[0].id;
@@ -349,5 +349,42 @@ describe('Auto and Manual share their targets', () => {
     current().removeTarget(0);
     expect(plan().model?.nodes.some((n) => n.id === 'o')).toBe(false);
     expect(plan().model?.links).toEqual([]);
+  });
+});
+
+describe('Make default on pinned inputs', () => {
+  test('the scaled amounts become the targets and the pins are let go', () => {
+    const p = {
+      ...newPlan('Factory'),
+      targets: [
+        { item: 'Desc_IronPlate_C', rate: 10 },
+        { item: 'Desc_IronRod_C', rate: 5 },
+      ],
+      fixed: { Desc_OreIron_C: 100 },
+    };
+    const patch = keepScaled([
+      { item: 'Desc_IronPlate_C', rate: 21.4285714 },
+      { item: 'Desc_IronRod_C', rate: 10.7142857 },
+    ])(p);
+    expect(patch.targets).toEqual([
+      { item: 'Desc_IronPlate_C', rate: 21.429 },
+      { item: 'Desc_IronRod_C', rate: 10.714 },
+    ]);
+    expect(patch.fixed).toEqual({});
+  });
+
+  test('a target the solver did not scale stays as it was, and a click is one step to undo', () => {
+    const fresh = newPlan('Factory');
+    useStore.setState({ mode: 'factory', plans: [fresh], active: fresh.id });
+    current().updatePlan({ targets: [{ item: realItem, rate: 10 }], fixed: { Desc_OreIron_C: 50 } });
+    const before = current().plans.find((x) => x.id === current().active)!;
+    current().updatePlan(keepScaled([{ item: realItem, rate: 25 }]));
+    const after = current().plans.find((x) => x.id === current().active)!;
+    expect(after.targets).toEqual([{ item: realItem, rate: 25 }]);
+    expect(after.fixed).toEqual({});
+    current().undoPlan();
+    const back = current().plans.find((x) => x.id === current().active)!;
+    expect(back.targets).toEqual(before.targets);
+    expect(back.fixed).toEqual({ Desc_OreIron_C: 50 });
   });
 });
