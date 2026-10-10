@@ -31,7 +31,6 @@ export const UPDATES: { version: string; date: string; title?: string; notes: Up
         'A solver that gets stuck no longer leaves the app waiting: after half a minute the request is given up and the next change starts a fresh solver.',
       ],
       ['changed', 'The Codex loads when you first open it, so the app starts with about 75 kB less.'],
-      ['changed', 'Plainer wording: the thanks after a short answer is just "Sent.", and a few labels and messages are shorter.'],
       [
         'fixed',
         'Floor: moving the pointer across a very big factory is much smoother. Only the cards and belts that light up or fade are redrawn.',

@@ -27,7 +27,6 @@ All notable changes to FICSIT Planner. Dates are when the version was finished.
 - **Dragging the panel's edge is smoother.** The size is written down once, when you let go, instead of on every move.
 - **The Codex loads when it is first opened.** Its pages are no longer part of the first download, which is about 75 kB smaller.
 - **The side panels redraw only for what they show.** The app shell and the Targets and Power panels read just the parts of the saved state they use, so unrelated changes (a panel being dragged, a card being inspected) no longer redraw them.
-- **Plainer wording in a few places.** After sending a short answer the card says "Sent."; the thank-you line under a sent report is gone; the questions switch in Settings reads "Short questions about new parts"; the delete-everything confirmation and the error screen are shorter; apostrophes are the same everywhere. The Help page's note on where plans live is one sentence shorter.
 
 ## 0.13.33 — 2026-10-09
 
