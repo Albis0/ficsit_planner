@@ -94,6 +94,8 @@ const FAR_ZOOM = 0.55;
 const zoomSelector = (s: { transform: [number, number, number] }) =>
   s.transform[2] < FAR_ZOOM ? 'far' : s.transform[2] < 0.8 ? 'mid' : 'near';
 
+/** From this many cards on, only what is on screen is drawn. */
+const BIG_GRAPH = 60;
 /**
  * Below this zoom belts stop moving: slats a few pixels apart, redrawn slower on a big floor, strobe
  * and seem to race instead of moving.
@@ -929,6 +931,7 @@ function Canvas({ nodes, edges, sig, dir }: { nodes: Node[]; edges: Edge[]; sig:
           nodesDraggable={!coarse}
           snapToGrid
           snapGrid={[GRID, GRID]}
+          onlyRenderVisibleElements={nodes.length > BIG_GRAPH}
           edgesFocusable={false}
           minZoom={minZoom}
           maxZoom={2}

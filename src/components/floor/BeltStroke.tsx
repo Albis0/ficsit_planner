@@ -16,14 +16,8 @@ const pipeIndex = (id: string) =>
     data.pipes.findIndex((p) => p.id === id),
   );
 
-const SPACING = 15;
-const MAX_CHEVRONS = 80;
-let ruler: SVGPathElement | null = null;
-const lengthOf = (d: string) => {
-  ruler ??= document.createElementNS('http://www.w3.org/2000/svg', 'path');
-  ruler.setAttribute('d', d);
-  return ruler.getTotalLength();
-};
+// Space between the chevrons along a belt.
+const FLOW_SPACING = 36;
 
 // How far from a handle the belts run together into one, and how far apart the points are that a belt is drawn through.
 const FAN = 30;
@@ -69,51 +63,58 @@ export function lanePaths(path: string, lanes: number, pitch = LANE_PITCH, wide 
   return paths;
 }
 
-/** Small chevrons running along a belt's path, each one following its curve. `speed` is the seconds one slat takes (20px). */
-export function BeltChevrons({
+/**
+ * What shows on a belt's bed: the chevrons pointing the way it goes, all in one still path, and under them one dashed
+ * strip that moves along it (`slats`). Two elements per belt however long it is.
+ */
+export function BeltFlow({
   path,
   width,
-  speed,
   lanes = 1,
   pitch = 0,
-  most = MAX_CHEVRONS,
+  slats = true,
 }: {
   path: string;
   width: number;
-  speed: number;
   lanes?: number;
   pitch?: number;
-  /** The most chevrons on this path. */
-  most?: number;
+  slats?: boolean;
 }) {
-  const { count, seconds } = useMemo(() => {
-    const len = lengthOf(path);
-    const n = Math.max(1, Math.min(most, Math.round(len / SPACING)));
-    return { count: n, seconds: Math.max(0.5, len / (20 / speed)) };
-  }, [path, speed, most]);
-  const h = Math.max(2.5, width / 2);
-  // One chevron per belt side by side, all in one shape so the slats stay in step.
-  const d = Array.from({ length: lanes }, (_, i) => {
-    const o = (i - (lanes - 1) / 2) * pitch;
-    return `M${-h * 0.5},${o - h} L${h * 0.5},${o} L${-h * 0.5},${o + h}`;
-  }).join(' ');
-  const offsetPath = `path("${path}")`;
+  const d = useMemo(() => {
+    const probe = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+    probe.setAttribute('d', path);
+    const len = probe.getTotalLength();
+    if (!(len > 1)) return '';
+    const n = Math.max(1, Math.round(len / FLOW_SPACING));
+    const h = Math.max(2.5, width / 2);
+    let out = '';
+    for (let k = 0; k < n; k++) {
+      const at = ((k + 0.5) / n) * len;
+      const a = probe.getPointAtLength(Math.max(0, at - 1));
+      const b = probe.getPointAtLength(Math.min(len, at + 1));
+      const p = probe.getPointAtLength(at);
+      const m = Math.hypot(b.x - a.x, b.y - a.y) || 1;
+      const tx = (b.x - a.x) / m;
+      const ty = (b.y - a.y) / m;
+      const pt = (x: number, y: number) => `${(p.x + tx * x - ty * y).toFixed(1)},${(p.y + ty * x + tx * y).toFixed(1)}`;
+      // One chevron per belt side by side.
+      for (let i = 0; i < lanes; i++) {
+        const o = (i - (lanes - 1) / 2) * pitch;
+        out += `M${pt(-h * 0.5, o - h)} L${pt(h * 0.5, o)} L${pt(-h * 0.5, o + h)} `;
+      }
+    }
+    return out.trim();
+  }, [path, width, lanes, pitch]);
   return (
     <g className="belt-chevrons">
-      {Array.from({ length: count }, (_, i) => i / count).map((at) => (
-        <path
-          key={at}
-          d={d}
-          className="belt-chev"
-          style={{ offsetPath, offsetDistance: `${at * 100}%`, animationDuration: `${seconds}s`, animationDelay: `${-at * seconds}s` }}
-        />
-      ))}
+      {slats && <path d={path} className="belt-slats" style={{ strokeWidth: width }} />}
+      <path d={d} className="belt-arrows" />
     </g>
   );
 }
 
 /**
- * A conveyor belt (rails, bed, moving slats) or a pipe (casing, flowing fluid) along a path, as both floors draw them.
+ * A conveyor belt (rails, bed, chevrons, a moving strip) or a pipe (casing, flowing fluid) along a path, as both floors draw them.
  * Side by side lines widen it. Returns the drawing and the colour of its tier, for the label's Mk badge.
  */
 export function beltStroke({
@@ -174,14 +175,8 @@ export function beltStroke({
             <path key={i} d={d} className="belt-bed" style={{ strokeWidth: Math.max(2, across - 4) }} />
           ))}
           {apart.map((d, i) => (
-            <BeltChevrons
-              // biome-ignore lint/suspicious/noArrayIndexKey: as above.
-              key={i}
-              path={d}
-              width={Math.max(2, across - 4)}
-              speed={speed}
-              most={Math.max(24, Math.floor((MAX_CHEVRONS * 2) / apart.length))}
-            />
+            // biome-ignore lint/suspicious/noArrayIndexKey: as above.
+            <BeltFlow key={i} path={d} width={Math.max(2, across - 4)} />
           ))}
         </g>
       ),
@@ -206,7 +201,7 @@ export function beltStroke({
             {d > 0 && <path d={path} className="belt-bed" style={{ strokeWidth: 2 * d - wall }} />}
           </g>
         ))}
-        <BeltChevrons path={path} width={bed} speed={2 / Math.sqrt(mk + 1)} lanes={lanes} pitch={pitch} />
+        <BeltFlow path={path} width={bed} lanes={lanes} pitch={pitch} slats={lanes === 1} />
       </g>
     ),
   };

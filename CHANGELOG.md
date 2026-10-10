@@ -2,6 +2,15 @@
 
 All notable changes to FICSIT Planner. Dates are when the version was finished.
 
+## 0.13.34 — 2026-10-10
+
+### Changed
+
+- **Floor: belts draw much lighter.** A belt used to carry a separate moving chevron for every 15 pixels, over six thousand
+  on a big factory, and a slow computer crawled while it panned. Now a belt is its rails, its bed, one still path of
+  chevrons and one moving strip, so the floor stays smooth. The chevrons still point the way it goes and the strip still
+  runs along it. A factory of more than 60 cards draws only what is on screen.
+
 ## 0.13.33 — 2026-10-09
 
 ### Added

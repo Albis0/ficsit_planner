@@ -11,6 +11,16 @@ export type UpdateNote = [UpdateKind, string];
 /** `ask` puts a question with a rating and a note under the version in Settings › Updates. */
 export const UPDATES: { version: string; date: string; title?: string; notes: UpdateNote[]; ask?: string }[] = [
   {
+    version: '0.13.34',
+    date: '2026-10-10',
+    notes: [
+      [
+        'fixed',
+        'Floor: a big factory pans and zooms smoothly on a slow computer. Belts keep their chevrons and a strip that moves along them, drawn with far fewer pieces, and a factory of more than 60 cards draws only what is on screen.',
+      ],
+    ],
+  },
+  {
     version: '0.13.33',
     date: '2026-10-09',
     ask: 'How do the pipe junctions and the Sink option work for you?',

@@ -297,7 +297,7 @@
 }
 
 /* Held still while the floor pans or zooms, so a big factory moves smoothly. */
-.react-flow.moving :is(.belt-slats, .belt-chev, .pipe-fluid, .cable-core) {
+.react-flow.moving :is(.belt-slats, .pipe-fluid, .cable-core) {
   animation-play-state: paused;
 }
 
@@ -306,11 +306,6 @@
 .app[data-belt-motion='off'] .cable-core,
 .settings-preview[data-belt-motion='off'] .belt-slats {
   animation: none;
-}
-
-.app[data-belt-motion='off'] .belt-chev,
-.settings-preview[data-belt-motion='off'] .belt-chev {
-  animation-play-state: paused;
 }
 
 /* Getting started with power: every generator as a card. */

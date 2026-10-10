@@ -678,6 +678,7 @@ function Canvas({ host, calc, onArrange }: { host: ModelHost; calc?: CalcResult;
                 <ReactFlow
                   nodes={shown}
                   edges={edges}
+                  onlyRenderVisibleElements={shown.length > 60}
                   nodeTypes={nodeTypes}
                   edgeTypes={edgeTypes}
                   onNodesChange={onNodesChange}

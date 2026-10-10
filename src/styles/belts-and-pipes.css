@@ -22,28 +22,13 @@
   animation: belt var(--belt-speed) linear infinite;
 }
 
-/* Chevrons pointing the way the belt moves. Each one rides the belt's path; the delay spreads them out. */
-.belt-chev {
+/* Chevrons pointing the way the belt moves, still, one path per belt. The strip under them is what moves. */
+.belt-arrows {
   fill: none;
   stroke: color-mix(in srgb, var(--belt) 80%, #fff);
   stroke-width: 2.4;
   stroke-linecap: round;
   stroke-linejoin: round;
-  offset-rotate: auto;
-  animation: belt-run linear infinite;
-}
-
-@keyframes belt-run {
-  from {
-    offset-distance: 0%;
-  }
-  to {
-    offset-distance: 100%;
-  }
-}
-
-.belt-edge.still .belt-chev {
-  animation-play-state: paused;
 }
 
 .pipe-casing {
@@ -73,10 +58,6 @@
 @media (prefers-reduced-motion: reduce) {
   .app:not([data-motion='full']) :is(.belt-slats, .pipe-fluid) {
     animation: none;
-  }
-
-  .app:not([data-motion='full']) .belt-chev {
-    animation-play-state: paused;
   }
 }
 
