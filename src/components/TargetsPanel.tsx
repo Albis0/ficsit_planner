@@ -1,3 +1,4 @@
+import { useShallow } from 'zustand/react/shallow';
 import type { ReactNode } from 'react';
 import { craftableItems, data, itemLocked } from '../lib/data';
 import { useT } from '../lib/i18n';
@@ -58,7 +59,23 @@ export function Cards({
 export function TargetsPanel({ result }: { result?: SolveResult }) {
   const { t, name, num } = useT();
   const plan = usePlan();
-  const s = useStore();
+  const s = useStore(
+    useShallow((x) => ({
+      addSupply: x.addSupply,
+      addTarget: x.addTarget,
+      plans: x.plans,
+      power: x.power,
+      removeSupply: x.removeSupply,
+      removeTarget: x.removeTarget,
+      set: x.set,
+      setSupply: x.setSupply,
+      setSupplyFrom: x.setSupplyFrom,
+      setTarget: x.setTarget,
+      settings: x.settings,
+      tier: x.tier,
+      updatePlan: x.updatePlan,
+    })),
+  );
   const others = s.plans.filter((p) => p.id !== plan.id);
   // What the tier can't make yet stays out of every list, unless Settings shows it.
   const unlocked = (list: typeof supplyItems) => (s.settings.showLocked ? list : list.filter((i) => !itemLocked(i.id, s.tier)));

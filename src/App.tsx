@@ -1,5 +1,6 @@
+import { useShallow } from 'zustand/react/shallow';
 import { lazy, Suspense, useEffect, useMemo, useState } from 'react';
-import { CodexNav, CodexPage, useCodexRoute } from './components/Codex';
+import { useCodexRoute } from './components/codex/route';
 import { autoDir, type FactoryLinks, GraphView } from './components/GraphView';
 import { Glyph } from './components/Glyph';
 import { Inspector } from './components/Inspector';
@@ -77,6 +78,9 @@ function Busy({ solverLoad }: { solverLoad?: number }) {
 
 // The map pulls in Leaflet and its tiles, so it loads only when opened.
 const WorldMap = lazy(() => import('./components/WorldMap'));
+// The Codex's pages are a good part of the code, and most visits never open it.
+const CodexNav = lazy(() => import('./components/Codex').then((m) => ({ default: m.CodexNav })));
+const CodexPage = lazy(() => import('./components/Codex').then((m) => ({ default: m.CodexPage })));
 
 /**
  * Both planners solve side by side, each only while it's on screen. Switching keeps the other's
@@ -125,7 +129,34 @@ function useSolutions() {
 
 export default function App() {
   const { t, lang } = useT();
-  const s = useStore();
+  const s = useStore(
+    useShallow((x) => ({
+      activePower: x.activePower,
+      deckClosed: x.deckClosed,
+      customWeights: x.customWeights,
+      deckHeight: x.deckHeight,
+      dialog: x.dialog,
+      equalWeights: x.equalWeights,
+      fewestBuildings: x.fewestBuildings,
+      graphDir: x.graphDir,
+      inspect: x.inspect,
+      mode: x.mode,
+      onboarded: x.onboarded,
+      overview: x.overview,
+      pane: x.pane,
+      plans: x.plans,
+      power: x.power,
+      seenUpdates: x.seenUpdates,
+      set: x.set,
+      setFloor: x.setFloor,
+      settings: x.settings,
+      sideWidth: x.sideWidth,
+      tab: x.tab,
+      tier: x.tier,
+      updatePlan: x.updatePlan,
+      view: x.view,
+    })),
+  );
   const plan = usePlan();
   const phone = useMediaQuery('(max-width: 900px)');
   const { factory, power, probe, draws, load, hand, manual: manualPlan } = useSolutions();
@@ -366,7 +397,11 @@ export default function App() {
       </header>
 
       <aside className="side">
-        {codexMode && <CodexNav />}
+        {codexMode && (
+          <Suspense fallback={null}>
+            <CodexNav />
+          </Suspense>
+        )}
         {mapMode && <MapNav />}
         {!bookMode && (
           <div className="tabs" role="tablist">
@@ -413,7 +448,11 @@ export default function App() {
       </aside>
 
       <main className="floor">
-        {codexMode && <CodexPage />}
+        {codexMode && (
+          <Suspense fallback={<div className="floor-message">{t('codexLoading')}</div>}>
+            <CodexPage />
+          </Suspense>
+        )}
         {mapMode && (
           <Suspense fallback={<div className="floor-message">{t('loadingMap')}</div>}>
             <WorldMap />

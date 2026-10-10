@@ -2,6 +2,17 @@
 
 All notable changes to FICSIT Planner. Dates are when the version was finished.
 
+## 0.13.37 — 2026-10-10
+
+### Fixed
+
+- **A stuck solver no longer leaves the app waiting for ever.** If the solver says nothing for half a minute (the slowest real plan takes under a second), the request is given up as stopped, the solver is thrown away and the next change starts a fresh one. The error view that already existed for a stopped solver is the one shown. While the solver is still downloading, progress keeps the wait going.
+
+### Changed
+
+- **The Codex loads when it is first opened.** Its pages are no longer part of the first download, which is about 75 kB smaller.
+- **The side panels redraw only for what they show.** The app shell and the Targets and Power panels read just the parts of the saved state they use, so unrelated changes (a panel being dragged, a card being inspected) no longer redraw them.
+
 ## 0.13.36 — 2026-10-10
 
 ### Fixed

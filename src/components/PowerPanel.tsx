@@ -1,3 +1,4 @@
+import { useShallow } from 'zustand/react/shallow';
 import { useEffect, useRef, useState } from 'react';
 import { data, type Generator } from '../lib/data';
 import { PURITIES } from '../lib/extraction';
@@ -520,7 +521,7 @@ function Backup({ result, load, chainDraw }: PowerPanelProps) {
   const pp = useStore(activePowerPlan);
   const updatePower = useStore((s) => s.updatePower);
   const plan = usePlan();
-  const s = useStore();
+  const s = useStore(useShallow((x) => ({ addSupply: x.addSupply, removeSupply: x.removeSupply, setSupply: x.setSupply })));
   const storage = data.powerStorage;
   const generation = result?.grid?.generation ?? 0;
   // Sized to what you have, everything it makes is the load it carries.

@@ -11,6 +11,17 @@ export type UpdateNote = [UpdateKind, string];
 /** `ask` puts a question with a rating and a note under the version in Settings › Updates. */
 export const UPDATES: { version: string; date: string; title?: string; notes: UpdateNote[]; ask?: string }[] = [
   {
+    version: '0.13.37',
+    date: '2026-10-10',
+    notes: [
+      [
+        'fixed',
+        'A solver that gets stuck no longer leaves the app waiting: after half a minute the request is given up and the next change starts a fresh solver.',
+      ],
+      ['changed', 'The Codex loads when you first open it, so the app starts with about 75 kB less.'],
+    ],
+  },
+  {
     version: '0.13.36',
     date: '2026-10-10',
     notes: [
