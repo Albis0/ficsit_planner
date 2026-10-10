@@ -136,7 +136,6 @@ export function ReportDialog({ onClose }: { onClose: () => void }) {
             <Glyph name="check" size={44} />
           </span>
           <h3 className="sent-title">{bug ? t('sentBug') : t('sentIdea')}</h3>
-          <p className="hint">{t('sentHint')}</p>
           <div className="report-actions">
             <button
               type="button"

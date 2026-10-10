@@ -2,6 +2,12 @@
 
 All notable changes to FICSIT Planner. Dates are when the version was finished.
 
+## 0.13.38 — 2026-10-10
+
+### Changed
+
+- **Plainer wording in a few places.** After sending a short answer the card says "Sent."; the thank-you line under a sent report is gone; the questions switch in Settings reads "Short questions about new parts"; the delete-everything confirmation and the error screen are shorter; apostrophes are the same everywhere. The Help page's note on where plans live is one sentence shorter.
+
 ## 0.13.37 — 2026-10-10
 
 ### Fixed

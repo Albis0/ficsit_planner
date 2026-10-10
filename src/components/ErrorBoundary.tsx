@@ -24,8 +24,7 @@ export class ErrorBoundary extends Component<{ children: ReactNode }, { error?: 
           <span className="brand-mark" aria-hidden />
           <h1 className="crash-title">Something broke</h1>
           <p className="hint">
-            The planner hit an error it couldn't recover from. Your factories are still saved in this browser. Save a copy first, then try
-            the steps below in order.
+            The planner hit an error. Your factories are still saved in this browser. Save a copy first, then try the steps below in order.
           </p>
           <code className="crash-detail">{error.message}</code>
           <div className="crash-actions">

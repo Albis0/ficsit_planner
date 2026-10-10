@@ -138,7 +138,7 @@ export const en = {
   ovMade: 'Made',
   ovOwnChain: 'Own fuel chain',
   ovNothingPlanned: 'Nothing planned yet',
-  ovFailed: "Can't be worked out",
+  ovFailed: 'Can’t be worked out',
   ovPoolLeft: 'Left in the pool',
   ovPoolShort: 'Short in the pool',
   ovHandBuilt: 'Manual',
@@ -445,7 +445,7 @@ export const en = {
   wipeAll: 'Delete everything',
   wipeHint: 'All factories, power plants and settings on this device.',
   wipe: 'Delete',
-  wipeConfirm: 'Sure? It can’t be undone',
+  wipeConfirm: 'Delete? Can’t be undone',
 
   // Feedback
   feedback: 'Feedback',
@@ -489,7 +489,6 @@ export const en = {
   openOnGithub: 'Post on GitHub instead',
   sentBug: 'Report received',
   sentIdea: 'Idea received',
-  sentHint: 'Thanks for taking the time.',
   sendAnother: 'Send another',
 
   // Codex
@@ -826,9 +825,9 @@ export const en = {
   pollNote: 'Anything to add? (optional)',
   pollSend: 'Send',
   pollClose: 'Close',
-  pollNever: "Don't ask again",
-  pollThanks: 'Thanks, that reached me.',
-  pollSetting: 'Ask what I think of new parts',
+  pollNever: 'Don’t ask again',
+  pollThanks: 'Sent.',
+  pollSetting: 'Short questions about new parts',
   pollSettingHint:
     'A short question a couple of minutes after you first try a part of the planner, at most once every few days. Nothing is asked if this is off.',
   update_added: 'New',
@@ -850,7 +849,7 @@ export const en = {
     'The highest milestone tier you’ve reached in your save. Recipes and buildings above it are left out of every plan. Change it with the Tier button in the top bar.',
   helpSaved: 'Where your plans live',
   helpText_saved:
-    'Everything saves in this browser as you go, and the app works offline. Settings, Your data exports it all to a file, to move to another computer or keep safe. Your plans never leave your device; the site only counts visits and which parts of it get used, as totals with nothing that identifies you.',
+    'Everything saves in this browser as you go, and the app works offline. Settings, Your data exports it all to a file, to move to another computer or keep safe. Your plans never leave your device.',
   helpText_targets:
     'What you want out of the factory, per minute. The planner works back from these to every machine, belt and raw resource.',
   helpText_supplies:

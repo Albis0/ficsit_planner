@@ -11,6 +11,11 @@ export type UpdateNote = [UpdateKind, string];
 /** `ask` puts a question with a rating and a note under the version in Settings › Updates. */
 export const UPDATES: { version: string; date: string; title?: string; notes: UpdateNote[]; ask?: string }[] = [
   {
+    version: '0.13.38',
+    date: '2026-10-10',
+    notes: [['changed', 'Plainer wording: the thanks after a short answer is just "Sent.", and a few labels and messages are shorter.']],
+  },
+  {
     version: '0.13.37',
     date: '2026-10-10',
     notes: [
