@@ -2,31 +2,7 @@
 
 All notable changes to FICSIT Planner. Dates are when the version was finished.
 
-## 0.13.39 — 2026-10-11
-
-### Fixed
-
-- **Moving the pointer over a very big factory no longer stalls it.** Pointing at a card used to redraw every card and belt on the floor, and leaving it redrew them all again, so crossing the gap between two cards did it twice. Now only the cards and belts whose look changes are redrawn, the fading of the rest is done by the stylesheet, and the floor waits a moment before lighting up again after the pointer leaves a card. On a factory of over 3,000 machines with the processor slowed fourfold, moving across the floor went from about 9 frames a second to about 50.
-- **Belts of a line side by side are drawn with less work.** Their chevrons are placed by walking the belt's own points instead of measuring the path again for each one.
-
-## 0.13.38 — 2026-10-10
-
-### Changed
-
-- **Plainer wording in a few places.** After sending a short answer the card says "Sent."; the thank-you line under a sent report is gone; the questions switch in Settings reads "Short questions about new parts"; the delete-everything confirmation and the error screen are shorter; apostrophes are the same everywhere. The Help page's note on where plans live is one sentence shorter.
-
-## 0.13.37 — 2026-10-10
-
-### Fixed
-
-- **A stuck solver no longer leaves the app waiting for ever.** If the solver says nothing for half a minute (the slowest real plan takes under a second), the request is given up as stopped, the solver is thrown away and the next change starts a fresh one. The error view that already existed for a stopped solver is the one shown. While the solver is still downloading, progress keeps the wait going.
-
-### Changed
-
-- **The Codex loads when it is first opened.** Its pages are no longer part of the first download, which is about 75 kB smaller.
-- **The side panels redraw only for what they show.** The app shell and the Targets and Power panels read just the parts of the saved state they use, so unrelated changes (a panel being dragged, a card being inspected) no longer redraw them.
-
-## 0.13.36 — 2026-10-10
+## 0.13.34 — 2026-10-11
 
 ### Fixed
 
@@ -34,18 +10,9 @@ All notable changes to FICSIT Planner. Dates are when the version was finished.
 - **A note when the plans cannot be saved.** When the browser still refuses the write, a note at the bottom says so, with a button that downloads a backup file and one that hides the note. It goes away by itself when a save goes through again.
 - **The short-question form no longer reads past its size limit.** The size is counted as the answer arrives, the same way the report form does it, instead of trusting the length the sender claims.
 - **The rule against text written at whoever reads reports is narrower.** "Ignore the previous version" is an ordinary sentence now; "ignore the previous instructions" is still caught.
-
-## 0.13.35 — 2026-10-10
-
-### Changed
-
-- **Floor: changing a number no longer freezes a big factory.** The floor was laid out six times over on every change,
-  trying each way of ranking the machines in both directions, and a slow computer stood still for over a second. When
-  the machines and belts are the same as before, the layout that was found is reused, so a number changing costs a
-  fraction of what it did.
-- **Dragging the panel's edge is smoother.** The size is written down once, when you let go, instead of on every move.
-
-## 0.13.34 — 2026-10-10
+- **A stuck solver no longer leaves the app waiting for ever.** If the solver says nothing for half a minute (the slowest real plan takes under a second), the request is given up as stopped, the solver is thrown away and the next change starts a fresh one. The error view that already existed for a stopped solver is the one shown. While the solver is still downloading, progress keeps the wait going.
+- **Moving the pointer over a very big factory no longer stalls it.** Pointing at a card used to redraw every card and belt on the floor, and leaving it redrew them all again, so crossing the gap between two cards did it twice. Now only the cards and belts whose look changes are redrawn, the fading of the rest is done by the stylesheet, and the floor waits a moment before lighting up again after the pointer leaves a card. On a factory of over 3,000 machines with the processor slowed fourfold, moving across the floor went from about 9 frames a second to about 50.
+- **Belts of a line side by side are drawn with less work.** Their chevrons are placed by walking the belt's own points instead of measuring the path again for each one.
 
 ### Changed
 
@@ -53,6 +20,14 @@ All notable changes to FICSIT Planner. Dates are when the version was finished.
   on a big factory, and a slow computer crawled while it panned. Now a belt is its rails, its bed, one still path of
   chevrons and one moving strip, so the floor stays smooth. The chevrons still point the way it goes and the strip still
   runs along it. A factory of more than 60 cards draws only what is on screen.
+- **Floor: changing a number no longer freezes a big factory.** The floor was laid out six times over on every change,
+  trying each way of ranking the machines in both directions, and a slow computer stood still for over a second. When
+  the machines and belts are the same as before, the layout that was found is reused, so a number changing costs a
+  fraction of what it did.
+- **Dragging the panel's edge is smoother.** The size is written down once, when you let go, instead of on every move.
+- **The Codex loads when it is first opened.** Its pages are no longer part of the first download, which is about 75 kB smaller.
+- **The side panels redraw only for what they show.** The app shell and the Targets and Power panels read just the parts of the saved state they use, so unrelated changes (a panel being dragged, a card being inspected) no longer redraw them.
+- **Plainer wording in a few places.** After sending a short answer the card says "Sent."; the thank-you line under a sent report is gone; the questions switch in Settings reads "Short questions about new parts"; the delete-everything confirmation and the error screen are shorter; apostrophes are the same everywhere. The Help page's note on where plans live is one sentence shorter.
 
 ## 0.13.33 — 2026-10-09
 

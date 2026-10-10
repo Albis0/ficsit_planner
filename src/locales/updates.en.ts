@@ -11,58 +11,30 @@ export type UpdateNote = [UpdateKind, string];
 /** `ask` puts a question with a rating and a note under the version in Settings › Updates. */
 export const UPDATES: { version: string; date: string; title?: string; notes: UpdateNote[]; ask?: string }[] = [
   {
-    version: '0.13.39',
+    version: '0.13.34',
     date: '2026-10-11',
     notes: [
       [
         'fixed',
-        'Floor: moving the pointer across a very big factory is much smoother. Only the cards and belts that light up or fade are redrawn.',
+        'Floor: a big factory pans and zooms smoothly on a slow computer. Belts keep their chevrons and a strip that moves along them, drawn with far fewer pieces, and a factory of more than 60 cards draws only what is on screen.',
       ],
-    ],
-  },
-  {
-    version: '0.13.38',
-    date: '2026-10-10',
-    notes: [['changed', 'Plainer wording: the thanks after a short answer is just "Sent.", and a few labels and messages are shorter.']],
-  },
-  {
-    version: '0.13.37',
-    date: '2026-10-10',
-    notes: [
+      [
+        'fixed',
+        'Floor: changing a number in a big factory no longer freezes it for a second. The layout is reused while the machines and belts stay the same, and dragging the panel edge is smoother.',
+      ],
+      [
+        'fixed',
+        'Saving: a browser with no room left no longer breaks changes halfway. The plans are written a moment after the last change, and at once when you leave the page. If the browser still refuses, a note says so and offers a backup download.',
+      ],
       [
         'fixed',
         'A solver that gets stuck no longer leaves the app waiting: after half a minute the request is given up and the next change starts a fresh solver.',
       ],
       ['changed', 'The Codex loads when you first open it, so the app starts with about 75 kB less.'],
-    ],
-  },
-  {
-    version: '0.13.36',
-    date: '2026-10-10',
-    notes: [
+      ['changed', 'Plainer wording: the thanks after a short answer is just "Sent.", and a few labels and messages are shorter.'],
       [
         'fixed',
-        'Saving: a browser with no room left no longer breaks changes halfway. The plans are written a moment after the last change, and at once when you leave the page. If the browser still refuses, a note says so and offers a backup download.',
-      ],
-    ],
-  },
-  {
-    version: '0.13.35',
-    date: '2026-10-10',
-    notes: [
-      [
-        'fixed',
-        'Floor: changing a number in a big factory no longer freezes it for a second. The layout is reused while the machines and belts stay the same, and dragging the panel edge is smoother.',
-      ],
-    ],
-  },
-  {
-    version: '0.13.34',
-    date: '2026-10-10',
-    notes: [
-      [
-        'fixed',
-        'Floor: a big factory pans and zooms smoothly on a slow computer. Belts keep their chevrons and a strip that moves along them, drawn with far fewer pieces, and a factory of more than 60 cards draws only what is on screen.',
+        'Floor: moving the pointer across a very big factory is much smoother. Only the cards and belts that light up or fade are redrawn.',
       ],
     ],
   },
