@@ -7,6 +7,7 @@ import { MapNav } from './components/MapNav';
 import { MissingList } from './components/MissingList';
 import { MobileMenu, MobileNav } from './components/MobileChrome';
 import { MovedNotice } from './components/MovedNotice';
+import { SaveFailedNotice } from './components/SaveFailedNotice';
 import { PollCard } from './components/PollCard';
 import { ModeSwitch } from './components/ModeSwitch';
 import { OverviewPage } from './components/Overview';
@@ -559,6 +560,7 @@ export default function App() {
       <TipLayer />
       <Notice />
       <MovedNotice />
+      <SaveFailedNotice />
       <PollCard />
       <ClosedTab />
       <PwaStatus />

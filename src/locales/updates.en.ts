@@ -16,7 +16,7 @@ export const UPDATES: { version: string; date: string; title?: string; notes: Up
     notes: [
       [
         'fixed',
-        'Saving: a browser with no room left no longer breaks changes halfway. The plans are written a moment after the last change, and at once when you leave the page.',
+        'Saving: a browser with no room left no longer breaks changes halfway. The plans are written a moment after the last change, and at once when you leave the page. If the browser still refuses, a note says so and offers a backup download.',
       ],
     ],
   },
