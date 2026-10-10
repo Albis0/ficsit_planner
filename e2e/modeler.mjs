@@ -51,7 +51,11 @@ function ok(step, pass, info = '') {
 }
 const shot = (name) => page.screenshot({ path: path.join(OUT, `${String(++shots).padStart(2, '0')}-${name}.png`) });
 const wait = (ms = 400) => page.waitForTimeout(ms);
-const model = () => page.evaluate(() => JSON.parse(localStorage.getItem('ficsit-planner')).state.plans[0].model);
+// The app gathers saves for 300 ms, so read what it kept only after that.
+const model = async () => {
+  await wait(350);
+  return page.evaluate(() => JSON.parse(localStorage.getItem('ficsit-planner')).state.plans[0].model);
+};
 const card = (id) => page.locator(`.react-flow__node[data-id="${id}"]`);
 const end = (id, h) => page.locator(`.react-flow__handle[data-nodeid="${id}"][data-handleid="${h}"]`);
 const centre = async (loc) => {
@@ -1572,6 +1576,7 @@ const clash = (a, b) => a && b && a.x < b.x + b.width && b.x < a.x + a.width && 
   await plateCard().click();
   await wait(400);
   ok('every alternate off: no recipe list to turn them on from in the Auto panel', !(await page.locator('.recipe-choices').count()));
+  await wait(350);
   await page.evaluate(() => {
     const s = JSON.parse(localStorage.getItem('ficsit-planner'));
     s.state.plans[0].enabled.push('Recipe_Alternate_CoatedIronPlate_C');

@@ -118,8 +118,8 @@ export const banHours = (strikes: number) => [1, 24, 168, 720][Math.min(Math.max
  * or to wish harm on the maintainer. Real bug reports never read like this, so a match is a strike.
  */
 const ABUSE = [
-  /ignore\s+(all\s+)?(the\s+)?(above|previous|prior|earlier)\b/i,
-  /disregard\s+(all\s+)?(the\s+)?(above|previous|prior)\b/i,
+  /ignore\s+(all\s+)?(the\s+)?(above|previous|prior|earlier)\s+(instructions?|prompts?|rules?|messages?|context|text|content|directions?)\b/i,
+  /disregard\s+(all\s+)?(the\s+)?(above|previous|prior|earlier)\s+(instructions?|prompts?|rules?|messages?|context|text|content|directions?)\b/i,
   /delete\s+(every|all)\s+(the\s+)?files?/i,
   /\b(this is|it'?s)\s+(me,?\s+)?your\s+(maintainer|developer|owner|creator)\b/i,
   /\b(system|developer)\s+prompt\b/i,

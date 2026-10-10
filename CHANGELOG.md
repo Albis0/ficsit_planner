@@ -2,6 +2,14 @@
 
 All notable changes to FICSIT Planner. Dates are when the version was finished.
 
+## 0.13.36 — 2026-10-10
+
+### Fixed
+
+- **A full browser store no longer breaks the app.** Every change to the plans used to write them down on the spot, and when the browser had no room left the write failed in the middle of the change. Now a failed write is caught and remembered, the change itself goes through, and the plans are written again on the next change. Writes are gathered for a third of a second, so typing a number or dragging saves once, and everything is written at once when the page is hidden or closed. The browser is also asked once to keep this site's data when space runs short.
+- **The short-question form no longer reads past its size limit.** The size is counted as the answer arrives, the same way the report form does it, instead of trusting the length the sender claims.
+- **The rule against text written at whoever reads reports is narrower.** "Ignore the previous version" is an ordinary sentence now; "ignore the previous instructions" is still caught.
+
 ## 0.13.35 — 2026-10-10
 
 ### Changed

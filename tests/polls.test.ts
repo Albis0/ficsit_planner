@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'bun:test';
 import { checkPoll } from '../src/lib/poll-schema';
-import { canAsk, GAP, LATER_WAIT, MAX_LATER, type Memory, remember } from '../src/lib/polls';
+import { canAsk, GAP, LATER_WAIT, MAX_LATER, type Memory, POLLS, remember } from '../src/lib/polls';
 
 const NOW = 1_800_000_000_000;
 const fresh = (): Memory => ({ polls: {} });
@@ -11,13 +11,19 @@ describe('when a question may be asked', () => {
   });
 
   test('not while the questions are switched off', () => {
-    expect(canAsk(remember(fresh(), 'manual', 'never', NOW), 'pool', NOW + 10 * GAP)).toBe(false);
+    expect(canAsk(remember(fresh(), 'manual', 'never', NOW), 'global', NOW + 10 * GAP)).toBe(false);
   });
 
   test('another question waits a few days after one was shown', () => {
     const shown = remember(fresh(), 'manual', 'shown', NOW);
-    expect(canAsk(shown, 'pool', NOW + GAP - 1)).toBe(false);
-    expect(canAsk(shown, 'pool', NOW + GAP)).toBe(true);
+    expect(canAsk(shown, 'global', NOW + GAP - 1)).toBe(false);
+    expect(canAsk(shown, 'global', NOW + GAP)).toBe(true);
+  });
+
+  test('every question in the list is one the server takes, and none repeats', () => {
+    const ids = POLLS.map((p) => p.id);
+    expect(new Set(ids).size).toBe(ids.length);
+    for (const q of ids) expect(checkPoll({ q, act: 'close', rating: 0 }).ok).toBe(true);
   });
 
   test('an answered or closed question is not asked again', () => {

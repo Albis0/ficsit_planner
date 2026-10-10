@@ -1,6 +1,6 @@
 // POST /api/poll: an answer to a short question the app asked, kept in the site's own D1 database.
 import { checkPoll } from '../../src/lib/poll-schema';
-import { banKey, senderKeys } from './report';
+import { banKey, readBody, senderKeys } from './report';
 
 interface Env {
   DB: D1Database;
@@ -37,9 +37,12 @@ export const onRequest: PagesFunction<Env> = async ({ request, env }) => {
   const salt = env.REPORT_SALT ?? '';
   if (salt.length < 16) return bad('setup', 503);
 
+  // The length header can be missing or false, so the body is counted as it is read.
+  const text = await readBody(request, MAX_BYTES);
+  if (text === undefined) return bad('size', 413);
   let parsed: unknown;
   try {
-    parsed = JSON.parse((await request.text()).slice(0, MAX_BYTES));
+    parsed = JSON.parse(text);
   } catch {
     return bad('json', 400);
   }

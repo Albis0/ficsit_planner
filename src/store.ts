@@ -2,6 +2,7 @@ import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import { data } from './lib/data';
 import { isLang, type Lang } from './lib/lang';
+import { jsonPlanStorage } from './lib/safeStorage';
 import { DEFAULT_EXTRACTION, type ExtractionSettings } from './lib/extraction';
 import type { Aim } from './lib/solution';
 import { generatorById, recipeById } from './lib/data';
@@ -782,6 +783,7 @@ export const useStore = create<State>()(
     },
     {
       name: 'ficsit-planner',
+      storage: jsonPlanStorage,
       version: 3,
       partialize: persisted,
       migrate: migrateState,

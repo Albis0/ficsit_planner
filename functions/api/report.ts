@@ -65,7 +65,7 @@ function ipv6Prefix(ip: string, groups: number): string {
 }
 
 /** The body as text, or undefined once it passes `max` bytes, without reading the rest. */
-async function readBody(request: Request, max: number): Promise<string | undefined> {
+export async function readBody(request: Request, max: number): Promise<string | undefined> {
   if (!request.body) return '';
   const reader = request.body.getReader();
   const chunks: Uint8Array[] = [];
