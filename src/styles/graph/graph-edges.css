@@ -132,7 +132,7 @@
   pointer-events: none;
 }
 
-.loop-under.faded {
+.fade-edges .loop-under:not(.lit) {
   stroke-opacity: 0.1;
 }
 
@@ -177,7 +177,7 @@
   color: var(--paper);
 }
 
-.loop-mark.faded {
+.fade-edges .loop-mark:not(.lit) {
   opacity: 0.2;
 }
 

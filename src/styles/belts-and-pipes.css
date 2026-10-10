@@ -61,8 +61,8 @@
   }
 }
 
-.belt-edge.faded,
-.pipe-edge.faded {
+.fade-edges .belt-edge:not(.lit),
+.fade-edges .pipe-edge:not(.lit) {
   opacity: 0.12;
 }
 

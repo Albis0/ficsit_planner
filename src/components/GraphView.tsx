@@ -18,7 +18,7 @@ import {
   type Viewport,
 } from '@xyflow/react';
 import '@xyflow/react/dist/base.css';
-import { createContext, useContext, useEffect, useMemo, useRef, useState } from 'react';
+import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react';
 import { groupClocks } from '../lib/clocks';
 import { buildGroups, groupsLabel, isPipe } from '../lib/groups';
 import { data } from '../lib/data';
@@ -59,8 +59,26 @@ import { Slot } from './Slot';
 import { SurplusMake } from './SurplusMake';
 import { SplitBadge, SplitTo } from './SplitText';
 
-/** Hovered node and its direct neighbours; everything else fades so one line can be followed. */
-const Focus = createContext<{ node?: string; near: Set<string>; edge?: string }>({ near: new Set() });
+type FocusValue = { node?: string; near: Set<string>; edge?: string };
+/**
+ * The hovered node and its direct neighbours; everything else fades so one line can be followed. It lives outside
+ * React state so a hover redraws only the cards and belts whose look changes, not every one on the floor.
+ */
+class FocusStore {
+  value: FocusValue = { near: new Set() };
+  private subs = new Set<() => void>();
+  subscribe = (f: () => void) => {
+    this.subs.add(f);
+    return () => {
+      this.subs.delete(f);
+    };
+  };
+  set(v: FocusValue) {
+    this.value = v;
+    for (const f of this.subs) f();
+  }
+}
+const Focus = createContext(new FocusStore());
 /** The belt whose label was clicked, which then says where it comes from and goes to. */
 const PickEdge = createContext<(id?: string) => void>(() => {});
 
@@ -83,9 +101,21 @@ const outSide = (dir: Direction) => (dir === 'TB' ? Position.Bottom : Position.R
 /** Extractor counts per raw resource, shown on the ore/fluid source nodes. */
 const Extraction = createContext<Map<string, ExtractionUse>>(new Map());
 
-const useFaded = (id: string) => {
-  const f = useContext(Focus);
-  return f.node !== undefined && !f.near.has(id);
+/** Whether a card is the focused one or beside it. The ones that aren't are faded by the stylesheet, under .fade-nodes. */
+const useNear = (id: string) => {
+  const store = useContext(Focus);
+  return useSyncExternalStore(store.subscribe, () => store.value.near.has(id));
+};
+
+/** Whether the focus lights a belt or cable: the focused card is at one end, or the belt itself was picked. The rest fade under .fade-edges. */
+const useEdgeFocus = (id: string, source: string, target: string, power = false) => {
+  const store = useContext(Focus);
+  return useSyncExternalStore(store.subscribe, () => {
+    const f = store.value;
+    if (power) return f.node !== undefined && (source === f.node || target === f.node) ? 'lit' : '';
+    if (f.edge !== undefined) return f.edge === id ? 'picked' : '';
+    return f.node !== undefined && (source === f.node || target === f.node) ? 'lit' : '';
+  });
 };
 
 /** Below this zoom belt labels hide, so the machines stay readable. */
@@ -155,12 +185,12 @@ function PortHandle({ type, lanes }: { type: 'source' | 'target'; lanes?: number
 function GeneratorNode({ id, data: d, selected }: NodeProps) {
   const { name, num } = useT();
   const { use, generation = 0, ports } = d as MachineNodeData;
-  const faded = useFaded(id);
+  const near = useNear(id);
   const gen = generatorById.get(use.recipe.machine);
   const fuel = use.recipe.inputs.find((i) => data.items[i.item]?.energy)?.item;
   return (
     <div
-      className={`machine-node power gen-${gen?.kind ?? 'fuel'} ${faded ? 'faded' : ''} ${selected ? 'selected' : ''}`}
+      className={`machine-node power gen-${gen?.kind ?? 'fuel'} ${near ? 'near' : ''} ${selected ? 'selected' : ''}`}
       style={{ ['--run-extra' as string]: runExtra(use), ...(use.shards > 0 ? { ['--mod-bar' as string]: 'var(--shard)' } : {}) }}
     >
       <PortHandle type="target" lanes={ports?.in} />
@@ -194,13 +224,13 @@ function MachineNode(props: NodeProps) {
   const { name, num } = useT();
   const { use, split, part, ports } = d as MachineNodeData;
   const { recipe } = use;
-  const faded = useFaded(id);
+  const near = useNear(id);
   const done = useContext(Built).built.has(recipe.id);
   if (recipe.kind === 'power') return <GeneratorNode {...props} />;
   const bar = modBar(use.shards, use.sloops);
   return (
     <div
-      className={`machine-node ${recipe.kind} ${faded ? 'faded' : ''} ${selected ? 'selected' : ''} ${done ? 'done' : ''}`}
+      className={`machine-node ${recipe.kind} ${near ? 'near' : ''} ${selected ? 'selected' : ''} ${done ? 'done' : ''}`}
       style={{ ['--run-extra' as string]: cardExtra(use, split ?? part), ...(bar ? { ['--mod-bar' as string]: bar } : {}) }}
     >
       <PortHandle type="target" lanes={ports?.in} />
@@ -311,7 +341,7 @@ function PoolToggle({ item }: { item: string }) {
 function EndpointNode({ id, data: d }: NodeProps) {
   const { name, num, t } = useT();
   const { kind, item, rate, line, ports } = d as EndpointNodeData;
-  const faded = useFaded(id);
+  const near = useNear(id);
   const factoryMode = useStore((s) => s.mode === 'factory');
   const ex = useContext(Extraction).get(item);
   const links = useContext(Links);
@@ -327,7 +357,7 @@ function EndpointNode({ id, data: d }: NodeProps) {
   const feeds = kind === 'raw' || kind === 'supply' || kind === 'missing';
   return (
     <div
-      className={`endpoint-node ${kind} ${faded ? 'faded' : ''}`}
+      className={`endpoint-node ${kind} ${near ? 'near' : ''}`}
       style={it.form !== 'solid' ? { ['--fluid-color' as string]: pipeColor(it) ?? 'var(--fluid)' } : undefined}
     >
       {!feeds && <PortHandle type="target" lanes={ports?.in} />}
@@ -374,12 +404,12 @@ function PowerNode({ id, data: d }: NodeProps) {
   const { t, num } = useT();
   const { kind, label, mw, tone, boost, balance = 0 } = d as PowerNodeData;
   const dir = useContext(Flow);
-  const faded = useFaded(id);
+  const near = useNear(id);
   const hasOut = useFlowStore((s) => s.edges.some((e) => e.source === id));
   if (kind === 'grid') {
     const short = balance < -0.5;
     return (
-      <div className={`power-node grid ${short ? 'short' : ''} ${faded ? 'faded' : ''}`}>
+      <div className={`power-node grid ${short ? 'short' : ''} ${near ? 'near' : ''}`}>
         <Handle type="target" position={inSide(dir)} />
         <span className="grid-head">
           <Glyph name="bolt" size={18} />
@@ -398,7 +428,7 @@ function PowerNode({ id, data: d }: NodeProps) {
     );
   }
   return (
-    <div className={`power-node consumer ${tone ?? ''} ${faded ? 'faded' : ''}`}>
+    <div className={`power-node consumer ${tone ?? ''} ${near ? 'near' : ''}`}>
       <Handle type="target" position={inSide(dir)} />
       <Glyph name={tone === 'chain' || tone === 'out' ? 'bolt' : tone === 'other' ? 'sliders' : 'factory'} size={26} />
       <span className="consumer-text">
@@ -416,9 +446,9 @@ function PowerNode({ id, data: d }: NodeProps) {
 }
 
 /** A power line: a dark cable with current pulsing along its core. */
-function PowerEdge({ source, target, sourceX, sourceY, targetX, targetY, sourcePosition, targetPosition, data: d }: EdgeProps) {
+function PowerEdge({ id, source, target, sourceX, sourceY, targetX, targetY, sourcePosition, targetPosition, data: d }: EdgeProps) {
   const { num } = useT();
-  const focus = useContext(Focus);
+  const focused = useEdgeFocus(id, source, target, true);
   const zoom = useFlowStore(zoomSelector);
   const still = useFlowStore(stillSelector);
   const labels = useStore((s) => s.settings.beltLabels);
@@ -436,9 +466,8 @@ function PowerEdge({ source, target, sourceX, sourceY, targetX, targetY, sourceP
   } else {
     [path, lx, ly] = getBezierPath({ sourceX, sourceY, targetX, targetY, sourcePosition, targetPosition });
   }
-  const lit = focus.node !== undefined && (source === focus.node || target === focus.node);
-  const faded = focus.node !== undefined && !lit;
-  const state = `${faded ? 'faded' : ''} ${lit ? 'lit' : ''} ${still ? 'still' : ''}`;
+  const lit = focused === 'lit';
+  const state = `${lit ? 'lit' : ''} ${still ? 'still' : ''}`;
   const showLabel = labels === 'always' || lit || (labels === 'auto' && zoom !== 'far');
   return (
     <>
@@ -554,7 +583,7 @@ const moved = (a: Point | undefined, b: Point) => !a || Math.abs(a.x - b.x) > 0.
 /** A conveyor belt (rails, bed, moving slats) or a pipe (casing, flowing fluid) along the edge. */
 function FlowEdge({ id, source, target, sourceX, sourceY, targetX, targetY, sourcePosition, targetPosition, data: d }: EdgeProps) {
   const { name, num, t } = useT();
-  const focus = useContext(Focus);
+  const focused = useEdgeFocus(id, source, target);
   const zoom = useFlowStore(zoomSelector);
   const still = useFlowStore(stillSelector);
   const labels = useStore((s) => s.settings.beltLabels);
@@ -568,7 +597,7 @@ function FlowEdge({ id, source, target, sourceX, sourceY, targetX, targetY, sour
   const from = fromNode?.internals.positionAbsolute;
   const to = toNode?.internals.positionAbsolute;
   const pick = useContext(PickEdge);
-  const picked = focus.edge === id;
+  const picked = focused === 'picked';
   let path: string;
   let lx: number;
   let ly: number;
@@ -591,10 +620,9 @@ function FlowEdge({ id, source, target, sourceX, sourceY, targetX, targetY, sour
   }
   // Side by side lines widen the belt, up to a point: past a few, the label's "123×" says how many.
   const drawn = Math.min(lanes, MAX_LANES);
-  const lit = focus.edge ? picked : focus.node !== undefined && (source === focus.node || target === focus.node);
-  const faded = (focus.node !== undefined || focus.edge !== undefined) && !lit;
+  const lit = picked || focused === 'lit';
   const showLabel = labels === 'always' || lit || (labels === 'auto' && zoom !== 'far');
-  const state = `${faded ? 'faded' : ''} ${lit ? 'lit' : ''} ${still ? 'still' : ''}`;
+  const state = `${lit ? 'lit' : ''} ${still ? 'still' : ''}`;
   const { body, color: tierColor, ink } = beltStroke({ path, item, transport, lanes: drawn, state, oneColor, wide });
   // A belt running back against the flow: a blue road under it, a "back to" label, and a mark where it climbs to its input.
   const loop = !!route?.loop;
@@ -675,7 +703,7 @@ function LineTag({ data: d }: NodeProps) {
 function LogisticNode({ id, data: d }: NodeProps) {
   const { kind, rate, ins, outs } = d as LogisticNodeData;
   const { num, t } = useT();
-  const faded = useFaded(id);
+  const near = useNear(id);
   const dir = useContext(Flow);
   // Which ends have a belt on them; the others stay dim.
   const wired = useFlowStore((s) =>
@@ -695,7 +723,7 @@ function LogisticNode({ id, data: d }: NodeProps) {
       />
     ));
   return (
-    <div className={`logistic-node ${faded ? 'faded' : ''}`} title={LOGISTICS[kind].name}>
+    <div className={`logistic-node ${near ? 'near' : ''}`} title={LOGISTICS[kind].name}>
       {end('i', ins)}
       <Icon id={LOGISTICS[kind].icon} size={44} />
       <span className="logistic-rate">
@@ -849,7 +877,8 @@ function Canvas({ nodes, edges, sig, dir }: { nodes: Node[]; edges: Edge[]; sig:
   const inspect = useStore((s) => s.inspect);
   const set = useStore((s) => s.set);
   const gridLines = useStore((s) => s.settings.gridLines);
-  const [hover, setHover] = useState<string>();
+  const hoverRef = useRef<string | undefined>(undefined);
+  const leaving = useRef<ReturnType<typeof setTimeout>>(undefined);
   const [edge, setEdge] = useState<string>();
   const [restore] = useState(() => (camera.sig === sig ? camera.viewport : undefined));
   // A huge factory may need to zoom out past the usual floor to fit the screen whole.
@@ -910,19 +939,37 @@ function Canvas({ nodes, edges, sig, dir }: { nodes: Node[]; edges: Edge[]; sig:
   // A clicked belt lights itself and the two machines it joins; otherwise the machine under the pointer, or the
   // selected one, lights its belts and neighbours.
   const picked = edge ? edges.find((e) => e.id === edge) : undefined;
-  const focusNode = picked ? undefined : (hover ?? inspected);
-  const focus = useMemo(
-    () =>
-      picked
-        ? { edge: picked.id, near: new Set([picked.source, picked.target]) }
-        : { node: focusNode, near: (focusNode && neighbours.get(focusNode)) || new Set(focusNode ? [focusNode] : []) },
-    [picked, focusNode, neighbours],
-  );
+  const light = (): FocusValue => {
+    if (picked) return { edge: picked.id, near: new Set([picked.source, picked.target]) };
+    const node = hoverRef.current ?? inspected;
+    return { node, near: (node && neighbours.get(node)) || new Set(node ? [node] : []) };
+  };
+  const lightRef = useRef(light);
+  lightRef.current = light;
+  const focus = useMemo(() => new FocusStore(), []);
+  const seeded = useRef(false);
+  if (!seeded.current) {
+    seeded.current = true;
+    focus.value = light();
+  }
+  const root = useRef<HTMLDivElement>(null);
+  // Tells the cards and belts only when what is lit has changed. The fading itself is the stylesheet's, off two
+  // classes on the floor, so a hover doesn't redraw every card and belt.
+  const apply = useCallback(() => {
+    const v = lightRef.current();
+    root.current?.classList.toggle('fade-nodes', v.node !== undefined);
+    root.current?.classList.toggle('fade-edges', v.node !== undefined || v.edge !== undefined);
+    const cur = focus.value;
+    if (v.node === cur.node && v.edge === cur.edge && v.near.size === cur.near.size && [...v.near].every((n) => cur.near.has(n))) return;
+    focus.set(v);
+  }, [focus]);
+  useEffect(apply);
 
   return (
     <Focus.Provider value={focus}>
       <PickEdge.Provider value={setEdge}>
         <ReactFlow
+          ref={root}
           defaultNodes={nodes}
           defaultEdges={edges}
           nodeTypes={nodeTypes}
@@ -950,8 +997,27 @@ function Canvas({ nodes, edges, sig, dir }: { nodes: Node[]; edges: Edge[]; sig:
             camera = { sig, viewport: flow.getViewport() };
           }}
           // A finger has no hover: a tap would leave the whole floor faded around it until the next tap.
-          onNodeMouseEnter={coarse ? undefined : (_, n) => setHover(n.id)}
-          onNodeMouseLeave={coarse ? undefined : () => setHover(undefined)}
+          onNodeMouseEnter={
+            coarse
+              ? undefined
+              : (_, n) => {
+                  clearTimeout(leaving.current);
+                  hoverRef.current = n.id;
+                  apply();
+                }
+          }
+          onNodeMouseLeave={
+            coarse
+              ? undefined
+              : () => {
+                  // Crossing the gap to the next card shouldn't light and darken the whole floor in between.
+                  clearTimeout(leaving.current);
+                  leaving.current = setTimeout(() => {
+                    hoverRef.current = undefined;
+                    apply();
+                  }, 120);
+                }
+          }
           onNodeClick={(e, n) => {
             setEdge(undefined);
             // The machine's panel waits out a double click, which ticks it built instead.

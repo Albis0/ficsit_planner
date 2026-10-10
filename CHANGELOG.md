@@ -2,6 +2,13 @@
 
 All notable changes to FICSIT Planner. Dates are when the version was finished.
 
+## 0.13.39 — 2026-10-11
+
+### Fixed
+
+- **Moving the pointer over a very big factory no longer stalls it.** Pointing at a card used to redraw every card and belt on the floor, and leaving it redrew them all again, so crossing the gap between two cards did it twice. Now only the cards and belts whose look changes are redrawn, the fading of the rest is done by the stylesheet, and the floor waits a moment before lighting up again after the pointer leaves a card. On a factory of over 3,000 machines with the processor slowed fourfold, moving across the floor went from about 9 frames a second to about 50.
+- **Belts of a line side by side are drawn with less work.** Their chevrons are placed by walking the belt's own points instead of measuring the path again for each one.
+
 ## 0.13.38 — 2026-10-10
 
 ### Changed

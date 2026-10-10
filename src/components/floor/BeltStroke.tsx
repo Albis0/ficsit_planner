@@ -44,7 +44,8 @@ export function lanePaths(path: string, lanes: number, pitch = LANE_PITCH, wide 
     const at = (k / n) * len;
     const a = probe.getPointAtLength(Math.max(0, at - 1));
     const b = probe.getPointAtLength(Math.min(len, at + 1));
-    const p = probe.getPointAtLength(at);
+    // Two points a pixel either side; between them the path is as good as straight.
+    const p = { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 };
     const tx = b.x - a.x;
     const ty = b.y - a.y;
     const m = Math.hypot(tx, ty) || 1;
@@ -67,20 +68,54 @@ export function lanePaths(path: string, lanes: number, pitch = LANE_PITCH, wide 
  * What shows on a belt's bed: the chevrons pointing the way it goes, all in one still path, and under them one dashed
  * strip that moves along it (`slats`). Two elements per belt however long it is.
  */
+/** The chevrons along a path drawn as straight pieces ("M x,y L x,y …"), found by walking the pieces: no measuring through the DOM. */
+function polylineChevrons(path: string, width: number): string {
+  const nums = path.match(/-?\d+(?:\.\d+)?/g)?.map(Number) ?? [];
+  const pts: [number, number][] = [];
+  for (let i = 0; i + 1 < nums.length; i += 2) pts.push([nums[i], nums[i + 1]]);
+  const cum = [0];
+  for (let i = 1; i < pts.length; i++) cum.push(cum[i - 1] + Math.hypot(pts[i][0] - pts[i - 1][0], pts[i][1] - pts[i - 1][1]));
+  const len = cum[cum.length - 1] ?? 0;
+  if (!(len > 1)) return '';
+  const n = Math.max(1, Math.round(len / FLOW_SPACING));
+  const h = Math.max(2.5, width / 2);
+  let out = '';
+  let seg = 1;
+  for (let k = 0; k < n; k++) {
+    const at = ((k + 0.5) / n) * len;
+    while (seg < pts.length - 1 && cum[seg] < at) seg++;
+    const [x0, y0] = pts[seg - 1];
+    const [x1, y1] = pts[seg];
+    const m = Math.hypot(x1 - x0, y1 - y0) || 1;
+    const tx = (x1 - x0) / m;
+    const ty = (y1 - y0) / m;
+    const along = at - cum[seg - 1];
+    const px = x0 + tx * along;
+    const py = y0 + ty * along;
+    const pt = (x: number, y: number) => `${(px + tx * x - ty * y).toFixed(1)},${(py + ty * x + tx * y).toFixed(1)}`;
+    out += `M${pt(-h * 0.5, -h)} L${pt(h * 0.5, 0)} L${pt(-h * 0.5, h)} `;
+  }
+  return out.trim();
+}
+
 export function BeltFlow({
   path,
   width,
   lanes = 1,
   pitch = 0,
   slats = true,
+  straight = false,
 }: {
   path: string;
   width: number;
   lanes?: number;
   pitch?: number;
   slats?: boolean;
+  /** The path is already straight pieces (a belt of a line side by side), so its chevrons can be walked, not measured. */
+  straight?: boolean;
 }) {
   const d = useMemo(() => {
+    if (straight) return polylineChevrons(path, width);
     const probe = document.createElementNS('http://www.w3.org/2000/svg', 'path');
     probe.setAttribute('d', path);
     const len = probe.getTotalLength();
@@ -104,7 +139,7 @@ export function BeltFlow({
       }
     }
     return out.trim();
-  }, [path, width, lanes, pitch]);
+  }, [path, width, lanes, pitch, straight]);
   return (
     <g className="belt-chevrons">
       {slats && <path d={path} className="belt-slats" style={{ strokeWidth: width }} />}
@@ -176,7 +211,7 @@ export function beltStroke({
           ))}
           {apart.map((d, i) => (
             // biome-ignore lint/suspicious/noArrayIndexKey: as above.
-            <BeltFlow key={i} path={d} width={Math.max(2, across - 4)} />
+            <BeltFlow key={i} path={d} width={Math.max(2, across - 4)} straight />
           ))}
         </g>
       ),

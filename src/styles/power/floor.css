@@ -113,7 +113,7 @@
   transition: opacity 120ms;
 }
 
-.power-node.faded {
+.fade-nodes .power-node:not(.near) {
   opacity: 0.2;
 }
 
@@ -275,7 +275,7 @@
   }
 }
 
-.power-edge.faded {
+.fade-edges .power-edge:not(.lit) {
   opacity: 0.12;
 }
 

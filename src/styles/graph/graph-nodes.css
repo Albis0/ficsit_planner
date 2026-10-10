@@ -376,9 +376,9 @@
   margin-left: 2px;
 }
 
-.machine-node.faded,
-.endpoint-node.faded,
-.edge-label.faded {
+.fade-nodes .machine-node:not(.near),
+.fade-nodes .endpoint-node:not(.near),
+.fade-edges .edge-label:not(.lit) {
   opacity: 0.2;
 }
 
@@ -428,6 +428,6 @@
   opacity: 0.6;
 }
 
-.logistic-node.faded {
+.fade-nodes .logistic-node:not(.near) {
   opacity: 0.35;
 }
