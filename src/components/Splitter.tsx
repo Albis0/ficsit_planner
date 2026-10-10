@@ -23,7 +23,7 @@ export function Splitter({ side }: { side: PanelSide }) {
   const height = useStore((s) => s.deckHeight);
   const width = useStore((s) => s.sideWidth);
   const set = useStore((s) => s.set);
-  const start = useRef<{ at: number; size: number }>(undefined);
+  const start = useRef<{ at: number; size: number; to?: number }>(undefined);
   const across = side !== 'top';
   // Dragging a right-hand panel's edge to the left makes it wider.
   const sign = side === 'right' ? -1 : 1;
@@ -31,6 +31,16 @@ export function Splitter({ side }: { side: PanelSide }) {
   const box = () => document.querySelector('.side')?.getBoundingClientRect();
   const current = () => (across ? (width ?? box()?.width ?? 460) : (height ?? box()?.height ?? 320));
   const put = (v: number) => set(across ? { sideWidth: clampW(v) } : { deckHeight: clampH(v) });
+  // While dragging, only the size the panel is drawn at changes. The store, and the saving it does, is told once at the end.
+  const show = (v: number) => {
+    const app = document.querySelector<HTMLElement>('.app');
+    if (!app) return;
+    if (across) app.style.setProperty('--side-w', `${v}px`);
+    else {
+      app.style.setProperty('--deck-h', `${v}px`);
+      app.style.setProperty('--deck-row', 'var(--deck)');
+    }
+  };
 
   return (
     <div
@@ -48,10 +58,15 @@ export function Splitter({ side }: { side: PanelSide }) {
         document.body.classList.add(across ? 'resizing-x' : 'resizing');
       }}
       onPointerMove={(e) => {
-        if (start.current) put(start.current.size + sign * ((across ? e.clientX : e.clientY) - start.current.at));
+        const drag = start.current;
+        if (!drag) return;
+        const v = (across ? clampW : clampH)(drag.size + sign * ((across ? e.clientX : e.clientY) - drag.at));
+        drag.to = v;
+        show(v);
       }}
       // A drag ends on release, or when the browser takes the pointer away (a system gesture, a lost window).
       onLostPointerCapture={() => {
+        if (start.current?.to !== undefined) put(start.current.to);
         start.current = undefined;
         document.body.classList.remove('resizing', 'resizing-x');
       }}

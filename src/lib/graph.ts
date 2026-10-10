@@ -784,20 +784,59 @@ function crossings(nodes: Node[], edges: Edge[], pos: Map<string, Point>, dir: D
  * belts wins; between directions, the one that shows the whole factory bigger on this screen,
  * unless it's only slightly better than the way the screen is shaped.
  */
-function layout(nodes: Node[], edges: Edge[], opts: GraphOptions): Direction {
-  const { dir, box } = opts;
+function choose(nodes: Node[], edges: Edge[], opts: GraphOptions): Placement {
+  const { box } = opts;
   const natural: Direction = box && box.height > box.width ? 'TB' : 'LR';
-  const dirs: Direction[] = dir ? [dir] : box ? ['LR', 'TB'] : ['LR'];
-  const best = dirs.map((d) => RANKERS.map((r) => place(nodes, edges, d, r, opts)).reduce((a, b) => (b.crossings < a.crossings ? b : a)));
+  const best = bestPerDirection(nodes, edges, opts);
   const fit = (p: Placement) => (box ? Math.min(box.width / p.width, box.height / p.height) : 1);
-  const pick = best.reduce((a, b) => {
+  return best.reduce((a, b) => {
     const [x, y] = a.dir === natural ? [a, b] : [b, a];
     return fit(y) > fit(x) * 1.2 ? y : x;
   });
-  for (const n of nodes) n.position = pick.pos.get(n.id)!;
+}
+
+/** The fewest crossing placement in each direction the layout may take. */
+function bestPerDirection(nodes: Node[], edges: Edge[], opts: GraphOptions): Placement[] {
+  const { dir, box } = opts;
+  const dirs: Direction[] = dir ? [dir] : box ? ['LR', 'TB'] : ['LR'];
+  // What these are made from: the nodes (ids and sizes), the belts between them and the options that shape the layout.
+  // The screen's size isn't part of it, as it only decides between the directions afterwards. Changing a number leaves all of this as it was.
+  const key = [
+    dirs.join(),
+    opts.scale ?? 1,
+    opts.spacing ?? 1,
+    opts.text ?? 1,
+    nodes.map((n) => `${n.id}:${n.width}x${n.height}`).join(','),
+    edges.map((e) => `${e.id}>${e.source}>${e.target}`).join(','),
+  ].join('|');
+  const hit = placements.get(key);
+  if (hit) return hit;
+  const made = dirs.map((d) => RANKERS.map((r) => place(nodes, edges, d, r, opts)).reduce((a, b) => (b.crossings < a.crossings ? b : a)));
+  placements.set(key, made);
+  if (placements.size > MAX_PLACEMENTS) placements.delete(placements.keys().next().value as string);
+  return made;
+}
+
+/** Placements already made, by everything they are made from. */
+const placements = new Map<string, Placement[]>();
+const MAX_PLACEMENTS = 64;
+
+export function forgetPlacements() {
+  placements.clear();
+}
+
+/** Puts the nodes and belt routes where the chosen placement has them, then runs the returning and square belts round them. */
+function layout(nodes: Node[], edges: Edge[], opts: GraphOptions): Direction {
+  const pick = choose(nodes, edges, opts);
+  for (const n of nodes) n.position = { ...pick.pos.get(n.id)! };
   for (const e of edges) {
     const r = pick.routes.get(e.id)!;
-    (e.data as FlowEdgeData | PowerEdgeData).route = { ...r, from: pick.pos.get(e.source)!, to: pick.pos.get(e.target)! };
+    (e.data as FlowEdgeData | PowerEdgeData).route = {
+      points: r.points.map((p) => ({ ...p })),
+      label: { ...r.label },
+      from: { ...pick.pos.get(e.source)! },
+      to: { ...pick.pos.get(e.target)! },
+    };
   }
   loopBack(nodes, edges, pick.dir, opts.text ?? 1);
   if (opts.squareBelts) squareUp(nodes, edges, pick.dir, opts.text ?? 1);

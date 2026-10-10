@@ -1,7 +1,7 @@
 import { beforeAll, expect, test } from 'bun:test';
 import loadHighs, { type Highs } from 'highs';
 import { data } from '../src/lib/data';
-import { buildGraph } from '../src/lib/graph';
+import { buildGraph, forgetPlacements } from '../src/lib/graph';
 import { solve } from '../src/lib/solver';
 
 let highs: Highs;
@@ -243,4 +243,39 @@ test('belts side by side go into a card through an end as wide as they are, not 
     expect(out.height).toBeGreaterThanOrEqual(need);
     expect(into.height).toBeGreaterThanOrEqual(need);
   }
+});
+
+test('a layout made before is reused and comes out exactly as a fresh one', () => {
+  const plan = (rate: number) =>
+    solve(highs, {
+      targets: [
+        { item: 'Desc_Motor_C', rate },
+        { item: 'Desc_Computer_C', rate: 5 },
+      ],
+      supplies: [],
+      enabledRecipes: new Set(data.recipes.filter((x) => x.kind === 'standard').map((x) => x.id)),
+      resourceCaps: {},
+      objective: 'resources',
+    });
+  const opts = { box: { width: 1200, height: 700 }, squareBelts: true };
+  const fresh = (rate: number) => {
+    forgetPlacements();
+    return JSON.stringify(buildGraph(plan(rate), 9, opts));
+  };
+  const same = fresh(20);
+  // Built again with the placement remembered.
+  const first = buildGraph(plan(20), 9, opts);
+  expect(JSON.stringify(first)).toBe(same);
+  // Moving what came back must not change what is remembered.
+  for (const n of first.nodes) n.position.x += 999;
+  for (const e of first.edges) for (const p of (e.data as { route?: { points: { x: number }[] } }).route?.points ?? []) p.x += 999;
+  expect(JSON.stringify(buildGraph(plan(20), 9, opts))).toBe(same);
+  // The floor being another size picks between the directions again, from what is remembered.
+  const narrow = { ...opts, box: { width: 400, height: 900 } };
+  const onNarrow = JSON.stringify(buildGraph(plan(20), 9, narrow));
+  forgetPlacements();
+  expect(JSON.stringify(buildGraph(plan(20), 9, narrow))).toBe(onNarrow);
+  // A different number is laid out as if nothing was remembered.
+  const other = JSON.stringify(buildGraph(plan(33), 9, opts));
+  expect(other).toBe(fresh(33));
 });

@@ -2,6 +2,16 @@
 
 All notable changes to FICSIT Planner. Dates are when the version was finished.
 
+## 0.13.35 — 2026-10-10
+
+### Changed
+
+- **Floor: changing a number no longer freezes a big factory.** The floor was laid out six times over on every change,
+  trying each way of ranking the machines in both directions, and a slow computer stood still for over a second. When
+  the machines and belts are the same as before, the layout that was found is reused, so a number changing costs a
+  fraction of what it did.
+- **Dragging the panel's edge is smoother.** The size is written down once, when you let go, instead of on every move.
+
 ## 0.13.34 — 2026-10-10
 
 ### Changed
