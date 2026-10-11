@@ -155,6 +155,22 @@ const SCREENS = [
     },
   },
   {
+    name: 'all-recipes',
+    state: factory([['Desc_Motor_C', 10]], {
+      plans: [
+        { id: 'f1', name: 'Motors', targets: [{ item: 'Desc_Motor_C', rate: 10 }] },
+        { id: 'f2', name: 'Plastic', targets: [{ item: 'Desc_Plastic_C', rate: 60 }] },
+      ],
+      unlocked: ['Recipe_Alternate_AdheredIronPlate_C', 'Recipe_Alternate_AlcladCasing_C'],
+    }),
+    act: async (page) => {
+      await page.click('.plan-current');
+      await page.locator('.plan-row.all .plan-row-name').click();
+      await page.getByRole('radio', { name: 'Unlocked recipes' }).click();
+      await page.waitForTimeout(800);
+    },
+  },
+  {
     name: 'manual-empty',
     state: saved({
       mode: 'factory',

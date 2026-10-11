@@ -5,6 +5,7 @@ import { type FactoryRow, type PlantRow, useOverview } from '../lib/overview';
 import type { PoolParty } from '../lib/pool';
 import { useStore } from '../store';
 import { Icon } from './Icon';
+import { RecipeBrowser } from './RecipeBrowser';
 import { RateChips } from './Summary';
 
 /** A list of items as icon-and-rate chips, or a dash when there are none. */
@@ -32,6 +33,46 @@ const Cell = ({ label, children }: { label: string; children: ReactNode }) => <t
  * The "All" tab: every factory and power plant on one page, and the totals under them. Read-only; a row opens its tab.
  */
 export function OverviewPage() {
+  const { t } = useT();
+  const set = useStore((s) => s.set);
+  const page = useStore((s) => s.overviewTab ?? 'factories');
+  return (
+    <div className="overview">
+      <div className="segmented ov-tabs" role="radiogroup" aria-label={t('overviewTab')}>
+        {(['factories', 'recipes'] as const).map((id) => (
+          <button key={id} type="button" role="radio" aria-checked={page === id} onClick={() => set({ overviewTab: id })}>
+            {id === 'factories' ? t('ovFactories') : t('ovUnlocked')}
+          </button>
+        ))}
+      </div>
+      {page === 'recipes' ? <UnlockedRecipes /> : <Factories />}
+    </div>
+  );
+}
+
+/** Marks the alternate and converter recipes the player has unlocked in the game; every new factory starts with them on. */
+function UnlockedRecipes() {
+  const { t } = useT();
+  const unlocked = useStore((s) => s.unlocked);
+  const setUnlocked = useStore((s) => s.setUnlocked);
+  const applyUnlocked = useStore((s) => s.applyUnlocked);
+  const behind = useStore((s) => s.plans.some((p) => s.unlocked.some((id) => !p.enabled.includes(id))));
+  return (
+    <RecipeBrowser
+      enabled={unlocked}
+      onToggle={(id) => setUnlocked([id], !unlocked.includes(id))}
+      onSet={setUnlocked}
+      optionalOnly
+      extra={
+        <button type="button" className="text-button" disabled={!behind} onClick={applyUnlocked}>
+          {t('ovApplyUnlocked')}
+        </button>
+      }
+    />
+  );
+}
+
+function Factories() {
   const { t, num, name } = useT();
   const set = useStore((s) => s.set);
   const o = useOverview();
@@ -49,7 +90,7 @@ export function OverviewPage() {
     r.failed ? <span className="ov-note bad">{t('ovFailed')}</span> : r.pending ? <span className="ov-note">{t('solving')}…</span> : null;
 
   return (
-    <div className="overview">
+    <>
       <div className="summary">
         <div className="readouts">
           <div className="readout power">
@@ -239,6 +280,6 @@ export function OverviewPage() {
           </section>
         )}
       </div>
-    </div>
+    </>
   );
 }

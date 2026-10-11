@@ -309,6 +309,13 @@
   flex-direction: column;
 }
 
+/* Factories and the unlocked recipes, one page each. */
+.ov-tabs {
+  flex: none;
+  align-self: flex-start;
+  margin: 14px 24px 0;
+}
+
 .ov-scroll {
   flex: 1;
   min-height: 0;

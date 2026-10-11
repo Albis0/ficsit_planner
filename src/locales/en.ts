@@ -131,6 +131,8 @@ export const en = {
   ovNoPlants: 'No power plant yet',
   ovFactories: 'Factories',
   ovPlants: 'Power plants',
+  ovUnlocked: 'Unlocked recipes',
+  ovApplyUnlocked: 'Turn on in all factories',
   ovName: 'Name',
   ovMakes: 'Makes',
   ovTakes: 'Takes in',

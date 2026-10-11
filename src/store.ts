@@ -189,12 +189,13 @@ export const makeFromLeftover =
     };
   };
 
-export const newPlan = (name: string): Plan => ({
+/** A blank factory tab: the standard recipes, plus the ones the player marked as unlocked on the All page. */
+export const newPlan = (name: string, unlocked: string[] = []): Plan => ({
   id: uid(),
   name,
   targets: [],
   supplies: [],
-  enabled: defaultEnabled(),
+  enabled: [...defaultEnabled(), ...unlocked],
   caps: {},
   fixed: {},
   mods: {},
@@ -219,6 +220,10 @@ interface State {
   dialog?: 'settings' | 'report';
   /** Highest milestone tier the player has unlocked in their save. Recipes and buildings above it sit out. */
   tier: number;
+  /** Alternate and converter recipes the player has unlocked in the game: every new factory starts with them on. */
+  unlocked: string[];
+  /** Which page of "All" is on screen. Not persisted. */
+  overviewTab?: 'factories' | 'recipes';
   /** Every raw resource costs the plan the same, for mods that let you build nodes anywhere. */
   equalWeights: boolean;
   /** Every plan costs its resources as it sets them itself, where it does. */
@@ -281,6 +286,7 @@ interface State {
         | 'activePower'
         | 'inspect'
         | 'overview'
+        | 'overviewTab'
         | 'pane'
         | 'renaming'
         | 'deckHeight'
@@ -331,6 +337,10 @@ interface State {
   removeSupply: (i: number) => void;
   toggleRecipe: (id: string, on?: boolean) => void;
   setRecipes: (ids: string[], on: boolean) => void;
+  /** Marks recipes as unlocked (or not) for every new factory. Factories already open keep their own lists. */
+  setUnlocked: (ids: string[], on: boolean) => void;
+  /** Turns the unlocked recipes on in every factory already open; nothing is turned off. */
+  applyUnlocked: () => void;
   setCap: (item: string, cap: number | undefined) => void;
   setWeight: (item: string, weight: number | undefined) => void;
   setMod: (recipe: string, mod: RecipeMod | undefined) => void;
@@ -406,6 +416,13 @@ function freeName(base: string, taken: string[]): string {
 export const aimOf = (s: Pick<State, 'equalWeights' | 'fewestBuildings' | 'customWeights'>): Aim =>
   s.fewestBuildings ? 'buildings' : s.customWeights ? 'custom' : s.equalWeights ? 'equal' : 'rarity';
 
+/* Read while the store is created, so it has to be defined above it. */
+const optional = new Set(data.recipes.filter((r) => r.kind === 'alternate' || r.kind === 'converter').map((r) => r.id));
+
+/** The unlocked list as saved: only alternate and converter recipes this build knows, each once. */
+export const cleanUnlocked = (v: unknown): string[] =>
+  Array.isArray(v) ? [...new Set(v.filter((id): id is string => typeof id === 'string' && optional.has(id)))] : [];
+
 /** What a reload keeps: the part of the state written to the browser's storage. */
 export const persisted = (s: State): Persisted => ({
   lang: s.lang,
@@ -417,6 +434,7 @@ export const persisted = (s: State): Persisted => ({
   settings: s.settings,
   sideWidth: s.sideWidth,
   tier: s.tier,
+  unlocked: s.unlocked,
   equalWeights: s.equalWeights,
   customWeights: s.customWeights,
   fewestBuildings: s.fewestBuildings,
@@ -509,6 +527,7 @@ export const useStore = create<State>()(
         activePower: firstPower.id,
         settings: DEFAULT_SETTINGS,
         tier: MAX_TIER,
+        unlocked: [],
         equalWeights: false,
         customWeights: false,
         fewestBuildings: false,
@@ -610,14 +629,14 @@ export const useStore = create<State>()(
             typeof patch === 'function' ? undefined : `plan:${Object.keys(patch).join()}`,
           ),
         addPlan: (name) => {
-          const p = newPlan(name);
+          const p = newPlan(name, get().unlocked);
           set({ plans: [...get().plans, p], active: p.id, inspect: undefined });
         },
         buildFactory: (item, name, recipe) => {
           const { plans, active } = get();
           const cur = plans.find((p) => p.id === active);
           const blank = cur && cur.targets.length === 0 && cur.supplies.length === 0 ? cur : undefined;
-          let enabled = defaultEnabled();
+          let enabled = [...defaultEnabled(), ...get().unlocked];
           if (recipe) {
             const rivals = new Set(data.recipes.filter((r) => r.id !== recipe && r.outputs[0]?.item === item).map((r) => r.id));
             enabled = [...enabled.filter((id) => !rivals.has(id)), recipe];
@@ -665,7 +684,7 @@ export const useStore = create<State>()(
         },
         removePlan: (id) => {
           const plans = get().plans.filter((p) => p.id !== id);
-          if (plans.length === 0) plans.push(newPlan('Factory 1'));
+          if (plans.length === 0) plans.push(newPlan('Factory 1', get().unlocked));
           const active = get().active === id ? plans[Math.max(0, get().plans.findIndex((p) => p.id === id) - 1)].id : get().active;
           // Power plants stop counting a factory that's gone, and what came from it is simply on hand now.
           const power = get().power.map((pp) => (pp.factories === 'all' ? pp : { ...pp, factories: pp.factories.filter((f) => f !== id) }));
@@ -718,6 +737,23 @@ export const useStore = create<State>()(
             }
             return { enabled: [...cur] };
           }),
+        setUnlocked: (ids, on) => {
+          const cur = new Set(get().unlocked);
+          for (const id of ids) {
+            if (on) cur.add(id);
+            else cur.delete(id);
+          }
+          set({ unlocked: [...cur] });
+        },
+        applyUnlocked: () => {
+          const { unlocked, plans } = get();
+          set({
+            plans: plans.map((p) => {
+              const missing = unlocked.filter((id) => !p.enabled.includes(id));
+              return missing.length ? { ...p, enabled: [...p.enabled, ...missing] } : p;
+            }),
+          });
+        },
         setCap: (item, cap) =>
           update((p) => {
             const caps = { ...p.caps };
@@ -803,6 +839,7 @@ type Persisted = Partial<
     | 'activePower'
     | 'settings'
     | 'tier'
+    | 'unlocked'
     | 'equalWeights'
     | 'customWeights'
     | 'fewestBuildings'
@@ -882,6 +919,7 @@ export function mergeState<S extends State>(persisted: unknown, current: S): S {
     activePower,
     settings: cleanSettings(p.settings),
     tier: Math.round(cleanNumber(p.tier, 0, MAX_TIER, current.tier)),
+    unlocked: cleanUnlocked(p.unlocked),
     equalWeights: p.equalWeights === true,
     customWeights: p.customWeights === true,
     fewestBuildings: p.fewestBuildings === true,
