@@ -11,6 +11,20 @@ export type UpdateNote = [UpdateKind, string];
 /** `ask` puts a question with a rating and a note under the version in Settings › Updates. */
 export const UPDATES: { version: string; date: string; title?: string; notes: UpdateNote[]; ask?: string }[] = [
   {
+    version: '0.13.35',
+    date: '2026-10-11',
+    notes: [
+      [
+        'added',
+        'All: a new page, Unlocked recipes, where you mark the alternate and converter recipes you have unlocked in the game. Every new factory starts with them on, and you can still turn any of them off for one factory in its own Recipes tab.',
+      ],
+      [
+        'added',
+        'All › Unlocked recipes: a button turns the marked recipes on in the factories you already have. It only turns recipes on and never off.',
+      ],
+    ],
+  },
+  {
     version: '0.13.34',
     date: '2026-10-11',
     notes: [

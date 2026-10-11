@@ -2,6 +2,18 @@
 
 All notable changes to FICSIT Planner. Dates are when the version was finished.
 
+## 0.13.35 — 2026-10-11
+
+### Added
+
+- **All › Unlocked recipes.** The All page has two pages now, Factories and Unlocked recipes. On the second, the same recipe list as a factory's Recipes tab, only alternate and converter recipes, is used to mark what you have unlocked in the game. A factory made from then on (the + button, a build from the Codex, the blank one that appears when the last factory is closed) starts with the standard recipes and the marked ones on. A build from the Codex with one recipe still turns the other recipes for that part off.
+- **Turn on in all factories.** A button on that page adds the marked recipes to every factory already open. It never turns anything off, and it is dimmed when every factory has them already. Factories already open do not change on their own.
+- The factory's own recipe list is unchanged, so turning a recipe on or off for one factory works as before, in the Recipes tab and from the machine on the floor, and the Manual floor follows it.
+
+### Changed
+
+- The list of recipes was taken out of the Recipes tab into a part both pages use.
+
 ## 0.13.34 — 2026-10-11
 
 ### Fixed
