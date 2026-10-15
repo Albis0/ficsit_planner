@@ -952,19 +952,10 @@
   background: none;
 }
 
-/* A card's panel open on a wide screen: the buttons along the bottom right step left of it instead of going under
-   it, and up a row where they'd run into Auto | Manual and the views on the left. */
+/* A card's panel open on a wide screen: the direction and Fit buttons give way, as the panel runs the floor's height. */
 @media (min-width: 901px) {
   .floor-view:has(> .inspector.manual) .floor-controls {
-    right: 436px;
-  }
-}
-
-@media (min-width: 901px) {
-  @container floor (max-width: 1400px) {
-    .floor-view:has(> .inspector.manual) .floor-controls {
-      bottom: 76px;
-    }
+    display: none;
   }
 }
 

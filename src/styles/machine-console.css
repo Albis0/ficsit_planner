@@ -185,10 +185,16 @@
   box-shadow: var(--glass-edge);
 }
 
+/* The title and the close button stay on the metal's top edge while what's below scrolls under them. */
 .inspector > .inspector-head {
-  background: none;
-  box-shadow: none;
-  padding: 0 4px;
+  position: sticky;
+  top: -16px;
+  z-index: 1;
+  margin: -16px -18px 0;
+  padding: 16px 22px 10px;
+  border-radius: 0;
+  background: #727272;
+  box-shadow: 0 6px 6px -6px rgb(0 0 0 / 0.45);
 }
 
 .inspector-head .inspector-recipe,

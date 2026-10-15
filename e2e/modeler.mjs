@@ -65,6 +65,11 @@ const centre = async (loc) => {
 const viewport = () => page.evaluate(() => getComputedStyle(document.querySelector('.react-flow__viewport')).transform);
 // Fit to screen stops at half size, so a floor too big for that is zoomed out further by hand to have all of it in view.
 const fit = async () => {
+  // The buttons give way while a card's panel is open.
+  if (await page.locator('.inspector.manual').count()) {
+    await page.keyboard.press('Escape');
+    await wait(300);
+  }
   await page.click('.floor-controls .floor-button >> nth=-1');
   await wait(500);
   const box = await page.locator('.react-flow').boundingBox();
