@@ -30,9 +30,11 @@ import {
   type Clip,
   canConnect,
   connect,
+  clipText,
   copyNodes,
   moveNodes,
   pasteClip,
+  readClip,
   removeLinks,
   removeNodes,
   updateNode,
@@ -166,7 +168,7 @@ export const revealCard = (id: string) => window.dispatchEvent(new CustomEvent(R
 /** What the panel shows: a node by its id, or a belt as "link:<id>". */
 export const linkKey = (id: string) => `link:${id}`;
 
-const typing = (e: KeyboardEvent) =>
+const typing = (e: Event) =>
   !!(e.target as HTMLElement | null)?.closest('input, textarea, select, [contenteditable]') || !!document.querySelector('dialog[open]');
 
 /** Where a mouse or finger let go, on the screen. */
@@ -352,7 +354,10 @@ function Canvas({ host, calc, onArrange }: { host: ModelHost; calc?: CalcResult;
   const copy = useCallback(
     (ids: string[]) => {
       const c = copyNodes(model, ids);
-      if (c) clipboard = c;
+      if (!c) return;
+      clipboard = c;
+      // The system clipboard too; where it is refused, the copy in memory still pastes through the menu.
+      navigator.clipboard?.writeText(clipText(c)).catch(() => {});
     },
     [model],
   );
@@ -385,9 +390,6 @@ function Canvas({ host, calc, onArrange }: { host: ModelHost; calc?: CalcResult;
           e.preventDefault();
           copy(ids);
         }
-      } else if (mod && e.key.toLowerCase() === 'v' && clipboard) {
-        e.preventDefault();
-        paste(clipboard, pointer.current);
       } else if (mod && e.key.toLowerCase() === 'd') {
         const ids = pickedCards();
         if (ids.length) {
@@ -404,8 +406,20 @@ function Canvas({ host, calc, onArrange }: { host: ModelHost; calc?: CalcResult;
         set({ inspect: undefined });
       }
     };
+    // A paste runs on the browser's own event, which needs no permission, so cards copied in another tab or visit come in too.
+    const onPaste = (e: ClipboardEvent) => {
+      if (typing(e)) return;
+      const c = readClip(e.clipboardData?.getData('text/plain') ?? '');
+      if (!c) return;
+      e.preventDefault();
+      paste(c, pointer.current);
+    };
     window.addEventListener('keydown', onKey);
-    return () => window.removeEventListener('keydown', onKey);
+    document.addEventListener('paste', onPaste);
+    return () => {
+      window.removeEventListener('keydown', onKey);
+      document.removeEventListener('paste', onPaste);
+    };
   }, [host, removeSelected, set, flowStore, pickedCards, copy, paste, duplicate]);
 
   const editCard = useCallback((id: string, patch: Record<string, unknown>) => host.edit((m) => updateNode(m, id, patch)), [host]);

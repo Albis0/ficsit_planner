@@ -1,4 +1,5 @@
 import { portAccepts, portsOf } from './ports';
+import { cleanModel } from './sanitize';
 import type { MLink, MNode, Model } from './types';
 
 /*
@@ -129,6 +130,24 @@ export function copyNodes(m: Model, ids: Iterable<string>): Clip | undefined {
       return rest;
     });
   return { nodes, links };
+}
+
+const CLIP_KIND = 'ficsit-planner-cards';
+
+/** A copy as text for the system clipboard, so it can be pasted into another tab, window or visit. */
+export const clipText = (c: Clip): string => JSON.stringify({ kind: CLIP_KIND, v: 1, ...c });
+
+/** Cards read back from clipboard text; anything else on the clipboard is nothing. Cleaned like a saved floor, as the text may come from anywhere. */
+export function readClip(text: string): Clip | undefined {
+  if (text.length > 1_000_000 || !text.startsWith('{')) return undefined;
+  try {
+    const o = JSON.parse(text);
+    if (o?.kind !== CLIP_KIND || o.v !== 1) return undefined;
+    const m = cleanModel({ nodes: o.nodes, links: o.links });
+    return m && { nodes: m.nodes, links: m.links };
+  } catch {
+    return undefined;
+  }
 }
 
 /** Puts a copy down with its top left card corner moved by `dx`, `dy`; new ids throughout. Returns the new cards. */

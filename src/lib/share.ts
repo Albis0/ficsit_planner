@@ -11,7 +11,7 @@ import { importData, KIND } from './backup';
 export const SHARE_HASH = '#share=';
 /** Longest link text worth reading back; far above any real factory, well below what could hang a tab. */
 const MAX_LINK = 60_000;
-const MAX_TEXT = 1_000_000;
+export const MAX_TEXT = 1_000_000;
 
 type Packed = Omit<Plan, 'enabled'> & { on: string[]; off: string[] };
 
@@ -68,8 +68,9 @@ export async function encode(value: unknown): Promise<string> {
   return `z${toBase64Url(await through(bytes, new CompressionStream('deflate-raw')))}`;
 }
 
-export async function decode(text: string): Promise<unknown> {
-  if (text.length > MAX_LINK) throw new Error('too long');
+/** `max` is the longest text taken: a link from the address bar is short, one pasted from the clipboard can be any size a factory comes to. */
+export async function decode(text: string, max = MAX_LINK): Promise<unknown> {
+  if (text.length > max) throw new Error('too long');
   const bytes = fromBase64Url(text.slice(1));
   const raw = text[0] === 'z' ? await through(bytes, new DecompressionStream('deflate-raw')) : text[0] === 'j' ? bytes : undefined;
   if (!raw || raw.length > MAX_TEXT) throw new Error('unreadable');
@@ -142,9 +143,9 @@ export async function shareTab(name: string): Promise<'copied' | 'shared' | 'fai
 }
 
 /** Reads a link's tabs into the planner as new tabs and shows the first one. */
-export async function openShared(hash: string): Promise<boolean> {
+export async function openShared(hash: string, max?: number): Promise<boolean> {
   try {
-    const body = (await decode(hash.slice(SHARE_HASH.length))) as {
+    const body = (await decode(hash.slice(SHARE_HASH.length), max)) as {
       kind?: unknown;
       from?: unknown;
       plans?: unknown;
@@ -179,8 +180,8 @@ export async function openShared(hash: string): Promise<boolean> {
 let opening = typeof location !== 'undefined' && location.hash.startsWith(SHARE_HASH) ? location.hash : undefined;
 if (opening) history.replaceState(null, '', location.pathname + location.search);
 
-function take(hash: string) {
-  openShared(hash).then((ok) => {
+function take(hash: string, max?: number) {
+  openShared(hash, max).then((ok) => {
     if (!ok) useStore.getState().set({ notice: { key: 'sharedBroken' } });
   });
 }
@@ -199,7 +200,20 @@ export function useSharedLinks() {
       history.replaceState(null, '', location.pathname + location.search);
       take(hash);
     };
+    // A link pasted anywhere but into a field opens too, however long it is: it never went through the address bar.
+    const pasted = (e: ClipboardEvent) => {
+      if ((e.target as HTMLElement | null)?.closest('input, textarea, select, [contenteditable]') || document.querySelector('dialog[open]'))
+        return;
+      const link = e.clipboardData?.getData('text/plain').match(/#share=[\w-]+/)?.[0];
+      if (!link) return;
+      e.preventDefault();
+      take(link, MAX_TEXT);
+    };
     window.addEventListener('hashchange', later);
-    return () => window.removeEventListener('hashchange', later);
+    document.addEventListener('paste', pasted);
+    return () => {
+      window.removeEventListener('hashchange', later);
+      document.removeEventListener('paste', pasted);
+    };
   }, []);
 }

@@ -663,6 +663,16 @@ const clash = (a, b) => a && b && a.x < b.x + b.width && b.x < a.x + a.width && 
       return s?.plans?.find((p) => p.model)?.model?.nodes.length ?? 0;
     });
     ok('the shared link brings the manual floor', shared === rebuilt.nodes.length, `${shared} of ${rebuilt.nodes.length}`);
+    // A link on the clipboard pasted into the page opens as a new factory, whatever is open.
+    await p2.goto(URL);
+    await p2.waitForFunction(() => !document.querySelector('.boot'), null, { timeout: 30000 });
+    const had = await p2.evaluate(() => JSON.parse(localStorage.getItem('ficsit-planner')).state.plans.length);
+    await p2.bringToFront();
+    await p2.evaluate((l) => navigator.clipboard.writeText(l), link);
+    await p2.keyboard.press('Control+v');
+    await p2.waitForTimeout(1500);
+    const now = await p2.evaluate(() => JSON.parse(localStorage.getItem('ficsit-planner')).state.plans.length);
+    ok('Ctrl+V of a shared link opens it as a new factory', now === had + 1, `${had} → ${now}`);
     await p2.close();
   }
 
@@ -1417,6 +1427,7 @@ const clash = (a, b) => a && b && a.x < b.x + b.width && b.x < a.x + a.width && 
 {
   section = 'P';
   const ctx = await browser.newContext({ viewport: { width: 1366, height: 768 }, reducedMotion: 'reduce', serviceWorkers: 'block' });
+  await ctx.grantPermissions(['clipboard-read', 'clipboard-write']);
   page = await ctx.newPage();
   page.on('pageerror', (e) => errors.push(e.message));
   // A miner and a smelter put down by hand; the plan's recipes as they come, every alternate off.
@@ -1884,6 +1895,27 @@ const clash = (a, b) => a && b && a.x < b.x + b.width && b.x < a.x + a.width && 
       (await page.locator('.react-flow__node.selected').count()) === 1,
     `${(await model()).nodes.length - count} new, ${await page.locator('.react-flow__node.selected').count()} picked`,
   );
+  // The copy is on the system clipboard too: another tab or a later visit can paste it.
+  await card(asm.id).locator('.machine-body').click();
+  await wait(300);
+  await page.keyboard.press('Control+c');
+  const onClip = await page.evaluate(() => navigator.clipboard.readText().catch(() => ''));
+  ok('Ctrl+C puts the cards on the system clipboard', onClip.includes('"kind":"ficsit-planner-cards"'), onClip.slice(0, 60));
+  await page.evaluate(() =>
+    navigator.clipboard.writeText(
+      JSON.stringify({ kind: 'ficsit-planner-cards', v: 1, nodes: [{ id: 'zz', k: 'sink', x: 0, y: 0 }], links: [] }),
+    ),
+  );
+  await page.keyboard.press('Escape');
+  await page.keyboard.press('Escape');
+  const before = (await model()).nodes.length;
+  await page.mouse.move(pasteAt.x, pasteAt.y);
+  await page.keyboard.press('Control+v');
+  await settle();
+  m = await model();
+  ok('Ctrl+V pastes what the system clipboard holds, not only the last copy', m.nodes.length === before + 1 && m.nodes.at(-1).k === 'sink');
+  await page.keyboard.press('Control+z');
+  await settle();
   await fit();
   await card(asm.id).locator('.machine-body').click({ button: 'right' });
   await wait(300);
