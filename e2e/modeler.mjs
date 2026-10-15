@@ -1020,7 +1020,7 @@ const clash = (a, b) => a && b && a.x < b.x + b.width && b.x < a.x + a.width && 
   const floorPower = (await page.locator('.readout.power .readout-value').first().innerText()).replace(/\s+/g, ' ');
   await page.click('.plan-current');
   await wait(300);
-  ok('no All row while there is only one tab', (await page.locator('.plan-row.all').count()) === 0);
+  ok('the All row shows with only one tab', (await page.locator('.plan-row.all').count()) === 1);
   await page.keyboard.press('Escape');
   await page.click('.plan-add');
   await wait(500);

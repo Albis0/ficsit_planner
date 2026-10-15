@@ -4,7 +4,8 @@ import { fold } from '../lib/fold';
 import type { ExtractionUse } from '../lib/extraction';
 import { useT } from '../lib/i18n';
 import { showInPanel } from '../lib/panel';
-import { splitExtras } from '../lib/split';
+import { splitOf } from '../lib/split';
+import { factoryPower } from '../lib/solution';
 import type { SolveResult } from '../lib/solver';
 import { recipeLabel } from '../lib/text';
 import { keepScaled, usePlan, useStore } from '../store';
@@ -47,12 +48,10 @@ export function Summary({ result, extraction }: { result: SolveResult; extractio
   // With a card per destination on the floor, the totals count those cards' machines.
   const tier = useStore((s) => s.tier);
   // A hand-built floor's nodes are already the machines on the floor.
-  const each = useStore((s) => s.settings.splitLines) === 'each' && !('manual' in result);
-  const split = useMemo(() => (each ? splitExtras(result, tier) : undefined), [each, result, tier]);
-  const machines = result.recipes.reduce((s, u) => s + u.built, 0) + [...(split?.machines.values() ?? [])].reduce((a, b) => a + b, 0);
-  const machinePower = result.power + (split?.power ?? 0);
+  const each = useStore((s) => s.settings.splitLines) === 'each';
+  const split = useMemo(() => splitOf(result, tier, each), [each, result, tier]);
   const extractors = extraction.reduce((s, u) => s + u.built, 0);
-  const extractionPower = extraction.reduce((s, u) => s + u.power, 0);
+  const { machines: machinePower, extractors: extractionPower, count: machines } = factoryPower(result, extraction, split);
   // Shards in machines and in overclocked miners and pumps.
   const shards = result.shards + (split?.shards ?? 0) + extraction.reduce((s, u) => s + u.shards, 0);
 

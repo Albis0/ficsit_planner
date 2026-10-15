@@ -142,3 +142,7 @@ export function splitExtras(result: SolveResult, tier: number) {
   }
   return { machines, power, shards };
 }
+
+/** The split extras to count when a card is built for each destination; none on a hand-built floor, which is already what's built. */
+export const splitOf = (result: SolveResult, tier: number, each: boolean) =>
+  each && !('manual' in result) ? splitExtras(result, tier) : undefined;

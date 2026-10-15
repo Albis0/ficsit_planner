@@ -13,6 +13,7 @@ import {
 import { plantUnlocked } from './power';
 import type { SolveInput, SolveResult, Target } from './solver';
 import { adaptModel } from './model/calc/adapter';
+import { splitOf } from './split';
 import { calcAsync, solveAsync } from './solverClient';
 import type { SolveFailure } from './solveFailure';
 
@@ -185,6 +186,18 @@ export function useSolve(input: SolveInput | undefined, active = true) {
   return state;
 }
 
+/**
+ * MW a factory draws, split into its machines and the miners and pumps feeding them, and how many machines it has.
+ * With a card per destination the machines are the ones on the floor. The strip, the factory menu and the All page
+ * all read these figures.
+ */
+export function factoryPower(result: SolveResult, extraction: ExtractionUse[], split?: { power: number; machines: Map<string, number> }) {
+  const machines = result.power + (split?.power ?? 0);
+  const extractors = extraction.reduce((s, u) => s + u.power, 0);
+  const count = result.recipes.reduce((s, u) => s + u.built, 0) + [...(split?.machines.values() ?? [])].reduce((a, b) => a + b, 0);
+  return { machines, extractors, total: machines + extractors, count };
+}
+
 /** One factory's pull on the grid: its machines plus the miners and pumps feeding them. */
 export interface FactoryDraw {
   id: string;
@@ -204,28 +217,31 @@ interface Entry {
   /** What the factory makes and takes, once solved; a hand-built floor's numbers come from its model. */
   result?: SolveResult;
   extraction?: ExtractionUse[];
+  machines?: number;
   /** Settles (never rejects) once `draw` is filled in. */
   wait?: Promise<void>;
 }
 
-const drawKey = (tier: number, exports: Export[], aim: Aim, game: GameRules) =>
-  `${tier}|${aim}|${game.parts}|${game.power}|${JSON.stringify(exports)}`;
+const drawKey = (tier: number, exports: Export[], aim: Aim, game: GameRules, each: boolean) =>
+  `${tier}|${aim}|${game.parts}|${game.power}|${each}|${JSON.stringify(exports)}`;
 
 // Solved draws, kept per plan object and tier: an unchanged factory isn't solved again, and a late
 // answer for one tier can't overwrite another's.
 const cache = new WeakMap<Plan, Map<string, Entry>>();
 
-function entryFor(plan: Plan, tier: number, exports: Export[], aim: Aim, game: GameRules): Entry {
+function entryFor(plan: Plan, tier: number, exports: Export[], aim: Aim, game: GameRules, each: boolean): Entry {
   const byTier = cache.get(plan) ?? new Map<string, Entry>();
   cache.set(plan, byTier);
-  const key = drawKey(tier, exports, aim, game);
+  const key = drawKey(tier, exports, aim, game, each);
   const hit = byTier.get(key);
   if (hit) return hit;
   const entry: Entry = {};
   const done = (r: SolveResult, extraction: ExtractionUse[]) => {
     entry.result = r;
     entry.extraction = extraction;
-    entry.draw = { mw: r.power + extraction.reduce((s, u) => s + u.power, 0) };
+    const drawn = factoryPower(r, extraction, splitOf(r, tier, each));
+    entry.draw = { mw: drawn.total };
+    entry.machines = drawn.count;
   };
   const failed = () => {
     entry.draw = { failed: true };
@@ -253,6 +269,7 @@ export interface FactoryEntry extends FactoryDraw {
   pooled?: string[];
   result?: SolveResult;
   extraction?: ExtractionUse[];
+  machines?: number;
 }
 
 /**
@@ -264,25 +281,26 @@ export function useFactoryEntries(enabled: boolean): FactoryEntry[] {
   const tier = useStore((s) => s.tier);
   const aim = useStore(aimOf);
   const game = useStore((s) => s.settings.game);
+  const each = useStore((s) => s.settings.splitLines) === 'each';
   const [landed, bump] = useState(0);
 
   useEffect(() => {
     if (!enabled) return;
     let live = true;
     for (const plan of plans) {
-      const entry = entryFor(plan, tier, exportsOf(plans, plan.id), aim, game);
+      const entry = entryFor(plan, tier, exportsOf(plans, plan.id), aim, game, each);
       if (!entry.draw) entry.wait?.then(() => live && bump((n) => n + 1));
     }
     return () => {
       live = false;
     };
-  }, [enabled, plans, tier, aim, game]);
+  }, [enabled, plans, tier, aim, game, each]);
 
   // biome-ignore lint/correctness/useExhaustiveDependencies: `landed` re-reads the cache once a solve lands.
   return useMemo(
     () =>
       plans.map((plan) => {
-        const entry = cache.get(plan)?.get(drawKey(tier, exportsOf(plans, plan.id), aim, game));
+        const entry = cache.get(plan)?.get(drawKey(tier, exportsOf(plans, plan.id), aim, game, each));
         return {
           id: plan.id,
           name: plan.name,
@@ -292,9 +310,10 @@ export function useFactoryEntries(enabled: boolean): FactoryEntry[] {
           pooled: plan.pooled,
           result: entry?.result,
           extraction: entry?.extraction,
+          machines: entry?.machines,
         };
       }),
-    [plans, tier, aim, game, landed],
+    [plans, tier, aim, game, each, landed],
   );
 }
 

@@ -258,7 +258,7 @@ function rowUnder(list: HTMLElement | null, group: string, own: string, y: numbe
 
 /**
  * Every factory and power plant in one list: pick one to open it, drag the grip to put it in another place,
- * add a new one at the bottom. "All" (the page with everything side by side) heads the factories once there are two things to compare.
+ * add a new one at the bottom. "All" (the page with everything side by side) heads the factories.
  */
 function PlanList({ at, onClose }: { at: { x: number; y: number }; onClose: () => void }) {
   const { t, num } = useT();
@@ -273,7 +273,6 @@ function PlanList({ at, onClose }: { at: { x: number; y: number }; onClose: () =
   const box = useRef<HTMLDivElement>(null);
   const rowMenu = useRowMenu();
   const [dragging, setDragging] = useState<string>();
-  const many = o.factories.length + o.plants.filter((p) => !p.empty).length > 1;
   const power = mode === 'power';
 
   const add = (isPlant: boolean) => {
@@ -341,22 +340,20 @@ function PlanList({ at, onClose }: { at: { x: number; y: number }; onClose: () =
       style={{ '--x': `${at.x / zoom}px`, '--y': `${at.y / zoom}px` } as CSSProperties}
     >
       <h3 className="plan-list-head">{t('ovFactories')}</h3>
-      {many && (
-        <div className="plan-row all" data-current={overview || undefined}>
-          <span className="plan-grip-gap" />
-          <button
-            type="button"
-            className="plan-row-name"
-            onClick={() => {
-              set({ overview: true, inspect: undefined });
-              onClose();
-            }}
-          >
-            <span className="plan-row-label">{t('overviewTab')}</span>
-            <span className="plan-row-mw">{t('allTogether')}</span>
-          </button>
-        </div>
-      )}
+      <div className="plan-row all" data-current={overview || undefined}>
+        <span className="plan-grip-gap" />
+        <button
+          type="button"
+          className="plan-row-name"
+          onClick={() => {
+            set({ overview: true, inspect: undefined });
+            onClose();
+          }}
+        >
+          <span className="plan-row-label">{t('overviewTab')}</span>
+          <span className="plan-row-mw">{t('allTogether')}</span>
+        </button>
+      </div>
       {o.factories.map((f) => (
         // biome-ignore lint/a11y/noStaticElementInteractions: a right click is a shortcut to the row's menu; the row's buttons do the same by keyboard
         <div

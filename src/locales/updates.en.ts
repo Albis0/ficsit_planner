@@ -16,7 +16,7 @@ export const UPDATES: { version: string; date: string; title?: string; notes: Up
     notes: [
       [
         'added',
-        'All: a new page, Unlocked recipes, where you mark the alternate and converter recipes you have unlocked in the game. Every new factory starts with them on, and you can still turn any of them off for one factory in its own Recipes tab.',
+        'All: a new page, Unlocked recipes, where you mark the alternate and converter recipes you have unlocked in the game. Every new factory starts with them on, and you can still turn any of them off for one factory in its own Recipes tab. Thanks to claymann.',
       ],
       [
         'added',
@@ -30,11 +30,11 @@ export const UPDATES: { version: string; date: string; title?: string; notes: Up
     notes: [
       [
         'fixed',
-        'Floor: a big factory pans and zooms smoothly on a slow computer. Belts keep their chevrons and a strip that moves along them, drawn with far fewer pieces, and a factory of more than 60 cards draws only what is on screen.',
+        'Floor: a big factory pans and zooms more smoothly on a slow computer. Belts keep their chevrons and a strip that moves along them, drawn with far fewer pieces, and a factory of more than 60 cards draws only what is on screen.',
       ],
       [
         'fixed',
-        'Floor: changing a number in a big factory no longer freezes it for a second. The layout is reused while the machines and belts stay the same, and dragging the panel edge is smoother.',
+        'Floor: changing a number in a big factory freezes it much less. The layout is reused while the machines and belts stay the same, and dragging the panel edge is smoother.',
       ],
       [
         'fixed',

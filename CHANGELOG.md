@@ -6,7 +6,7 @@ All notable changes to FICSIT Planner. Dates are when the version was finished.
 
 ### Added
 
-- **All › Unlocked recipes.** The All page has two pages now, Factories and Unlocked recipes. On the second, the same recipe list as a factory's Recipes tab, only alternate and converter recipes, is used to mark what you have unlocked in the game. A factory made from then on (the + button, a build from the Codex, the blank one that appears when the last factory is closed) starts with the standard recipes and the marked ones on. A build from the Codex with one recipe still turns the other recipes for that part off.
+- **All › Unlocked recipes.** The All page has two pages now, Factories and Unlocked recipes. On the second, the same recipe list as a factory's Recipes tab, only alternate and converter recipes, is used to mark what you have unlocked in the game. A factory made from then on (the + button, a build from the Codex, the blank one that appears when the last factory is closed) starts with the standard recipes and the marked ones on. A build from the Codex with one recipe still turns the other recipes for that part off. Thanks to claymann.
 - **Turn on in all factories.** A button on that page adds the marked recipes to every factory already open. It never turns anything off, and it is dimmed when every factory has them already. Factories already open do not change on their own.
 - The factory's own recipe list is unchanged, so turning a recipe on or off for one factory works as before, in the Recipes tab and from the machine on the floor, and the Manual floor follows it.
 
@@ -30,9 +30,9 @@ All notable changes to FICSIT Planner. Dates are when the version was finished.
 
 - **Floor: belts draw much lighter.** A belt used to carry a separate moving chevron for every 15 pixels, over six thousand
   on a big factory, and a slow computer crawled while it panned. Now a belt is its rails, its bed, one still path of
-  chevrons and one moving strip, so the floor stays smooth. The chevrons still point the way it goes and the strip still
+  chevrons and one moving strip, so the floor pans more smoothly. The chevrons still point the way it goes and the strip still
   runs along it. A factory of more than 60 cards draws only what is on screen.
-- **Floor: changing a number no longer freezes a big factory.** The floor was laid out six times over on every change,
+- **Floor: changing a number freezes a big factory much less.** The floor was laid out six times over on every change,
   trying each way of ranking the machines in both directions, and a slow computer stood still for over a second. When
   the machines and belts are the same as before, the layout that was found is reused, so a number changing costs a
   fraction of what it did.

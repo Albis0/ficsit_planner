@@ -15,7 +15,9 @@ export function useT() {
       vars ? messages[k].replace(/\{(\w+)\}/g, (m, v: string) => String(vars[v] ?? m)) : messages[k];
     const name = (x: { name: string } | undefined) => x?.name ?? '?';
     const nf = new Intl.NumberFormat(locale, { maximumFractionDigits: decimals });
-    const num = (n: number) => nf.format(Math.abs(n) < 5e-5 ? 0 : n);
+    const whole = new Intl.NumberFormat(locale, { maximumFractionDigits: 0 });
+    // From a thousand up the digits after the point say nothing: 38,206 MW, not 38,206.43.
+    const num = (n: number) => (Math.abs(n) >= 1000 ? whole.format(n) : nf.format(Math.abs(n) < 5e-5 ? 0 : n));
     return { t, name, num, lang };
   }, [lang, decimals]);
 }

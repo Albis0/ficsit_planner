@@ -117,7 +117,7 @@ export function factoryRow(e: FactoryEntry, planned: boolean): FactoryRow {
     surplus: r?.surplus ?? [],
     leaves: poolShare(e),
     mw: e.mw ?? 0,
-    machines: r ? sumOf(r.recipes) : 0,
+    machines: e.machines ?? (r ? sumOf(r.recipes) : 0),
     extractors: sumOf(e.extraction ?? []),
   };
 }
