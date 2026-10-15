@@ -274,6 +274,8 @@ function PlanList({ at, onClose }: { at: { x: number; y: number }; onClose: () =
   const rowMenu = useRowMenu();
   const [dragging, setDragging] = useState<string>();
   const power = mode === 'power';
+  // A plant with nothing in it yet isn't listed, as on the All page; the one open stays so the list shows where you are.
+  const plants = o.plants.filter((p) => !p.empty || (power && !overview && p.id === activePower));
 
   const add = (isPlant: boolean) => {
     const s = useStore.getState();
@@ -379,8 +381,8 @@ function PlanList({ at, onClose }: { at: { x: number; y: number }; onClose: () =
           </button>
         </div>
       ))}
-      <h3 className="plan-list-head">{t('ovPlants')}</h3>
-      {o.plants.map((p) => (
+      {plants.length > 0 && <h3 className="plan-list-head">{t('ovPlants')}</h3>}
+      {plants.map((p) => (
         // biome-ignore lint/a11y/noStaticElementInteractions: a right click is a shortcut to the row's menu; the row's buttons do the same by keyboard
         <div
           key={p.id}

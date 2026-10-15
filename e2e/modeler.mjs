@@ -63,9 +63,16 @@ const centre = async (loc) => {
   return b ? { x: b.x + b.width / 2, y: b.y + b.height / 2 } : undefined;
 };
 const viewport = () => page.evaluate(() => getComputedStyle(document.querySelector('.react-flow__viewport')).transform);
+// Fit to screen stops at half size, so a floor too big for that is zoomed out further by hand to have all of it in view.
 const fit = async () => {
   await page.click('.floor-controls .floor-button >> nth=-1');
   await wait(500);
+  const box = await page.locator('.react-flow').boundingBox();
+  for (let i = 0; i < 12 && !(await allInView()); i++) {
+    await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
+    await page.mouse.wheel(0, 240);
+    await wait(150);
+  }
 };
 const settle = () => page.waitForFunction(() => !document.querySelector('.busy'), null, { timeout: 20000 }).then(() => wait(300));
 
@@ -1021,6 +1028,7 @@ const clash = (a, b) => a && b && a.x < b.x + b.width && b.x < a.x + a.width && 
   await page.click('.plan-current');
   await wait(300);
   ok('the All row shows with only one tab', (await page.locator('.plan-row.all').count()) === 1);
+  ok('a power plant with nothing in it is not in the factory menu', (await page.locator('.plan-row.power').count()) === 0);
   await page.keyboard.press('Escape');
   await page.click('.plan-add');
   await wait(500);
@@ -1996,6 +2004,112 @@ const clash = (a, b) => a && b && a.x < b.x + b.width && b.x < a.x + a.width && 
   await page.waitForSelector('aside.inspector');
   const anim = await page.$eval('aside.inspector', (a) => [getComputedStyle(a).animationName, getComputedStyle(a).animationDuration]);
   ok('the panel slides in from the right', anim[0] === 'inspector-in' && anim[1] === '0.18s', anim.join(' '));
+  await ctx.close();
+}
+
+// ───────────────────────────── Brought in once, leaving the map ─────────────────────────────
+{
+  section = 'W';
+  const ctx = await browser.newContext({ viewport: { width: 1280, height: 800 }, serviceWorkers: 'block' });
+  page = await ctx.newPage();
+  page.on('pageerror', (e) => errors.push(e.message));
+  const eight = [
+    'Desc_Motor_C',
+    'Desc_ModularFrameHeavy_C',
+    'Desc_Computer_C',
+    'Desc_PlutoniumPellet_C',
+    'Desc_AluminumPlate_C',
+    'Desc_Rotor_C',
+    'Desc_SpaceElevatorPart_5_C',
+    'Desc_CircuitBoard_C',
+  ];
+  await open(factory(eight.map((i) => [i, 20])));
+  await page.click('.deck-toggle');
+  await wait(600);
+  await page.click('.floor-kind button >> nth=1');
+  await settle();
+  await wait(1500);
+  const names = await page.locator('.floor-io .item-card-name').allInnerTexts();
+  const comes = await page.$$eval('.panel-body.manual section:nth-of-type(2) .floor-io-name', (l) =>
+    l.map((e) => e.firstChild?.textContent ?? ''),
+  );
+  ok('Comes in lists each item once', comes.length > 0 && new Set(comes).size === comes.length, comes.join(', '));
+  ok('and the floor still lists its products', names.length > comes.length);
+  const amounts = await page.$$eval('.panel-body.manual section:nth-of-type(2) input', (l) => l.map((i) => i.value));
+  ok(
+    'with amounts a person can read',
+    amounts.every((v) => v.replace(/[^0-9]/g, '').length <= 8),
+    amounts.join(', '),
+  );
+
+  // Fit to screen on a big floor stops where the cards can still be read.
+  await page.locator('.floor-controls .floor-button >> nth=-1').click();
+  await wait(700);
+  const scale = await page.evaluate(() => new DOMMatrix(getComputedStyle(document.querySelector('.react-flow__viewport')).transform).a);
+  ok('Fit to screen goes no further out than half size', scale >= 0.499, scale.toFixed(3));
+  // The buttons along the bottom right stay put when a card's panel opens, and the panel ends above them.
+  const rightGap = () =>
+    page.evaluate(() => {
+      const c = document.querySelector('.floor-controls').getBoundingClientRect();
+      const f = document.querySelector('.floor-view').getBoundingClientRect();
+      return Math.round(f.right - c.right);
+    });
+  const shut = await rightGap();
+  await page.locator('.react-flow__node-part:has(.machine-node)').first().click();
+  await wait(700);
+  const opened = await rightGap();
+  const ctl = await page.locator('.floor-controls').boundingBox();
+  const insp = await page.locator('.inspector.manual').boundingBox();
+  ok('the buttons stay where they were with a card panel open', opened === shut, `${shut} / ${opened}`);
+  ok('and the panel ends above them', insp.y + insp.height <= ctl.y, `${insp.y + insp.height} / ${ctl.y}`);
+  await page.keyboard.press('Escape');
+
+  // The list and the transport view end above the buttons along the bottom, and the transport view has no hint to click a machine.
+  await page.locator('.floor-kind button >> nth=0').click();
+  await settle();
+  await wait(800);
+  for (const [name, idx] of [
+    ['list', 1],
+    ['transport', 2],
+  ]) {
+    await page.locator('.floor-bar .segmented:not(.floor-kind) button').nth(idx).click();
+    await wait(900);
+    await page.evaluate(() => {
+      for (const e of document.querySelectorAll('.table-wrap, .transport-wrap')) e.scrollTop = e.scrollHeight;
+    });
+    await wait(300);
+    const room = await page.evaluate(() => {
+      const w = document.querySelector('.table-wrap, .transport-wrap');
+      const last = w.lastElementChild.getBoundingClientRect();
+      return Math.round(
+        Math.min(...[...document.querySelectorAll('.floor-bar, .floor-controls')].map((e) => e.getBoundingClientRect().top)) - last.bottom,
+      );
+    });
+    ok(`the ${name} view ends above the buttons along the bottom`, room >= 0, `${room}px`);
+    if (name === 'transport') ok('the transport view has no hint to click a machine', (await page.locator('.floor-hint').count()) === 0);
+    else ok('the list view keeps its hint', (await page.locator('.floor-hint').count()) === 1);
+  }
+
+  // Leaving the map in the middle of a zoom must not trip Leaflet over the panes it has taken down.
+  const before = errors.length;
+  for (const delay of [0, 10, 40, 120]) {
+    await open(saved({ mode: 'map', plans: [{ id: 'f1', name: 'Factory 1', targets: [] }], active: 'f1' }));
+    await page.waitForSelector('.leaflet-container', { timeout: 30000 });
+    await wait(1200);
+    await page.evaluate(
+      (d) =>
+        new Promise((res) => {
+          document.querySelector('.leaflet-control-zoom-in').click();
+          setTimeout(() => {
+            document.querySelector('.mode-switch button').click();
+            res();
+          }, d);
+        }),
+      delay,
+    );
+    await wait(600);
+  }
+  ok('leaving the map while it zooms raises no error', errors.length === before, errors.slice(before).join(' | '));
   await ctx.close();
 }
 

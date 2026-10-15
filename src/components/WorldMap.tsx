@@ -183,6 +183,11 @@ export default function WorldMap() {
     return () => {
       resize.disconnect();
       redraw = () => {};
+      // Leaflet ends a zoom on timers that fire after the map is gone and trip over its removed panes; stop them first.
+      const left = m as unknown as { _animatingZoom: boolean; scrollWheelZoom: { _timer?: number } };
+      left._animatingZoom = false;
+      clearTimeout(left.scrollWheelZoom._timer);
+      m.stop();
       m.remove();
       map.current = undefined;
     };

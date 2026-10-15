@@ -4,7 +4,8 @@
   position: absolute;
   inset: 0;
   overflow: auto;
-  padding: 18px 18px 84px;
+  /* Clear of the buttons along the bottom, which grow with the interface size. */
+  padding: 18px 18px calc(72px * var(--ui-scale, 1) + 12px);
   display: flex;
   flex-direction: column;
   gap: 22px;

@@ -63,7 +63,7 @@ export function FloorPanel({ host, calc, result }: { host: ModelHost; calc?: Cal
     const flow = arriving(model, shown, n.id);
     const item = n.item ?? flow.item;
     const it = item ? data.items[item] : undefined;
-    const value = n.lim ?? (shown ? Math.round(flow.rate * 1e4) / 1e4 : Number.NaN);
+    const value = n.lim !== undefined ? Math.round(n.lim * 1e4) / 1e4 : shown ? Math.round(flow.rate * 1e4) / 1e4 : Number.NaN;
     // A limit set and something else arriving: say what actually comes.
     const differs = shown && n.lim !== undefined && Math.abs(flow.rate - n.lim) > 1e-6;
     return (

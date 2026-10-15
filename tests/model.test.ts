@@ -256,6 +256,36 @@ describe('from an Auto plan', () => {
     });
   }
 
+  test('what has to be brought in comes on one card per item, however many machines take it', async () => {
+    const auto = solve(highs, {
+      targets: [
+        'Desc_Motor_C',
+        'Desc_ModularFrameHeavy_C',
+        'Desc_Computer_C',
+        'Desc_PlutoniumPellet_C',
+        'Desc_AluminumPlate_C',
+        'Desc_Rotor_C',
+        'Desc_SpaceElevatorPart_5_C',
+        'Desc_CircuitBoard_C',
+      ].map((item) => ({ item, rate: 20 })),
+      supplies: [],
+      enabledRecipes: standard(),
+      resourceCaps: {},
+      objective: 'resources',
+    });
+    const waste = 'Desc_NuclearWaste_C';
+    const need = auto.missing.find((x) => x.item === waste)?.rate ?? 0;
+    expect(need).toBeGreaterThan(0);
+    const m = await modelFromSolve(auto, 9, DEFAULT_EXTRACTION);
+    const cards = m.nodes.filter((n) => n.k === 'in' && n.item === waste);
+    expect(cards.length).toBe(1);
+    expect(cards[0].k === 'in' && cards[0].lim).toBeCloseTo(need, 6);
+    // No float noise left in the amount the panel shows, and the floor still works as a whole.
+    expect(cleanModel(m)).toEqual(m);
+    const { result } = adaptModel(m, run(m));
+    expect(result.targets.find((t) => t.item === 'Desc_Motor_C')?.rate).toBeCloseTo(20, 4);
+  });
+
   test('machines whose recipe was ticked built on the Auto floor start ticked on the Manual floor', async () => {
     const auto = solve(highs, {
       targets: [{ item: 'Desc_Wire_C', rate: 60 }],

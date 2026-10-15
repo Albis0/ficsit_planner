@@ -409,6 +409,11 @@
     display: none;
   }
 
+  /* The transport view ends above the two rows of buttons, as the list does. */
+  .transport-wrap {
+    padding-bottom: calc(128px * var(--ui-scale, 1));
+  }
+
   /* Bottom right like on desktop, with Fit as an icon so it fits beside Factory / List. */
   .floor-controls {
     right: 10px;
@@ -481,7 +486,7 @@
 
   /* Table: every recipe becomes a labelled card. */
   .table-wrap {
-    padding: 10px 10px 76px;
+    padding: 10px 10px calc(128px * var(--ui-scale, 1));
   }
 
   .plan-table,

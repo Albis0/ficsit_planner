@@ -16,6 +16,9 @@ import { type MLink, type MNode, type Model, MODEL_VERSION } from './types';
   mergers and miners included, so every card has its place and every belt a route around the cards.
 */
 
+/** A rate without the noise of adding floats (50.00000000000001 is 50). */
+const clean = (x: number) => Math.round(x * 1e9) / 1e9;
+
 /** Up to three outputs per splitter (three inputs per merger); more than that chains another one on. */
 const FAN = 3;
 
@@ -179,6 +182,28 @@ export async function modelFromSolve(
       });
   }
 
+  // Things brought in or supplied come in on one card however many machines take them, split on from there; the Auto
+  // floor has a card per belt, but the panel's Comes in list would show the same item over and over.
+  const carried = new Map<string, Edge[]>();
+  for (const e of g.edges) {
+    if (e.type !== 'flow') continue;
+    const a = graphNode.get(e.source)!;
+    if (a.type !== 'endpoint') continue;
+    const kind = (a.data as EndpointNodeData).kind;
+    if (kind !== 'missing' && kind !== 'supply') continue;
+    const key = `${kind}|${(e.data as FlowEdgeData).item}`;
+    carried.set(key, [...(carried.get(key) ?? []), e]);
+  }
+  for (const [key, edges] of carried) {
+    if (edges.length < 2) continue;
+    const [kind, item] = key.split('|');
+    const total = edges.reduce((s, e) => s + (e.data as FlowEdgeData).rate, 0);
+    const n: MNode = { id: id(), ...at, k: 'in', item, lim: clean(total), ...(kind === 'missing' ? { tag: 'bring' as const } : {}) };
+    nodes.push(n);
+    const ends = fan(edges, { node: n.id, port: 0 }, item, 'split');
+    for (const [i, e] of edges.entries()) sourceOf.set(e.id, ends[i]);
+  }
+
   // Raw inputs, things brought in and outputs: one node per belt.
   for (const e of g.edges) {
     if (e.type !== 'flow') continue;
@@ -209,7 +234,7 @@ export async function modelFromSolve(
           // The game's slowest setting is 1%; a belt needing less than that just leaves the miner part busy.
           ...(Math.abs(each - 1) > 1e-12 ? { clock: Math.max(0.01, each) } : {}),
         };
-      } else n = { id: id(), ...at, k: 'in', item, lim: rate, ...(d.kind === 'missing' ? { tag: 'bring' as const } : {}) };
+      } else n = { id: id(), ...at, k: 'in', item, lim: clean(rate), ...(d.kind === 'missing' ? { tag: 'bring' as const } : {}) };
       nodes.push(n);
       src = { node: n.id, port: 0 };
     }

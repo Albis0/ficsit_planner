@@ -85,6 +85,9 @@ function topRoom() {
 /** Furthest out: far enough for a whole big factory on a phone. */
 const MIN_ZOOM = 0.04;
 
+/** Fit to screen goes no further out than this, where a card is still readable. */
+const FIT_MIN = 0.5;
+
 /** How long after opening a floor its camera follows the floor's size, while the totals over it come in. */
 const SETTLE = 3000;
 
@@ -864,6 +867,8 @@ function Canvas({ host, calc, onArrange }: { host: ModelHost; calc?: CalcResult;
                       onClick={() =>
                         flow.fitView({
                           padding: { top: `${topRoom()}px`, left: '24px', right: '24px', bottom: `${BAR}px` },
+                          // Never so far out the cards can't be read; the rest of a big floor is a drag away.
+                          minZoom: FIT_MIN,
                           maxZoom: 1,
                           duration: 250,
                         })
