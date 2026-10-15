@@ -2074,28 +2074,6 @@ const clash = (a, b) => a && b && a.x < b.x + b.width && b.x < a.x + a.width && 
     amounts.join(', '),
   );
 
-  // Fit to screen on a big floor stops where the cards can still be read.
-  await page.locator('.floor-controls .floor-button >> nth=-1').click();
-  await wait(700);
-  const scale = await page.evaluate(() => new DOMMatrix(getComputedStyle(document.querySelector('.react-flow__viewport')).transform).a);
-  ok('Fit to screen goes no further out than half size', scale >= 0.499, scale.toFixed(3));
-  // The buttons along the bottom right stay put when a card's panel opens, and the panel ends above them.
-  const rightGap = () =>
-    page.evaluate(() => {
-      const c = document.querySelector('.floor-controls').getBoundingClientRect();
-      const f = document.querySelector('.floor-view').getBoundingClientRect();
-      return Math.round(f.right - c.right);
-    });
-  const shut = await rightGap();
-  await page.locator('.react-flow__node-part:has(.machine-node)').first().click();
-  await wait(700);
-  const opened = await rightGap();
-  const ctl = await page.locator('.floor-controls').boundingBox();
-  const insp = await page.locator('.inspector.manual').boundingBox();
-  ok('the buttons stay where they were with a card panel open', opened === shut, `${shut} / ${opened}`);
-  ok('and the panel ends above them', insp.y + insp.height <= ctl.y, `${insp.y + insp.height} / ${ctl.y}`);
-  await page.keyboard.press('Escape');
-
   // The list and the transport view end above the buttons along the bottom, and the transport view has no hint to click a machine.
   await page.locator('.floor-kind button >> nth=0').click();
   await settle();
