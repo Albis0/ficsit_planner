@@ -14,6 +14,7 @@ import { describeUse } from '../../lib/solver';
 import { minerLabel, recipeLabel } from '../../lib/text';
 import { modBar, RunLine } from '../GraphView';
 import { Icon } from '../Icon';
+import { PoolToggle } from '../PoolToggle';
 import { Slot } from '../Slot';
 
 /** Which way the floor runs: a card's ends go on its sides or along its top and bottom. */
@@ -393,6 +394,8 @@ function Endpoint({ data: d, selected }: { data: PartData; selected: boolean }) 
           {n.k === 'extract' && calc?.status !== 'partial' && <Status calc={calc} />}
         </span>
       </span>
+      {/* An output that has an item can be offered to the pool, as on the Auto floor. */}
+      {n.k === 'out' && n.tag !== 'spare' && item && <PoolToggle item={item} />}
     </div>
   );
 }

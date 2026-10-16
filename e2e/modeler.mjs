@@ -975,6 +975,30 @@ const clash = (a, b) => a && b && a.x < b.x + b.width && b.x < a.x + a.width && 
     ok('Auto: Remove area takes it off', (await areasSaved()).length === 0 && (await page.locator('.area-node').count()) === 0);
   }
 
+  // ── A11c: an output card offers its product to the pool ──
+  section = 'A11c';
+  {
+    await open(factory([['Desc_Motor_C', 10]]));
+    await page.click('.floor-kind button >> nth=1');
+    await settle();
+    await wait(600);
+    const pooledNow = async () => {
+      await wait(400);
+      return page.evaluate(() => JSON.parse(localStorage.getItem('ficsit-planner')).state.plans[0].pooled ?? []);
+    };
+    const button = page.locator('.endpoint-node.manual.target .endpoint-pool');
+    ok('Manual: an output card has a To the pool button', (await button.count()) === 1 && (await button.innerText()).includes('To the pool'));
+    ok('Manual: it starts not in the pool', (await pooledNow()).length === 0);
+    await button.click();
+    ok('Manual: a click offers the product to the pool', (await pooledNow()).includes('Desc_Motor_C'));
+    ok('Manual: and the button says so', (await button.getAttribute('aria-pressed')) === 'true');
+    await button.click();
+    ok('Manual: a second click takes it back', (await pooledNow()).length === 0);
+    await page.click('.floor-kind button >> nth=0');
+    await wait(600);
+    ok('Auto: the same plan still has its button on the output card', (await page.locator('.endpoint-pool').count()) >= 1);
+  }
+
   // ── A12: automatic copies in Settings › Your data ──
   section = 'A12';
   {
