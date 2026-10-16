@@ -999,6 +999,37 @@ const clash = (a, b) => a && b && a.x < b.x + b.width && b.x < a.x + a.width && 
     ok('Auto: the same plan still has its button on the output card', (await page.locator('.endpoint-pool').count()) >= 1);
   }
 
+  // ── A11d: the All page lists the standard recipes too ──
+  section = 'A11d';
+  {
+    await open(
+      saved({
+        mode: 'factory',
+        plans: [
+          { id: 'f1', name: 'Motors', targets: [{ item: 'Desc_Motor_C', rate: 10 }] },
+          { id: 'f2', name: 'Plastic', targets: [{ item: 'Desc_Plastic_C', rate: 60 }] },
+        ],
+        active: 'f1',
+        unlocked: ['Recipe_Alternate_AdheredIronPlate_C'],
+      }),
+    );
+    await page.click('.plan-current');
+    await page.locator('.plan-row.all .plan-row-name').click();
+    await page.getByRole('radio', { name: 'Unlocked recipes' }).click();
+    await wait(600);
+    const alt = await page.locator('.recipe-row input:checked').count();
+    ok('All: the alternate you unlocked is ticked', alt === 1, `${alt}`);
+    await page.getByRole('radio', { name: /^standard$/i }).click();
+    await wait(400);
+    const rows = await page.locator('.recipe-row').count();
+    const fixed = await page.locator('.recipe-row input:checked:disabled').count();
+    ok('All: Standard lists the standard recipes', rows > 20, `${rows}`);
+    ok('All: each is on, with no tick to change', fixed === rows, `${fixed}/${rows}`);
+    await page.locator('.recipe-row .recipe-name').first().click({ force: true });
+    await wait(300);
+    ok('All: clicking one changes nothing', (await page.locator('.recipe-row input:checked:disabled').count()) === rows);
+  }
+
   // ── A12: automatic copies in Settings › Your data ──
   section = 'A12';
   {

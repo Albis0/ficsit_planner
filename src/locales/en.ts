@@ -135,6 +135,7 @@ export const en = {
   ovPlants: 'Power plants',
   ovUnlocked: 'Unlocked recipes',
   ovApplyUnlocked: 'Turn on in all factories',
+  alwaysOn: 'Every new factory starts with it on',
   ovName: 'Name',
   ovMakes: 'Makes',
   ovTakes: 'Takes in',

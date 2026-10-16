@@ -12,14 +12,12 @@ type Filter = 'all' | RecipeKind;
 
 const tiers = Array.from({ length: MAX_TIER + 1 }, (_, i) => i);
 
-const optionalKind = (r: Recipe) => r.kind === 'alternate' || r.kind === 'converter';
-
 interface Props {
   /** The recipes that are on, in the list being edited. */
   enabled: string[];
   onToggle: (id: string) => void;
   onSet: (ids: string[], on: boolean) => void;
-  /** The All page's list: alternate and converter recipes only, and the tier is set in the top bar. */
+  /** The All page's list: the tier is set in the top bar, and the standard recipes, which every factory starts with, are shown on and can't be ticked. */
   optionalOnly?: boolean;
   /** More buttons at the end of the row under the kinds. */
   extra?: ReactNode;
@@ -38,6 +36,8 @@ export function RecipeBrowser({ enabled, onToggle: toggle, onSet: setRecipes, op
   const showLocked = allowed && asked;
 
   const on = useMemo(() => new Set(enabled), [enabled]);
+  // On the All page the standard recipes are in every new factory: listed on, with no tick to change.
+  const always = (r: Recipe) => !!optionalOnly && r.kind === 'standard';
 
   // Group by main product so every way to make screws sits together.
   // biome-ignore lint/correctness/useExhaustiveDependencies: skipKey() changes when the milestones bought do
@@ -48,7 +48,6 @@ export function RecipeBrowser({ enabled, onToggle: toggle, onSet: setRecipes, op
     const map = new Map<string, Recipe[]>();
     let hidden = 0;
     for (const r of data.recipes) {
-      if (optionalOnly && !optionalKind(r)) continue;
       if (filter !== 'all' && r.kind !== filter) continue;
       if (!match(r)) continue;
       // Recipes the player can't use yet stay out of the way unless asked for.
@@ -63,14 +62,14 @@ export function RecipeBrowser({ enabled, onToggle: toggle, onSet: setRecipes, op
     // A search that finds nothing under this filter may still find standard or converter recipes.
     const elsewhere =
       f && filter !== 'all' && sorted.length === 0
-        ? data.recipes.filter((r) => (!optionalOnly || optionalKind(r)) && match(r) && (showLocked || recipeUnlocked(r, tier))).length
+        ? data.recipes.filter((r) => match(r) && (showLocked || recipeUnlocked(r, tier))).length
         : 0;
     return { groups: sorted, hidden, elsewhere };
-  }, [filter, q, name, showLocked, tier, optionalOnly, skipKey()]);
+  }, [filter, q, name, showLocked, tier, skipKey()]);
   const { groups, hidden, elsewhere } = listed;
 
   // Bulk buttons leave recipes above the tier alone; those can't be picked one by one either.
-  const visibleIds = groups.flatMap(([, rs]) => rs.filter((r) => recipeUnlocked(r, tier)).map((r) => r.id));
+  const visibleIds = groups.flatMap(([, rs]) => rs.filter((r) => recipeUnlocked(r, tier) && !always(r)).map((r) => r.id));
   const visibleOn = visibleIds.filter((id) => on.has(id)).length;
 
   const stacks = (list: Stack[]) => list.map((s) => <Slot key={s.item} id={s.item} rate={s.rate} size={46} />);
@@ -107,13 +106,14 @@ export function RecipeBrowser({ enabled, onToggle: toggle, onSet: setRecipes, op
   const row = (r: Recipe) => {
     const lock = recipeLock(r, tier);
     const locked = !!lock;
+    const fixed = always(r);
     return (
       <label
         key={r.id}
-        className={`recipe-row ${on.has(r.id) ? 'on' : ''} ${locked ? 'locked' : ''}`}
-        title={lock ? lockWords(lock, t) : undefined}
+        className={`recipe-row ${on.has(r.id) || fixed ? 'on' : ''} ${locked ? 'locked' : ''}`}
+        title={lock ? lockWords(lock, t) : fixed ? t('alwaysOn') : undefined}
       >
-        <input type="checkbox" checked={on.has(r.id)} disabled={locked} onChange={() => toggle(r.id)} />
+        <input type="checkbox" checked={on.has(r.id) || fixed} disabled={locked || fixed} onChange={() => toggle(r.id)} />
         <span className="recipe-main">
           <span className="recipe-name">
             {recipeLabel(name(r), r.kind)}
@@ -148,7 +148,7 @@ export function RecipeBrowser({ enabled, onToggle: toggle, onSet: setRecipes, op
     );
   };
 
-  const kinds: Filter[] = optionalOnly ? ['alternate', 'converter', 'all'] : ['alternate', 'standard', 'converter', 'all'];
+  const kinds: Filter[] = ['alternate', 'standard', 'converter', 'all'];
 
   return (
     <div className="panel-body recipes">
