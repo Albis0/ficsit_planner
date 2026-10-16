@@ -1,7 +1,7 @@
 import { data } from '../../lib/data';
 import { PURITIES } from '../../lib/extraction';
 import { useT } from '../../lib/i18n';
-import { isOpen } from '../../lib/unlocks';
+import { isOpen, type Lock, lockOf, lockWords } from '../../lib/unlocks';
 import { LOGISTICS, SINK, STORAGE_NAME } from '../../lib/model/catalog';
 import { builtTransport, linkMedium } from '../../lib/model/calc/compile';
 import { type CalcResult, countOf, type NodeCalc } from '../../lib/model/calc/result';
@@ -496,7 +496,7 @@ function LinkPanel({ host, link, calc }: { host: ModelHost; link: MLink; calc?: 
       </dl>
       {c?.status === 'jam' && <p className="run-state big bad">{t('beltJam')}</p>}
       {/* Picked before the tier was lowered in Recipes. */}
-      {!isOpen(transport, tier) && <p className="run-state big warn">{t('needsTier', { tier: transport.tier })}</p>}
+      {lockOf(transport, tier) && <p className="run-state big warn">{lockWords(lockOf(transport, tier) as Lock, t)}</p>}
       {c?.status === 'capped' && (
         <p className="run-state big warn">
           {/* The player's own limit reached, or the belt itself full. */}

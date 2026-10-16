@@ -3,7 +3,7 @@ import { useEffect, useRef, useState } from 'react';
 import { data, type Generator } from '../lib/data';
 import { PURITIES } from '../lib/extraction';
 import { useT } from '../lib/i18n';
-import { isOpen } from '../lib/unlocks';
+import { isOpen, type Lock, lockOf, lockText } from '../lib/unlocks';
 import {
   filledTo100,
   fixedAs,
@@ -96,7 +96,8 @@ function GenRow({ plant, result }: { plant: Plant; result?: SolveResult }) {
   const use = result?.recipes.find((u) => u.recipe.id === PLANT_PREFIX + plant.id);
   const mw = result?.grid?.plants[plant.id] ?? 0;
   const put = (patch: Partial<Plant>) => updatePlant(plant.id, patch);
-  const locked = !isOpen(g, tier);
+  const lock = lockOf(g, tier);
+  const locked = !!lock;
   const auto = sizable(g) && plant.by === 'auto';
   const have = useStore((s) => activePowerPlan(s).sizeBy === 'have');
   // Whole generators at 100% instead; greyed out when that is what is already there.
@@ -114,7 +115,7 @@ function GenRow({ plant, result }: { plant: Plant; result?: SolveResult }) {
       <header className="gen-row-head">
         <Icon id={g.id} size={32} />
         <span className="gen-row-name">{name(g)}</span>
-        {locked && <span className="tier-tag">{t('tierTag', { tier: g.tier })}</span>}
+        {lock && <span className="tier-tag">{lockText(lock, (n) => t('tierTag', { tier: n }))}</span>}
         <span className="gen-row-mw">
           {num(mw)} <small>MW</small>
         </span>
@@ -487,7 +488,7 @@ function AddPlant() {
                   {name(g)}
                   <small>{g.kind === 'geothermal' ? t('geyserRange') : `${num(g.power)} MW`}</small>
                 </span>
-                {!isOpen(g, tier) && <span className="tier-tag">{t('tierTag', { tier: g.tier })}</span>}
+                {lockOf(g, tier) && <span className="tier-tag">{lockText(lockOf(g, tier) as Lock, (n) => t('tierTag', { tier: n }))}</span>}
                 {g.kind !== 'fuel' && (
                   <button type="button" role="menuitem" className="ghost-button small" onClick={() => add(g)}>
                     {t('add')}

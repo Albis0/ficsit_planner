@@ -1,6 +1,6 @@
-import { skipKey } from '../lib/unlocks';
+import { lockWords, skipKey } from '../lib/unlocks';
 import { type ReactNode, useLayoutEffect, useMemo, useRef, useState } from 'react';
-import { data, recipeTier, recipeUnlocked, type Recipe, type RecipeKind, type Stack } from '../lib/data';
+import { data, recipeLock, recipeTier, recipeUnlocked, type Recipe, type RecipeKind, type Stack } from '../lib/data';
 import { useT } from '../lib/i18n';
 import { recipeLabel, searchKey } from '../lib/text';
 import { MAX_TIER, useStore, useTier } from '../store';
@@ -105,12 +105,13 @@ export function RecipeBrowser({ enabled, onToggle: toggle, onSet: setRecipes, op
   });
 
   const row = (r: Recipe) => {
-    const locked = !recipeUnlocked(r, tier);
+    const lock = recipeLock(r, tier);
+    const locked = !!lock;
     return (
       <label
         key={r.id}
         className={`recipe-row ${on.has(r.id) ? 'on' : ''} ${locked ? 'locked' : ''}`}
-        title={locked ? t('needsTier', { tier: recipeTier(r) }) : undefined}
+        title={lock ? lockWords(lock, t) : undefined}
       >
         <input type="checkbox" checked={on.has(r.id)} disabled={locked} onChange={() => toggle(r.id)} />
         <span className="recipe-main">

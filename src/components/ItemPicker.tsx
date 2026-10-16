@@ -1,8 +1,9 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { type Item, SPECIAL_ITEMS } from '../lib/data';
 import { useT } from '../lib/i18n';
-import { laterMatches } from '../lib/later';
+import { laterMatches, laterText } from '../lib/later';
 import { searchKey } from '../lib/text';
+import { useTier } from '../store';
 import { Icon } from './Icon';
 
 interface Props {
@@ -19,6 +20,7 @@ interface Props {
 /** A button that unfolds into a searchable item list. Type to filter, arrows to move, Enter to pick. */
 export function ItemPicker({ items, label, short, onPick, exclude = [], hidden }: Props) {
   const { t, name } = useT();
+  const tier = useTier();
   const [open, setOpen] = useState(false);
   const [q, setQ] = useState('');
   const [cursor, setCursor] = useState(0);
@@ -34,7 +36,7 @@ export function ItemPicker({ items, label, short, onPick, exclude = [], hidden }
       .filter((i) => !f || searchKey(name(i)).includes(f))
       .sort((a, b) => Number(SPECIAL_ITEMS.has(a.id)) - Number(SPECIAL_ITEMS.has(b.id)) || name(a).localeCompare(name(b)));
   }, [q, items, exclude, name]);
-  const later = useMemo(() => (hidden && q.trim() ? laterMatches(q, hidden, name) : []), [q, hidden, name]);
+  const later = useMemo(() => (hidden && q.trim() ? laterMatches(q, hidden, name, tier) : []), [q, hidden, name, tier]);
   // Gear (ammo, equipment, power shards) comes last, under a heading of its own.
   const firstSpecial = matches.findIndex((i) => SPECIAL_ITEMS.has(i.id));
 
@@ -114,9 +116,7 @@ export function ItemPicker({ items, label, short, onPick, exclude = [], hidden }
       <ul className="picker-list" id="picker-list" role="listbox" ref={list}>
         {matches.length === 0 && (
           <li className="picker-empty">
-            {later.length
-              ? t('notInTierYet', { list: later.map((x) => `${name(x.item)} (${t('tierTag', { tier: x.tier })})`).join(', ') })
-              : t('noResults')}
+            {later.length ? t('notInTierYet', { list: laterText(later, name, (n) => t('tierTag', { tier: n })) }) : t('noResults')}
           </li>
         )}
         {matches.map((i, k) => [
@@ -145,7 +145,7 @@ export function ItemPicker({ items, label, short, onPick, exclude = [], hidden }
         ])}
         {matches.length > 0 && later.length > 0 && (
           <li className="picker-empty" role="presentation">
-            {t('notInTierYet', { list: later.map((x) => `${name(x.item)} (${t('tierTag', { tier: x.tier })})`).join(', ') })}
+            {t('notInTierYet', { list: laterText(later, name, (n) => t('tierTag', { tier: n })) })}
           </li>
         )}
       </ul>

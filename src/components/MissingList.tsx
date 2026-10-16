@@ -1,4 +1,5 @@
 import { data, recipeById, whyMissing } from '../lib/data';
+import { milestoneById } from '../lib/unlocks';
 import { useT } from '../lib/i18n';
 import type { Target } from '../lib/solver';
 import { recipeLabel } from '../lib/text';
@@ -16,6 +17,7 @@ export function MissingList({ missing }: { missing: Target[] }) {
   const have = useStore((s) => (s.mode === 'power' && activePowerPlan(s).sizeBy === 'have' ? activePowerPlan(s).have : undefined));
   const bringIn = (item: string, rate: number) =>
     have ? updatePower({ have: have.some((h) => h.item === item) ? have : [...have, { item, rate }] }) : addSupply(item, rate);
+  const markSkipped = useStore((s) => s.markSkipped);
   const toggleRecipe = useStore((s) => s.toggleRecipe);
   const enabled = new Set(usePlan().enabled);
 
@@ -23,12 +25,14 @@ export function MissingList({ missing }: { missing: Target[] }) {
     <ul className="missing-list">
       {missing.map((m) => {
         const why = whyMissing(m.item, tier, enabled);
+        const milestone = why.kind === 'milestone' ? milestoneById.get(why.id) : undefined;
         const recipe = why.kind === 'off' ? recipeById.get(why.recipe) : undefined;
         return (
           <li key={m.item}>
             <Icon id={m.item} size={32} />
             <span className="missing-text">
               <b>{name(data.items[m.item])}</b> {why.kind === 'tier' && t('missingTier', { tier: why.tier, current: tier })}
+              {milestone && t('missingMilestone', { name: milestone.name })}
               {why.kind === 'off' && t('missingOff', { recipe: recipe ? recipeLabel(name(recipe), recipe.kind) : '?' })}
               {why.kind === 'none' && t('missingNone')}
             </span>
@@ -36,6 +40,11 @@ export function MissingList({ missing }: { missing: Target[] }) {
               {why.kind === 'tier' && (
                 <button type="button" className="chip fix" onClick={() => set({ tier: why.tier })}>
                   {t('switchTier', { tier: why.tier })}
+                </button>
+              )}
+              {milestone && (
+                <button type="button" className="chip fix" onClick={() => markSkipped([milestone.id], false)}>
+                  {t('markBought', { name: milestone.name })}
                 </button>
               )}
               {why.kind === 'off' && (

@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { data, recipeById, type Stack } from '../../lib/data';
 import { useT } from '../../lib/i18n';
-import { skipKey } from '../../lib/unlocks';
+import { lockText, skipKey } from '../../lib/unlocks';
 import { LOGISTICS, SINK } from '../../lib/model/catalog';
 import { CHOICE_TABS, type Choice, type ChoiceRules, type ChoiceTab, choicesFor, choiceWords, type Want } from '../../lib/model/choices';
 import { extractorById } from '../../lib/model/ports';
@@ -219,7 +219,7 @@ export function Chooser({
               <span className="chooser-text">
                 <span className="chooser-title">
                   {l.title}
-                  {locked && <span className="tier-tag">{t('tierTag', { tier: c.tier })}</span>}
+                  {c.lock && <span className="tier-tag">{lockText(c.lock, (n) => t('tierTag', { tier: n }))}</span>}
                 </span>
                 {l.sub && <span className="chooser-sub">{l.sub}</span>}
               </span>

@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { data, type Generator } from '../lib/data';
 import { useT } from '../lib/i18n';
-import { isOpen } from '../lib/unlocks';
+import { isOpen, lockOf, lockText } from '../lib/unlocks';
 import { clockable, fuelRate, generatorOf, MAX_CLOCK, PLANT_OPTIONS, plantIdOf, sizable, unitPower } from '../lib/power';
 import type { PowerLoad } from '../lib/solution';
 import { shardsFor, type SolveResult } from '../lib/solver';
@@ -293,7 +293,8 @@ export function PowerQuickStart({ load }: { load: PowerLoad }) {
           {data.generators
             .filter((g) => !hide || isOpen(g, tier))
             .map((g) => {
-              const locked = !isOpen(g, tier);
+              const lock = lockOf(g, tier);
+              const locked = !!lock;
               const fuels = PLANT_OPTIONS.filter((o) => o.generator === g && o.fuel);
               const body = (
                 <>
@@ -303,7 +304,7 @@ export function PowerQuickStart({ load }: { load: PowerLoad }) {
                       {name(g)}
                       <small>{g.kind === 'geothermal' ? t('geyserRange') : `${num(g.power)} MW`}</small>
                     </span>
-                    {locked && <span className="tier-tag">{t('tierTag', { tier: g.tier })}</span>}
+                    {lock && <span className="tier-tag">{lockText(lock, (n) => t('tierTag', { tier: n }))}</span>}
                   </span>
                 </>
               );

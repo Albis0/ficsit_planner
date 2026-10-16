@@ -2371,6 +2371,127 @@ const clash = (a, b) => a && b && a.x < b.x + b.width && b.x < a.x + a.width && 
   await ctx.close();
 }
 
+// ───────────────────────────── Milestones in the tier window ─────────────────────────────
+{
+  section = 'T';
+  const ctx = await browser.newContext({ viewport: { width: 1366, height: 768 }, reducedMotion: 'reduce', serviceWorkers: 'block' });
+  page = await ctx.newPage();
+  page.on('pageerror', (e) => errors.push(e.message));
+  const OIL = 'Schematic_5-1_C';
+  const plastic = (extra) =>
+    saved({
+      tier: 5,
+      mode: 'factory',
+      plans: [{ id: 'f1', name: 'Factory 1', targets: [{ item: 'Desc_Plastic_C', rate: 30 }] }],
+      active: 'f1',
+      ...extra,
+    });
+  const skippedNow = async () => {
+    await wait(350);
+    return page.evaluate(() => JSON.parse(localStorage.getItem('ficsit-planner')).state.skipped);
+  };
+  const bar = async () => (await page.locator('.tier-button:visible').first().innerText()).replace(/\s+/g, ' ').trim();
+  const window_ = async () => {
+    await page.click('.tier-button:visible');
+    await wait(300);
+  };
+  const done = async () => {
+    await page.click('.tier-dialog .primary-button');
+    await wait(1200);
+  };
+  const chip = (name) => page.locator('.tier-dialog .milestone-chip', { hasText: name });
+
+  await open(plastic());
+  ok('nothing skipped: the top bar says only the tier', /^tier 5$/i.test(await bar()), await bar());
+  await window_();
+  ok(
+    'the window lists the four Tier 5 milestones, all bought',
+    (await page.locator('.milestones .milestone-chip[aria-pressed=true]').count()) === 4,
+  );
+  ok('earlier tiers wait in a fold', /Earlier tiers \(3\)/.test(await page.locator('.earlier-tiers summary').innerText()));
+  ok('nothing says "not bought"', !(await page.locator('.tier-foot').innerText()).includes('not bought'));
+  await chip('Oil Processing').click();
+  await wait(200);
+  ok('a click marks it not bought', (await chip('Oil Processing').getAttribute('aria-pressed')) === 'false');
+  ok('and the window counts it', (await page.locator('.tier-foot').innerText()).includes('1 not bought'));
+  await page.locator('.tier-card', { hasText: 'Tier 6' }).first().click();
+  await wait(200);
+  ok('picking another tier leaves the window open', (await page.locator('.tier-dialog[open]').count()) === 1);
+  ok('and shows that tier\u2019s milestones', (await page.locator('.milestones .milestone-chip').count()) === 3);
+  ok('the one skipped earlier still counts', (await page.locator('.tier-foot').innerText()).includes('1 not bought'));
+  await page.locator('.tier-card', { hasText: 'Tier 5' }).first().click();
+  await wait(200);
+  await shot('t-window');
+  await done();
+  ok('Done closes it', (await page.locator('.tier-dialog[open]').count()) === 0);
+  ok('the top bar says Tier 5 \u00B7 1 off', /^tier 5 \u00B7 1 off$/i.test(await bar()), await bar());
+  ok('saved', JSON.stringify(await skippedNow()) === JSON.stringify([OIL]));
+  // Auto: the plastic can't be made, and the list offers the fix.
+  const missing = page.locator('.missing-list');
+  ok(
+    'Auto: Plastic waits for the milestone',
+    /Oil Processing milestone/.test(await missing.innerText()),
+    (await missing.innerText()).replace(/\n/g, ' '),
+  );
+  await shot('t-missing');
+  await page.reload();
+  await page.waitForFunction(() => !document.querySelector('.boot') && !document.querySelector('.busy'), null, { timeout: 30000 });
+  await wait(800);
+  ok('it survives a reload', /1 off/.test(await bar()));
+  await page.locator('.missing-list .chip.fix', { hasText: 'Mark Oil Processing as bought' }).click();
+  await wait(1500);
+  ok('Mark as bought: the list is gone', (await page.locator('.missing-list').count()) === 0);
+  ok('and the bar is back to Tier 5', /^tier 5$/i.test(await bar()), await bar());
+  ok('saved without it', (await skippedNow()).length === 0);
+
+  // Manual: the card says what it waits for, and the flag goes away when the milestone is bought.
+  await open(plastic());
+  await page.click('.deck-toggle').catch(() => {});
+  await wait(500);
+  await page.click('.floor-kind button >> nth=1');
+  await settle();
+  await wait(1500);
+  ok('Manual: nothing flagged at first', (await page.locator('.card-flag').count()) === 0);
+  await window_();
+  await chip('Oil Processing').click();
+  await done();
+  const flagText = (await page.locator('.card-flag').allInnerTexts()).join('|');
+  ok('Manual: the cards say Needs Oil Processing', /needs oil processing/i.test(flagText), flagText);
+  await shot('t-manual-flag');
+  await window_();
+  await chip('Oil Processing').click();
+  await done();
+  ok('bought again: the flag is gone', (await page.locator('.card-flag').count()) === 0);
+  // The flag a tier gives goes the same way.
+  await window_();
+  await page.locator('.tier-card', { hasText: 'Tier 4' }).first().click();
+  await done();
+  ok('a lower tier flags them with the tier', /needs tier 5/i.test((await page.locator('.card-flag').allInnerTexts()).join('|')));
+  await window_();
+  await page.locator('.tier-card', { hasText: 'Tier 9' }).first().click();
+  await done();
+  ok('raised again: the flag is gone', (await page.locator('.card-flag').count()) === 0);
+
+  // Shortcuts: with locked parts shown, one that waits for a milestone names it.
+  await open(
+    saved({
+      tier: 5,
+      skipped: [OIL],
+      mode: 'factory',
+      plans: [{ id: 'f1', name: 'Factory 1', targets: [] }],
+      active: 'f1',
+      settings: { showLocked: true },
+    }),
+  );
+  await page.locator('.quick-search').fill('plastic');
+  await wait(300);
+  ok(
+    'Shortcuts: Plastic is tagged with the milestone',
+    /oil processing/i.test(await page.locator('.quick-item.locked .tier-tag').first().innerText()),
+  );
+  await ctx.close();
+}
+
 // ───────────────────────────── Phone ─────────────────────────────
 {
   section = 'C';

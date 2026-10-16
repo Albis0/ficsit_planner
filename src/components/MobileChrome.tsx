@@ -1,5 +1,6 @@
 import { useEffect, useRef } from 'react';
 import { useT } from '../lib/i18n';
+import { offAt } from '../lib/unlocks';
 import { activePowerPlan, usePlan, useStore } from '../store';
 import { Glyph } from './Glyph';
 import { PlanActions, ShareButton } from './PlanTabs';
@@ -65,6 +66,7 @@ export function MobileNav() {
 export function MobileMenu({ onClose, onTier }: { onClose: () => void; onTier: () => void }) {
   const { t } = useT();
   const tier = useStore((s) => s.tier);
+  const tierOff = useStore((s) => offAt(s.tier, s.skipped));
   const set = useStore((s) => s.set);
   const power = useStore((s) => s.mode === 'power');
   const newUpdates = useStore((s) => s.onboarded && s.seenUpdates !== LATEST_UPDATE);
@@ -105,6 +107,7 @@ export function MobileMenu({ onClose, onTier }: { onClose: () => void; onTier: (
             }}
           >
             {t('tier')} <b>{tier}</b>
+            {tierOff > 0 && <span className="tier-off"> · {t('tierOff', { n: tierOff })}</span>}
           </button>
         </div>
         {!codex && (

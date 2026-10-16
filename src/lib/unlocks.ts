@@ -53,3 +53,14 @@ export const lockOf = (x: { id: string; tier: number }, tier: number): Lock | un
 /** The skipped list as saved: only milestones this build knows, each once. */
 export const cleanSkipped = (v: unknown): string[] =>
   Array.isArray(v) ? [...new Set(v.filter((id): id is string => typeof id === 'string' && milestoneById.has(id)))] : [];
+
+/** What a lock tag says: the milestone's name, or the tier. */
+export const lockText = (lock: Lock, tierTag: (tier: number) => string) => ('milestone' in lock ? lock.milestone.name : tierTag(lock.tier));
+
+/** The sentence for a lock: "Needs Logistics Mk.4" or "Needs tier 5". */
+export const lockWords = (lock: Lock, t: (key: 'needsTier' | 'needsMilestone', vars: Record<string, string | number>) => string) =>
+  'milestone' in lock ? t('needsMilestone', { name: lock.milestone.name }) : t('needsTier', { tier: lock.tier });
+
+/** How many of the milestones the player skipped fall in the tiers they have unlocked: the ones that matter right now. */
+export const offAt = (tier: number, skipped: readonly string[]) =>
+  skipped.filter((id) => (milestoneById.get(id)?.tier ?? Number.POSITIVE_INFINITY) <= tier).length;

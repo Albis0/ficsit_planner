@@ -1,6 +1,6 @@
 import { MINERS, PURITIES, effectiveExtraction } from '../lib/extraction';
 import { useT } from '../lib/i18n';
-import { isOpen } from '../lib/unlocks';
+import { isOpen, type Lock, lockOf, lockText } from '../lib/unlocks';
 import { minerLabel } from '../lib/text';
 import { usePlan, useStore, useTier } from '../store';
 import { Icon } from './Icon';
@@ -31,7 +31,7 @@ export function ExtractionControls() {
             role="radio"
             aria-checked={ex.miner === m.id}
             disabled={!isOpen(m, tier)}
-            title={!isOpen(m, tier) ? `${t('locked')} (T${m.tier})` : undefined}
+            title={lockOf(m, tier) ? `${t('locked')} (${lockText(lockOf(m, tier) as Lock, (n) => `T${n}`)})` : undefined}
             onClick={() => setEx({ miner: m.id })}
           >
             <Icon id={m.id} size={44} />

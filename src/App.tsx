@@ -1,4 +1,4 @@
-import { skipKey } from './lib/unlocks';
+import { offAt, skipKey } from './lib/unlocks';
 import { useShallow } from 'zustand/react/shallow';
 import { lazy, Suspense, useEffect, useMemo, useState } from 'react';
 import { useCodexRoute } from './components/codex/route';
@@ -134,6 +134,7 @@ function useSolutions() {
 
 export default function App() {
   const { t, lang } = useT();
+  const tierOff = useStore((x) => offAt(x.tier, x.skipped));
   const s = useStore(
     useShallow((x) => ({
       activePower: x.activePower,
@@ -387,6 +388,7 @@ export default function App() {
           {!bookMode && !overviewOn && <ShareButton />}
           <button type="button" className="tier-button" title={t('unlockedTier')} onClick={() => setTierOpen(true)}>
             {t('tier')} <b>{s.tier}</b>
+            {tierOff > 0 && <span className="tier-off"> · {t('tierOff', { n: tierOff })}</span>}
           </button>
           <button type="button" className="chrome-button settings" title={t('settings')} onClick={() => s.set({ dialog: 'settings' })}>
             <Glyph name="gear" size={20} />

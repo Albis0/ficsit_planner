@@ -89,3 +89,95 @@
   flex-wrap: wrap;
   gap: 4px;
 }
+
+/* Milestones under the tier cards: the ones of the chosen tier, the earlier tiers folded away. */
+.tier-off {
+  color: var(--dim);
+  font-weight: 500;
+}
+
+.milestones {
+  margin-top: 22px;
+}
+
+.milestone-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.milestone-tier {
+  flex: none;
+  min-width: 70px;
+  font: 600 15px var(--font-display);
+  color: var(--dim);
+}
+
+.milestone-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 36px;
+  padding: 4px 12px 4px 6px;
+  background: var(--raised);
+  border: 1px solid var(--line);
+  color: var(--paper);
+  font-weight: 600;
+  text-align: left;
+}
+
+.milestone-chip:hover {
+  border-color: var(--ficsit);
+}
+
+.milestone-icon {
+  display: inline-flex;
+  width: 26px;
+  height: 26px;
+}
+
+/* Not bought: dim and struck through, so the one you skipped stands out from the rest. */
+.milestone-chip.off {
+  color: var(--dim);
+  text-decoration: line-through;
+}
+
+.milestone-chip.off .milestone-icon {
+  opacity: 0.45;
+}
+
+.earlier-tiers {
+  margin-top: 14px;
+}
+
+.earlier-tiers summary {
+  cursor: pointer;
+  color: var(--dim);
+  font-weight: 600;
+}
+
+.earlier-tiers summary b {
+  color: var(--ficsit);
+}
+
+.tier-foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: 18px;
+  color: var(--dim);
+}
+
+@media (max-width: 760px) {
+  .milestone-row {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .milestone-tier {
+    min-width: 0;
+  }
+}
