@@ -1,8 +1,9 @@
-import { dropSource, newPlan, newPowerPlan, type Plan, POOL, type PowerPlan, useStore } from '../store';
+import { cleanUnlocked, dropSource, MAX_TIER, newPlan, newPowerPlan, type Plan, POOL, type PowerPlan, useStore } from '../store';
 import { clearBackups } from './autobackup';
 import { planStorage } from './safeStorage';
-import { cleanPlan, cleanPowerPlan, cleanSettings, gridToPower } from './sanitize';
+import { cleanNumber, cleanPlan, cleanPowerPlan, cleanSettings, gridToPower } from './sanitize';
 import { DEFAULT_SETTINGS, sameSettings } from './settings';
+import { cleanSkipped } from './unlocks';
 
 export const KIND = 'ficsit-planner';
 
@@ -26,8 +27,29 @@ export function buildExport() {
     plans: s.plans,
     power: s.power,
     settings: s.settings,
+    tier: s.tier,
+    unlocked: s.unlocked,
+    skipped: s.skipped,
   };
 }
+
+/** How far the player has got: the tier, the milestones not bought and the alternate recipes unlocked. */
+export type Progress = { tier: number; skipped: string[]; unlocked: string[] };
+
+/** The progress a file carries, checked like a saved session; undefined for older files that have none. */
+function progressOf(file: { tier?: unknown; skipped?: unknown; unlocked?: unknown }): Progress | undefined {
+  if (typeof file.tier !== 'number') return undefined;
+  return {
+    tier: Math.round(cleanNumber(file.tier, 0, MAX_TIER, 0)),
+    skipped: cleanSkipped(file.skipped),
+    unlocked: cleanUnlocked(file.unlocked),
+  };
+}
+
+const same = (a: readonly string[], b: readonly string[]) => a.length === b.length && a.every((x) => b.includes(x));
+
+/** Puts a file's progress in place of the player's own; only ever called from the button that offers it. */
+export const applyProgress = (p: Progress) => useStore.setState({ tier: p.tier, skipped: p.skipped, unlocked: p.unlocked });
 export type ExportFile = ReturnType<typeof buildExport>;
 
 /** Whether a copy holds anything worth keeping: a factory with something in it, a plant, a hand-built floor. */
@@ -48,7 +70,9 @@ export function exportAll() {
 const uid = () => Math.random().toString(36).slice(2, 10);
 
 type Taken = 'loaded' | 'kept' | 'none';
-export type ImportResult = { ok: true; count: number; power: number; settings: Taken; plans: string[]; plants: string[] } | { ok: false };
+export type ImportResult =
+  | { ok: true; count: number; power: number; settings: Taken; plans: string[]; plants: string[]; progress?: Progress }
+  | { ok: false };
 
 /** A power plant nobody has set up: no generators, still waiting for its first one. */
 const untouchedPower = (list: PowerPlan[]) => list.length === 1 && list[0].plants.length === 0 && !!list[0].autoName;
@@ -72,7 +96,16 @@ export async function importFile(f: File): Promise<ImportResult> {
 /** Adds what a backup file or a shared link carries, as new tabs; see importFile. */
 export function importData(parsed: unknown): ImportResult {
   try {
-    const file = parsed as { kind?: unknown; plans?: unknown; power?: unknown; grid?: unknown; settings?: unknown };
+    const file = parsed as {
+      kind?: unknown;
+      plans?: unknown;
+      power?: unknown;
+      grid?: unknown;
+      settings?: unknown;
+      tier?: unknown;
+      skipped?: unknown;
+      unlocked?: unknown;
+    };
     if (file?.kind !== KIND || !Array.isArray(file.plans)) return { ok: false };
     const s = useStore.getState();
     // Tabs get fresh ids so they can't clash with yours; the plants' lists of factories follow them.
@@ -128,8 +161,13 @@ export function importData(parsed: unknown): ImportResult {
       active: added[0]?.id ?? s.active,
       inspect: undefined,
     });
+    // Offered, never applied here: a copy from another day shouldn't change what the player has unlocked on its own.
+    const theirs = progressOf(file);
+    const progress =
+      theirs && (theirs.tier !== s.tier || !same(theirs.skipped, s.skipped) || !same(theirs.unlocked, s.unlocked)) ? theirs : undefined;
     return {
       ok: true,
+      progress,
       count: added.length,
       power: power.length,
       settings: takeSettings ? 'loaded' : settingsIn ? 'kept' : 'none',

@@ -1,8 +1,9 @@
 import { describe, expect, test } from 'bun:test';
 import { EVERY, fingerprint, isDue, MAX_BACKUPS, surplus } from '../src/lib/autobackup';
-import { buildExport, hasPlans, importData, wipeLocal } from '../src/lib/backup';
+import { applyProgress, buildExport, hasPlans, importData, KIND, wipeLocal } from '../src/lib/backup';
+import { data } from '../src/lib/data';
 import { DEFAULT_SETTINGS } from '../src/lib/settings';
-import { newPlan, newPowerPlan, useStore } from '../src/store';
+import { MAX_TIER, newPlan, newPowerPlan, useStore } from '../src/store';
 
 const DAY = EVERY;
 const worked = () => ({ ...newPlan('A'), targets: [{ item: 'Desc_IronPlate_C', rate: 10 }] });
@@ -54,6 +55,66 @@ describe('automatic copies', () => {
     const plans = useStore.getState().plans;
     expect(plans).toHaveLength(2);
     expect(plans[0].id).toBe(mine.id);
+  });
+
+  describe('progress in a copy', () => {
+    const alt = data.recipes.find((r) => r.kind === 'alternate')!.id;
+    const bare = () =>
+      useStore.setState({
+        plans: [worked()],
+        power: [newPowerPlan('Plant 1')],
+        settings: DEFAULT_SETTINGS,
+        tier: 9,
+        skipped: [],
+        unlocked: [],
+      });
+
+    test('the file carries the tier, the milestones not bought and the alternates', () => {
+      bare();
+      useStore.setState({ tier: 5, skipped: ['Schematic_6-1_C'], unlocked: [alt] });
+      expect(buildExport()).toMatchObject({ tier: 5, skipped: ['Schematic_6-1_C'], unlocked: [alt] });
+    });
+
+    test('loading it offers the progress and changes nothing by itself', () => {
+      bare();
+      useStore.setState({ tier: 5, skipped: ['Schematic_6-1_C'], unlocked: [alt] });
+      const file = JSON.parse(JSON.stringify(buildExport()));
+      useStore.setState({ tier: 2, skipped: [], unlocked: [] });
+      const r = importData(file);
+      expect(r).toMatchObject({ ok: true, progress: { tier: 5, skipped: ['Schematic_6-1_C'], unlocked: [alt] } });
+      expect(useStore.getState()).toMatchObject({ tier: 2, skipped: [], unlocked: [] });
+      if (r.ok && r.progress) applyProgress(r.progress);
+      expect(useStore.getState()).toMatchObject({ tier: 5, skipped: ['Schematic_6-1_C'], unlocked: [alt] });
+    });
+
+    test('nothing is offered when the progress is already the same', () => {
+      bare();
+      useStore.setState({ tier: 5, skipped: ['Schematic_6-1_C'] });
+      const r = importData(JSON.parse(JSON.stringify(buildExport())));
+      expect(r).toMatchObject({ ok: true, progress: undefined });
+    });
+
+    test('an older copy without those fields loads as before', () => {
+      bare();
+      const { tier, skipped, unlocked, ...old } = JSON.parse(JSON.stringify(buildExport()));
+      const r = importData(old);
+      expect(r).toMatchObject({ ok: true, count: 1, progress: undefined });
+      expect(useStore.getState()).toMatchObject({ tier: 9, skipped: [], unlocked: [] });
+    });
+
+    test('made-up ids and a wild tier in a file are cleaned', () => {
+      bare();
+      useStore.setState({ tier: 3 });
+      const file = { ...JSON.parse(JSON.stringify(buildExport())), tier: 99, skipped: ['nope', 7], unlocked: ['nope'] };
+      const r = importData(file);
+      expect(r).toMatchObject({ ok: true, progress: { tier: MAX_TIER, skipped: [], unlocked: [] } });
+    });
+
+    test('a share link never carries progress', () => {
+      bare();
+      const r = importData({ kind: KIND, plans: [worked()] });
+      expect(r).toMatchObject({ ok: true, progress: undefined });
+    });
   });
 
   test('deleting everything leaves no key of ours behind', async () => {

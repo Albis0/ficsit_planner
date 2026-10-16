@@ -14,7 +14,8 @@ import {
   sameSettings,
 } from '../lib/settings';
 import { type Backup, listBackups } from '../lib/autobackup';
-import { exportAll, importData, importFile, type ImportResult, wipeLocal } from '../lib/backup';
+import { applyProgress, exportAll, importData, importFile, type ImportResult, type Progress, wipeLocal } from '../lib/backup';
+import { offAt } from '../lib/unlocks';
 import meta from '../data/meta.json';
 import { UpdateAsk } from './PollCard';
 import { setPollsOn, usePollsOn } from '../lib/polls';
@@ -824,6 +825,16 @@ function InterfaceSection() {
   );
 }
 
+/** "Tier 5 · 2 off · 3 alternates unlocked": what a file's progress would set. */
+const progressWords = (p: Progress, t: ReturnType<typeof useT>['t']) =>
+  [
+    `${t('tier')} ${p.tier}`,
+    offAt(p.tier, p.skipped) > 0 ? t('tierOff', { n: offAt(p.tier, p.skipped) }) : '',
+    p.unlocked.length > 0 ? t('progressAlts', { n: p.unlocked.length }) : '',
+  ]
+    .filter(Boolean)
+    .join(' · ');
+
 function DataSection() {
   const { t } = useT();
   const { settings, set, dir, setDir } = useContext(Draft)!;
@@ -834,7 +845,9 @@ function DataSection() {
   useEffect(() => {
     void listBackups().then(setCopies);
   }, []);
+  const [progress, setProgress] = useState<Progress>();
   const report = (r: ImportResult) => {
+    setProgress(r.ok ? r.progress : undefined);
     if (!r.ok) return setNote({ ok: false, text: t('importFailed') });
     const added = r.count === 0 ? t('importedNone') : r.count === 1 ? t('importedOne') : t('imported', { count: r.count });
     const plants = r.power === 0 ? '' : r.power === 1 ? t('importedPlant') : t('importedPlants', { count: r.power });
@@ -871,6 +884,22 @@ function DataSection() {
       {note && (
         <p className={`setting-note ${note.ok ? 'ok' : 'bad'}`} role="status">
           {note.text}
+        </p>
+      )}
+      {progress && (
+        <p className="setting-note ok progress-offer" role="status">
+          {t('progressIn', { what: progressWords(progress, t) })}{' '}
+          <button
+            type="button"
+            className="text-button"
+            onClick={() => {
+              applyProgress(progress);
+              setProgress(undefined);
+              setNote({ ok: true, text: t('progressUsed') });
+            }}
+          >
+            {t('progressUse')}
+          </button>
         </p>
       )}
       {copies.length > 0 && (
