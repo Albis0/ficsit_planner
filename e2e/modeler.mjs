@@ -688,6 +688,23 @@ const clash = (a, b) => a && b && a.x < b.x + b.width && b.x < a.x + a.width && 
     await p2.close();
   }
 
+  // ── A9b: Copy factory in the tab menu ──
+  section = 'A9b';
+  {
+    await open(factory([['Desc_Motor_C', 10]]));
+    await page.locator('.tab-menu-button').click();
+    await wait(300);
+    const row = page.locator('.tab-menu-list .copy-factory');
+    ok('the tab menu has a Copy factory row', (await row.count()) === 1 && (await row.innerText()).includes('Copy factory'));
+    await row.click();
+    await wait(300);
+    ok('it says the link is copied', (await row.innerText()).includes('Link copied'));
+    const clip = await page.evaluate(() => navigator.clipboard.readText());
+    ok('the clipboard holds a link to the factory', clip.includes('#share='), clip.slice(0, 60));
+    await wait(1200);
+    ok('and the menu goes away', (await page.locator('.tab-menu-list').count()) === 0);
+  }
+
   // ── A10: the same output another way ──
   section = 'A10';
   await open(factory([['Desc_Motor_C', 10]]));

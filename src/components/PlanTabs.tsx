@@ -2,7 +2,7 @@ import { type CSSProperties, type MouseEvent as ReactMouseEvent, useCallback, us
 import { createPortal } from 'react-dom';
 import { useT } from '../lib/i18n';
 import { useOverview } from '../lib/overview';
-import { shareTab } from '../lib/share';
+import { copyTab, shareTab } from '../lib/share';
 import { useStore } from '../store';
 import { Glyph } from './Glyph';
 import { Icon } from './Icon';
@@ -158,6 +158,7 @@ function useRowMenu() {
 export function PlanActions({ onDone }: { onDone?: () => void }) {
   const { t } = useT();
   const tabs = useTabs();
+  const [copied, setCopied] = useState<'copied' | 'failed'>();
   const set = useStore((s) => s.set);
   const active = tabs.active;
 
@@ -184,6 +185,22 @@ export function PlanActions({ onDone }: { onDone?: () => void }) {
       >
         <Glyph name="copy" size={18} />
         {t('duplicate')}
+      </button>
+      <button
+        type="button"
+        className="menu-item copy-factory"
+        title={t('copyFactoryHint')}
+        onClick={async () => {
+          setCopied(await copyTab());
+          // The row says what happened for a moment, then the menu goes.
+          setTimeout(() => {
+            setCopied(undefined);
+            onDone?.();
+          }, 900);
+        }}
+      >
+        <Glyph name={copied === 'copied' ? 'check' : 'share'} size={18} />
+        {copied === 'copied' ? t('linkCopied') : copied === 'failed' ? t('shareFailed') : t('copyFactory')}
       </button>
       <button
         type="button"

@@ -121,6 +121,16 @@ export function hasWork(): boolean {
   );
 }
 
+/** Copies the link to the tab on screen to the clipboard, never to a share sheet; pasting it into the app opens the factory as a new tab. */
+export async function copyTab(): Promise<'copied' | 'failed'> {
+  try {
+    await navigator.clipboard.writeText(await shareLink());
+    return 'copied';
+  } catch {
+    return 'failed';
+  }
+}
+
 /** Copies the link, or hands it to the phone's share sheet; says which happened. */
 export async function shareTab(name: string): Promise<'copied' | 'shared' | 'failed'> {
   try {

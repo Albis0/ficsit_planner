@@ -689,6 +689,8 @@ export const en = {
   undo: 'Undo',
   shareHint: 'Copies a link to this tab, with the power plants or factories that go with it. Whoever opens it gets a copy as a new tab.',
   linkCopied: 'Link copied',
+  copyFactory: 'Copy factory',
+  copyFactoryHint: 'Copies a link to this tab. Paste it into the app, anywhere outside a field, to open the factory as a new tab.',
   shareFailed: 'Couldn’t copy',
   sharedOpened: 'Opened the shared factory “{name}” as a new tab',
   sharedPlantOpened: 'Opened the shared power plant “{name}” as a new tab',
