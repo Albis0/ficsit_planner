@@ -763,14 +763,14 @@ const clash = (a, b) => a && b && a.x < b.x + b.width && b.x < a.x + a.width && 
     // A spot of empty floor above and left of both, found by stepping out from them.
     const tl = await page.evaluate(
       ({ x0, y0, box }) => {
-        for (let d = 0; d <= 200; d += 20)
+        const bar = document.querySelector('.model-toolbar')?.getBoundingClientRect().bottom ?? box.y + 120;
+        for (let d = 0; d <= 240; d += 12)
           for (const [x, y] of [
-            [x0 - 24 - d, y0 - 70 - d],
-            [x0 - 24, y0 - 70 - d],
-            [x0 - 24 - d, y0 - 70],
+            [x0 - 24 - d, y0 - 30 - d],
+            [x0 - 24, y0 - 30 - d],
+            [x0 - 24 - d, y0 - 30],
           ])
-            if (x > box.x + 20 && y > box.y + 20 && document.elementFromPoint(x, y)?.classList.contains('react-flow__pane'))
-              return { x, y };
+            if (x > box.x + 20 && y > bar + 8 && document.elementFromPoint(x, y)?.classList.contains('react-flow__pane')) return { x, y };
         return null;
       },
       { x0: Math.min(...rects.map((r) => r.x)), y0: Math.min(...rects.map((r) => r.y)), box: floorBox },
@@ -793,6 +793,43 @@ const clash = (a, b) => a && b && a.x < b.x + b.width && b.x < a.x + a.width && 
       'with its panel open and no build menu',
       (await page.locator('aside.inspector #area-name').count()) === 1 && (await page.locator('.chooser').count()) === 0,
     );
+    // With no name, icon or note yet it is still there to pick: let go of it, then click it again.
+    ok(
+      'a new area is on half squares',
+      gs.every((g) => g.x % 20 === 0 && g.y % 20 === 0 && g.w % 20 === 0 && g.h % 20 === 0),
+      JSON.stringify(gs[0]),
+    );
+    await page.keyboard.press('Escape');
+    await wait(300);
+    ok('Escape lets go of it', (await page.locator('aside.inspector').count()) === 0);
+    // A spot on the strip no card lies over.
+    const strip = () =>
+      page.evaluate(() => {
+        const r = document.querySelector('.area-grip').getBoundingClientRect();
+        for (let x = r.right - 6; x > r.left; x -= 6)
+          if (document.elementFromPoint(x, r.top + r.height / 2)?.closest('.area-grip')) return { x, y: r.top + r.height / 2 };
+        return null;
+      });
+    const bare = await strip();
+    await page.mouse.click(bare.x, bare.y);
+    await wait(500);
+    ok('an area with no name comes back when clicked on its strip', (await page.locator('aside.inspector #area-name').count()) === 1);
+    await page.keyboard.press('Escape');
+    await wait(300);
+    const edge = await page.locator('.area-node').boundingBox();
+    await page.mouse.click(edge.x + 2, edge.y + edge.height / 2);
+    await wait(500);
+    ok('and on its edge', (await page.locator('aside.inspector #area-name').count()) === 1);
+    const tall = await page.locator('aside.inspector').evaluate((a) => a.scrollHeight);
+    await page.locator('.area-icon-row .add-button').click();
+    await wait(300);
+    ok(
+      'the icon list opens over the panel without making it longer',
+      (await page.locator('aside.inspector').evaluate((a) => a.scrollHeight)) <= tall + 2 &&
+        (await page.locator('.area-icon-row .picker').count()) === 1,
+    );
+    await page.keyboard.press('Escape');
+    await wait(300);
     await page.fill('#area-name', 'Steel');
     await page.fill('#area-note', 'Pipe for the stator');
     await wait(500);
@@ -801,7 +838,16 @@ const clash = (a, b) => a && b && a.x < b.x + b.width && b.x < a.x + a.width && 
     ok('the name is on the floor, readable at any zoom', (await page.locator('.area-name').innerText()) === 'Steel');
     await page.locator('.color-wheel').scrollIntoViewIfNeeded();
     const wheel = await page.locator('.color-wheel').boundingBox();
-    await page.mouse.click(wheel.x + wheel.width * 0.85, wheel.y + wheel.height * 0.5);
+    await page.mouse.move(wheel.x + wheel.width * 0.5, wheel.y + wheel.height * 0.2);
+    await page.mouse.down();
+    await page.mouse.move(wheel.x + wheel.width * 0.85, wheel.y + wheel.height * 0.5, { steps: 8 });
+    const live = await page.locator('.area-node').evaluate((e) => e.style.getPropertyValue('--area'));
+    ok(
+      'dragging on the wheel shows the colour on the floor at once, without touching the model',
+      /^#[0-9a-f]{6}$/.test(live) && !(await groups())[0].color,
+      live,
+    );
+    await page.mouse.up();
     await wait(500);
     ok('a colour from the wheel', /^#[0-9a-f]{6}$/.test((await groups())[0].color ?? ''), (await groups())[0].color);
     await shot('a11-area');
@@ -822,8 +868,8 @@ const clash = (a, b) => a && b && a.x < b.x + b.width && b.x < a.x + a.width && 
         })
         .map((n) => n.dataset.id);
     });
-    const grip = await page.locator('.area-grip').boundingBox();
-    await drag({ x: grip.x + 8, y: grip.y + 8 }, { x: grip.x + 8 + 80, y: grip.y + 8 + 40 });
+    const grip = await strip();
+    await drag({ x: grip.x, y: grip.y }, { x: grip.x + 80, y: grip.y + 40 });
     await wait(500);
     const after = await model();
     const moved = (id) => {
@@ -848,7 +894,7 @@ const clash = (a, b) => a && b && a.x < b.x + b.width && b.x < a.x + a.width && 
       JSON.stringify((await model()).nodes.map((n) => [n.id, n.x, n.y])) === JSON.stringify(before.nodes.map((n) => [n.id, n.x, n.y])),
     );
     // A box round cards inside it never picks the area.
-    await page.mouse.click(grip.x + 8, grip.y + 8);
+    await page.mouse.click(grip.x, grip.y);
     await wait(500);
     const count = (await model()).nodes.length;
     await page.keyboard.press('Control+d');
@@ -861,7 +907,7 @@ const clash = (a, b) => a && b && a.x < b.x + b.width && b.x < a.x + a.width && 
     );
     await page.keyboard.press('Control+z');
     await wait(500);
-    await page.mouse.click(grip.x + 8, grip.y + 8);
+    await page.mouse.click(grip.x, grip.y);
     await wait(500);
     await page.keyboard.press('Delete');
     await wait(500);

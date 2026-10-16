@@ -1090,6 +1090,42 @@
   pointer-events: all;
 }
 
+.area-edge {
+  position: absolute;
+  cursor: grab;
+  pointer-events: all;
+}
+
+.area-edge.top,
+.area-edge.bottom {
+  right: 0;
+  left: 0;
+  height: var(--edge);
+}
+
+.area-edge.left,
+.area-edge.right {
+  top: 0;
+  bottom: 0;
+  width: var(--edge);
+}
+
+.area-edge.top {
+  top: 0;
+}
+
+.area-edge.bottom {
+  bottom: 0;
+}
+
+.area-edge.left {
+  left: 0;
+}
+
+.area-edge.right {
+  right: 0;
+}
+
 .area-grip {
   position: absolute;
   top: 0;
@@ -1102,6 +1138,8 @@
   height: 58px;
   padding: 10px 16px;
   color: #fff;
+  border-radius: 8px 8px 0 0;
+  background: color-mix(in srgb, var(--area) 24%, transparent);
   cursor: grab;
   pointer-events: all;
   transform: scale(var(--s, 1));
@@ -1116,6 +1154,12 @@
   letter-spacing: 0.02em;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+.area-name.empty {
+  color: rgb(255 255 255 / 0.55);
+  font-weight: 400;
+  font-style: italic;
 }
 
 .area-note {
@@ -1138,9 +1182,25 @@
 }
 
 .area-icon-row {
+  position: relative;
   display: flex;
   align-items: center;
   gap: 10px;
+  min-height: 46px;
+}
+
+/* The icon list opens over the panel instead of pushing it down. */
+.area-icon-row .picker {
+  position: absolute;
+  top: 0;
+  right: 0;
+  left: 0;
+  z-index: 6;
+  box-shadow: 0 10px 26px rgb(0 0 0 / 0.55);
+}
+
+.area-icon-row .picker-list {
+  max-height: 240px;
 }
 
 .color-picker {

@@ -91,7 +91,17 @@ function AreaPanel({ host, node }: { host: ModelHost; node: GroupNode }) {
       </div>
       <div className="inspector-row">
         <span className="inspector-label">{t('areaColour')}</span>
-        <ColorWheel value={node.color ?? AREA_COLOR} label={t('areaColour')} onChange={(hex) => change({ color: hex }, 'color')} />
+        <ColorWheel
+          value={node.color ?? AREA_COLOR}
+          label={t('areaColour')}
+          // The floor shows the colour as it moves; the model is told when the pointer is let go.
+          onLive={(hex) =>
+            document
+              .querySelector<HTMLElement>(`.react-flow__node[data-id="${CSS.escape(node.id)}"] .area-node`)
+              ?.style.setProperty('--area', hex)
+          }
+          onChange={(hex) => change({ color: hex }, 'color')}
+        />
       </div>
       <div className="inspector-actions">
         <span />

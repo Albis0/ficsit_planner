@@ -7,6 +7,8 @@ import { isPart, type MNode } from './types';
  */
 export const GRID = 40;
 export const snap = (v: number) => Math.round(v / GRID) * GRID;
+/** Areas go by half a square, so one can be fitted closer round its cards. */
+export const snapHalf = (v: number) => Math.round(v / (GRID / 2)) * (GRID / 2);
 /** Belts turn on the grid's lines or halfway between them, so two running side by side stay apart. */
 export const HALF = GRID / 2;
 

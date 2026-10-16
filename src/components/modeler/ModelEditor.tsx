@@ -24,7 +24,7 @@ import type { CalcResult } from '../../lib/model/calc/result';
 import { builtTransport, compile } from '../../lib/model/calc/compile';
 import { openCards, openEnds, ruleFlags } from '../../lib/model/checks';
 import { type Choice, placeChoice, type Want, wantAt } from '../../lib/model/choices';
-import { cardSize, dirOf, GRID, snap } from '../../lib/model/layout';
+import { cardSize, dirOf, GRID, snap, snapHalf } from '../../lib/model/layout';
 import {
   addNode,
   type Clip,
@@ -256,7 +256,7 @@ function Canvas({ host, calc, onArrange }: { host: ModelHost; calc?: CalcResult;
             width: n.w,
             height: n.h,
             zIndex: -1,
-            dragHandle: '.area-grip',
+            dragHandle: '.area-grip, .area-edge',
             // Picked from the panel, not by a box drawn over the floor, so a box round some cards never takes the area along.
             selectable: false,
             data: { node: n } satisfies AreaData,
@@ -318,12 +318,20 @@ function Canvas({ host, calc, onArrange }: { host: ModelHost; calc?: CalcResult;
 
   const onNodesChange = useCallback((changes: NodeChange[]) => {
     // Removing goes through the model (Delete key), so it can be undone.
-    setNodes((cur) =>
-      applyNodeChanges(
-        changes.filter((c) => c.type !== 'remove'),
+    setNodes((cur) => {
+      // The floor snaps to half a square for the sake of areas; cards stay on whole squares.
+      const areas = new Set(cur.filter((n) => n.type === 'area').map((n) => n.id));
+      return applyNodeChanges(
+        changes
+          .filter((c) => c.type !== 'remove')
+          .map((c) =>
+            c.type === 'position' && c.position && !areas.has(c.id)
+              ? { ...c, position: { x: snap(c.position.x), y: snap(c.position.y) } }
+              : c,
+          ),
         cur,
-      ),
-    );
+      );
+    });
   }, []);
 
   const removeSelected = useCallback(() => {
@@ -690,8 +698,8 @@ function Canvas({ host, calc, onArrange }: { host: ModelHost; calc?: CalcResult;
   drawArea.current = (a, b) => {
     const p = flow.screenToFlowPosition(a);
     const q = flow.screenToFlowPosition(b);
-    const [x, y] = [snap(Math.min(p.x, q.x)), snap(Math.min(p.y, q.y))];
-    const [w, h] = [Math.max(2 * GRID, snap(Math.abs(p.x - q.x))), Math.max(2 * GRID, snap(Math.abs(p.y - q.y)))];
+    const [x, y] = [snapHalf(Math.min(p.x, q.x)), snapHalf(Math.min(p.y, q.y))];
+    const [w, h] = [Math.max(2 * GRID, snapHalf(Math.abs(p.x - q.x))), Math.max(2 * GRID, snapHalf(Math.abs(p.y - q.y)))];
     let made: string | undefined;
     host.edit((m) => {
       const r = addNode(m, { k: 'group', x, y, w, h });
@@ -796,7 +804,10 @@ function Canvas({ host, calc, onArrange }: { host: ModelHost; calc?: CalcResult;
                     );
                   }}
                   onNodeDragStop={(_, __, dragged) => {
-                    const to = new Map(dragged.map((n) => [n.id, n.position]));
+                    // The floor moves by half squares; a card lands on a whole one.
+                    const to = new Map(
+                      dragged.map((n) => [n.id, n.type === 'area' ? n.position : { x: snap(n.position.x), y: snap(n.position.y) }]),
+                    );
                     const c = carrying.current;
                     carrying.current = undefined;
                     const a = c && to.get(c.id);
@@ -831,7 +842,7 @@ function Canvas({ host, calc, onArrange }: { host: ModelHost; calc?: CalcResult;
                   minZoom={MIN_ZOOM}
                   maxZoom={2}
                   snapToGrid
-                  snapGrid={[GRID, GRID]}
+                  snapGrid={[GRID / 2, GRID / 2]}
                   proOptions={{ hideAttribution: true }}
                   defaultViewport={cameras.get(host.key)}
                   onInit={() => {
