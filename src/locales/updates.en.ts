@@ -11,6 +11,55 @@ export type UpdateNote = [UpdateKind, string];
 /** `ask` puts a question with a rating and a note under the version in Settings › Updates. */
 export const UPDATES: { version: string; date: string; title?: string; notes: UpdateNote[]; ask?: string }[] = [
   {
+    version: '0.13.36',
+    date: '2026-10-16',
+    notes: [
+      [
+        'added',
+        'Tier window: tick off the milestones you have not bought. The ones of the chosen tier are in view, earlier tiers are folded away. What a skipped milestone opens (belts, buildings, miners, plants, vehicles, recipes) stays locked on both floors, locked tags name the milestone, and a missing part offers “Mark as bought”. The top bar says “Tier 5 · 1 off”. Thanks to clem.',
+      ],
+      [
+        'added',
+        'Backups: the backup file also carries your tier, the milestones you have not bought and your unlocked alternates. Loading a file or restoring a copy offers to use that progress and changes nothing unless you press it. Share links do not carry it.',
+      ],
+      [
+        'added',
+        'Auto backups: the app quietly keeps the last three copies of your factories, a new one every 6 hours. Settings › Your data lists them with a Restore button, and Delete everything clears them too.',
+      ],
+      [
+        'added',
+        'Auto floor: draw, name, colour, move and resize areas behind the cards, the way the Manual floor does. Hold the right button and drag.',
+      ],
+      [
+        'added',
+        'Manual floor: hold the right button and drag to draw a coloured area with a name, a note, an icon and any colour. It moves with the cards inside it, resizes from its corners and copies with them. Settings has an Area names choice.',
+      ],
+      ['added', 'Manual floor: an output card has a “To the pool” button.'],
+      ['added', 'Manual floor: copied cards go to the real clipboard, so they paste in another tab, after a reload and in another window.'],
+      [
+        'added',
+        'Factory tab menu: “Copy factory” copies a link to the factory. Pasting it into the app, anywhere outside a field, opens it as a new tab, even a very long one. It replaces the Share button.',
+      ],
+      ['added', 'All › Unlocked recipes: a Standard filter lists the standard recipes, shown on.'],
+      ['changed', 'Floor: Factory, List and Transport are one dropdown instead of three buttons.'],
+      [
+        'changed',
+        'Machine panel: its title stays at the top while the rest scrolls, and on a small floor it grows up to the top bar instead of ending short. On the Manual floor the direction arrows and Fit to screen step aside while it is open.',
+      ],
+      [
+        'fixed',
+        'The same factory shows the same power and machine count in the totals strip, the factory menu and the All page. Numbers from 1000 up have no decimals.',
+      ],
+      ['fixed', 'Manual floor: an item that comes in more than once (Uranium Waste) is one row and one card with a round amount.'],
+      ['fixed', 'Lists: the bottom buttons no longer cover the last rows of List and Transport.'],
+      ['fixed', 'The Map no longer logs an error when you leave it while zooming.'],
+      [
+        'changed',
+        'Delete everything also clears the automatic backups, your answers to the app’s questions and the Codex pages you looked at last.',
+      ],
+    ],
+  },
+  {
     version: '0.13.35',
     date: '2026-10-11',
     notes: [
