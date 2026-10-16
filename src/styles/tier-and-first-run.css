@@ -195,28 +195,3 @@
   color: var(--ficsit-ink);
   filter: brightness(1.08);
 }
-
-/* "Make default" among the raw input boxes, in line with them. */
-.raw-inputs .make-default {
-  align-self: center;
-  white-space: nowrap;
-}
-
-/* The banner's copy shows only where the raw inputs can scroll away, or with the totals folded (they aren't there then). */
-.scaled .make-default-here {
-  display: none;
-}
-
-@media (max-width: 1180px) {
-  .scaled .make-default-here {
-    display: inline;
-  }
-
-  .raw-inputs .make-default {
-    display: none;
-  }
-}
-
-.summary.closed .scaled .make-default-here {
-  display: inline;
-}

@@ -120,7 +120,7 @@ export function Summary({ result, extraction }: { result: SolveResult; extractio
           {/* Many raw inputs take a line of their own under the other readouts, never one tall column. */}
           <div className="readout wide" data-many={result.raw.length > 4 || undefined}>
             <span className="readout-label">{t('rawInput')}</span>
-            <RawInputs raw={result.raw} onDefault={pinned ? () => updatePlan(keepScaled(result.targets)) : undefined} />
+            <RawInputs raw={result.raw} />
           </div>
           {result.surplus.length > 0 && (
             <div className="readout fill">
@@ -145,13 +145,7 @@ export function Summary({ result, extraction }: { result: SolveResult; extractio
               </span>
             ))}
           </span>
-          {/* With room it sits by the amounts that were typed, in the raw inputs; on a narrow screen (up to 1180px) those scroll away, so it stays here, as it does with the totals folded. */}
-          <button
-            type="button"
-            className="text-button make-default-here"
-            title={t('makeDefaultHint')}
-            onClick={() => updatePlan(keepScaled(result.targets))}
-          >
+          <button type="button" className="text-button" title={t('makeDefaultHint')} onClick={() => updatePlan(keepScaled(result.targets))}>
             {t('makeDefault')}
           </button>
           <button type="button" className="text-button" onClick={() => updatePlan({ fixed: {} })}>
@@ -187,7 +181,7 @@ export function Summary({ result, extraction }: { result: SolveResult; extractio
  * Raw inputs you can retype or step right here, not only on the graph. Changing one pins it: the
  * factory is built around that amount and the targets scale to fit.
  */
-function RawInputs({ raw, onDefault }: { raw: SolveResult['raw']; onDefault?: () => void }) {
+function RawInputs({ raw }: { raw: SolveResult['raw'] }) {
   const { t, name } = useT();
   const fixed = usePlan().fixed;
   const setFixed = useStore((s) => s.setFixed);
@@ -218,11 +212,6 @@ function RawInputs({ raw, onDefault }: { raw: SolveResult['raw']; onDefault?: ()
           </span>
         );
       })}
-      {onDefault && (
-        <button type="button" className="text-button make-default" title={t('makeDefaultHint')} onClick={onDefault}>
-          {t('makeDefault')}
-        </button>
-      )}
     </span>
   );
 }
