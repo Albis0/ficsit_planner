@@ -1,23 +1,25 @@
 import { dropSource, newPlan, newPowerPlan, type Plan, POOL, type PowerPlan, useStore } from '../store';
-import { DRAFT_KEY } from './feedback';
+import { clearBackups } from './autobackup';
+import { planStorage } from './safeStorage';
 import { cleanPlan, cleanPowerPlan, cleanSettings, gridToPower } from './sanitize';
 import { DEFAULT_SETTINGS, sameSettings } from './settings';
 
 export const KIND = 'ficsit-planner';
 
-/** Everything this app keeps in the browser: the saved session and an unsent report. */
-export function wipeLocal() {
-  for (const key of [KIND, DRAFT_KEY]) {
-    try {
-      localStorage.removeItem(key);
-    } catch {}
-  }
+/** Everything this app keeps in the browser: the saved session, the answers to its questions, an unsent report, the saved copies. */
+export async function wipeLocal() {
+  // The plans may still be waiting to be written; drop them too, or leaving the page would put them back.
+  planStorage.storage.removeItem(KIND);
+  try {
+    for (const key of Object.keys(localStorage)) if (key.startsWith('ficsit-')) localStorage.removeItem(key);
+  } catch {}
+  await clearBackups();
 }
 
 /** Everything worth keeping in one file: factories, power plants and the settings. */
-export function exportAll() {
+export function buildExport() {
   const s = useStore.getState();
-  const file = {
+  return {
     kind: KIND,
     version: 2,
     exported: new Date().toISOString(),
@@ -25,6 +27,15 @@ export function exportAll() {
     power: s.power,
     settings: s.settings,
   };
+}
+export type ExportFile = ReturnType<typeof buildExport>;
+
+/** Whether a copy holds anything worth keeping: a factory with something in it, a plant, a hand-built floor. */
+export const hasPlans = (f: Pick<ExportFile, 'plans' | 'power'>) =>
+  f.plans.some((p) => p.targets.length > 0 || p.supplies.length > 0 || !!p.model?.nodes.length) || f.power.some((p) => p.plants.length > 0);
+
+export function exportAll() {
+  const file = buildExport();
   const blob = new Blob([JSON.stringify(file, null, 1)], { type: 'application/json' });
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');

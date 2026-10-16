@@ -919,6 +919,70 @@ const clash = (a, b) => a && b && a.x < b.x + b.width && b.x < a.x + a.width && 
     ok('picked, its corners show handles', res === 0 || res === 1);
   }
 
+  // ── A12: automatic copies in Settings › Your data ──
+  section = 'A12';
+  {
+    await open(factory([['Desc_Motor_C', 10]]));
+    await page.click('.chrome-button.settings');
+    await page.locator('.settings-nav button:has-text("Your data")').click();
+    ok('no copies yet, no Auto backups row', (await page.locator('text=Auto backups').count()) === 0);
+    await page.keyboard.press('Escape');
+    await wait(300);
+    // Put a copy where the app keeps them, the way a day-old one would sit there.
+    await page.evaluate(async () => {
+      const state = JSON.parse(localStorage.getItem('ficsit-planner')).state;
+      const file = {
+        kind: 'ficsit-planner',
+        version: 2,
+        exported: new Date().toISOString(),
+        plans: state.plans,
+        power: state.power ?? [],
+        settings: state.settings,
+      };
+      const db = await new Promise((res, rej) => {
+        const r = indexedDB.open('ficsit-planner-backups', 1);
+        r.onupgradeneeded = () => r.result.createObjectStore('copies', { keyPath: 'at' });
+        r.onsuccess = () => res(r.result);
+        r.onerror = () => rej(r.error);
+      });
+      const tx = db.transaction('copies', 'readwrite');
+      tx.objectStore('copies').put({ at: Date.now() - 86400000, hash: 'x', factories: file.plans.length, plants: 0, file });
+      await new Promise((res) => (tx.oncomplete = res));
+      db.close();
+    });
+    await page.click('.chrome-button.settings');
+    await page.locator('.settings-nav button:has-text("Your data")').click();
+    await wait(500);
+    ok('the copy is listed', (await page.locator('text=Auto backups').count()) >= 1);
+    const tabs = async () => {
+      await wait(600);
+      return page.evaluate(() => JSON.parse(localStorage.getItem('ficsit-planner')).state.plans.length);
+    };
+    const before = await tabs();
+    await page.locator('button:has-text("Restore")').click();
+    await wait(400);
+    ok('Restore says what it added', (await page.locator('.setting-note.ok').count()) === 1);
+    await page.keyboard.press('Escape');
+    await wait(300);
+    ok('and adds the factory as a new tab', (await tabs()) === before + 1, `${before} → ${await tabs()}`);
+    await page.click('.chrome-button.settings');
+    await page.locator('.settings-nav button:has-text("Your data")').click();
+    const wipe = page.locator('button:has-text("Delete")').last();
+    await wipe.click();
+    await wipe.click();
+    await page.waitForLoadState('load');
+    await wait(1500);
+    const left = await page.evaluate(async () => ({
+      keys: Object.keys(localStorage).filter((k) => k.startsWith('ficsit-')),
+      dbs: (await indexedDB.databases()).map((d) => d.name),
+    }));
+    ok(
+      'Delete everything leaves no copies or keys',
+      !left.dbs.includes('ficsit-planner-backups') && left.keys.every((k) => k === 'ficsit-planner'),
+      JSON.stringify(left),
+    );
+  }
+
   // ── B: building by hand ──
   section = 'B1';
   await open(blank);

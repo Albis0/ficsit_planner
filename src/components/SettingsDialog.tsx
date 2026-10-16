@@ -13,7 +13,8 @@ import {
   type Settings,
   sameSettings,
 } from '../lib/settings';
-import { exportAll, importFile, wipeLocal } from '../lib/backup';
+import { type Backup, listBackups } from '../lib/autobackup';
+import { exportAll, importData, importFile, type ImportResult, wipeLocal } from '../lib/backup';
 import meta from '../data/meta.json';
 import { UpdateAsk } from './PollCard';
 import { setPollsOn, usePollsOn } from '../lib/polls';
@@ -829,6 +830,17 @@ function DataSection() {
   const file = useRef<HTMLInputElement>(null);
   const [note, setNote] = useState<{ ok: boolean; text: string }>();
   const [wipe, setWipe] = useState(false);
+  const [copies, setCopies] = useState<Backup[]>([]);
+  useEffect(() => {
+    void listBackups().then(setCopies);
+  }, []);
+  const report = (r: ImportResult) => {
+    if (!r.ok) return setNote({ ok: false, text: t('importFailed') });
+    const added = r.count === 0 ? t('importedNone') : r.count === 1 ? t('importedOne') : t('imported', { count: r.count });
+    const plants = r.power === 0 ? '' : r.power === 1 ? t('importedPlant') : t('importedPlants', { count: r.power });
+    const settings = r.settings === 'loaded' ? t('importedSettings') : r.settings === 'kept' ? t('importSettingsKept') : '';
+    setNote({ ok: true, text: [added, plants, settings].filter(Boolean).join(' ') });
+  };
 
   return (
     <>
@@ -848,12 +860,7 @@ function DataSection() {
             const f = e.target.files?.[0];
             e.target.value = '';
             if (!f) return;
-            const r = await importFile(f);
-            if (!r.ok) return setNote({ ok: false, text: t('importFailed') });
-            const added = r.count === 0 ? t('importedNone') : r.count === 1 ? t('importedOne') : t('imported', { count: r.count });
-            const plants = r.power === 0 ? '' : r.power === 1 ? t('importedPlant') : t('importedPlants', { count: r.power });
-            const settings = r.settings === 'loaded' ? t('importedSettings') : r.settings === 'kept' ? t('importSettingsKept') : '';
-            setNote({ ok: true, text: [added, plants, settings].filter(Boolean).join(' ') });
+            report(await importFile(f));
           }}
         />
         <button type="button" className="ghost-button" onClick={() => file.current?.click()}>
@@ -865,6 +872,24 @@ function DataSection() {
         <p className={`setting-note ${note.ok ? 'ok' : 'bad'}`} role="status">
           {note.text}
         </p>
+      )}
+      {copies.length > 0 && (
+        <>
+          <Row label={t('autoBackups')} hint={t('autoBackupsHint')}>
+            <></>
+          </Row>
+          {copies.map((c) => (
+            <Row
+              key={c.at}
+              label={`${new Date(c.at).toLocaleString('en', { dateStyle: 'medium', timeStyle: 'short' })} · ${c.factories === 1 ? t('oneFactory') : t('nFactories', { count: c.factories })}`}
+            >
+              <button type="button" className="ghost-button" onClick={() => report(importData(c.file))}>
+                <Glyph name="upload" size={18} />
+                {t('restore')}
+              </button>
+            </Row>
+          ))}
+        </>
       )}
       <Row label={t('resetSettings')} hint={t('resetSettingsHint')}>
         <button
@@ -887,8 +912,7 @@ function DataSection() {
           onBlur={() => setWipe(false)}
           onClick={() => {
             if (!wipe) return setWipe(true);
-            wipeLocal();
-            location.reload();
+            void wipeLocal().then(() => location.reload());
           }}
         >
           <Glyph name="trash" size={18} />

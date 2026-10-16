@@ -50,6 +50,7 @@ import { failureText } from './lib/solveFailure';
 import { fold } from './lib/fold';
 import { useMediaQuery } from './lib/useMediaQuery';
 import { useUndoKeys } from './lib/undoKeys';
+import { startAutoBackup } from './lib/autobackup';
 import { startPolls } from './lib/polls';
 import { LATEST_UPDATE } from './locales/updates.en';
 import { useSolverLoading, useSolverReady } from './lib/solverClient';
@@ -184,6 +185,7 @@ export default function App() {
   // The opening screen tells how far along things are, and goes once the solver is ready and the first answer is in.
   const answered = !!result || !!error;
   useEffect(startPolls, []);
+  useEffect(startAutoBackup, []);
   useEffect(() => {
     if (!solverReady)
       return bootText(solverLoad === undefined ? t('loadingGame') : `${t('loadingSolver')} ${Math.round(solverLoad * 100)}%`);

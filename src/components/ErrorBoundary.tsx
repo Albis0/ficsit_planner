@@ -45,8 +45,7 @@ export class ErrorBoundary extends Component<{ children: ReactNode }, { error?: 
               type="button"
               className="ghost-button danger"
               onClick={() => {
-                wipeLocal();
-                location.reload();
+                void wipeLocal().then(() => location.reload());
               }}
             >
               Start clean
