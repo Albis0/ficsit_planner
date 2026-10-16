@@ -465,6 +465,18 @@ function FloorSection() {
           onChange={(v) => set({ beltLabels: v })}
         />
       </Row>
+      <Row label={t('areaLabels')} hint={t('areaLabelsHint')}>
+        <Choice
+          label={t('areaLabels')}
+          value={s.areaLabels}
+          options={[
+            { id: 'auto', label: t('auto') },
+            { id: 'always', label: t('always') },
+            { id: 'never', label: t('never') },
+          ]}
+          onChange={(v) => set({ areaLabels: v })}
+        />
+      </Row>
       <Row label={t('beltMotion')} hint={t('beltMotionHint')} spot="motion">
         <Toggle label={t('beltMotion')} on={s.beltMotion} onChange={(v) => set({ beltMotion: v })} />
       </Row>

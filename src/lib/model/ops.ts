@@ -1,3 +1,4 @@
+import { cardSize, dirOf } from './layout';
 import { portAccepts, portsOf } from './ports';
 import { cleanModel } from './sanitize';
 import type { MLink, MNode, Model } from './types';
@@ -37,6 +38,12 @@ export function removeLinks(m: Model, ids: Iterable<string>): Model {
   const gone = new Set(ids);
   return gone.size ? { ...m, links: m.links.filter((l) => !gone.has(l.id)) } : m;
 }
+
+/** Where an area's cards and areas stand, for moving them along with it. */
+export const insidePlaces = (m: Model, id: string): Map<string, { x: number; y: number }> => {
+  const inside = new Set(insideArea(m, id));
+  return new Map(m.nodes.filter((n) => inside.has(n.id)).map((n) => [n.id, { x: n.x, y: n.y }]));
+};
 
 /** New top left corners, rounded to whole units. Belts on a moved card lose their bends and label spot and take the short way. */
 export function moveNodes(m: Model, to: Map<string, { x: number; y: number }>): Model {
@@ -113,9 +120,30 @@ export interface Clip {
   links: MLink[];
 }
 
-/** The picked cards and every belt running between two of them; not ticked built, belts without bends. */
+/** Cards and areas lying wholly inside an area. */
+export function insideArea(m: Model, id: string): string[] {
+  const a = m.nodes.find((n) => n.id === id);
+  if (a?.k !== 'group') return [];
+  const dir = dirOf(m);
+  return m.nodes
+    .filter((n) => {
+      if (n.id === id) return false;
+      const { w, h } = cardSize(n, dir);
+      return n.x >= a.x && n.y >= a.y && n.x + w <= a.x + a.w && n.y + h <= a.y + a.h;
+    })
+    .map((n) => n.id);
+}
+
+/** An area goes with everything inside it. */
+const withInside = (m: Model, ids: Iterable<string>): Set<string> => {
+  const all = new Set(ids);
+  for (const id of [...all]) for (const i of insideArea(m, id)) all.add(i);
+  return all;
+};
+
+/** The picked cards and every belt running between two of them; not ticked built, belts without bends. An area comes with what lies in it. */
 export function copyNodes(m: Model, ids: Iterable<string>): Clip | undefined {
-  const keep = new Set(ids);
+  const keep = withInside(m, ids);
   const nodes = m.nodes
     .filter((n) => keep.has(n.id))
     .map((n) => {

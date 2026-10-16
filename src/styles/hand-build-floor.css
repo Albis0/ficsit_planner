@@ -1065,3 +1065,134 @@
     animation: none;
   }
 }
+
+/* Areas: a coloured box behind the cards. Only the title strip and the edge take the pointer, so the floor inside still pans and takes right clicks. */
+.react-flow__node-area {
+  pointer-events: none !important;
+}
+
+.area-node {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  box-sizing: border-box;
+  border: 1.5px solid color-mix(in srgb, var(--area) 60%, transparent);
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--area) 14%, transparent);
+}
+
+.area-node.picked {
+  border: 2px solid var(--area);
+  background: color-mix(in srgb, var(--area) 19%, transparent);
+}
+
+.area-node .react-flow__resize-control {
+  pointer-events: all;
+}
+
+.area-grip {
+  position: absolute;
+  top: 0;
+  left: 0;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  box-sizing: border-box;
+  width: calc(100% / var(--s, 1));
+  height: 58px;
+  padding: 10px 16px;
+  color: #fff;
+  cursor: grab;
+  pointer-events: all;
+  transform: scale(var(--s, 1));
+  transform-origin: 0 0;
+}
+
+.area-name {
+  flex: 0 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  font: 700 28px / 1.2 var(--font-body);
+  letter-spacing: 0.02em;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.area-note {
+  flex: 1 1 0;
+  min-width: 0;
+  overflow: hidden;
+  color: rgb(255 255 255 / 0.7);
+  font: 400 21px / 1.2 var(--font-body);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.area-draw {
+  position: fixed;
+  z-index: 40;
+  border: 1.5px dashed #fa9549;
+  border-radius: 8px;
+  background: rgb(250 149 73 / 0.14);
+  pointer-events: none;
+}
+
+.area-icon-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.color-picker {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 14px;
+}
+
+.color-wheel {
+  position: relative;
+  width: 148px;
+  height: 148px;
+  border-radius: 50%;
+  background: radial-gradient(circle closest-side, #fff, rgb(255 255 255 / 0)), conic-gradient(#f00, #ff0, #0f0, #0ff, #00f, #f0f, #f00);
+  box-shadow: 0 0 0 2px rgb(0 0 0 / 0.4);
+  cursor: crosshair;
+  touch-action: none;
+}
+
+.color-dot {
+  position: absolute;
+  width: 18px;
+  height: 18px;
+  margin: -9px 0 0 -9px;
+  border: 3px solid #fff;
+  border-radius: 50%;
+  box-shadow: 0 0 0 1px #000;
+  pointer-events: none;
+}
+
+.color-light {
+  width: 100%;
+  height: 14px;
+  border-radius: 7px;
+  appearance: none;
+  box-shadow: 0 0 0 1px rgb(255 255 255 / 0.25);
+}
+
+.color-light::-webkit-slider-thumb {
+  width: 14px;
+  height: 24px;
+  border: 2px solid #000;
+  border-radius: 3px;
+  background: #fff;
+  appearance: none;
+}
+
+.color-light::-moz-range-thumb {
+  width: 10px;
+  height: 20px;
+  border: 2px solid #000;
+  border-radius: 3px;
+  background: #fff;
+}

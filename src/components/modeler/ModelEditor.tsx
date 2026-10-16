@@ -32,6 +32,7 @@ import {
   connect,
   clipText,
   copyNodes,
+  insidePlaces,
   moveNodes,
   pasteClip,
   readClip,
@@ -40,10 +41,11 @@ import {
   updateNode,
 } from '../../lib/model/ops';
 import { portsOf } from '../../lib/model/ports';
-import { type Model, isPart } from '../../lib/model/types';
+import { type GroupNode, type Model, isPart } from '../../lib/model/types';
 import { COARSE, useMediaQuery } from '../../lib/useMediaQuery';
 import { useStore } from '../../store';
 import { openingViewport } from '../GraphView';
+import { type AreaData, AreaNode } from './AreaNode';
 import { type BeltData, BeltLink, PickLink } from './BeltLink';
 import { CardMenu, type CardMenuItem } from './CardMenu';
 import { Chooser } from './Chooser';
@@ -69,7 +71,7 @@ export interface ModelHost {
   caps?: Record<string, number>;
 }
 
-const nodeTypes = { part: PartNode };
+const nodeTypes = { part: PartNode, area: AreaNode };
 const edgeTypes = { belt: BeltLink };
 
 /** Room kept along the floor's bottom edge for its buttons, so no card opens under them. */
@@ -212,6 +214,11 @@ function Canvas({ host, calc, onArrange }: { host: ModelHost; calc?: CalcResult;
   const pointer = useRef<{ x: number; y: number }>(undefined);
   const opening = useRef<number>(undefined);
   useEffect(() => () => clearTimeout(opening.current), []);
+  // An area being moved: where it and what lies in it started, so they go along.
+  const carrying = useRef<{ id: string; from: { x: number; y: number }; inside: Map<string, { x: number; y: number }> }>(undefined);
+  // An area being drawn with the right button held down, and when the last one was let go (its right click is not a menu).
+  const [drawing, setDrawing] = useState<{ x0: number; y0: number; x1: number; y1: number }>();
+  const drew = useRef(0);
 
   // Cards as React Flow draws them. Kept here so a drag moves the card at once; the model hears of it when it's let go.
   const toNodes = useCallback(
@@ -237,7 +244,26 @@ function Canvas({ host, calc, onArrange }: { host: ModelHost; calc?: CalcResult;
         if (lb && l.bp < lb.ins.length) lb.ins[l.bp] = Math.max(lb.ins[l.bp], n);
       }
       const was = new Map(keep?.map((n) => [n.id, n]));
-      return m.nodes.filter(isPart).map((n) => ({
+      // Areas lie behind everything, and only their title strip takes the pointer (see AreaNode).
+      const areas = m.nodes
+        .filter((n): n is GroupNode => n.k === 'group')
+        .map(
+          (n): Node => ({
+            ...was.get(n.id),
+            id: n.id,
+            type: 'area',
+            position: { x: n.x, y: n.y },
+            width: n.w,
+            height: n.h,
+            zIndex: -1,
+            dragHandle: '.area-grip',
+            // Picked from the panel, not by a box drawn over the floor, so a box round some cards never takes the area along.
+            selectable: false,
+            data: { node: n } satisfies AreaData,
+            selected: inspect === n.id,
+          }),
+        );
+      const parts = m.nodes.filter(isPart).map((n) => ({
         ...was.get(n.id),
         id: n.id,
         type: 'part',
@@ -245,6 +271,7 @@ function Canvas({ host, calc, onArrange }: { host: ModelHost; calc?: CalcResult;
         data: { node: n, wired: wired.get(n.id)!, lanes: lanes.get(n.id), open: open.get(n.id) } satisfies PartData,
         selected: inspect === n.id || pick.has(n.id) || (!letGo && was.get(n.id)?.selected),
       }));
+      return [...areas, ...parts];
     },
     [inspect],
   );
@@ -582,10 +609,12 @@ function Canvas({ host, calc, onArrange }: { host: ModelHost; calc?: CalcResult;
     (all: boolean) => {
       const box = document.querySelector('.floor-view')?.getBoundingClientRect();
       if (!box) return;
-      const sized = latest.current.map((n) => {
-        const { w, h } = cardSize((n.data as PartData).node, latestDir.current);
-        return { ...n, width: w, height: h };
-      });
+      const sized = latest.current
+        .filter((n) => n.type === 'part')
+        .map((n) => {
+          const { w, h } = cardSize((n.data as PartData).node, latestDir.current);
+          return { ...n, width: w, height: h };
+        });
       const top = topRoom();
       if (all) return void flow.setViewport(fitted(sized, box.width, box.height, top));
       // Below the toolbar along the top, above the buttons along the bottom.
@@ -608,6 +637,8 @@ function Canvas({ host, calc, onArrange }: { host: ModelHost; calc?: CalcResult;
   }, [openCamera]);
 
   const closeChooser = useCallback(() => setChoosing(undefined), []);
+  const closeRef = useRef(closeChooser);
+  closeRef.current = closeChooser;
 
   // A finger held still on the empty floor opens the build menu there.
   const flowEl = useRef<HTMLDivElement>(null);
@@ -654,6 +685,60 @@ function Canvas({ host, calc, onArrange }: { host: ModelHost; calc?: CalcResult;
       for (const t of ['pointerup', 'pointercancel']) el.removeEventListener(t, cancel, true);
     };
   }, []);
+  // An area: the right button held down and dragged over the floor; a right click without a drag is still the build menu.
+  const drawArea = useRef<(a: { x: number; y: number }, b: { x: number; y: number }) => void>(() => {});
+  drawArea.current = (a, b) => {
+    const p = flow.screenToFlowPosition(a);
+    const q = flow.screenToFlowPosition(b);
+    const [x, y] = [snap(Math.min(p.x, q.x)), snap(Math.min(p.y, q.y))];
+    const [w, h] = [Math.max(2 * GRID, snap(Math.abs(p.x - q.x))), Math.max(2 * GRID, snap(Math.abs(p.y - q.y)))];
+    let made: string | undefined;
+    host.edit((m) => {
+      const r = addNode(m, { k: 'group', x, y, w, h });
+      made = r.id;
+      return r.model;
+    });
+    setPicked(new Set());
+    if (made) set({ inspect: made });
+  };
+  useEffect(() => {
+    const el = flowEl.current;
+    if (!el) return;
+    let from: { x: number; y: number } | undefined;
+    let live = false;
+    const down = (e: PointerEvent) => {
+      from = undefined;
+      live = false;
+      if (e.button === 2 && e.pointerType !== 'touch' && (e.target as HTMLElement).classList.contains('react-flow__pane'))
+        from = { x: e.clientX, y: e.clientY };
+    };
+    const move = (e: PointerEvent) => {
+      if (!from || !(e.buttons & 2)) return;
+      if (!live && Math.hypot(e.clientX - from.x, e.clientY - from.y) < 8) return;
+      if (!live) closeRef.current();
+      live = true;
+      setDrawing({ x0: from.x, y0: from.y, x1: e.clientX, y1: e.clientY });
+    };
+    const up = (e: PointerEvent) => {
+      if (from && live && e.type === 'pointerup') {
+        drew.current = performance.now();
+        drawArea.current(from, { x: e.clientX, y: e.clientY });
+      }
+      from = undefined;
+      live = false;
+      setDrawing(undefined);
+    };
+    el.addEventListener('pointerdown', down, true);
+    window.addEventListener('pointermove', move);
+    window.addEventListener('pointerup', up);
+    window.addEventListener('pointercancel', up);
+    return () => {
+      el.removeEventListener('pointerdown', down, true);
+      window.removeEventListener('pointermove', move);
+      window.removeEventListener('pointerup', up);
+      window.removeEventListener('pointercancel', up);
+    };
+  }, []);
   const parts = model.nodes.filter(isPart).length;
 
   // Cards with an end that needs a belt; the button goes from one to the next.
@@ -696,7 +781,29 @@ function Canvas({ host, calc, onArrange }: { host: ModelHost; calc?: CalcResult;
                   nodeTypes={nodeTypes}
                   edgeTypes={edgeTypes}
                   onNodesChange={onNodesChange}
-                  onNodeDragStop={(_, __, dragged) => host.edit((m) => moveNodes(m, new Map(dragged.map((n) => [n.id, n.position]))))}
+                  onNodeDragStart={(_, n) => {
+                    carrying.current = n.type === 'area' ? { id: n.id, from: n.position, inside: insidePlaces(model, n.id) } : undefined;
+                  }}
+                  onNodeDrag={(_, n) => {
+                    const c = carrying.current;
+                    if (!c || c.id !== n.id) return;
+                    const [dx, dy] = [n.position.x - c.from.x, n.position.y - c.from.y];
+                    setNodes((cur) =>
+                      cur.map((x) => {
+                        const p = c.inside.get(x.id);
+                        return p ? { ...x, position: { x: p.x + dx, y: p.y + dy } } : x;
+                      }),
+                    );
+                  }}
+                  onNodeDragStop={(_, __, dragged) => {
+                    const to = new Map(dragged.map((n) => [n.id, n.position]));
+                    const c = carrying.current;
+                    carrying.current = undefined;
+                    const a = c && to.get(c.id);
+                    // An area takes what lies in it along, whole.
+                    if (c && a) for (const [id, p] of c.inside) to.set(id, { x: p.x + a.x - c.from.x, y: p.y + a.y - c.from.y });
+                    host.edit((m) => moveNodes(m, to));
+                  }}
                   onConnect={onConnect}
                   onConnectEnd={onConnectEnd}
                   isValidConnection={isValid}
@@ -711,7 +818,7 @@ function Canvas({ host, calc, onArrange }: { host: ModelHost; calc?: CalcResult;
                     e.preventDefault();
                     // A held finger is handled above; a phone sends this too.
                     if (coarse) return;
-                    if (addWith === 'right') choose({ x: e.clientX, y: e.clientY });
+                    if (addWith === 'right' && performance.now() - drew.current > 500) choose({ x: e.clientX, y: e.clientY });
                   }}
                   connectOnClick
                   nodesDraggable
@@ -753,6 +860,7 @@ function Canvas({ host, calc, onArrange }: { host: ModelHost; calc?: CalcResult;
                   }}
                   onNodeContextMenu={(e, n) => {
                     e.preventDefault();
+                    if (performance.now() - drew.current < 500) return;
                     const box = flowEl.current?.getBoundingClientRect();
                     if (!box) return;
                     clearTimeout(opening.current);
@@ -770,7 +878,7 @@ function Canvas({ host, calc, onArrange }: { host: ModelHost; calc?: CalcResult;
                     // A double click ticks a card built in the game, or unticks it.
                     if ((e.target as HTMLElement).closest('.react-flow__handle, button')) return;
                     const was = model.nodes.find((x) => x.id === n.id);
-                    if (was) host.edit((m) => updateNode(m, n.id, { done: was.done ? undefined : true }));
+                    if (was && isPart(was)) host.edit((m) => updateNode(m, n.id, { done: was.done ? undefined : true }));
                   }}
                   onEdgeClick={(ev, e) => {
                     // As with cards: the panel waits out a double click, which takes the belt off instead.
@@ -896,16 +1004,23 @@ function Canvas({ host, calc, onArrange }: { host: ModelHost; calc?: CalcResult;
                       items={((): CardMenuItem[] => {
                         const ids = menu.ids;
                         const cards = model.nodes.filter((n) => ids.includes(n.id));
-                        const built = cards.length > 0 && cards.every((n) => n.done);
+                        const parts = cards.filter(isPart);
+                        const built = parts.length > 0 && parts.every((n) => n.done);
                         return [
                           { label: t('duplicate'), keys: 'Ctrl+D', onPick: () => duplicate(ids) },
                           { label: t('copy'), keys: 'Ctrl+C', onPick: () => copy(ids) },
                           ...(clipboard ? [{ label: t('paste'), keys: 'Ctrl+V', onPick: () => clipboard && paste(clipboard) }] : []),
-                          {
-                            label: built ? t('notBuilt') : t('markBuilt'),
-                            onPick: () =>
-                              host.edit((m) => ids.reduce((acc, id) => updateNode(acc, id, { done: built ? undefined : true }), m)),
-                          },
+                          ...(parts.length
+                            ? [
+                                {
+                                  label: built ? t('notBuilt') : t('markBuilt'),
+                                  onPick: () =>
+                                    host.edit((m) =>
+                                      parts.reduce((acc, n) => updateNode(acc, n.id, { done: built ? undefined : true }), m),
+                                    ),
+                                },
+                              ]
+                            : []),
                           {
                             label: t('remove'),
                             keys: 'Del',
@@ -920,6 +1035,19 @@ function Canvas({ host, calc, onArrange }: { host: ModelHost; calc?: CalcResult;
                       })()}
                     />
                   )}
+                  {drawing &&
+                    createPortal(
+                      <div
+                        className="area-draw"
+                        style={{
+                          left: Math.min(drawing.x0, drawing.x1),
+                          top: Math.min(drawing.y0, drawing.y1),
+                          width: Math.abs(drawing.x1 - drawing.x0),
+                          height: Math.abs(drawing.y1 - drawing.y0),
+                        }}
+                      />,
+                      document.body,
+                    )}
                   {choosing &&
                     createPortal(
                       <Chooser want={choosing.want} tier={tier} rules={host} at={choosing.at} onPick={onPick} onClose={closeChooser} />,

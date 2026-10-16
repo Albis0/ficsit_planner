@@ -105,10 +105,14 @@ export interface NoteNode extends Base {
   h: number;
 }
 
+/** A coloured area drawn behind the cards on the floor: a name, a note, an item's icon and a colour, as #rrggbb. */
 export interface GroupNode extends Base {
   k: 'group';
   w: number;
   h: number;
+  color?: string;
+  note?: string;
+  icon?: string;
 }
 
 /** A node whose recipe or building left the game in an update: kept with its belts so nothing built by hand is lost. */

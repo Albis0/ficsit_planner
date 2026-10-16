@@ -5,14 +5,17 @@ import { LOGISTICS, SINK, STORAGE_NAME } from '../../lib/model/catalog';
 import { builtTransport, linkMedium } from '../../lib/model/calc/compile';
 import { type CalcResult, countOf, type NodeCalc } from '../../lib/model/calc/result';
 import { type OpenEnds, openEnds, ruleFlags } from '../../lib/model/checks';
-import { minerFor, removeLinks, removeNodes, updateLink, updateNode } from '../../lib/model/ops';
+import { AREA_COLOR } from '../../lib/model/color';
+import { insideArea, minerFor, removeLinks, removeNodes, updateLink, updateNode } from '../../lib/model/ops';
 import { extractorById, extractorRate, portsOf, runnerRecipe } from '../../lib/model/ports';
-import type { MLink, MNode } from '../../lib/model/types';
+import { type GroupNode, isPart, type MLink, type MNode } from '../../lib/model/types';
 import { amplification, describeUse } from '../../lib/solver';
 import { minerLabel, recipeLabel } from '../../lib/text';
 import { useStore } from '../../store';
 import { Icon } from '../Icon';
+import { ItemPicker } from '../ItemPicker';
 import { RateInput } from '../RateInput';
+import { ColorWheel } from './ColorWheel';
 import { linkKey, type ModelHost } from './ModelEditor';
 import { SpeedButtons, useFlagText, useStatusText } from './PartNode';
 
@@ -28,7 +31,83 @@ export function ModelInspector({ host, calc: all }: { host: ModelHost; calc?: Ca
     return link ? <LinkPanel host={host} link={link} calc={calc} /> : null;
   }
   const node = host.model.nodes.find((n) => n.id === inspect);
+  if (node?.k === 'group') return <AreaPanel host={host} node={node} />;
   return node ? <NodePanel host={host} node={node} calc={calc} /> : null;
+}
+
+/** An area: its name, note, icon and colour. Taking it off leaves the cards where they are. */
+function AreaPanel({ host, node }: { host: ModelHost; node: GroupNode }) {
+  const { t, name } = useT();
+  const set = useStore((s) => s.set);
+  const inside = insideArea(host.model, node.id).filter((id) => {
+    const n = host.model.nodes.find((x) => x.id === id);
+    return n && isPart(n);
+  }).length;
+  const change = (patch: Record<string, unknown>, key?: string) =>
+    host.edit((m) => updateNode(m, node.id, patch), key && `${node.id}:${key}`);
+  return (
+    <aside className="inspector manual" aria-label={node.label || t('area')}>
+      <Head icon={node.icon ?? ''} title={node.label || t('area')} sub={t('areaInside', { n: inside })} />
+      <div className="inspector-row">
+        <label className="inspector-label" htmlFor="area-name">
+          {t('areaName')}
+        </label>
+        <input
+          id="area-name"
+          className="text-field"
+          maxLength={60}
+          value={node.label ?? ''}
+          onChange={(e) => change({ label: e.target.value || undefined }, 'label')}
+        />
+      </div>
+      <div className="inspector-row">
+        <label className="inspector-label" htmlFor="area-note">
+          {t('areaNote')}
+        </label>
+        <textarea
+          id="area-note"
+          className="text-field"
+          rows={3}
+          maxLength={500}
+          value={node.note ?? ''}
+          onChange={(e) => change({ note: e.target.value || undefined }, 'note')}
+        />
+      </div>
+      <div className="inspector-row">
+        <span className="inspector-label">{t('areaIcon')}</span>
+        <div className="area-icon-row">
+          {node.icon && <Icon id={node.icon} size={30} />}
+          <ItemPicker
+            items={Object.values(data.items)}
+            label={node.icon ? name(data.items[node.icon]) : t('areaIcon')}
+            onPick={(id) => change({ icon: id })}
+          />
+          {node.icon && (
+            <button type="button" className="text-button" onClick={() => change({ icon: undefined })}>
+              {t('areaNoIcon')}
+            </button>
+          )}
+        </div>
+      </div>
+      <div className="inspector-row">
+        <span className="inspector-label">{t('areaColour')}</span>
+        <ColorWheel value={node.color ?? AREA_COLOR} label={t('areaColour')} onChange={(hex) => change({ color: hex }, 'color')} />
+      </div>
+      <div className="inspector-actions">
+        <span />
+        <button
+          type="button"
+          className="text-button danger"
+          onClick={() => {
+            host.edit((m) => removeNodes(m, [node.id]));
+            set({ inspect: undefined });
+          }}
+        >
+          {t('removeArea')}
+        </button>
+      </div>
+    </aside>
+  );
 }
 
 function Head({ icon, title, sub }: { icon: string; title: string; sub?: string }) {

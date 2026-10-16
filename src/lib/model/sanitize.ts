@@ -158,8 +158,20 @@ function node(x: unknown): MNode | undefined {
         w: Math.round(within(o.w, 80, 4000, 240)),
         h: Math.round(within(o.h, 40, 4000, 120)),
       };
-    case 'group':
-      return { ...base, k: 'group', w: Math.round(within(o.w, 80, 20000, 600)), h: Math.round(within(o.h, 80, 20000, 400)) };
+    case 'group': {
+      const color = typeof o.color === 'string' && /^#[0-9a-f]{6}$/i.test(o.color) ? o.color.toLowerCase() : undefined;
+      const note = typeof o.note === 'string' && o.note ? o.note.slice(0, 500) : undefined;
+      const icon = typeof o.icon === 'string' && data.items[o.icon] ? o.icon : undefined;
+      return {
+        ...base,
+        k: 'group',
+        w: Math.round(within(o.w, 80, 20000, 600)),
+        h: Math.round(within(o.h, 80, 20000, 400)),
+        ...(color ? { color } : {}),
+        ...(note ? { note } : {}),
+        ...(icon ? { icon } : {}),
+      };
+    }
     case 'unknown':
       return {
         ...base,

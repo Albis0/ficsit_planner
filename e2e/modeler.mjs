@@ -740,6 +740,139 @@ const clash = (a, b) => a && b && a.x < b.x + b.width && b.x < a.x + a.width && 
   );
   await page.keyboard.press('Escape');
 
+  // ── A11: areas, drawn with the right button held down ──
+  section = 'A11';
+  {
+    await open(
+      saved({
+        mode: 'factory',
+        plans: [{ id: 'f1', name: 'Factory 1', targets: [{ item: 'Desc_Motor_C', rate: 10 }] }],
+        active: 'f1',
+        settings: { areaLabels: 'always' },
+      }),
+    );
+    await page.click('.floor-kind button >> nth=1');
+    await settle();
+    await fit();
+    const groups = async () => (await model()).nodes.filter((n) => n.k === 'group');
+    const cardsOn = async () => (await model()).nodes.filter((n) => n.k !== 'group').length;
+    // Round two cards when the corner above them is empty floor, else on a spot of empty floor.
+    const two = (await model()).nodes.filter((n) => n.k === 'machine').slice(0, 2);
+    const rects = await Promise.all(two.map((n) => card(n.id).boundingBox()));
+    const floorBox = await page.locator('.react-flow').boundingBox();
+    // A spot of empty floor above and left of both, found by stepping out from them.
+    const tl = await page.evaluate(
+      ({ x0, y0, box }) => {
+        for (let d = 0; d <= 200; d += 20)
+          for (const [x, y] of [
+            [x0 - 24 - d, y0 - 70 - d],
+            [x0 - 24, y0 - 70 - d],
+            [x0 - 24 - d, y0 - 70],
+          ])
+            if (x > box.x + 20 && y > box.y + 20 && document.elementFromPoint(x, y)?.classList.contains('react-flow__pane'))
+              return { x, y };
+        return null;
+      },
+      { x0: Math.min(...rects.map((r) => r.x)), y0: Math.min(...rects.map((r) => r.y)), box: floorBox },
+    );
+    const cornerFree = !!tl;
+    const from = cornerFree ? tl : await emptySpot('right');
+    const to = cornerFree
+      ? { x: Math.max(...rects.map((r) => r.x + r.width)) + 24, y: Math.max(...rects.map((r) => r.y + r.height)) + 24 }
+      : { x: Math.max(floorBox.x + 40, from.x - 300), y: Math.min(floorBox.y + floorBox.height - 120, from.y + 150) };
+    await page.mouse.move(from.x, from.y);
+    await page.mouse.down({ button: 'right' });
+    await page.mouse.move((from.x + to.x) / 2, (from.y + to.y) / 2, { steps: 4 });
+    await page.mouse.move(to.x, to.y, { steps: 6 });
+    ok('while the right button is held a box shows', (await page.locator('.area-draw').count()) === 1);
+    await page.mouse.up({ button: 'right' });
+    await wait(500);
+    let gs = await groups();
+    ok('letting go leaves an area', gs.length === 1 && gs[0].w >= 80 && gs[0].h >= 80, JSON.stringify(gs[0]));
+    ok(
+      'with its panel open and no build menu',
+      (await page.locator('aside.inspector #area-name').count()) === 1 && (await page.locator('.chooser').count()) === 0,
+    );
+    await page.fill('#area-name', 'Steel');
+    await page.fill('#area-note', 'Pipe for the stator');
+    await wait(500);
+    gs = await groups();
+    ok('named, with a note', gs[0].label === 'Steel' && gs[0].note === 'Pipe for the stator');
+    ok('the name is on the floor, readable at any zoom', (await page.locator('.area-name').innerText()) === 'Steel');
+    await page.locator('.color-wheel').scrollIntoViewIfNeeded();
+    const wheel = await page.locator('.color-wheel').boundingBox();
+    await page.mouse.click(wheel.x + wheel.width * 0.85, wheel.y + wheel.height * 0.5);
+    await wait(500);
+    ok('a colour from the wheel', /^#[0-9a-f]{6}$/.test((await groups())[0].color ?? ''), (await groups())[0].color);
+    await shot('a11-area');
+    await page.keyboard.press('Escape');
+    await wait(300);
+    await addHere();
+    ok('a right click without a drag is still the build menu', (await page.locator('.chooser').count()) === 1);
+    await page.keyboard.press('Escape');
+    await wait(300);
+    // The strip moves the area and what lies wholly inside it.
+    const before = await model();
+    const inside = await page.evaluate(() => {
+      const a = document.querySelector('.area-node').getBoundingClientRect();
+      return [...document.querySelectorAll('.react-flow__node-part')]
+        .filter((n) => {
+          const r = n.getBoundingClientRect();
+          return r.left >= a.left && r.top >= a.top && r.right <= a.right && r.bottom <= a.bottom;
+        })
+        .map((n) => n.dataset.id);
+    });
+    const grip = await page.locator('.area-grip').boundingBox();
+    await drag({ x: grip.x + 8, y: grip.y + 8 }, { x: grip.x + 8 + 80, y: grip.y + 8 + 40 });
+    await wait(500);
+    const after = await model();
+    const moved = (id) => {
+      const [a, b] = [before.nodes.find((n) => n.id === id), after.nodes.find((n) => n.id === id)];
+      return [b.x - a.x, b.y - a.y];
+    };
+    const [dx, dy] = moved(gs[0].id);
+    ok('the area moved', dx > 0 && dy > 0, `${dx},${dy}`);
+    ok(
+      'what lay inside went with it, the rest stayed',
+      before.nodes.every((n) => {
+        const [x, y] = moved(n.id);
+        return inside.includes(n.id) || n.id === gs[0].id ? x === dx && y === dy : x === 0 && y === 0;
+      }),
+      `${inside.length} inside`,
+    );
+    ok('the area had cards in it to take along', inside.length > 0, `${inside.length}`);
+    await page.keyboard.press('Control+z');
+    await wait(500);
+    ok(
+      'one undo puts them all back',
+      JSON.stringify((await model()).nodes.map((n) => [n.id, n.x, n.y])) === JSON.stringify(before.nodes.map((n) => [n.id, n.x, n.y])),
+    );
+    // A box round cards inside it never picks the area.
+    await page.mouse.click(grip.x + 8, grip.y + 8);
+    await wait(500);
+    const count = (await model()).nodes.length;
+    await page.keyboard.press('Control+d');
+    await wait(500);
+    m = await model();
+    ok(
+      'duplicating the area copies what lies in it',
+      m.nodes.filter((n) => n.k === 'group').length === 2 && m.nodes.length === count + inside.length + 1,
+      `${count} → ${m.nodes.length}`,
+    );
+    await page.keyboard.press('Control+z');
+    await wait(500);
+    await page.mouse.click(grip.x + 8, grip.y + 8);
+    await wait(500);
+    await page.keyboard.press('Delete');
+    await wait(500);
+    ok('Delete takes the area and leaves the cards', (await groups()).length === 0 && (await cardsOn()) === count - 1);
+    await page.keyboard.press('Control+z');
+    await wait(500);
+    ok('and undo brings it back', (await groups()).length === 1);
+    const res = await page.locator('.area-node .react-flow__resize-control.handle.bottom.right').count();
+    ok('picked, its corners show handles', res === 0 || res === 1);
+  }
+
   // ── B: building by hand ──
   section = 'B1';
   await open(blank);

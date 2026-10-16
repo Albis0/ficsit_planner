@@ -24,6 +24,8 @@ export interface Settings {
   /** Room between machines, 1 = default. */
   spacing: number;
   beltLabels: 'auto' | 'always' | 'never';
+  /** The names on the hand-built floor's areas. */
+  areaLabels: 'auto' | 'always' | 'never';
   /** The Auto floor's belts: curves, or straight runs with square turns like the hand-built floor's. */
   autoBelts: 'curve' | 'square';
   /** The Auto floor shows the splitters, mergers and pipe junctions a belt needs where it feeds several machines or is fed by several. */
@@ -88,6 +90,7 @@ export const DEFAULT_SETTINGS: Settings = {
   uiScale: 1,
   spacing: 1,
   beltLabels: 'auto',
+  areaLabels: 'auto',
   autoBelts: 'curve',
   autoSplitters: false,
   beltMotion: true,
