@@ -440,13 +440,3 @@
 .exports-title {
   margin-top: 14px;
 }
-
-/* In the phone menu there's room to say what Share does. */
-.sheet .share-button {
-  justify-content: center;
-  min-height: 48px;
-}
-
-.sheet .share-button .chrome-label {
-  display: inline;
-}

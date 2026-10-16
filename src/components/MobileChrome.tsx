@@ -3,7 +3,7 @@ import { useT } from '../lib/i18n';
 import { offAt } from '../lib/unlocks';
 import { activePowerPlan, usePlan, useStore } from '../store';
 import { Glyph } from './Glyph';
-import { PlanActions, ShareButton } from './PlanTabs';
+import { PlanActions } from './PlanTabs';
 import { InstallButton } from './PwaStatus';
 import { LATEST_UPDATE } from '../locales/updates.en';
 
@@ -113,7 +113,6 @@ export function MobileMenu({ onClose, onTier }: { onClose: () => void; onTier: (
         {!codex && (
           <div className="sheet-group">
             <span className="control-label">{power ? t('plantName') : t('planName')}</span>
-            <ShareButton className="ghost-button" onDone={onClose} />
             <div className="sheet-actions">
               <PlanActions onDone={onClose} />
             </div>

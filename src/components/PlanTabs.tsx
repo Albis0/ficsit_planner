@@ -2,7 +2,7 @@ import { type CSSProperties, type MouseEvent as ReactMouseEvent, useCallback, us
 import { createPortal } from 'react-dom';
 import { useT } from '../lib/i18n';
 import { useOverview } from '../lib/overview';
-import { copyTab, shareTab } from '../lib/share';
+import { copyTab } from '../lib/share';
 import { useStore } from '../store';
 import { Glyph } from './Glyph';
 import { Icon } from './Icon';
@@ -72,37 +72,6 @@ function useTabs() {
         label: t('planName'),
         addLabel: t('newPlan'),
       };
-}
-
-/**
- * Copies a link to the tab on screen (on phones, hands it to the share sheet), and says for a moment
- * what happened on the button itself.
- */
-export function ShareButton({ className = 'chrome-button', onDone }: { className?: string; onDone?: () => void }) {
-  const { t } = useT();
-  const tabs = useTabs();
-  const [shared, setShared] = useState<'copied' | 'failed'>();
-  useEffect(() => {
-    if (!shared) return;
-    const timer = setTimeout(() => setShared(undefined), 2500);
-    return () => clearTimeout(timer);
-  }, [shared]);
-  const name = tabs.list.find((p) => p.id === tabs.active)?.name ?? '';
-  return (
-    <button
-      type="button"
-      className={`${className} share-button ${shared ?? ''}`}
-      title={t('shareHint')}
-      onClick={async () => {
-        const r = await shareTab(name);
-        if (r === 'shared') return onDone?.();
-        setShared(r);
-      }}
-    >
-      <Glyph name={shared === 'copied' ? 'check' : 'share'} size={18} />
-      <span className="chrome-label">{shared === 'copied' ? t('linkCopied') : shared === 'failed' ? t('shareFailed') : t('share')}</span>
-    </button>
-  );
 }
 
 /** A right click on a tab or a row of the list: rename, duplicate and delete for that one, wherever it is. */

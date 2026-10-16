@@ -131,27 +131,6 @@ export async function copyTab(): Promise<'copied' | 'failed'> {
   }
 }
 
-/** Copies the link, or hands it to the phone's share sheet; says which happened. */
-export async function shareTab(name: string): Promise<'copied' | 'shared' | 'failed'> {
-  try {
-    const url = await shareLink();
-    const phone = matchMedia('(pointer: coarse)').matches;
-    if (phone && navigator.share) {
-      try {
-        await navigator.share({ title: `${name} · FICSIT Planner`, url });
-        return 'shared';
-      } catch (e) {
-        // Closing the sheet isn't a failure; anything else falls back to copying.
-        if ((e as Error).name === 'AbortError') return 'shared';
-      }
-    }
-    await navigator.clipboard.writeText(url);
-    return 'copied';
-  } catch {
-    return 'failed';
-  }
-}
-
 /** Reads a link's tabs into the planner as new tabs and shows the first one. */
 export async function openShared(hash: string, max?: number): Promise<boolean> {
   try {

@@ -669,7 +669,9 @@ const clash = (a, b) => a && b && a.x < b.x + b.width && b.x < a.x + a.width && 
 
   // ── A9: share ──
   section = 'A9';
-  await page.locator('.topbar .share-button').click();
+  await page.locator('.tab-menu-button').click();
+  await wait(300);
+  await page.locator('.tab-menu-list .copy-factory').click();
   await wait(500);
   const link = await page.evaluate(() => navigator.clipboard.readText().catch(() => ''));
   ok('share link made', link.includes('#share='), link.slice(0, 60));
@@ -1453,7 +1455,7 @@ const clash = (a, b) => a && b && a.x < b.x + b.width && b.x < a.x + a.width && 
   ok('the hand-built factory is marked', (await page.locator('.ov-tag').count()) === 1);
   const rowPower = rowsText[0].match(/([\d.,]+)\s*MW/)?.[1];
   ok('its power is what the Manual floor showed', !!rowPower && floorPower.startsWith(rowPower), `${floorPower} / ${rowPower}`);
-  ok('the page is clean of floor controls', (await page.locator('.floor-bar, .share-button').count()) === 0);
+  ok('the page is clean of floor controls', (await page.locator('.floor-bar, .copy-factory').count()) === 0);
   await shot('all-page');
   await page.locator('.ov-name button').first().click();
   await wait(600);

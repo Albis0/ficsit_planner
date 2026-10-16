@@ -15,7 +15,7 @@ import { SaveFailedNotice } from './components/SaveFailedNotice';
 import { PollCard } from './components/PollCard';
 import { ModeSwitch } from './components/ModeSwitch';
 import { OverviewPage } from './components/Overview';
-import { PlanTabs, ShareButton } from './components/PlanTabs';
+import { PlanTabs } from './components/PlanTabs';
 import { PlantInspector, PowerQuickStart, PowerSummary } from './components/PowerFloor';
 import { PowerPanel } from './components/PowerPanel';
 import { InstallButton, ClosedTab, Notice, PwaStatus } from './components/PwaStatus';
@@ -388,7 +388,6 @@ export default function App() {
         {bookMode ? <span className="topbar-fill" /> : <PlanTabs />}
         <div className="topbar-controls">
           <InstallButton />
-          {!bookMode && !overviewOn && <ShareButton />}
           <button type="button" className="tier-button" title={t('unlockedTier')} onClick={() => setTierOpen(true)}>
             {t('tier')} <b>{s.tier}</b>
             {tierOff > 0 && <span className="tier-off"> · {t('tierOff', { n: tierOff })}</span>}

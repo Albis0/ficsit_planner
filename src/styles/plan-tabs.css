@@ -325,14 +325,6 @@
   color: var(--alert);
 }
 
-.share-button.copied .glyph {
-  color: var(--supply);
-}
-
-.share-button.failed {
-  border-color: var(--alert);
-}
-
 /* Drag handle on the panel's bottom edge. */
 /* The grab strip sits just outside the panel, on the floor side, so it never shares room with the panel's scrollbar. */
 .splitter {
