@@ -5,7 +5,7 @@ const STORE = 'copies';
 /** How many copies are kept; a new one pushes out the oldest. */
 export const MAX_BACKUPS = 3;
 /** A copy is taken at most this often. */
-export const EVERY = 24 * 3600 * 1000;
+export const EVERY = 6 * 3600 * 1000;
 /** After opening the app, the first check waits this long. */
 const OPEN_WAIT = 60 * 1000;
 
@@ -19,7 +19,7 @@ export function fingerprint(file: Pick<ExportFile, 'plans' | 'power'>): string {
   return `${(h >>> 0).toString(36)}-${text.length}`;
 }
 
-/** Whether a new copy is due: a day since the newest, and the plans differ from it. */
+/** Whether a new copy is due: six hours since the newest, and the plans differ from it. */
 export function isDue(list: Pick<Backup, 'at' | 'hash'>[], now: number, hash: string): boolean {
   const last = list.reduce<Pick<Backup, 'at' | 'hash'> | undefined>((a, b) => (!a || b.at > a.at ? b : a), undefined);
   return !last || (now - last.at >= EVERY && last.hash !== hash);

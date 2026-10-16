@@ -5,32 +5,32 @@ import { data } from '../src/lib/data';
 import { DEFAULT_SETTINGS } from '../src/lib/settings';
 import { MAX_TIER, newPlan, newPowerPlan, useStore } from '../src/store';
 
-const DAY = EVERY;
+const SLOT = EVERY;
 const worked = () => ({ ...newPlan('A'), targets: [{ item: 'Desc_IronPlate_C', rate: 10 }] });
 
 describe('automatic copies', () => {
-  test('the first copy is due at once; later ones only after a day and only when the plans changed', () => {
+  test('the first copy is due at once; later ones only after the wait and only when the plans changed', () => {
     expect(isDue([], 1000, 'x')).toBe(true);
     const list = [{ at: 1000, hash: 'x' }];
-    expect(isDue(list, 1000 + DAY - 1, 'y')).toBe(false);
-    expect(isDue(list, 1000 + DAY, 'x')).toBe(false);
-    expect(isDue(list, 1000 + DAY, 'y')).toBe(true);
+    expect(isDue(list, 1000 + SLOT - 1, 'y')).toBe(false);
+    expect(isDue(list, 1000 + SLOT, 'x')).toBe(false);
+    expect(isDue(list, 1000 + SLOT, 'y')).toBe(true);
   });
 
   test('the newest copy decides, whatever the order of the list', () => {
     const list = [
-      { at: 5 * DAY, hash: 'new' },
-      { at: 1 * DAY, hash: 'old' },
+      { at: 5 * SLOT, hash: 'new' },
+      { at: 1 * SLOT, hash: 'old' },
     ];
-    expect(isDue(list, 6 * DAY + 1, 'new')).toBe(false);
-    expect(isDue(list, 6 * DAY + 1, 'old')).toBe(true);
+    expect(isDue(list, 6 * SLOT + 1, 'new')).toBe(false);
+    expect(isDue(list, 6 * SLOT + 1, 'old')).toBe(true);
   });
 
   test('a fourth copy pushes out the oldest', () => {
-    const at = [1, 2, 3, 4].map((n) => n * DAY);
+    const at = [1, 2, 3, 4].map((n) => n * SLOT);
     expect(MAX_BACKUPS).toBe(3);
     expect(surplus(at.slice(0, 3).map((a) => ({ at: a })))).toEqual([]);
-    expect(surplus(at.map((a) => ({ at: a })))).toEqual([1 * DAY]);
+    expect(surplus(at.map((a) => ({ at: a })))).toEqual([1 * SLOT]);
   });
 
   test('the fingerprint follows the plans and plants, not the clock or the settings', () => {
