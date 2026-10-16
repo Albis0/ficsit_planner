@@ -1,4 +1,5 @@
 import { data, type Item, type Station, type Transport, transportFor } from './data';
+import { type Lock, lockOf } from './unlocks';
 
 /** How an item gets between a factory and the rest of the base. */
 export type Carrier = 'line' | 'train' | 'truck' | 'tractor' | 'explorer' | 'fluidTruck' | 'drone';
@@ -49,6 +50,17 @@ export function carrierTier(carrier: Carrier): number {
   return carrier === 'train' ? Math.max(own, vehicle('Desc_Locomotive_C').tier) : own;
 }
 
+/** What keeps a carrier out of reach: a later tier or a skipped milestone, for the vehicle or, on a train, its locomotive. */
+export function carrierLock(carrier: Carrier, tier: number): Lock | undefined {
+  if (carrier === 'line') return undefined;
+  const ids = carrier === 'train' ? [VEHICLE.train, 'Desc_Locomotive_C'] : [VEHICLE[carrier]];
+  for (const id of ids) {
+    const lock = lockOf(vehicle(id), tier);
+    if (lock) return lock;
+  }
+  return undefined;
+}
+
 /** Whether a carrier can take this item at all: drones and the dry vehicles carry solids, the fluid truck fluids. */
 export function carries(carrier: Carrier, item: Item): boolean {
   if (carrier === 'line' || carrier === 'train') return true;
@@ -56,7 +68,7 @@ export function carries(carrier: Carrier, item: Item): boolean {
 }
 
 /** Carriers that take this item and are unlocked at the tier, belts or pipes first. */
-export const carriersFor = (item: Item, tier = 99) => CARRIERS.filter((c) => carries(c, item) && carrierTier(c) <= tier);
+export const carriersFor = (item: Item, tier = 99) => CARRIERS.filter((c) => carries(c, item) && !carrierLock(c, tier));
 
 export interface Haul {
   carrier: Carrier;

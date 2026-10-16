@@ -1,4 +1,5 @@
 import raw from '../data/gamedata.json';
+import { blockedBy, type Lock, isOpen } from './unlocks';
 
 export type Form = 'solid' | 'liquid' | 'gas';
 
@@ -220,7 +221,7 @@ export const resourceWeights: Record<string, number> = (() => {
  */
 export function transportFor(item: Item, rate: number, tier = 99): { transport: Transport; lanes: number } {
   const all = item.form === 'solid' ? data.belts : data.pipes;
-  const unlocked = all.filter((t) => t.tier <= tier);
+  const unlocked = all.filter((t) => isOpen(t, tier));
   const options = unlocked.length ? unlocked : all.slice(0, 1);
   const fit = options.find((t) => t.rate >= rate - 1e-6);
   if (fit) return { transport: fit, lanes: 1 };
@@ -251,8 +252,16 @@ export const recipeTier = (r: Recipe): number => {
   return tier;
 };
 
-/** Is the recipe usable at this tier: its own unlock and its building's. */
-export const recipeUnlocked = (r: Recipe, tier: number) => recipeTier(r) <= tier;
+/** What keeps a recipe out of reach: the tier of its unlock or building, or a skipped milestone that opens either. */
+export const recipeLock = (r: Recipe, tier: number): Lock | undefined => {
+  const needs = recipeTier(r);
+  if (needs > tier) return { tier: needs };
+  const milestone = blockedBy(r.id) ?? blockedBy(r.machine);
+  return milestone ? { milestone } : undefined;
+};
+
+/** Is the recipe usable at this tier: its own unlock and its building's, both bought. */
+export const recipeUnlocked = (r: Recipe, tier: number) => !recipeLock(r, tier);
 
 /**
  * Earliest tier at which an item can be made with a standard recipe (alternates need hard drives,
@@ -280,14 +289,28 @@ export const sinkPerMin = (list: { item: string; rate: number }[]) =>
     return it?.form === 'solid' ? sum + x.rate * it.sink : sum;
   }, 0);
 
-/** Not makeable yet at this tier: its first standard recipe opens up later. Items nothing standard makes never are. */
-export function itemLocked(id: string, tier: number): boolean {
-  const needs = itemTier(id);
-  return needs !== undefined && needs > tier;
+/**
+ * Why an item can't be made yet: no standard recipe for it is open. Names the tier of the earliest one, or, when the
+ * tier is reached, a skipped milestone that holds one back. Items nothing standard makes never are locked.
+ */
+export function itemLock(id: string, tier: number): Lock | undefined {
+  const standard = (producersOf.get(id) ?? []).filter((r) => r.kind === 'standard');
+  if (!standard.length) return undefined;
+  const locks = standard.map((r) => recipeLock(r, tier));
+  if (locks.some((l) => !l)) return undefined;
+  // The earliest recipe is the one to unlock first, so its reason is the one to give.
+  return locks[standard.map(recipeTier).indexOf(Math.min(...standard.map(recipeTier)))];
 }
 
+/** Not makeable yet: its standard recipes come with a later tier or a milestone not bought. */
+export const itemLocked = (id: string, tier: number) => itemLock(id, tier) !== undefined;
+
 /** Why an item the plan needs has no working recipe, so the UI can offer the matching fix. */
-export type MissingReason = { kind: 'tier'; tier: number } | { kind: 'off'; recipe: string } | { kind: 'none' };
+export type MissingReason =
+  | { kind: 'tier'; tier: number }
+  | { kind: 'milestone'; id: string }
+  | { kind: 'off'; recipe: string }
+  | { kind: 'none' };
 
 export function whyMissing(id: string, tier: number, enabled: Set<string>): MissingReason {
   const producers = producersOf.get(id) ?? [];
@@ -295,7 +318,7 @@ export function whyMissing(id: string, tier: number, enabled: Set<string>): Miss
   // Turning one recipe back on is enough; the standard one if it's among them.
   const pick = off.find((r) => r.kind === 'standard') ?? off[0];
   if (pick) return { kind: 'off', recipe: pick.id };
-  const needed = itemTier(id);
-  if (needed !== undefined && needed > tier) return { kind: 'tier', tier: needed };
+  const lock = itemLock(id, tier);
+  if (lock) return 'milestone' in lock ? { kind: 'milestone', id: lock.milestone.id } : { kind: 'tier', tier: lock.tier };
   return { kind: 'none' };
 }

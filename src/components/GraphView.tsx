@@ -1,3 +1,4 @@
+import { skipKey } from '../lib/unlocks';
 import {
   Background,
   BackgroundVariant,
@@ -50,7 +51,7 @@ import { pipeColor } from '../lib/pipe';
 import { minerLabel, recipeLabel } from '../lib/text';
 import { COARSE, useMediaQuery } from '../lib/useMediaQuery';
 import type { SolveResult } from '../lib/solver';
-import { activePowerPlan, toggleBuilt, togglePooled, usePlan, useStore } from '../store';
+import { activePowerPlan, toggleBuilt, togglePooled, usePlan, useStore, useTier } from '../store';
 import { beltStroke } from './floor/BeltStroke';
 import { longestRunMid, SQUARE_TURN, squarePath } from './floor/squarePath';
 import { Glyph } from './Glyph';
@@ -162,7 +163,7 @@ export function RunLine({ clocks }: { clocks: number[] }) {
 /** "6 + 4 groups" when the line's belts or pipes don't fit one of the best unlocked; the title says which. */
 function GroupsBadge({ use }: { use: MachineNodeData['use'] }) {
   const { t, name, num } = useT();
-  const tier = useStore((s) => s.tier);
+  const tier = useTier();
   const g = buildGroups(use, tier);
   if (!g) return null;
   const transport = t(isPipe(g.transport) ? 'pipeName' : 'beltName', { mk: g.transport.name });
@@ -1061,7 +1062,7 @@ export function GraphView({
   consumers?: Consumer[];
   links?: FactoryLinks;
 }) {
-  const tier = useStore((s) => s.tier);
+  const tier = useTier();
   const chosen = useStore((s) => s.graphDir);
   const scale = useStore((s) => s.settings.cardScale);
   const text = useStore((s) => s.settings.textScale);
@@ -1070,6 +1071,7 @@ export function GraphView({
   const squareBelts = useStore((s) => s.settings.autoBelts === 'square');
   const splitters = useStore((s) => s.settings.autoSplitters);
   // Uncontrolled flow remounted per solve: nodes stay draggable, and each new solve lays out fresh.
+  // biome-ignore lint/correctness/useExhaustiveDependencies: skipKey() changes when the milestones bought do
   const { nodes, edges, dir, key, sig } = useMemo(() => {
     const box = document.querySelector('.floor-view')?.getBoundingClientRect();
     const g = buildGraph(result, tier, {
@@ -1092,7 +1094,7 @@ export function GraphView({
           .sort()
           .join('|') + g.dir,
     };
-  }, [result, tier, chosen, scale, text, spacing, consumers, splitLines, squareBelts, splitters]);
+  }, [result, tier, chosen, scale, text, spacing, consumers, splitLines, squareBelts, splitters, skipKey()]);
   const exMap = useMemo(() => new Map(extraction.map((u) => [u.item, u])), [extraction]);
   // Ticking a machine built changes nothing the layout is made from, so the floor isn't laid out again for it.
   const ticked = usePlan().built;

@@ -1,3 +1,4 @@
+import { skipKey } from './lib/unlocks';
 import { useShallow } from 'zustand/react/shallow';
 import { lazy, Suspense, useEffect, useMemo, useState } from 'react';
 import { useCodexRoute } from './components/codex/route';
@@ -58,7 +59,7 @@ import { bootDone, bootText } from './lib/boot';
 import { modelFromSolve } from './lib/model/fromAuto';
 import { emptyModel, type Model } from './lib/model/types';
 import { calcAsync, solveAsync } from './lib/solverClient';
-import { activePowerPlan, aimOf, POOL, usePlan, useStore } from './store';
+import { activePowerPlan, aimOf, POOL, usePlan, useStore, useTier } from './store';
 
 // Folding the panel moves the app's grid tracks: above the floor a row, beside it a column.
 const GRID = ['gridTemplateRows', 'gridTemplateColumns'] as const;
@@ -89,7 +90,7 @@ const CodexPage = lazy(() => import('./components/Codex').then((m) => ({ default
  */
 function useSolutions() {
   const mode = useStore((s) => s.mode);
-  const tier = useStore((s) => s.tier);
+  const tier = useTier();
   const aim = useStore(aimOf);
   const game = useStore((s) => s.settings.game);
   // The floor, the table and the Codex read the same recipes the worker solves with.
@@ -104,22 +105,25 @@ function useSolutions() {
 
   const { targets, supplies, enabled, caps, mods, fixed, extraction, separate, weights } = plan;
   const exports = useExports(plan.id);
+  // biome-ignore lint/correctness/useExhaustiveDependencies: skipKey() changes when the milestones bought do
   const factoryIn = useMemo(
     () => factoryInput({ targets, supplies, enabled, caps, mods, fixed, extraction, separate, weights }, tier, exports, aim, game),
-    [targets, supplies, enabled, caps, mods, fixed, extraction, separate, weights, tier, exports, aim, game],
+    [targets, supplies, enabled, caps, mods, fixed, extraction, separate, weights, tier, exports, aim, game, skipKey()],
   );
   // Sized to what you have with nothing listed yet: nothing to solve, the floor asks for the list.
+  // biome-ignore lint/correctness/useExhaustiveDependencies: skipKey() changes when the milestones bought do
   const powerIn = useMemo(
     () =>
       sizeBy === 'have' && have.length === 0
         ? undefined
         : powerInput({ plants, sizeBy, have, headroom, ownLoad, chain }, load.demand, tier, aim, game),
-    [plants, sizeBy, have, headroom, ownLoad, chain, load.demand, tier, aim, game],
+    [plants, sizeBy, have, headroom, ownLoad, chain, load.demand, tier, aim, game, skipKey()],
   );
   // Sized to what you have: the same plant making a set 1,000 MW shows what its fuel is made from.
+  // biome-ignore lint/correctness/useExhaustiveDependencies: skipKey() changes when the milestones bought do
   const probeIn = useMemo(
     () => (sizeBy === 'have' ? powerInput({ plants, sizeBy: 'want', have, headroom, ownLoad, chain }, 1000, tier, aim, game) : undefined),
-    [plants, sizeBy, have, headroom, ownLoad, chain, tier, aim, game],
+    [plants, sizeBy, have, headroom, ownLoad, chain, tier, aim, game, skipKey()],
   );
   const factory = useSolve(factoryIn, mode === 'factory' && !manual);
   const hand = useModelCalc(manual ? (plan.model ?? emptyModel()) : undefined, tier, game, mode === 'factory' && manual);
@@ -202,9 +206,10 @@ export default function App() {
       setLaying(false);
     }
   };
+  // biome-ignore lint/correctness/useExhaustiveDependencies: skipKey() changes when the milestones bought do
   const autoExtraction = useMemo(
     () => (solved.result ? planExtraction(solved.result.raw, effectiveExtraction(plan.extraction, s.tier)) : []),
-    [solved.result, plan.extraction, s.tier],
+    [solved.result, plan.extraction, s.tier, skipKey()],
   );
   const extraction = manual ? (hand.adapted?.extraction ?? []) : autoExtraction;
   /** Auto or Manual: the first switch to Manual starts from the factory as worked out, or an empty floor. */

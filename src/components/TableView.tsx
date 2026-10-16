@@ -1,3 +1,4 @@
+import { skipKey } from '../lib/unlocks';
 import { Fragment, useMemo, useState } from 'react';
 import { buildingById, data } from '../lib/data';
 import type { ExtractionUse } from '../lib/extraction';
@@ -5,7 +6,7 @@ import { useT } from '../lib/i18n';
 import { plantIdOf } from '../lib/power';
 import { recipeLabel } from '../lib/text';
 import type { RecipeUse, SolveResult } from '../lib/solver';
-import { useStore } from '../store';
+import { useStore, useTier } from '../store';
 import { groupClocks } from '../lib/clocks';
 import { buildGroups, groupsLabel, isPipe } from '../lib/groups';
 import { matchFlows, splitByDestination, splitExtras } from '../lib/split';
@@ -36,22 +37,24 @@ function buildBill(result: SolveResult, extraction: ExtractionUse[], extra?: Map
 export function TableView({ result, extraction }: { result: SolveResult; extraction: ExtractionUse[] }) {
   const { t, name, num } = useT();
   const inspect = useStore((s) => s.inspect);
-  const tier = useStore((s) => s.tier);
+  const tier = useTier();
   const set = useStore((s) => s.set);
   const generated = result.grid?.plants ?? {};
   // On a hand-built floor each node is its own row, already split however the player built it.
   const manual = 'manual' in result;
   const each = useStore((s) => s.settings.splitLines) === 'each' && !manual;
   const rowId = (u: RecipeUse) => u.node ?? u.recipe.id;
+  // biome-ignore lint/correctness/useExhaustiveDependencies: skipKey() changes when the milestones bought do
   const bill = useMemo(
     () => buildBill(result, extraction, each ? splitExtras(result, tier).machines : undefined),
-    [result, extraction, each, tier],
+    [result, extraction, each, tier, skipKey()],
   );
+  // biome-ignore lint/correctness/useExhaustiveDependencies: skipKey() changes when the milestones bought do
   const splits = useMemo(() => {
     if (manual) return new Map<string, undefined>();
     const flows = matchFlows(result);
     return new Map(result.recipes.map((u) => [u.recipe.id, splitByDestination(u, flows, tier)]));
-  }, [result, tier, manual]);
+  }, [result, tier, manual, skipKey()]);
   const words = useSplitText();
 
   // What the pointer is on, else the selected line: its inputs light up where other lines make them, and its

@@ -173,6 +173,7 @@ export const en = {
   lockedHidden: '{n} more need a higher tier',
   showLocked: 'Show them',
   needsTier: 'Needs tier {tier}',
+  needsMilestone: 'Needs {name}',
   hideLocked: 'Hide them',
   shards: 'Power shards',
   shardOne: '1 power shard',

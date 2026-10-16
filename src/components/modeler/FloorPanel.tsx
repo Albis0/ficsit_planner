@@ -6,7 +6,7 @@ import { ioSpot } from '../../lib/model/targets';
 import type { IoNode, Model } from '../../lib/model/types';
 import type { SolveResult } from '../../lib/solver';
 import { POOL } from '../../lib/pool';
-import { useStore } from '../../store';
+import { useStore, useTier } from '../../store';
 import { SupplyAdd } from '../SupplyAdd';
 import { ItemPicker } from '../ItemPicker';
 import { SinkPoints } from '../Summary';
@@ -39,7 +39,7 @@ function arriving(model: Model, calc: CalcResult | undefined, id: string): { rat
 export function FloorPanel({ host, calc, result }: { host: ModelHost; calc?: CalcResult; result?: SolveResult }) {
   const { t, name, num } = useT();
   const set = useStore((s) => s.set);
-  const tier = useStore((s) => s.tier);
+  const tier = useTier();
   const showLocked = useStore((s) => s.settings.showLocked);
   const plans = useStore((s) => s.plans);
   const { model } = host;

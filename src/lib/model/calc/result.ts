@@ -58,5 +58,7 @@ export interface CalcResult {
 export interface CalcInput {
   model: import('../types').Model;
   tier: number;
+  /** Milestones the player has not bought; set on the way to the worker, which has no store. */
+  skipped?: string[];
   game?: import('../../game').GameRules;
 }

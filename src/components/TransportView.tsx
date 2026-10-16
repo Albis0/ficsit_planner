@@ -2,7 +2,7 @@ import { data, type Item } from '../lib/data';
 import { useT } from '../lib/i18n';
 import type { SolveResult } from '../lib/solver';
 import { type Carrier, carriersFor, type Haul, haul } from '../lib/transport';
-import { type Route, usePlan, useStore } from '../store';
+import { type Route, usePlan, useStore, useTier } from '../store';
 import type { FactoryLinks } from './GraphView';
 import { Icon } from './Icon';
 import { RateInput } from './RateInput';
@@ -157,7 +157,7 @@ function HaulCard({ row, route, tier }: { row: Row; route: Route; tier: number }
 export function TransportView({ result, links }: { result: SolveResult; links?: FactoryLinks }) {
   const { t, num } = useT();
   const plan = usePlan();
-  const tier = useStore((s) => s.tier);
+  const tier = useTier();
   const routes = plan.transport ?? {};
   const routeOf = (key: string): Route => routes[key] ?? { by: 'line', distance: 1000 };
 

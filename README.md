@@ -232,6 +232,7 @@ saved factories when they load.
 | `src/data/meta.json` | which game build the data came from | `bun run extract` |
 | `src/data/icon-manifest.json` | icon texture path per item/building | `bun run extract` |
 | `src/data/codex.json` | descriptions, stack sizes, every building, vehicles, equipment, milestones, MAM research, the AWESOME Shop (loaded when the Codex opens) | `bun run extract:codex` |
+| `src/data/milestones.json` | the milestones that unlock something the planner uses, for the tier window | `bun run extract:milestones` |
 | `src/data/codex-icons.json` | icon texture paths the Codex needs on top of the planner's | `bun run extract:codex` |
 | `src/data/elevator.json` | the Space Elevator's phases: what each asks for and the tiers it opens | `bun run extract:elevator` |
 | `src/data/insights.json` | each part's production line, its recipes compared, and every fuel's cost, worked out with the solver | `bun run insights` |
@@ -250,6 +251,7 @@ Last extract: **Satisfactory 1.2.4.0**, build 502094, Unreal Engine 5.6.1, on 20
 bun run extract                                            # Epic install on C: by default
 bun run extract "D:/SteamLibrary/steamapps/common/Satisfactory"
 bun run extract:codex                                      # after extract: it reads gamedata.json
+bun run extract:milestones                                 # after extract:codex: the milestones the tier window lists
 bun run icons                                              # needs the .NET 10 SDK
 bun run icons:codex
 bun run extract:map                                        # the world map: nodes and tiles, needs .NET too

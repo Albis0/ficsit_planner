@@ -1,16 +1,17 @@
+import { skipKey } from '../lib/unlocks';
 import { useMemo, useState } from 'react';
 import { createPortal } from 'react-dom';
-import { data, recipeById, recipeTier } from '../lib/data';
+import { data, recipeById, recipeUnlocked } from '../lib/data';
 import { useT } from '../lib/i18n';
 import { recipeLabel } from '../lib/text';
-import { makeFromLeftover, useStore } from '../store';
+import { makeFromLeftover, useStore, useTier } from '../store';
 import { CardMenu, type CardMenuItem } from './modeler/CardMenu';
 
 /** Recipes on in the plan that take an item and make something else from it, standard ones first. */
 export function recipesTaking(item: string, enabled: ReadonlySet<string>, tier: number) {
   const kindRank = (k: string) => (k === 'standard' ? 0 : k === 'alternate' ? 1 : 2);
   return data.recipes
-    .filter((r) => r.kind !== 'power' && enabled.has(r.id) && recipeTier(r) <= tier && r.inputs.some((s) => s.item === item))
+    .filter((r) => r.kind !== 'power' && enabled.has(r.id) && recipeUnlocked(r, tier) && r.inputs.some((s) => s.item === item))
     .filter((r) => r.outputs.some((o) => o.item !== item))
     .sort((a, b) => kindRank(a.kind) - kindRank(b.kind) || a.name.localeCompare(b.name));
 }
@@ -33,14 +34,15 @@ export function packsForSink(r: { inputs: { item: string }[]; outputs: { item: s
 export function SurplusMake({ item, rate, line }: { item: string; rate: number; line?: string[] }) {
   const { t, name, num } = useT();
   const enabled = useStore((s) => s.plans.find((p) => p.id === s.active)?.enabled);
-  const tier = useStore((s) => s.tier);
+  const tier = useTier();
   const update = useStore((s) => s.updatePlan);
   const [at, setAt] = useState<{ x: number; y: number }>();
+  // biome-ignore lint/correctness/useExhaustiveDependencies: skipKey() changes when the milestones bought do
   const list = useMemo(() => {
     // Recipes that pack the leftover into a part the Sink takes come first.
     const all = recipesTaking(item, new Set(enabled ?? []), tier);
     return [...all.filter((r) => packsForSink(r, item)), ...all.filter((r) => !packsForSink(r, item))];
-  }, [item, enabled, tier]);
+  }, [item, enabled, tier, skipKey()]);
   if (list.length === 0) return null;
 
   const items: CardMenuItem[] = list.map((r) => {

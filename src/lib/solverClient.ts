@@ -1,4 +1,5 @@
 import { recipeById } from './data';
+import { skippedList } from './unlocks';
 import type { CalcInput, CalcResult } from './model/calc/result';
 import type { RecipeMod, SolveInput, SolveResult } from './solver';
 import type { SolveFailure } from './solveFailure';
@@ -124,7 +125,7 @@ export async function solveAsync(input: SolveInput): Promise<SolveResult> {
 
 /** Works out a hand-built model in the worker. Rejects with a SolveFailure. */
 export async function calcAsync(input: CalcInput): Promise<CalcResult> {
-  return (await call({ kind: 'model', input })).value as CalcResult;
+  return (await call({ kind: 'model', input: { ...input, skipped: skippedList() } })).value as CalcResult;
 }
 
 /** Places somersloops and power shards in the worker. Rejects with a SolveFailure. */

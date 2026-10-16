@@ -8,7 +8,7 @@ import { groupClocks } from '../lib/clocks';
 import { buildGroups, groupsLabel, isPipe } from '../lib/groups';
 import { amplification, NO_MOD, shardsFor, type SolveResult } from '../lib/solver';
 import { matchFlows, splitByDestination } from '../lib/split';
-import { toggleBuilt, usePlan, useStore } from '../store';
+import { toggleBuilt, usePlan, useStore, useTier } from '../store';
 import { Balancer } from './Balancer';
 import { Icon } from './Icon';
 import { RateInput } from './RateInput';
@@ -21,7 +21,7 @@ const EPS = 1e-6;
 export function Inspector({ result }: { result: SolveResult }) {
   const { t, name, num } = useT();
   const inspect = useStore((s) => s.inspect);
-  const tier = useStore((s) => s.tier);
+  const tier = useTier();
   const set = useStore((s) => s.set);
   const setMod = useStore((s) => s.setMod);
   const updatePlan = useStore((s) => s.updatePlan);
@@ -242,7 +242,7 @@ export function Inspector({ result }: { result: SolveResult }) {
 function RecipeChoices({ item, result }: { item: string; result: SolveResult }) {
   const { t, name } = useT();
   const plan = usePlan();
-  const tier = useStore((s) => s.tier);
+  const tier = useTier();
   const toggleRecipe = useStore((s) => s.toggleRecipe);
   const codex = useCodex();
   // The comparisons are worked out at the game's default part cost; under another one they'd mislead.

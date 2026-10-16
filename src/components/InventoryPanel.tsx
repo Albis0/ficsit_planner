@@ -7,7 +7,7 @@ import { isDefaultGame } from '../lib/game';
 import type { SolveInput, SolveResult } from '../lib/solver';
 import { useExports, withExports } from '../lib/solution';
 import { autoAssignAsync, solveAsync } from '../lib/solverClient';
-import { aimOf, usePlan, useStore } from '../store';
+import { aimOf, usePlan, useStore, useTier } from '../store';
 import { Fold } from './Fold';
 import { Icon } from './Icon';
 import { RateInput } from './RateInput';
@@ -19,7 +19,7 @@ const SHARD_ICON = 'Desc_CrystalShard_C';
 export function InventoryPanel({ result }: { result?: SolveResult }) {
   const { t, name } = useT();
   const inventory = useStore((s) => s.inventory);
-  const tier = useStore((s) => s.tier);
+  const tier = useTier();
   const aim = useStore(aimOf);
   const game = useStore((s) => s.settings.game);
   const set = useStore((s) => s.set);

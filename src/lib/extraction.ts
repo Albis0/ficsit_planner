@@ -1,5 +1,6 @@
 import { data, type Extractor } from './data';
 import { shardsFor, type Target } from './solver';
+import { isOpen } from './unlocks';
 
 export type Purity = 'impure' | 'normal' | 'pure';
 export const PURITY: Record<Purity, number> = { impure: 0.5, normal: 1, pure: 2 };
@@ -52,8 +53,8 @@ export function extractorFor(item: string, settings: ExtractionSettings): Extrac
 /** The chosen miner, or the best one unlocked at this tier when the chosen one isn't unlocked yet. */
 export function effectiveExtraction(settings: ExtractionSettings, tier: number): ExtractionSettings {
   const chosen = MINERS.find((m) => m.id === settings.miner);
-  if (chosen && chosen.tier <= tier) return settings;
-  const best = MINERS.filter((m) => m.tier <= tier).at(-1) ?? MINERS[0];
+  if (chosen && isOpen(chosen, tier)) return settings;
+  const best = MINERS.filter((m) => isOpen(m, tier)).at(-1) ?? MINERS[0];
   return { ...settings, miner: best.id };
 }
 

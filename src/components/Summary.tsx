@@ -1,3 +1,4 @@
+import { skipKey } from '../lib/unlocks';
 import { useMemo } from 'react';
 import { data, recipeById, sinkPerMin } from '../lib/data';
 import { fold } from '../lib/fold';
@@ -8,7 +9,7 @@ import { splitOf } from '../lib/split';
 import { factoryPower } from '../lib/solution';
 import type { SolveResult } from '../lib/solver';
 import { recipeLabel } from '../lib/text';
-import { keepScaled, usePlan, useStore } from '../store';
+import { keepScaled, usePlan, useStore, useTier } from '../store';
 import { Glyph } from './Glyph';
 import { Icon } from './Icon';
 import { MissingList } from './MissingList';
@@ -46,10 +47,11 @@ export function Summary({ result, extraction }: { result: SolveResult; extractio
   const fixed = usePlan().fixed;
   const pinned = Object.keys(fixed).length > 0;
   // With a card per destination on the floor, the totals count those cards' machines.
-  const tier = useStore((s) => s.tier);
+  const tier = useTier();
   // A hand-built floor's nodes are already the machines on the floor.
   const each = useStore((s) => s.settings.splitLines) === 'each';
-  const split = useMemo(() => splitOf(result, tier, each), [each, result, tier]);
+  // biome-ignore lint/correctness/useExhaustiveDependencies: skipKey() changes when the milestones bought do
+  const split = useMemo(() => splitOf(result, tier, each), [each, result, tier, skipKey()]);
   const extractors = extraction.reduce((s, u) => s + u.built, 0);
   const { machines: machinePower, extractors: extractionPower, count: machines } = factoryPower(result, extraction, split);
   // Shards in machines and in overclocked miners and pumps.

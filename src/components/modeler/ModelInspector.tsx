@@ -1,6 +1,7 @@
 import { data } from '../../lib/data';
 import { PURITIES } from '../../lib/extraction';
 import { useT } from '../../lib/i18n';
+import { isOpen } from '../../lib/unlocks';
 import { LOGISTICS, SINK, STORAGE_NAME } from '../../lib/model/catalog';
 import { builtTransport, linkMedium } from '../../lib/model/calc/compile';
 import { type CalcResult, countOf, type NodeCalc } from '../../lib/model/calc/result';
@@ -11,7 +12,7 @@ import { extractorById, extractorRate, portsOf, runnerRecipe } from '../../lib/m
 import { type GroupNode, isPart, type MLink, type MNode } from '../../lib/model/types';
 import { amplification, describeUse } from '../../lib/solver';
 import { minerLabel, recipeLabel } from '../../lib/text';
-import { useStore } from '../../store';
+import { useStore, useTier } from '../../store';
 import { Icon } from '../Icon';
 import { ItemPicker } from '../ItemPicker';
 import { RateInput } from '../RateInput';
@@ -290,7 +291,7 @@ function Remove({ host, node }: { host: ModelHost; node: MNode }) {
 
 function NodePanel({ host, node, calc }: { host: ModelHost; node: MNode; calc?: CalcResult }) {
   const { t, name, num } = useT();
-  const tier = useStore((s) => s.tier);
+  const tier = useTier();
   const statusText = useStatusText();
   const flagText = useFlagText();
   const c = calc?.nodes[node.id];
@@ -351,7 +352,7 @@ function NodePanel({ host, node, calc }: { host: ModelHost; node: MNode; calc?: 
     const e = extractorById.get(node.extractor);
     head = { icon: node.extractor, title: e ? name(e) : node.extractor, sub: name(data.items[node.item]) };
     const options = data.extractors.filter(
-      (x) => x.tier <= tier && (x.resources.length ? x.resources.includes(node.item) : data.items[node.item]?.form === 'solid'),
+      (x) => isOpen(x, tier) && (x.resources.length ? x.resources.includes(node.item) : data.items[node.item]?.form === 'solid'),
     );
     body = (
       <>
@@ -458,7 +459,7 @@ function NodePanel({ host, node, calc }: { host: ModelHost; node: MNode; calc?: 
 function LinkPanel({ host, link, calc }: { host: ModelHost; link: MLink; calc?: CalcResult }) {
   const { t, name, num } = useT();
   const set = useStore((s) => s.set);
-  const tier = useStore((s) => s.tier);
+  const tier = useTier();
   const showLocked = useStore((s) => s.settings.showLocked);
   const a = host.model.nodes.find((n) => n.id === link.a);
   const b = host.model.nodes.find((n) => n.id === link.b);
@@ -495,7 +496,7 @@ function LinkPanel({ host, link, calc }: { host: ModelHost; link: MLink; calc?: 
       </dl>
       {c?.status === 'jam' && <p className="run-state big bad">{t('beltJam')}</p>}
       {/* Picked before the tier was lowered in Recipes. */}
-      {transport.tier > tier && <p className="run-state big warn">{t('needsTier', { tier: transport.tier })}</p>}
+      {!isOpen(transport, tier) && <p className="run-state big warn">{t('needsTier', { tier: transport.tier })}</p>}
       {c?.status === 'capped' && (
         <p className="run-state big warn">
           {/* The player's own limit reached, or the belt itself full. */}
@@ -519,13 +520,13 @@ function LinkPanel({ host, link, calc }: { host: ModelHost; link: MLink; calc?: 
           </button>
           {list.map((x, i) =>
             // Above the tier: greyed out, or left out unless Settings shows what the tier can't make.
-            x.tier > tier && !showLocked && x.id !== transport.id ? null : (
+            !isOpen(x, tier) && !showLocked && x.id !== transport.id ? null : (
               <button
                 key={x.id}
                 type="button"
                 role="radio"
                 aria-checked={link.mk === i}
-                disabled={x.tier > tier}
+                disabled={!isOpen(x, tier)}
                 title={`${num(x.rate)}${t('perMin')}`}
                 onClick={() => change({ mk: i })}
               >

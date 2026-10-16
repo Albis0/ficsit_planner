@@ -1,4 +1,4 @@
-import { craftableItems, data, itemTier, rawTier, recipeById, recipeTier, SPECIAL_ITEMS } from '../data';
+import { craftableItems, data, itemLock, itemTier, rawTier, recipeById, recipeLock, recipeTier, SPECIAL_ITEMS } from '../data';
 import { type ExtractionSettings, effectiveExtraction } from '../extraction';
 import { compile } from './calc/compile';
 import { LOGISTICS, SINK } from './catalog';
@@ -6,6 +6,7 @@ import type { NodeInit } from './ops';
 import { extractorById, type Medium, mediumOf, portsOf } from './ports';
 import type { LogisticKind, MNode, Model } from './types';
 import { cardSize, dirOf, endSpot, freeSpot } from './layout';
+import { type Lock, lockOf, isOpen } from '../unlocks';
 
 /*
   What can be put down on a hand-built floor, as the chooser lists it: recipes, miners and pumps, splitters and
@@ -40,6 +41,8 @@ export interface Choice {
   port?: number;
   /** Milestone tier it opens at. */
   tier: number;
+  /** What keeps it out of reach at the player's tier, when something does. */
+  lock?: Lock;
 }
 
 /** What the factory's side panel says about what goes down: the recipes it has on, and the miner it counts with. */
@@ -88,8 +91,10 @@ function extractorOf(item: string, tier: number, ex?: ExtractionSettings) {
   const options = data.extractors.filter((e) => (e.resources.length ? e.resources.includes(item) : solid));
   const pumps = options.filter((e) => e.id !== 'Build_FrackingExtractor_C');
   const pool = (pumps.length ? pumps : options).sort((a, b) => a.tier - b.tier);
-  return pool.filter((e) => e.tier <= tier).at(-1) ?? pool[0];
+  return pool.filter((e) => isOpen(e, tier)).at(-1) ?? pool[0];
 }
+
+const lockProp = (lock: Lock | undefined) => (lock ? { lock } : {});
 
 /** Everything that fits and is turned on, in the order the chooser shows it: what's unlocked first. */
 export function choicesFor(want: Want | undefined, tier: number, rules: ChoiceRules = {}): Choice[] {
@@ -111,9 +116,10 @@ export function choicesFor(want: Want | undefined, tier: number, rules: ChoiceRu
       init: { k: 'machine', recipe: r.id, auto: true, x: 0, y: 0 },
       ...(port !== undefined ? { port } : {}),
       tier: recipeTier(r),
+      ...lockProp(recipeLock(r, tier)),
     });
   }
-  const rank = (c: Choice) => (c.tier <= tier ? 0 : 1);
+  const rank = (c: Choice) => (c.lock ? 1 : 0);
   const nameOf = (c: Choice) => (c.init.k === 'machine' ? (recipeById.get(c.init.recipe)?.name ?? '') : '');
   // Then standard recipes before alternates, and converters last. For a belt, the earliest ones first (Iron Plate
   // before Ficsite Ingot); for the whole list, by name.
@@ -149,6 +155,7 @@ export function choicesFor(want: Want | undefined, tier: number, rules: ChoiceRu
         port: 0,
         // Not before anything takes it.
         tier: Math.max(e.tier, rawTier(item.id) ?? 0),
+        ...lockProp(lockOf({ id: e.id, tier: Math.max(e.tier, rawTier(item.id) ?? 0) }, tier)),
       });
     }
 
@@ -158,15 +165,16 @@ export function choicesFor(want: Want | undefined, tier: number, rules: ChoiceRu
     const items = want?.item ? [data.items[want.item]] : craftableItems;
     const ends = items
       .filter(Boolean)
-      .map((i) => ({ i, tier: itemTier(i.id) ?? 0 }))
-      .sort((a, b) => Number(a.tier > tier) - Number(b.tier > tier) || a.i.name.localeCompare(b.i.name));
-    for (const { i, tier: needs } of ends)
+      .map((i) => ({ i, tier: itemTier(i.id) ?? 0, lock: itemLock(i.id, tier) }))
+      .sort((a, b) => Number(!!a.lock) - Number(!!b.lock) || a.i.name.localeCompare(b.i.name));
+    for (const { i, tier: needs, lock } of ends)
       out.push({
         key: `o:${i.id}`,
         tab: 'end',
         init: { k: 'out', item: i.id, x: 0, y: 0 },
         ...(want ? { port: 0 } : {}),
         tier: needs,
+        ...lockProp(lock),
       });
   }
 
@@ -176,7 +184,14 @@ export function choicesFor(want: Want | undefined, tier: number, rules: ChoiceRu
     out.push({ key: `l:${kind}`, tab: 'logistic', init: { k: 'logistic', kind, x: 0, y: 0 }, ...(want ? { port: 0 } : {}), tier: 0 });
   }
   if (!want || (want.side === 'in' && want.medium === 'belt'))
-    out.push({ key: 'sink', tab: 'logistic', init: { k: 'sink', x: 0, y: 0 }, ...(want ? { port: 0 } : {}), tier: 2 });
+    out.push({
+      key: 'sink',
+      tab: 'logistic',
+      init: { k: 'sink', x: 0, y: 0 },
+      ...(want ? { port: 0 } : {}),
+      tier: 2,
+      ...lockProp(lockOf({ id: 'sink', tier: 2 }, tier)),
+    });
 
   return out;
 }

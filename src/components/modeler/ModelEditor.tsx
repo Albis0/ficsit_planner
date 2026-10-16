@@ -1,3 +1,4 @@
+import { skipKey } from '../../lib/unlocks';
 import {
   applyNodeChanges,
   Background,
@@ -43,7 +44,7 @@ import {
 import { portsOf } from '../../lib/model/ports';
 import { type GroupNode, type Model, isPart } from '../../lib/model/types';
 import { COARSE, useMediaQuery } from '../../lib/useMediaQuery';
-import { useStore } from '../../store';
+import { useStore, useTier } from '../../store';
 import { openingViewport } from '../GraphView';
 import { type AreaData, AreaNode } from './AreaNode';
 import { type BeltData, BeltLink, PickLink } from './BeltLink';
@@ -188,7 +189,7 @@ const clickStartSelector = (s: { connectionClickStartHandle: { nodeId: string; i
 
 function Canvas({ host, calc, onArrange }: { host: ModelHost; calc?: CalcResult; onArrange?: (m: Model) => void }) {
   const { t } = useT();
-  const tier = useStore((s) => s.tier);
+  const tier = useTier();
   const inspect = useStore((s) => s.inspect);
   const set = useStore((s) => s.set);
   const gridLines = useStore((s) => s.settings.gridLines);
@@ -289,9 +290,15 @@ function Canvas({ host, calc, onArrange }: { host: ModelHost; calc?: CalcResult;
   }, [model, inspect]);
 
   const [picked, setPicked] = useState<Set<string>>(new Set());
-  const net = useMemo(() => compile(model, tier), [model, tier]);
+  // biome-ignore lint/correctness/useExhaustiveDependencies: skipKey() changes when the milestones bought do
+  const net = useMemo(() => compile(model, tier), [model, tier, skipKey()]);
   // Cards that go against the side panel: a recipe turned off, above the tier, a resource past its limit.
-  const flags = useMemo(() => ruleFlags(model, { tier, on: host.on, caps: host.caps }, calc), [model, tier, host.on, host.caps, calc]);
+  // biome-ignore lint/correctness/useExhaustiveDependencies: skipKey() changes when the milestones bought do
+  const flags = useMemo(
+    () => ruleFlags(model, { tier, on: host.on, caps: host.caps }, calc),
+    [model, tier, host.on, host.caps, calc, skipKey()],
+  );
+  // biome-ignore lint/correctness/useExhaustiveDependencies: skipKey() changes when the milestones bought do
   const edges = useMemo<Edge[]>(
     () =>
       net.arcs.map((a) => ({
@@ -310,7 +317,7 @@ function Canvas({ host, calc, onArrange }: { host: ModelHost; calc?: CalcResult;
           down: dir === 'TB',
         } satisfies BeltData,
       })),
-    [net, calc, picked, inspect, tier, dir],
+    [net, calc, picked, inspect, tier, dir, skipKey()],
   );
 
   // On a touch screen a card moves only once it's picked, so a finger on any other card pans the floor.
@@ -575,6 +582,7 @@ function Canvas({ host, calc, onArrange }: { host: ModelHost; calc?: CalcResult;
   }, [reveal, flow]);
 
   /** A belt let go: on a card, onto its first free end that fits; on the floor, the chooser for what goes there. */
+  // biome-ignore lint/correctness/useExhaustiveDependencies: skipKey() changes when the milestones bought do
   const onConnectEnd = useCallback(
     (e: MouseEvent | TouchEvent, st: FinalConnectionState) => {
       if (st.isValid || !st.fromHandle) return;
@@ -602,7 +610,7 @@ function Canvas({ host, calc, onArrange }: { host: ModelHost; calc?: CalcResult;
       if (!hit?.closest('.react-flow__pane')) return;
       choose(p, wantAt(model, tier, from.nodeId, side, port));
     },
-    [model, host, tier, choose],
+    [model, host, tier, choose, skipKey()],
   );
 
   // The camera a floor opens with: all of it when built afresh or tidied up, else the stretch with the most cards.

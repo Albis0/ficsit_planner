@@ -1,3 +1,4 @@
+import { skipKey } from '../lib/unlocks';
 import { useMemo, useState } from 'react';
 import { data, rawItems, resourceWeights } from '../lib/data';
 import { type ExtractionSettings, type ExtractionUse, effectiveExtraction, PURITIES, type Purity, planExtraction } from '../lib/extraction';
@@ -5,7 +6,7 @@ import { useT } from '../lib/i18n';
 import { plantRecipe, plantValid } from '../lib/power';
 import { reachableRaw, useExports, usableRecipes } from '../lib/solution';
 import type { SolveResult } from '../lib/solver';
-import { activePowerPlan, aimOf, usePlan, useStore } from '../store';
+import { activePowerPlan, aimOf, usePlan, useStore, useTier } from '../store';
 import { ExtractionControls } from './ExtractionControls';
 import { Icon } from './Icon';
 import { RateInput } from './RateInput';
@@ -19,7 +20,7 @@ export function ResourcesPanel({ result }: { result?: SolveResult }) {
   const setCap = useStore((s) => s.setCap);
   const setWeight = useStore((s) => s.setWeight);
   const updatePlan = useStore((s) => s.updatePlan);
-  const tier = useStore((s) => s.tier);
+  const tier = useTier();
   const aim = useStore(aimOf);
   const set = useStore((s) => s.set);
   const ex = effectiveExtraction(plan.extraction, tier);
@@ -33,12 +34,13 @@ export function ResourcesPanel({ result }: { result?: SolveResult }) {
   const active = useStore((s) => s.active);
   const exports = useExports(active);
   const [showAll, setShowAll] = useState(false);
+  // biome-ignore lint/correctness/useExhaustiveDependencies: skipKey() changes when the milestones bought do
   const relevant = useMemo(() => {
     const goals = power
       ? power.plants.filter(plantValid).flatMap((p) => plantRecipe(p).inputs.map((i) => i.item))
       : [...plan.targets, ...exports].map((x) => x.item);
     return reachableRaw(goals, usableRecipes(plan, tier));
-  }, [power, plan, exports, tier]);
+  }, [power, plan, exports, tier, skipKey()]);
   const counts = (id: string) => relevant.has(id) || uses.has(id) || plan.caps[id] != null;
   const shown = sorted.filter((i) => counts(i.id));
   const hidden = sorted.length - shown.length;

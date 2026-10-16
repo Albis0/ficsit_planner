@@ -14,6 +14,7 @@ import type { RecipeMod, Target } from './lib/solver';
 import { cleanMapFilter, DEFAULT_MAP_FILTER, type MapFilter } from './lib/world';
 import { autoScope, forget, powerScope, record, redo, undo } from './lib/model/history';
 import { floorTargets, sameTargets, withTargets } from './lib/model/targets';
+import { cleanSkipped, setSkipped } from './lib/unlocks';
 import { emptyModel, type Model } from './lib/model/types';
 import type { Carrier } from './lib/transport';
 
@@ -222,6 +223,8 @@ interface State {
   tier: number;
   /** Alternate and converter recipes the player has unlocked in the game: every new factory starts with them on. */
   unlocked: string[];
+  /** Milestones of the tiers above the player has not bought: what they open stays locked. Ids in lib/unlocks. */
+  skipped: string[];
   /** Which page of "All" is on screen. Not persisted. */
   overviewTab?: 'factories' | 'recipes';
   /** Every raw resource costs the plan the same, for mods that let you build nodes anywhere. */
@@ -341,6 +344,8 @@ interface State {
   setUnlocked: (ids: string[], on: boolean) => void;
   /** Turns the unlocked recipes on in every factory already open; nothing is turned off. */
   applyUnlocked: () => void;
+  /** Marks milestones as not bought (or bought again). */
+  markSkipped: (ids: string[], skipped: boolean) => void;
   setCap: (item: string, cap: number | undefined) => void;
   setWeight: (item: string, weight: number | undefined) => void;
   setMod: (recipe: string, mod: RecipeMod | undefined) => void;
@@ -435,6 +440,7 @@ export const persisted = (s: State): Persisted => ({
   sideWidth: s.sideWidth,
   tier: s.tier,
   unlocked: s.unlocked,
+  skipped: s.skipped,
   equalWeights: s.equalWeights,
   customWeights: s.customWeights,
   fewestBuildings: s.fewestBuildings,
@@ -528,6 +534,7 @@ export const useStore = create<State>()(
         settings: DEFAULT_SETTINGS,
         tier: MAX_TIER,
         unlocked: [],
+        skipped: [],
         equalWeights: false,
         customWeights: false,
         fewestBuildings: false,
@@ -745,6 +752,14 @@ export const useStore = create<State>()(
           }
           set({ unlocked: [...cur] });
         },
+        markSkipped: (ids, skipped) => {
+          const cur = new Set(get().skipped);
+          for (const id of ids) {
+            if (skipped) cur.add(id);
+            else cur.delete(id);
+          }
+          set({ skipped: cleanSkipped([...cur]) });
+        },
         applyUnlocked: () => {
           const { unlocked, plans } = get();
           set({
@@ -828,6 +843,12 @@ export const useStore = create<State>()(
   ),
 );
 
+// The tier checks all over the app read the skipped list from the unlocks module, so it follows the store.
+setSkipped(useStore.getState().skipped);
+useStore.subscribe((s, prev) => {
+  if (s.skipped !== prev.skipped) setSkipped(s.skipped);
+});
+
 type Persisted = Partial<
   Pick<
     State,
@@ -840,6 +861,7 @@ type Persisted = Partial<
     | 'settings'
     | 'tier'
     | 'unlocked'
+    | 'skipped'
     | 'equalWeights'
     | 'customWeights'
     | 'fewestBuildings'
@@ -920,6 +942,7 @@ export function mergeState<S extends State>(persisted: unknown, current: S): S {
     settings: cleanSettings(p.settings),
     tier: Math.round(cleanNumber(p.tier, 0, MAX_TIER, current.tier)),
     unlocked: cleanUnlocked(p.unlocked),
+    skipped: cleanSkipped(p.skipped),
     equalWeights: p.equalWeights === true,
     customWeights: p.customWeights === true,
     fewestBuildings: p.fewestBuildings === true,
@@ -946,3 +969,9 @@ export const currentPlan = (s: Pick<State, 'mode' | 'power' | 'activePower' | 'p
   s.mode === 'power' ? activePowerPlan(s).chain : (s.plans.find((p) => p.id === s.active) ?? s.plans[0]);
 
 export const usePlan = () => useStore(currentPlan);
+
+/** The tier, read again when a milestone is skipped or bought: components that check what the tier opens use this. */
+export const useTier = () => {
+  useStore((s) => s.skipped);
+  return useStore((s) => s.tier);
+};

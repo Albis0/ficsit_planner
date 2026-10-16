@@ -2,7 +2,7 @@ import { data, itemLocked } from '../lib/data';
 import { useT } from '../lib/i18n';
 import { usePool } from '../lib/overview';
 import { POOL } from '../lib/pool';
-import { usePlan, useStore } from '../store';
+import { usePlan, useStore, useTier } from '../store';
 import { ItemPicker } from './ItemPicker';
 
 type Item = (typeof data.items)[string];
@@ -28,7 +28,7 @@ export function SupplyAdd({
   const plan = usePlan();
   const plans = useStore((s) => s.plans);
   const power = useStore((s) => s.power);
-  const tier = useStore((s) => s.tier);
+  const tier = useTier();
   const showLocked = useStore((s) => s.settings.showLocked);
   const others = plans.filter((p) => p.id !== plan.id);
   const poolOn = others.length > 0 || power.some((p) => p.plants.length > 0);

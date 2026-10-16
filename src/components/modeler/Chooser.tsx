@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { data, recipeById, type Stack } from '../../lib/data';
 import { useT } from '../../lib/i18n';
+import { skipKey } from '../../lib/unlocks';
 import { LOGISTICS, SINK } from '../../lib/model/catalog';
 import { CHOICE_TABS, type Choice, type ChoiceRules, type ChoiceTab, choicesFor, choiceWords, type Want } from '../../lib/model/choices';
 import { extractorById } from '../../lib/model/ports';
@@ -40,9 +41,10 @@ export function Chooser({
   const extraction = rules?.extraction;
   // Only recipes turned on in Recipes. Set to hide what isn't unlocked yet: only what can be built at this tier, and
   // no miner for a resource nothing at this tier takes.
+  // biome-ignore lint/correctness/useExhaustiveDependencies: skipKey() changes when the milestones bought do
   const all = useMemo(
-    () => choicesFor(want, tier, { on, extraction }).filter((c) => !hide || c.tier <= tier),
-    [want, tier, on, extraction, hide],
+    () => choicesFor(want, tier, { on, extraction }).filter((c) => !hide || !c.lock),
+    [want, tier, on, extraction, hide, skipKey()],
   );
   // An input wanting ore or water starts on the miners and pumps.
   const order: ChoiceTab[] =
@@ -198,7 +200,7 @@ export function Chooser({
         {rows.length === 0 && <li className="picker-empty">{t('noResults')}</li>}
         {rows.slice(0, SHOWN).map((c, k) => {
           const l = label(c);
-          const locked = c.tier > tier;
+          const locked = !!c.lock;
           return (
             // biome-ignore lint/a11y/useFocusableInteractive: options are reached through aria-activedescendant, not focus.
             <li

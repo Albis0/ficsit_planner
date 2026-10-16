@@ -3,6 +3,7 @@ import { useEffect, useRef, useState } from 'react';
 import { data, type Generator } from '../lib/data';
 import { PURITIES } from '../lib/extraction';
 import { useT } from '../lib/i18n';
+import { isOpen } from '../lib/unlocks';
 import {
   filledTo100,
   fixedAs,
@@ -18,7 +19,7 @@ import {
 import type { FactoryDraw, PowerLoad } from '../lib/solution';
 import type { SolveResult } from '../lib/solver';
 import { usePool } from '../lib/overview';
-import { activePowerPlan, POOL, poweredBy, type Supply, usePlan, useStore } from '../store';
+import { activePowerPlan, POOL, poweredBy, type Supply, usePlan, useStore, useTier } from '../store';
 import { Glyph } from './Glyph';
 import { Icon } from './Icon';
 import { ItemPicker } from './ItemPicker';
@@ -86,7 +87,7 @@ function Generators({ result }: { result?: SolveResult }) {
 /** One kind of generator: its fuel, and how many the planner builds (or you set). */
 function GenRow({ plant, result }: { plant: Plant; result?: SolveResult }) {
   const { t, name, num } = useT();
-  const tier = useStore((s) => s.tier);
+  const tier = useTier();
   const updatePlant = useStore((s) => s.updatePlant);
   const removePlant = useStore((s) => s.removePlant);
   const set = useStore((s) => s.set);
@@ -95,7 +96,7 @@ function GenRow({ plant, result }: { plant: Plant; result?: SolveResult }) {
   const use = result?.recipes.find((u) => u.recipe.id === PLANT_PREFIX + plant.id);
   const mw = result?.grid?.plants[plant.id] ?? 0;
   const put = (patch: Partial<Plant>) => updatePlant(plant.id, patch);
-  const locked = g.tier > tier;
+  const locked = !isOpen(g, tier);
   const auto = sizable(g) && plant.by === 'auto';
   const have = useStore((s) => activePowerPlan(s).sizeBy === 'have');
   // Whole generators at 100% instead; greyed out when that is what is already there.
@@ -439,7 +440,7 @@ function FactoriesBox({ draws }: PowerPanelProps) {
 /** "Add a generator": every building, and for burners every fuel, as one tap each. */
 function AddPlant() {
   const { t, name, num } = useT();
-  const tier = useStore((s) => s.tier);
+  const tier = useTier();
   const addPlant = useStore((s) => s.addPlant);
   const [open, setOpen] = useState(false);
   const root = useRef<HTMLDivElement>(null);
@@ -465,7 +466,7 @@ function AddPlant() {
 
   const hide = useStore((s) => !s.settings.showLocked);
   const groups = data.generators
-    .filter((g) => !hide || g.tier <= tier)
+    .filter((g) => !hide || isOpen(g, tier))
     .map((g) => ({ g, options: PLANT_OPTIONS.filter((o) => o.generator === g) }));
 
   return (
@@ -479,14 +480,14 @@ function AddPlant() {
       {open && (
         <div className="plant-menu" role="menu">
           {groups.map(({ g, options }) => (
-            <div key={g.id} className={`plant-menu-group ${g.tier > tier ? 'locked' : ''}`}>
+            <div key={g.id} className={`plant-menu-group ${isOpen(g, tier) ? '' : 'locked'}`}>
               <div className="plant-menu-head">
                 <Icon id={g.id} size={40} />
                 <span className="plant-menu-name">
                   {name(g)}
                   <small>{g.kind === 'geothermal' ? t('geyserRange') : `${num(g.power)} MW`}</small>
                 </span>
-                {g.tier > tier && <span className="tier-tag">{t('tierTag', { tier: g.tier })}</span>}
+                {!isOpen(g, tier) && <span className="tier-tag">{t('tierTag', { tier: g.tier })}</span>}
                 {g.kind !== 'fuel' && (
                   <button type="button" role="menuitem" className="ghost-button small" onClick={() => add(g)}>
                     {t('add')}

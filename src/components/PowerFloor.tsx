@@ -1,10 +1,11 @@
 import { useEffect, useRef, useState } from 'react';
 import { data, type Generator } from '../lib/data';
 import { useT } from '../lib/i18n';
+import { isOpen } from '../lib/unlocks';
 import { clockable, fuelRate, generatorOf, MAX_CLOCK, PLANT_OPTIONS, plantIdOf, sizable, unitPower } from '../lib/power';
 import type { PowerLoad } from '../lib/solution';
 import { shardsFor, type SolveResult } from '../lib/solver';
-import { activePowerPlan, useStore } from '../store';
+import { activePowerPlan, useStore, useTier } from '../store';
 import { Glyph } from './Glyph';
 import { Icon } from './Icon';
 import { MissingList } from './MissingList';
@@ -266,7 +267,7 @@ export function PlantInspector({ result }: { result: SolveResult }) {
 export function PowerQuickStart({ load }: { load: PowerLoad }) {
   const hide = useStore((s) => !s.settings.showLocked);
   const { t, name, num } = useT();
-  const tier = useStore((s) => s.tier);
+  const tier = useTier();
   const addPlant = useStore((s) => s.addPlant);
   const set = useStore((s) => s.set);
   const sizeBy = useStore((s) => activePowerPlan(s).sizeBy);
@@ -290,9 +291,9 @@ export function PowerQuickStart({ load }: { load: PowerLoad }) {
         )}
         <div className="gen-grid">
           {data.generators
-            .filter((g) => !hide || g.tier <= tier)
+            .filter((g) => !hide || isOpen(g, tier))
             .map((g) => {
-              const locked = g.tier > tier;
+              const locked = !isOpen(g, tier);
               const fuels = PLANT_OPTIONS.filter((o) => o.generator === g && o.fuel);
               const body = (
                 <>

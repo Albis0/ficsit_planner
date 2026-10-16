@@ -1,14 +1,15 @@
 import { MINERS, PURITIES, effectiveExtraction } from '../lib/extraction';
 import { useT } from '../lib/i18n';
+import { isOpen } from '../lib/unlocks';
 import { minerLabel } from '../lib/text';
-import { usePlan, useStore } from '../store';
+import { usePlan, useStore, useTier } from '../store';
 import { Icon } from './Icon';
 import { RateInput } from './RateInput';
 
 /** The plan's miner, node purity and extractor clock: the same three settings wherever the panel shows them. */
 export function useExtraction() {
   const plan = usePlan();
-  const tier = useStore((s) => s.tier);
+  const tier = useTier();
   const updatePlan = useStore((s) => s.updatePlan);
   const ex = effectiveExtraction(plan.extraction, tier);
   const setEx = (patch: Partial<typeof ex>) => updatePlan({ extraction: { ...ex, ...patch } });
@@ -23,14 +24,14 @@ export function ExtractionControls() {
   return (
     <>
       <div className="miner-picker" role="radiogroup" aria-label={t('miner')}>
-        {MINERS.filter((m) => showLocked || m.tier <= tier).map((m) => (
+        {MINERS.filter((m) => showLocked || isOpen(m, tier)).map((m) => (
           <button
             key={m.id}
             type="button"
             role="radio"
             aria-checked={ex.miner === m.id}
-            disabled={m.tier > tier}
-            title={m.tier > tier ? `${t('locked')} (T${m.tier})` : undefined}
+            disabled={!isOpen(m, tier)}
+            title={!isOpen(m, tier) ? `${t('locked')} (T${m.tier})` : undefined}
             onClick={() => setEx({ miner: m.id })}
           >
             <Icon id={m.id} size={44} />

@@ -5,6 +5,7 @@ import { calcModel } from './model/calc';
 import type { CalcInput, CalcResult } from './model/calc/result';
 import { autoAssign, fewestBuildings, heldByPins, SolverError, solve, type RecipeMod, type SolveInput, type SolveResult } from './solver';
 import { toFailure, type SolveFailure } from './solveFailure';
+import { setSkipped } from './unlocks';
 
 // Runs HiGHS off the main thread so solving (and auto placement's many re-solves) never freezes the UI.
 
@@ -35,8 +36,10 @@ self.onmessage = async ({ data: req }: MessageEvent<SolverRequest>) => {
     const highs = await getHighs(report);
     applyGame(req.input.game);
     let value: SolveResult | Record<string, RecipeMod> | CalcResult;
-    if (req.kind === 'model') value = calcModel(highs, req.input.model, req.input.tier);
-    else if (req.kind === 'solve') {
+    if (req.kind === 'model') {
+      setSkipped(req.input.skipped ?? []);
+      value = calcModel(highs, req.input.model, req.input.tier);
+    } else if (req.kind === 'solve') {
       const result = req.input.objective === 'buildings' ? fewestBuildings(highs, req.input) : solve(highs, req.input);
       result.heldByPins = heldByPins(highs, req.input, result);
       value = result;

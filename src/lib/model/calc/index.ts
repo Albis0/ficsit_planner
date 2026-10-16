@@ -2,6 +2,7 @@ import type { Highs } from 'highs';
 import type { Model } from '../types';
 import { basicCalc, read } from './basic';
 import { compile } from './compile';
+import { skipKey } from '../../unlocks';
 import type { CalcResult } from './result';
 
 /** Works out a hand-built model with the calculator it's set to. */
@@ -24,5 +25,5 @@ export function calcModel(highs: Highs, model: Model, tier: number): CalcResult 
 export function calcKey(model: Model, tier: number): string {
   const nodes = model.nodes.filter((n) => n.k !== 'note' && n.k !== 'group').map(({ x: _x, y: _y, done: _d, label: _l, ...rest }) => rest);
   const links = model.links.map(({ pts: _p, lbl: _l, line: _s, ...rest }) => rest);
-  return JSON.stringify([model.calc, model.stall ?? false, tier, nodes, links]);
+  return JSON.stringify([model.calc, model.stall ?? false, tier, skipKey(), nodes, links]);
 }

@@ -37,6 +37,7 @@ export function useFlagText() {
   return (f: Flag, long = false): string => {
     if (f.k === 'off') return t('flagOff');
     if (f.k === 'tier') return t('needsTier', { tier: f.tier });
+    if (f.k === 'milestone') return t('needsMilestone', { name: f.name });
     if (!long) return t('flagCap');
     return t(f.world ? 'flagWorldLong' : 'flagCapLong', { item: name(data.items[f.item]), rate: num(f.rate), cap: num(f.cap) });
   };

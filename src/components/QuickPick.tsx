@@ -1,9 +1,10 @@
+import { skipKey } from '../lib/unlocks';
 import { useMemo, useState } from 'react';
 import { craftableItems, data, itemLocked, itemTier, SPECIAL_ITEMS } from '../lib/data';
 import { useT } from '../lib/i18n';
 import { laterMatches } from '../lib/later';
 import { searchKey } from '../lib/text';
-import { useStore } from '../store';
+import { useStore, useTier } from '../store';
 import { Glyph } from './Glyph';
 import { Slot } from './Slot';
 
@@ -35,7 +36,7 @@ const RESULTS = 30;
 /** First-run screen: what to make, a search over every item, and shortcuts to the usual goals. */
 export function QuickPick() {
   const { t, name } = useT();
-  const tier = useStore((s) => s.tier);
+  const tier = useTier();
   // Set to hide what isn't unlocked yet: those leave the shortcuts and the search.
   const hide = useStore((s) => !s.settings.showLocked);
   const shown = (ids: string[]) => (hide ? ids.filter((id) => !itemLocked(id, tier)) : ids);
@@ -45,6 +46,7 @@ export function QuickPick() {
   const active = useStore((s) => s.active);
   const [q, setQ] = useState('');
 
+  // biome-ignore lint/correctness/useExhaustiveDependencies: skipKey() changes when the milestones bought do
   const matches = useMemo(() => {
     const f = searchKey(q.trim());
     if (!f) return [];
@@ -58,8 +60,9 @@ export function QuickPick() {
           name(a).localeCompare(name(b)),
       )
       .slice(0, RESULTS);
-  }, [q, name, hide, tier]);
+  }, [q, name, hide, tier, skipKey()]);
 
+  // biome-ignore lint/correctness/useExhaustiveDependencies: skipKey() changes when the milestones bought do
   const later = useMemo(
     () =>
       hide && q.trim()
@@ -69,7 +72,7 @@ export function QuickPick() {
             name,
           )
         : [],
-    [q, name, hide, tier],
+    [q, name, hide, tier, skipKey()],
   );
 
   const add = (item: string, rate: number) => {
@@ -82,12 +85,12 @@ export function QuickPick() {
       {shown(ids).map((id) => {
         // Above the unlocked tier: still pickable, but say when it opens up.
         const needs = itemTier(id);
-        const locked = needs !== undefined && needs > tier;
+        const locked = itemLocked(id, tier);
         return (
           <button key={id} type="button" className={`quick-item ${locked ? 'locked' : ''}`} onClick={() => add(id, rate)}>
             <Slot id={id} size={72} />
             <span>{name(data.items[id])}</span>
-            {locked && <span className="tier-tag">{t('tierTag', { tier: needs })}</span>}
+            {locked && <span className="tier-tag">{t('tierTag', { tier: needs ?? 0 })}</span>}
           </button>
         );
       })}

@@ -1,4 +1,5 @@
-import { data, recipeById, recipeTier } from '../data';
+import { data, recipeById, recipeLock } from '../data';
+import { type Lock, lockOf } from '../unlocks';
 import type { CalcResult } from './calc/result';
 import { extractorById, portsOf } from './ports';
 import { isPart, type Model } from './types';
@@ -61,7 +62,13 @@ export function openCards(m: Model, open = openEnds(m)): string[] {
  * Where a card goes against the factory's side panel: its recipe turned off in Recipes, above the tier picked there,
  * or a resource mined past its limit in Resources (or past what the world has).
  */
-export type Flag = { k: 'off' } | { k: 'tier'; tier: number } | { k: 'cap'; item: string; rate: number; cap: number; world?: true };
+export type Flag =
+  | { k: 'off' }
+  | { k: 'tier'; tier: number }
+  | { k: 'milestone'; name: string }
+  | { k: 'cap'; item: string; rate: number; cap: number; world?: true };
+
+const flagOf = (lock: Lock): Flag => ('milestone' in lock ? { k: 'milestone', name: lock.milestone.name } : { k: 'tier', tier: lock.tier });
 
 export interface FlagRules {
   tier: number;
@@ -79,12 +86,13 @@ export function ruleFlags(m: Model, rules: FlagRules, calc?: CalcResult): Map<st
     if (n.k === 'machine') {
       const r = recipeById.get(n.recipe);
       if (!r) continue;
-      const tier = recipeTier(r);
-      if (tier > rules.tier) flags.set(n.id, { k: 'tier', tier });
+      const lock = recipeLock(r, rules.tier);
+      if (lock) flags.set(n.id, flagOf(lock));
       else if (rules.on && !rules.on.has(r.id)) flags.set(n.id, { k: 'off' });
     } else if (n.k === 'extract') {
       const e = extractorById.get(n.extractor);
-      if (e && e.tier > rules.tier) flags.set(n.id, { k: 'tier', tier: e.tier });
+      const lock = e && lockOf(e, rules.tier);
+      if (lock) flags.set(n.id, flagOf(lock));
       const c = calc?.nodes[n.id];
       if (c) mined.set(n.item, (mined.get(n.item) ?? 0) + (c.outs[0] ?? 0) + (c.spare?.[0] ?? 0));
     }

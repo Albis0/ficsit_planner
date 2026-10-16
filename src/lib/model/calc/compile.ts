@@ -1,5 +1,6 @@
 import { data, type Recipe, type Transport } from '../../data';
 import { amplification } from '../../solver';
+import { isOpen } from '../../unlocks';
 import { mediumOf, type Medium, type Ports, portAccepts, portsOf, runnerRecipe } from '../ports';
 import { isPart, isRunner, type MLink, type MNode, type Model } from '../types';
 
@@ -52,7 +53,7 @@ export interface Net {
 export function transportOf(medium: Medium, mk: number | undefined, tier: number): Transport {
   const all = medium === 'pipe' ? data.pipes : data.belts;
   if (mk !== undefined) return all[Math.min(all.length - 1, Math.max(0, mk))];
-  return all.filter((t) => t.tier <= tier).at(-1) ?? all[0];
+  return all.filter((t) => isOpen(t, tier)).at(-1) ?? all[0];
 }
 
 /**
@@ -63,8 +64,8 @@ export function transportOf(medium: Medium, mk: number | undefined, tier: number
 export function builtTransport(medium: Medium, link: MLink, tier: number, rate?: number): Transport {
   if (link.mk !== undefined || rate === undefined) return transportOf(medium, link.mk, tier);
   const lanes = link.lanes ?? 1;
-  const open = (medium === 'pipe' ? data.pipes : data.belts).filter((t) => t.tier <= tier);
-  return open.find((t) => t.rate * lanes >= rate - 1e-6) ?? transportOf(medium, undefined, tier);
+  const usable = (medium === 'pipe' ? data.pipes : data.belts).filter((t) => isOpen(t, tier));
+  return usable.find((t) => t.rate * lanes >= rate - 1e-6) ?? transportOf(medium, undefined, tier);
 }
 
 /** Which kind of line a link is: whatever its ends say, belt when neither does. */

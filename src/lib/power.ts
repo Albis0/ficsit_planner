@@ -1,6 +1,7 @@
 import { data, type Generator, generatorById, type Recipe } from './data';
 import { PURITY, type Purity } from './extraction';
 import type { RecipeUse } from './solver';
+import { isOpen } from './unlocks';
 
 /**
  * How a power plant is sized: whatever the grid still needs ('auto', worked out by the solver),
@@ -138,7 +139,7 @@ export function plantValid(p: Plant): boolean {
 }
 
 /** Is the plant's building (and its fuel's production) available at this tier. */
-export const plantUnlocked = (p: Plant, tier: number) => generatorOf(p).tier <= tier;
+export const plantUnlocked = (p: Plant, tier: number) => isOpen(generatorOf(p), tier);
 
 /** Fuels a burner takes that nothing in the game makes: leaves, wood and mycelia are picked by hand. */
 export const handFed = (item: string) => !data.recipes.some((r) => r.outputs.some((o) => o.item === item));

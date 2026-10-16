@@ -2,13 +2,13 @@ import { data, recipeById, whyMissing } from '../lib/data';
 import { useT } from '../lib/i18n';
 import type { Target } from '../lib/solver';
 import { recipeLabel } from '../lib/text';
-import { activePowerPlan, usePlan, useStore } from '../store';
+import { activePowerPlan, usePlan, useStore, useTier } from '../store';
 import { Icon } from './Icon';
 
 /** Each item the plan can't make, why, and the fix: switch tier, turn its recipe on, or bring it in. */
 export function MissingList({ missing }: { missing: Target[] }) {
   const { t, name, num } = useT();
-  const tier = useStore((s) => s.tier);
+  const tier = useTier();
   const set = useStore((s) => s.set);
   const addSupply = useStore((s) => s.addSupply);
   const updatePower = useStore((s) => s.updatePower);

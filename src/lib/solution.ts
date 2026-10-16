@@ -1,6 +1,7 @@
+import { skipKey } from './unlocks';
 import { type GameRules, isDefaultGame } from './game';
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { aimOf, exportsOf, type Plan, poweredBy, type PowerPlan, useStore } from '../store';
+import { aimOf, exportsOf, type Plan, poweredBy, type PowerPlan, useStore, useTier } from '../store';
 import { data, recipeById, recipeUnlocked } from './data';
 import {
   capsWithNodes,
@@ -223,7 +224,7 @@ interface Entry {
 }
 
 const drawKey = (tier: number, exports: Export[], aim: Aim, game: GameRules, each: boolean) =>
-  `${tier}|${aim}|${game.parts}|${game.power}|${each}|${JSON.stringify(exports)}`;
+  `${tier}|${skipKey()}|${aim}|${game.parts}|${game.power}|${each}|${JSON.stringify(exports)}`;
 
 // Solved draws, kept per plan object and tier: an unchanged factory isn't solved again, and a late
 // answer for one tier can't overwrite another's.
@@ -278,12 +279,13 @@ export interface FactoryEntry extends FactoryDraw {
  */
 export function useFactoryEntries(enabled: boolean): FactoryEntry[] {
   const plans = useStore((s) => s.plans);
-  const tier = useStore((s) => s.tier);
+  const tier = useTier();
   const aim = useStore(aimOf);
   const game = useStore((s) => s.settings.game);
   const each = useStore((s) => s.settings.splitLines) === 'each';
   const [landed, bump] = useState(0);
 
+  // biome-ignore lint/correctness/useExhaustiveDependencies: skipKey() changes when the milestones bought do
   useEffect(() => {
     if (!enabled) return;
     let live = true;
@@ -294,7 +296,7 @@ export function useFactoryEntries(enabled: boolean): FactoryEntry[] {
     return () => {
       live = false;
     };
-  }, [enabled, plans, tier, aim, game, each]);
+  }, [enabled, plans, tier, aim, game, each, skipKey()]);
 
   // biome-ignore lint/correctness/useExhaustiveDependencies: `landed` re-reads the cache once a solve lands.
   return useMemo(
@@ -313,7 +315,7 @@ export function useFactoryEntries(enabled: boolean): FactoryEntry[] {
           machines: entry?.machines,
         };
       }),
-    [plans, tier, aim, game, each, landed],
+    [plans, tier, aim, game, each, landed, skipKey()],
   );
 }
 

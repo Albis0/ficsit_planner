@@ -15,6 +15,7 @@
     "build": "tsc -p . && vite build",
     "extract": "bun scripts/extract.mjs",
     "extract:codex": "bun scripts/extract-codex.mjs",
+    "extract:milestones": "bun scripts/extract-milestones.mjs",
     "extract:map": "bun scripts/extract-map.mjs",
     "extract:world": "bun scripts/extract-world.mjs",
     "extract:elevator": "dotnet run --project tools/map-extractor -c Release -- \"C:/Program Files/Epic Games/Satisfactory\" phases src/data/elevator.json",

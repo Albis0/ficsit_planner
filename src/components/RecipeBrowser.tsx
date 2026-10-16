@@ -1,8 +1,9 @@
+import { skipKey } from '../lib/unlocks';
 import { type ReactNode, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { data, recipeTier, recipeUnlocked, type Recipe, type RecipeKind, type Stack } from '../lib/data';
 import { useT } from '../lib/i18n';
 import { recipeLabel, searchKey } from '../lib/text';
-import { MAX_TIER, useStore } from '../store';
+import { MAX_TIER, useStore, useTier } from '../store';
 import { Glyph } from './Glyph';
 import { Icon } from './Icon';
 import { Slot } from './Slot';
@@ -27,7 +28,7 @@ interface Props {
 /** Recipes grouped by what they make, each with a tick: the list a factory uses, or the one every new factory starts with. */
 export function RecipeBrowser({ enabled, onToggle: toggle, onSet: setRecipes, optionalOnly, extra }: Props) {
   const { t, name, num } = useT();
-  const tier = useStore((s) => s.tier);
+  const tier = useTier();
   const set = useStore((s) => s.set);
   const [filter, setFilter] = useState<Filter>('alternate');
   const [q, setQ] = useState('');
@@ -39,6 +40,7 @@ export function RecipeBrowser({ enabled, onToggle: toggle, onSet: setRecipes, op
   const on = useMemo(() => new Set(enabled), [enabled]);
 
   // Group by main product so every way to make screws sits together.
+  // biome-ignore lint/correctness/useExhaustiveDependencies: skipKey() changes when the milestones bought do
   const listed = useMemo(() => {
     const f = searchKey(q.trim());
     const match = (r: Recipe) =>
@@ -64,7 +66,7 @@ export function RecipeBrowser({ enabled, onToggle: toggle, onSet: setRecipes, op
         ? data.recipes.filter((r) => (!optionalOnly || optionalKind(r)) && match(r) && (showLocked || recipeUnlocked(r, tier))).length
         : 0;
     return { groups: sorted, hidden, elsewhere };
-  }, [filter, q, name, showLocked, tier, optionalOnly]);
+  }, [filter, q, name, showLocked, tier, optionalOnly, skipKey()]);
   const { groups, hidden, elsewhere } = listed;
 
   // Bulk buttons leave recipes above the tier alone; those can't be picked one by one either.
