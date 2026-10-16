@@ -132,6 +132,13 @@ async function addHere(prefer = 'right') {
   await wait(300);
 }
 
+/** The view menu along the bottom of the floor: Factory 0, List 1, Transport 2. */
+async function pickView(idx) {
+  await page.locator('.floor-bar .view-menu button').click();
+  await wait(200);
+  await page.locator('.card-menu [role=menuitem]').nth(idx).click();
+}
+
 /** Cards drawn on top of each other. */
 const overlaps = () =>
   page.evaluate(() => {
@@ -618,14 +625,14 @@ const clash = (a, b) => a && b && a.x < b.x + b.width && b.x < a.x + a.width && 
     '.react-flow__node .machine-node',
     (l) => l.filter((c) => !/Input not connected|Idle/.test(c.textContent)).length,
   );
-  await page.locator('.floor-bar .segmented:not(.floor-kind) button >> nth=1').click();
+  await pickView(1);
   await wait(600);
   const rows = await page.locator('.table-view tbody tr, .table tbody tr, table tbody tr').count();
   ok('the list shows the manual machines', rows >= running && running > 0, `${rows} rows, ${running} running`);
-  await page.locator('.floor-bar .segmented:not(.floor-kind) button >> nth=2').click();
+  await pickView(2);
   await wait(600);
   ok('transport view opens', (await page.locator('.floor-view').innerText()).length > 0);
-  await page.locator('.floor-bar .segmented:not(.floor-kind) button >> nth=0').click();
+  await pickView(0);
   await wait(600);
   ok('back on the floor, the camera where it was', (await viewport()) === camBefore);
   await page.click('.floor-kind button >> nth=0');
@@ -987,7 +994,10 @@ const clash = (a, b) => a && b && a.x < b.x + b.width && b.x < a.x + a.width && 
       return page.evaluate(() => JSON.parse(localStorage.getItem('ficsit-planner')).state.plans[0].pooled ?? []);
     };
     const button = page.locator('.endpoint-node.manual.target .endpoint-pool');
-    ok('Manual: an output card has a To the pool button', (await button.count()) === 1 && (await button.innerText()).includes('To the pool'));
+    ok(
+      'Manual: an output card has a To the pool button',
+      (await button.count()) === 1 && (await button.innerText()).includes('To the pool'),
+    );
     ok('Manual: it starts not in the pool', (await pooledNow()).length === 0);
     await button.click();
     ok('Manual: a click offers the product to the pool', (await pooledNow()).includes('Desc_Motor_C'));
@@ -2441,7 +2451,7 @@ const clash = (a, b) => a && b && a.x < b.x + b.width && b.x < a.x + a.width && 
     ['list', 1],
     ['transport', 2],
   ]) {
-    await page.locator('.floor-bar .segmented:not(.floor-kind) button').nth(idx).click();
+    await pickView(idx);
     await wait(900);
     await page.evaluate(() => {
       for (const e of document.querySelectorAll('.table-wrap, .transport-wrap')) e.scrollTop = e.scrollHeight;

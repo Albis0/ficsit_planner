@@ -5,6 +5,7 @@ import { useCodexRoute } from './components/codex/route';
 import { autoDir, type FactoryLinks, GraphView } from './components/GraphView';
 import { Glyph } from './components/Glyph';
 import { Inspector } from './components/Inspector';
+import { ViewMenu } from './components/ViewMenu';
 import { MapNav } from './components/MapNav';
 import { MissingList } from './components/MissingList';
 import { MobileMenu, MobileNav } from './components/MobileChrome';
@@ -574,24 +575,7 @@ export default function App() {
                     </button>
                   </div>
                 )}
-                <div className="segmented" role="radiogroup">
-                  <button
-                    type="button"
-                    role="radio"
-                    aria-checked={s.view === 'graph' || (powerMode && s.view === 'transport')}
-                    onClick={() => s.set({ view: 'graph' })}
-                  >
-                    {t('graph')}
-                  </button>
-                  <button type="button" role="radio" aria-checked={s.view === 'table'} onClick={() => s.set({ view: 'table' })}>
-                    {t('table')}
-                  </button>
-                  {!powerMode && (
-                    <button type="button" role="radio" aria-checked={s.view === 'transport'} onClick={() => s.set({ view: 'transport' })}>
-                      {t('transportView')}
-                    </button>
-                  )}
-                </div>
+                <ViewMenu powerMode={powerMode} />
                 {!s.inspect && !manual && (powerMode || s.view !== 'transport') && (
                   <span className="floor-hint-slot">
                     <span className="floor-hint">{powerMode ? t('inspectPowerHint') : t('inspectHint')}</span>

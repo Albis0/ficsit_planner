@@ -181,3 +181,17 @@
     min-width: 0;
   }
 }
+
+/* The view switch along the floor's bottom edge: one button naming the view on show, in the colour a picked segment has. */
+.view-menu button {
+  white-space: nowrap;
+  background: var(--ficsit);
+  color: var(--ficsit-ink);
+  box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.25);
+}
+
+.view-menu button:hover {
+  background: var(--ficsit);
+  color: var(--ficsit-ink);
+  filter: brightness(1.08);
+}
