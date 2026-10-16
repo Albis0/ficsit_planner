@@ -410,6 +410,17 @@ const clash = (a, b) => a && b && a.x < b.x + b.width && b.x < a.x + a.width && 
   await fit();
   await card(cons.id).locator('.machine-strip').click();
   await wait();
+  // A small floor: the panel grows up over the one above it, to just under the top bar.
+  const reach = await page.evaluate(() => {
+    const f = document.querySelector('.floor-view').getBoundingClientRect();
+    const p = document.querySelector('aside.inspector').getBoundingClientRect();
+    return { floor: f.height, panel: p.height, top: p.top, bar: document.querySelector('.topbar').getBoundingClientRect().bottom };
+  });
+  ok(
+    'on a small floor the machine panel is taller than the floor',
+    reach.floor >= 520 || (reach.panel > reach.floor && reach.top >= reach.bar && reach.top < reach.bar + 40),
+    JSON.stringify(reach),
+  );
   const count = page.locator('aside.inspector .stepper input');
   await count.click();
   await count.fill('8/3');

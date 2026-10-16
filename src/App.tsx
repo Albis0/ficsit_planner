@@ -6,6 +6,7 @@ import { autoDir, type FactoryLinks, GraphView } from './components/GraphView';
 import { Glyph } from './components/Glyph';
 import { Inspector } from './components/Inspector';
 import { ViewMenu } from './components/ViewMenu';
+import { useTallPanel } from './lib/tallPanel';
 import { MapNav } from './components/MapNav';
 import { MissingList } from './components/MissingList';
 import { MobileMenu, MobileNav } from './components/MobileChrome';
@@ -135,6 +136,7 @@ function useSolutions() {
 
 export default function App() {
   const { t, lang } = useT();
+  useTallPanel();
   const tierOff = useStore((x) => offAt(x.tier, x.skipped));
   const s = useStore(
     useShallow((x) => ({
