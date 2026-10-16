@@ -1,3 +1,4 @@
+import type { ReactNode } from 'react';
 import { data } from '../../lib/data';
 import { PURITIES } from '../../lib/extraction';
 import { useT } from '../../lib/i18n';
@@ -17,6 +18,7 @@ import { Icon } from '../Icon';
 import { ItemPicker } from '../ItemPicker';
 import { RateInput } from '../RateInput';
 import { ColorWheel } from './ColorWheel';
+import { useAreaHost } from './hosts';
 import { linkKey, type ModelHost } from './ModelEditor';
 import { SpeedButtons, useFlagText, useStatusText } from './PartNode';
 
@@ -36,8 +38,16 @@ export function ModelInspector({ host, calc: all }: { host: ModelHost; calc?: Ca
   return node ? <NodePanel host={host} node={node} calc={calc} /> : null;
 }
 
+/** On the Auto floor: the panel of an area when one is picked, the machine's panel (`fallback`) otherwise. */
+export function AutoAreaPanel({ fallback }: { fallback: ReactNode }) {
+  const host = useAreaHost();
+  const inspect = useStore((s) => s.inspect);
+  const node = host.model.nodes.find((n) => n.id === inspect);
+  return node?.k === 'group' ? <AreaPanel host={host} node={node} auto /> : fallback;
+}
+
 /** An area: its name, note, icon and colour. Taking it off leaves the cards where they are. */
-function AreaPanel({ host, node }: { host: ModelHost; node: GroupNode }) {
+function AreaPanel({ host, node, auto }: { host: ModelHost; node: GroupNode; auto?: boolean }) {
   const { t, name } = useT();
   const set = useStore((s) => s.set);
   const inside = insideArea(host.model, node.id).filter((id) => {
@@ -48,7 +58,7 @@ function AreaPanel({ host, node }: { host: ModelHost; node: GroupNode }) {
     host.edit((m) => updateNode(m, node.id, patch), key && `${node.id}:${key}`);
   return (
     <aside className="inspector manual" aria-label={node.label || t('area')}>
-      <Head icon={node.icon ?? ''} title={node.label || t('area')} sub={t('areaInside', { n: inside })} />
+      <Head icon={node.icon ?? ''} title={node.label || t('area')} sub={auto ? undefined : t('areaInside', { n: inside })} />
       <div className="inspector-row">
         <label className="inspector-label" htmlFor="area-name">
           {t('areaName')}

@@ -42,11 +42,11 @@ import {
   updateNode,
 } from '../../lib/model/ops';
 import { portsOf } from '../../lib/model/ports';
-import { type GroupNode, type Model, isPart } from '../../lib/model/types';
+import { type Model, isPart } from '../../lib/model/types';
 import { COARSE, useMediaQuery } from '../../lib/useMediaQuery';
 import { useStore, useTier } from '../../store';
 import { openingViewport } from '../GraphView';
-import { type AreaData, AreaNode } from './AreaNode';
+import { AreaNode, areaNodes } from './AreaNode';
 import { type BeltData, BeltLink, PickLink } from './BeltLink';
 import { CardMenu, type CardMenuItem } from './CardMenu';
 import { Chooser } from './Chooser';
@@ -246,24 +246,7 @@ function Canvas({ host, calc, onArrange }: { host: ModelHost; calc?: CalcResult;
       }
       const was = new Map(keep?.map((n) => [n.id, n]));
       // Areas lie behind everything, and only their title strip takes the pointer (see AreaNode).
-      const areas = m.nodes
-        .filter((n): n is GroupNode => n.k === 'group')
-        .map(
-          (n): Node => ({
-            ...was.get(n.id),
-            id: n.id,
-            type: 'area',
-            position: { x: n.x, y: n.y },
-            width: n.w,
-            height: n.h,
-            zIndex: -1,
-            dragHandle: '.area-grip, .area-edge',
-            // Picked from the panel, not by a box drawn over the floor, so a box round some cards never takes the area along.
-            selectable: false,
-            data: { node: n } satisfies AreaData,
-            selected: inspect === n.id,
-          }),
-        );
+      const areas = areaNodes(m.nodes, inspect, keep);
       const parts = m.nodes.filter(isPart).map((n) => ({
         ...was.get(n.id),
         id: n.id,

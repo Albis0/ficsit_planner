@@ -3,7 +3,9 @@ import { compile } from '../src/lib/model/calc/compile';
 import { AREA_COLOR, hexToHsv, hsvToHex } from '../src/lib/model/color';
 import { clipText, copyNodes, insideArea, pasteClip, readClip } from '../src/lib/model/ops';
 import { cleanModel } from '../src/lib/model/sanitize';
-import type { Model } from '../src/lib/model/types';
+import { emptyModel, type Model } from '../src/lib/model/types';
+import { cleanPlan } from '../src/lib/sanitize';
+import { newPlan } from '../src/store';
 
 const floor = {
   v: 1,
@@ -70,5 +72,25 @@ describe('colours', () => {
     expect(hexToHsv('#ff0000')).toEqual({ h: 0, s: 1, v: 1 });
     expect(hexToHsv('#00ff00').h).toBe(120);
     expect(hsvToHex({ h: 240, s: 1, v: 1 })).toBe('#0000ff');
+  });
+});
+
+describe('areas on the Auto floor', () => {
+  const plan = () => newPlan('A');
+  const area = { id: '1', k: 'group', x: 40, y: 40, w: 400, h: 200, label: 'Motors', color: '#4aa3e8' };
+
+  test('a factory tab keeps its areas, with no cards or belts', () => {
+    const saved = JSON.parse(
+      JSON.stringify({ ...plan(), areas: { ...emptyModel(), nodes: [area, { id: '2', k: 'sink', x: 0, y: 0 }], seq: 3 } }),
+    );
+    const p = cleanPlan(saved, plan());
+    expect(p.areas?.nodes).toEqual([expect.objectContaining({ k: 'group', label: 'Motors', color: '#4aa3e8', w: 400, h: 200 })]);
+    expect(p.areas?.links).toEqual([]);
+  });
+
+  test('a tab with none carries nothing, and an old save without the field loads as before', () => {
+    expect(cleanPlan(plan(), plan()).areas).toBeUndefined();
+    expect(cleanPlan({ ...plan(), areas: { nodes: [] } }, plan()).areas).toBeUndefined();
+    expect(cleanPlan({ ...plan(), areas: 'junk' }, plan()).areas).toBeUndefined();
   });
 });

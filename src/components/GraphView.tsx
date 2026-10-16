@@ -23,7 +23,9 @@ import { createContext, useCallback, useContext, useEffect, useMemo, useRef, use
 import { groupClocks } from '../lib/clocks';
 import { buildGroups, groupsLabel, isPipe } from '../lib/groups';
 import { data } from '../lib/data';
-import { GRID } from '../lib/model/layout';
+import { GRID, snapHalf } from '../lib/model/layout';
+import { addNode, moveNodes, updateNode } from '../lib/model/ops';
+import { emptyModel, type Model } from '../lib/model/types';
 import type { ExtractionUse } from '../lib/extraction';
 import {
   buildGraph,
@@ -56,6 +58,10 @@ import { beltStroke } from './floor/BeltStroke';
 import { longestRunMid, SQUARE_TURN, squarePath } from './floor/squarePath';
 import { Glyph } from './Glyph';
 import { Icon } from './Icon';
+import { AreaNode, areaNodes } from './modeler/AreaNode';
+import { useAreaHost } from './modeler/hosts';
+import { EditCard } from './modeler/PartNode';
+import { useAreaDraw } from './modeler/useAreaDraw';
 import { Slot } from './Slot';
 import { SurplusMake } from './SurplusMake';
 import { SplitBadge, SplitTo } from './SplitText';
@@ -736,7 +742,7 @@ function LogisticNode({ id, data: d }: NodeProps) {
   );
 }
 
-const nodeTypes = { machine: MachineNode, endpoint: EndpointNode, power: PowerNode, line: LineTag, logistic: LogisticNode };
+const nodeTypes = { machine: MachineNode, endpoint: EndpointNode, power: PowerNode, line: LineTag, logistic: LogisticNode, area: AreaNode };
 const edgeTypes = { flow: FlowEdge, power: PowerEdge };
 
 /** The direction switch (left to right or top to bottom) and fit to screen. */
@@ -871,10 +877,13 @@ export function openingViewport(nodes: Node[], width: number, height: number, di
 /** Whether a node is the card (or the first of its cards, or its copy on a line of its own) of this recipe's machines. */
 const isCard = (nodeId: string, recipe: string) => nodeId.replace(/^L\d+:/, '').replace(/~\d+$/, '') === `recipe:${recipe}`;
 
+/** A floor with no areas drawn yet; one object, so nothing looks changed. */
+const NO_AREAS = emptyModel();
+
 // Camera survives re-solves that keep the same machines (e.g. tweaking a clock speed).
 let camera: { sig: string; viewport?: Viewport } = { sig: '' };
 
-function Canvas({ nodes, edges, sig, dir }: { nodes: Node[]; edges: Edge[]; sig: string; dir: Direction }) {
+function Canvas({ nodes, edges, sig, dir, areas }: { nodes: Node[]; edges: Edge[]; sig: string; dir: Direction; areas?: Model }) {
   const inspect = useStore((s) => s.inspect);
   const set = useStore((s) => s.set);
   const gridLines = useStore((s) => s.settings.gridLines);
@@ -901,6 +910,12 @@ function Canvas({ nodes, edges, sig, dir }: { nodes: Node[]; edges: Edge[]; sig:
 
   const flow = useReactFlow();
   const { toggle } = useContext(Built);
+  const host = useAreaHost();
+  // Areas come and go without the floor being laid out again: they are swapped in among the cards the flow already holds.
+  useEffect(() => {
+    if (!areas) return;
+    flow.setNodes((cur) => [...areaNodes(areas.nodes, inspect, cur), ...cur.filter((n) => n.type !== 'area')]);
+  }, [areas, inspect, flow]);
   const opening = useRef<number>(undefined);
   // Which card of a split line was clicked: the view and the lit-up belts follow that one, not the line's first card.
   const [clicked, setClicked] = useState<string>();
@@ -954,6 +969,22 @@ function Canvas({ nodes, edges, sig, dir }: { nodes: Node[]; edges: Edge[]; sig:
     focus.value = light();
   }
   const root = useRef<HTMLDivElement>(null);
+  const drawing = useAreaDraw(root, (a, b) => {
+    // The power planner's floor has none: its plan is the plant's.
+    if (!areas) return;
+    const p = flow.screenToFlowPosition(a);
+    const q = flow.screenToFlowPosition(b);
+    const [x, y] = [snapHalf(Math.min(p.x, q.x)), snapHalf(Math.min(p.y, q.y))];
+    const [w, h] = [Math.max(2 * GRID, snapHalf(Math.abs(p.x - q.x))), Math.max(2 * GRID, snapHalf(Math.abs(p.y - q.y)))];
+    let made: string | undefined;
+    host.edit((m) => {
+      const r = addNode(m, { k: 'group', x, y, w, h });
+      made = r.id;
+      return r.model;
+    });
+    if (made) set({ inspect: made });
+  });
+  const editArea = useCallback((id: string, patch: Record<string, unknown>) => host.edit((m) => updateNode(m, id, patch)), [host]);
   // Tells the cards and belts only when what is lit has changed. The fading itself is the stylesheet's, off two
   // classes on the floor, so a hover doesn't redraw every card and belt.
   const apply = useCallback(() => {
@@ -969,82 +1000,93 @@ function Canvas({ nodes, edges, sig, dir }: { nodes: Node[]; edges: Edge[]; sig:
   return (
     <Focus.Provider value={focus}>
       <PickEdge.Provider value={setEdge}>
-        <ReactFlow
-          ref={root}
-          defaultNodes={nodes}
-          defaultEdges={edges}
-          nodeTypes={nodeTypes}
-          edgeTypes={edgeTypes}
-          nodesConnectable={false}
-          nodesDraggable={!coarse}
-          snapToGrid
-          snapGrid={[GRID, GRID]}
-          onlyRenderVisibleElements={nodes.length > BIG_GRAPH}
-          edgesFocusable={false}
-          minZoom={minZoom}
-          maxZoom={2}
-          proOptions={{ hideAttribution: true }}
-          defaultViewport={restore}
-          onMoveStart={() => document.querySelector('.react-flow')?.classList.add('moving')}
-          onMoveEnd={(_, viewport) => {
-            document.querySelector('.react-flow')?.classList.remove('moving');
-            camera = { sig, viewport };
-          }}
-          onInit={(flow) => {
-            if (!restore) {
-              const box = document.querySelector('.floor-view')?.getBoundingClientRect();
-              if (box) flow.setViewport(openingViewport(nodes, box.width, box.height - BAR, dir));
-            }
-            camera = { sig, viewport: flow.getViewport() };
-          }}
-          // A finger has no hover: a tap would leave the whole floor faded around it until the next tap.
-          onNodeMouseEnter={
-            coarse
-              ? undefined
-              : (_, n) => {
-                  clearTimeout(leaving.current);
-                  hoverRef.current = n.id;
-                  apply();
-                }
-          }
-          onNodeMouseLeave={
-            coarse
-              ? undefined
-              : () => {
-                  // Crossing the gap to the next card shouldn't light and darken the whole floor in between.
-                  clearTimeout(leaving.current);
-                  leaving.current = setTimeout(() => {
-                    hoverRef.current = undefined;
+        <EditCard.Provider value={editArea}>
+          <ReactFlow
+            ref={root}
+            defaultNodes={areas ? [...areaNodes(areas.nodes, inspect), ...nodes] : nodes}
+            defaultEdges={edges}
+            nodeTypes={nodeTypes}
+            edgeTypes={edgeTypes}
+            nodesConnectable={false}
+            nodesDraggable={!coarse}
+            snapToGrid
+            snapGrid={[GRID, GRID]}
+            onlyRenderVisibleElements={nodes.length > BIG_GRAPH}
+            edgesFocusable={false}
+            minZoom={minZoom}
+            maxZoom={2}
+            proOptions={{ hideAttribution: true }}
+            defaultViewport={restore}
+            onMoveStart={() => document.querySelector('.react-flow')?.classList.add('moving')}
+            onMoveEnd={(_, viewport) => {
+              document.querySelector('.react-flow')?.classList.remove('moving');
+              camera = { sig, viewport };
+            }}
+            onInit={(flow) => {
+              if (!restore) {
+                const box = document.querySelector('.floor-view')?.getBoundingClientRect();
+                if (box) flow.setViewport(openingViewport(nodes, box.width, box.height - BAR, dir));
+              }
+              camera = { sig, viewport: flow.getViewport() };
+            }}
+            // A finger has no hover: a tap would leave the whole floor faded around it until the next tap.
+            onNodeMouseEnter={
+              coarse
+                ? undefined
+                : (_, n) => {
+                    // An area lights nothing around it.
+                    if (n.type === 'area') return;
+                    clearTimeout(leaving.current);
+                    hoverRef.current = n.id;
                     apply();
-                  }, 120);
-                }
-          }
-          onNodeClick={(e, n) => {
-            setEdge(undefined);
-            // The machine's panel waits out a double click, which ticks it built instead.
-            clearTimeout(opening.current);
-            if (e.detail > 1 || n.type !== 'machine') return;
-            const recipe = (n.data as MachineNodeData).use.recipe.id;
-            setClicked(n.id);
-            if (!toggle) set({ inspect: recipe });
-            else opening.current = window.setTimeout(() => set({ inspect: recipe }), DOUBLE);
-          }}
-          onNodeDoubleClick={(_, n) => {
-            clearTimeout(opening.current);
-            if (!toggle || n.type !== 'machine') return;
-            const { use } = n.data as MachineNodeData;
-            if (use.recipe.kind !== 'power') toggle(use.recipe.id);
-          }}
-          onPaneClick={() => {
-            setEdge(undefined);
-            set({ inspect: undefined });
-          }}
-        >
-          {/* Foundation grid: minor lines every 8 m tile, a heavier seam every 4 tiles. */}
-          {gridLines && <Background id="minor" variant={BackgroundVariant.Lines} gap={GRID} lineWidth={1} color="#2f2f2f" />}
-          {gridLines && <Background id="major" variant={BackgroundVariant.Lines} gap={GRID * 4} lineWidth={1} color="#3b3b3b" />}
-          <FloorControls />
-        </ReactFlow>
+                  }
+            }
+            onNodeMouseLeave={
+              coarse
+                ? undefined
+                : () => {
+                    // Crossing the gap to the next card shouldn't light and darken the whole floor in between.
+                    clearTimeout(leaving.current);
+                    leaving.current = setTimeout(() => {
+                      hoverRef.current = undefined;
+                      apply();
+                    }, 120);
+                  }
+            }
+            onNodeClick={(e, n) => {
+              setEdge(undefined);
+              // The machine's panel waits out a double click, which ticks it built instead.
+              clearTimeout(opening.current);
+              if (n.type === 'area') return set({ inspect: n.id });
+              if (e.detail > 1 || n.type !== 'machine') return;
+              const recipe = (n.data as MachineNodeData).use.recipe.id;
+              setClicked(n.id);
+              if (!toggle) set({ inspect: recipe });
+              else opening.current = window.setTimeout(() => set({ inspect: recipe }), DOUBLE);
+            }}
+            onNodeDoubleClick={(_, n) => {
+              clearTimeout(opening.current);
+              if (!toggle || n.type !== 'machine') return;
+              const { use } = n.data as MachineNodeData;
+              if (use.recipe.kind !== 'power') toggle(use.recipe.id);
+            }}
+            // An area is drawn with the right button held down; letting go would otherwise open the browser's menu.
+            onPaneContextMenu={(e) => e.preventDefault()}
+            onNodeDragStop={(_, n) => {
+              if (n.type === 'area') host.edit((m) => moveNodes(m, new Map([[n.id, n.position]])));
+            }}
+            onPaneClick={() => {
+              setEdge(undefined);
+              set({ inspect: undefined });
+            }}
+          >
+            {/* Foundation grid: minor lines every 8 m tile, a heavier seam every 4 tiles. */}
+            {gridLines && <Background id="minor" variant={BackgroundVariant.Lines} gap={GRID} lineWidth={1} color="#2f2f2f" />}
+            {gridLines && <Background id="major" variant={BackgroundVariant.Lines} gap={GRID * 4} lineWidth={1} color="#3b3b3b" />}
+            <FloorControls />
+            {drawing}
+          </ReactFlow>
+        </EditCard.Provider>
       </PickEdge.Provider>
     </Focus.Provider>
   );
@@ -1096,6 +1138,7 @@ export function GraphView({
     };
   }, [result, tier, chosen, scale, text, spacing, consumers, splitLines, squareBelts, splitters, skipKey()]);
   const exMap = useMemo(() => new Map(extraction.map((u) => [u.item, u])), [extraction]);
+  const areas = usePlan().areas;
   // Ticking a machine built changes nothing the layout is made from, so the floor isn't laid out again for it.
   const ticked = usePlan().built;
   const updatePlan = useStore((s) => s.updatePlan);
@@ -1113,7 +1156,7 @@ export function GraphView({
         <Flow.Provider value={dir}>
           <Built.Provider value={builtNow}>
             <ReactFlowProvider key={key}>
-              <Canvas nodes={nodes} edges={edges} sig={sig} dir={dir} />
+              <Canvas nodes={nodes} edges={edges} sig={sig} dir={dir} areas={consumers ? undefined : (areas ?? NO_AREAS)} />
             </ReactFlowProvider>
           </Built.Provider>
         </Flow.Provider>

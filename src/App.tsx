@@ -23,7 +23,7 @@ import { forgetCamera, ModelEditor } from './components/modeler/ModelEditor';
 import { floorEnds } from './lib/model/calc/adapter';
 import { applyArrangement, arrangement } from './lib/model/arrange';
 import { dirOf } from './lib/model/layout';
-import { ModelInspector } from './components/modeler/ModelInspector';
+import { AutoAreaPanel, ModelInspector } from './components/modeler/ModelInspector';
 import { ModelToolbar } from './components/modeler/Toolbar';
 import { QuickPick } from './components/QuickPick';
 import { RecipesPanel } from './components/RecipesPanel';
@@ -556,8 +556,10 @@ export default function App() {
                 <ModelInspector host={host} calc={hand.calc} />
               ) : inspectPlant ? (
                 <PlantInspector key={inspectPlant} result={result} />
-              ) : (
+              ) : consumers ? (
                 <Inspector result={result} />
+              ) : (
+                <AutoAreaPanel fallback={<Inspector result={result} />} />
               ))}
             {busy && <Busy solverLoad={solverLoad} />}
             {shown && (

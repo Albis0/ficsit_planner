@@ -49,6 +49,8 @@ export interface Plan {
   floor?: 'manual';
   /** The hand-built factory; kept when switching back to Auto, so Manual comes back as it was. */
   model?: Model;
+  /** The coloured areas drawn on the Auto floor, kept as a model with nothing but areas in it. */
+  areas?: Model;
   /** Recipes whose machines are built in the game, ticked from the Auto floor; Manual cards start from them. */
   built?: string[];
   /** Targets (by item) made on a line of their own, apart from the others; unset: everything is one line. */

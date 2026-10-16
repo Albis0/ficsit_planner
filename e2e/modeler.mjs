@@ -919,6 +919,62 @@ const clash = (a, b) => a && b && a.x < b.x + b.width && b.x < a.x + a.width && 
     ok('picked, its corners show handles', res === 0 || res === 1);
   }
 
+  // ── A11b: areas on the Auto floor ──
+  section = 'A11b';
+  {
+    await open(factory([['Desc_Motor_C', 10]]));
+    const areasSaved = async () => {
+      await wait(400);
+      return page.evaluate(() => JSON.parse(localStorage.getItem('ficsit-planner')).state.plans[0].areas?.nodes ?? []);
+    };
+    const floorBox = await page.locator('.react-flow').boundingBox();
+    const from = await emptySpot('right');
+    const to = { x: Math.max(floorBox.x + 40, from.x - 260), y: Math.min(floorBox.y + floorBox.height - 120, from.y + 140) };
+    await page.mouse.move(from.x, from.y);
+    await page.mouse.down({ button: 'right' });
+    await page.mouse.move((from.x + to.x) / 2, (from.y + to.y) / 2, { steps: 4 });
+    await page.mouse.move(to.x, to.y, { steps: 6 });
+    ok('Auto: while the right button is held a box shows', (await page.locator('.area-draw').count()) === 1);
+    await page.mouse.up({ button: 'right' });
+    await wait(500);
+    let gs = await areasSaved();
+    ok('Auto: letting go leaves an area', gs.length === 1 && gs[0].k === 'group' && gs[0].w >= 80, JSON.stringify(gs[0]));
+    ok('Auto: its panel opens with the name box', (await page.locator('aside.inspector #area-name').count()) === 1);
+    await page.fill('#area-name', 'Motors');
+    await wait(500);
+    gs = await areasSaved();
+    ok('Auto: the name is saved', gs[0].label === 'Motors');
+    ok('Auto: and shows on the floor', (await page.locator('.area-name').first().innerText()) === 'Motors');
+    // The panel covers the strip while it is open: click bare floor to put it away.
+    const bare = await emptySpot('left');
+    await page.mouse.click(bare.x, bare.y);
+    await wait(400);
+    // A card may lie over part of the strip: take a point of it that is bare.
+    const hold = await page.evaluate(() => {
+      const r = document.querySelector('.area-grip').getBoundingClientRect();
+      for (let x = r.left + 6; x < r.right - 6; x += 8)
+        if (document.elementFromPoint(x, r.top + r.height / 2)?.closest('.area-grip')) return { x, y: r.top + r.height / 2 };
+      return null;
+    });
+    ok('Auto: a bare point of its strip is there to take hold of', !!hold);
+    await page.mouse.move(hold.x, hold.y);
+    await page.mouse.down();
+    await page.mouse.move(hold.x + 60, hold.y + 60, { steps: 6 });
+    await page.mouse.up();
+    await wait(500);
+    const moved = (await areasSaved())[0];
+    ok('Auto: dragging its strip moves it', moved.x !== gs[0].x || moved.y !== gs[0].y, `${gs[0].x},${gs[0].y} -> ${moved.x},${moved.y}`);
+    ok('Auto: the cards stay where they were laid out', (await page.locator('.react-flow__node-machine').count()) > 0);
+    await page.reload();
+    await wait(1500);
+    ok('Auto: after a reload the area is still there', (await page.locator('.area-node').count()) === 1);
+    await page.locator('.area-grip').click();
+    await wait(400);
+    await page.locator('.inspector-actions .danger').click();
+    await wait(500);
+    ok('Auto: Remove area takes it off', (await areasSaved()).length === 0 && (await page.locator('.area-node').count()) === 0);
+  }
+
   // ── A12: automatic copies in Settings › Your data ──
   section = 'A12';
   {

@@ -1,8 +1,8 @@
-import { NodeResizer, type NodeProps, useStore as useFlowStore } from '@xyflow/react';
+import { type Node, NodeResizer, type NodeProps, useStore as useFlowStore } from '@xyflow/react';
 import { snapHalf } from '../../lib/model/layout';
 import { useT } from '../../lib/i18n';
 import { AREA_COLOR } from '../../lib/model/color';
-import type { GroupNode } from '../../lib/model/types';
+import type { GroupNode, MNode } from '../../lib/model/types';
 import { useStore } from '../../store';
 import { Icon } from '../Icon';
 import { EditCard } from './PartNode';
@@ -10,6 +10,26 @@ import { useContext } from 'react';
 
 export interface AreaData extends Record<string, unknown> {
   node: GroupNode;
+}
+
+/** The flow nodes for a model's areas: behind everything, and picked from the panel rather than by a box drawn over the floor. */
+export function areaNodes(nodes: MNode[], inspect: string | undefined, was?: Node[]): Node[] {
+  const before = new Map(was?.map((n) => [n.id, n]));
+  return nodes
+    .filter((n): n is GroupNode => n.k === 'group')
+    .map((n) => ({
+      ...before.get(n.id),
+      id: n.id,
+      type: 'area',
+      position: { x: n.x, y: n.y },
+      width: n.w,
+      height: n.h,
+      zIndex: -1,
+      dragHandle: '.area-grip, .area-edge',
+      selectable: false,
+      data: { node: n } satisfies AreaData,
+      selected: inspect === n.id,
+    }));
 }
 
 /** Below this zoom an area's name hides when the setting says Auto, as belt labels do. */

@@ -36,6 +36,24 @@ export function useFactoryHost(planId: string): ModelHost {
   );
 }
 
+/** The Auto floor's areas, as a host with nothing but areas in it: the same panel and edits as on the Manual floor. */
+export function useAreaHost(): ModelHost {
+  const key = useStore((s) => s.active);
+  const model = useStore((s) => s.plans.find((p) => p.id === s.active)?.areas) ?? EMPTY;
+  const updatePlan = useStore((s) => s.updatePlan);
+  return useMemo(
+    () => ({
+      key,
+      model,
+      edit: (fn) => updatePlan((p) => ({ areas: fn(p.areas ?? emptyModel()) })),
+      // Undo on the Auto floor steps the whole plan; areas go along with it.
+      undo: () => {},
+      redo: () => {},
+    }),
+    [key, model, updatePlan],
+  );
+}
+
 /**
  * Works a model out in the worker a moment after it changes, and only when something the numbers depend on changed:
  * dragging a card around doesn't. Keeps the last numbers while the next ones come.

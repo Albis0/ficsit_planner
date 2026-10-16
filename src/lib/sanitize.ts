@@ -107,6 +107,9 @@ function transportOf(x: unknown): Record<string, Route> | undefined {
 export function cleanPlan(saved: unknown, fallback: Plan): Plan {
   const p = obj(saved);
   const model = cleanModel(p.model);
+  // The Auto floor's areas: only areas, no belts.
+  const drawn = cleanModel({ nodes: list(obj(p.areas).nodes).filter((n) => obj(n).k === 'group') });
+  const areas = drawn?.nodes.length ? { ...drawn, links: [] } : undefined;
   const built = Array.isArray(p.built)
     ? [...new Set(p.built.filter((id): id is string => typeof id === 'string' && recipeById.has(id)))]
     : [];
@@ -135,6 +138,7 @@ export function cleanPlan(saved: unknown, fallback: Plan): Plan {
     ...(transportOf(p.transport) ? { transport: transportOf(p.transport) } : {}),
     ...(p.floor === 'manual' ? { floor: 'manual' as const } : {}),
     ...(model ? { model } : {}),
+    ...(areas ? { areas } : {}),
     ...(built.length ? { built } : {}),
     ...(separate.length ? { separate } : {}),
     ...(pooled.length ? { pooled } : {}),
