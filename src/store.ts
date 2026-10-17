@@ -18,7 +18,7 @@ import { cleanSkipped, setSkipped } from './lib/unlocks';
 import { emptyModel, type MNode, type Model } from './lib/model/types';
 import type { Carrier } from './lib/transport';
 import type { SaveInfo } from './lib/save/apply';
-import { cleanSaveMap } from './lib/save/map';
+import { cleanGrids, cleanSaveMap, type SaveGrid } from './lib/save/map';
 
 export const MAX_TIER = Math.max(...data.recipes.map((r) => r.tier ?? 0));
 
@@ -361,6 +361,8 @@ interface State {
   buildFactory: (item: string, name: string, recipe?: string) => void;
   /** Opens a power plant burning one fuel: in the plant on screen when it has no generators yet, otherwise in a new one. */
   buildPlant: (generator: string, fuel: string) => void;
+  /** Opens a power plant with a game save circuit's generators, each row a set count: in the plant on screen when it is untouched, otherwise in a new one. */
+  plantFromSave: (name: string, rows: SaveGrid['plants']) => void;
   duplicatePlan: (id: string) => void;
   removePlan: (id: string) => void;
   renamePlan: (id: string, name: string) => void;
@@ -735,6 +737,28 @@ export const useStore = create<State>()(
           get().addPlant(generator, fuel);
           set({ mode: 'power', tab: 'targets', pane: 'floor', inspect: undefined });
         },
+        plantFromSave: (name, rows) => {
+          const blank = activePowerPlan(get());
+          if (!blank.autoName || blank.plants.length > 0) get().addPowerPlan(name);
+          const id = activePowerPlan(get()).id;
+          const plants = rows.map(({ n, ...r }): Plant => ({ ...r, id: uid(), by: 'count', amount: n }));
+          set({
+            power: get().power.map((pp) => {
+              if (pp.id !== id) return pp;
+              const { autoName: _, ...rest } = pp;
+              const others = get()
+                .power.filter((p) => p.id !== id)
+                .map((p) => p.name);
+              return { ...rest, name: freeName(name, others), plants };
+            }),
+            mode: 'power',
+            tab: 'targets',
+            pane: 'floor',
+            overview: undefined,
+            saveView: undefined,
+            inspect: undefined,
+          });
+        },
         duplicatePlan: (id) => {
           const src = get().plans.find((p) => p.id === id);
           if (!src) return;
@@ -1052,6 +1076,7 @@ export function cleanSave(v: unknown): SaveInfo | undefined {
       power: a.power !== false,
     },
     ...(s.map ? { map: cleanSaveMap(s.map) } : {}),
+    ...(s.grids ? { grids: cleanGrids(s.grids) } : {}),
     seen: {
       tier: Math.round(cleanNumber(s.seen.tier, 0, MAX_TIER, 0)),
       skipped: cleanSkipped(s.seen.skipped),

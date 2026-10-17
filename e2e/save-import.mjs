@@ -1,6 +1,6 @@
 // Imports a real game save the way a player would: the button, the window, the folder, the picker, the cover while
 // it reads, the first questions, what came in, the map, the save's factories (All, the read-only floor, a copy, a link and
-// its ticks); then a refresh after the player changed things, Settings › Game save,
+// its ticks), its power circuit as a plant tab; then a refresh after the player changed things, Settings › Game save,
 // forgetting it, and the same on a phone.
 //
 //   bun run build && node e2e/save-import.mjs
@@ -145,6 +145,7 @@ try {
     came,
   );
   ok('the result says what came onto the map', /The map/.test(came) && /21 nodes mined/.test(came) && /4 factories/.test(came), came);
+  ok('the result counts the power circuit', /1 circuit/.test(came) && /1,500 MW of generators/.test(came), came);
   let s = await state();
   ok(
     'the map takes the miners, pickups and factories',
@@ -243,7 +244,7 @@ try {
   await page.locator('.save-list').scrollIntoViewIfNeeded();
   await wait(300);
   await shot('all-from-save');
-  ok('All lists the save’s factories', (await page.locator('.save-card').count()) === 4);
+  ok('All lists the save’s factories', (await page.locator('.save-cards').first().locator('.save-card').count()) === 4);
   const frames = s.save.map.factories[0].id;
   await page.locator('.save-card .ghost-button').first().click();
   await page.waitForSelector('.save-floor .react-flow__node', { timeout: 60000 });
@@ -338,6 +339,43 @@ try {
   await shot('show-on-map');
   s = await state();
   ok('Show on map goes to the map', s.mode === 'map');
+  await page.click('.mode-switch [role=radio] >> nth=0');
+  await wait(400);
+
+  section = 'save power';
+  await openAll();
+  const grid = page.locator('.save-grids-title + .save-cards .save-card');
+  await page.locator('.save-grids-title').scrollIntoViewIfNeeded();
+  await wait(300);
+  await shot('all-power');
+  ok(
+    'All lists the save’s power circuit: what it makes and draws',
+    (await grid.count()) === 1 && /^1,500 MW · uses \d/.test(await grid.locator('header small').textContent()),
+    await grid.locator('header small').textContent(),
+  );
+  ok('with its generators and batteries', (await grid.locator('.save-counts li').allTextContents()).join() === '20,16');
+  await page.setViewportSize({ width: 900, height: 800 });
+  await wait(400);
+  await page.locator('.save-grids-title').scrollIntoViewIfNeeded();
+  await shot('all-power-900');
+  await page.setViewportSize({ width: 1280, height: 800 });
+  await wait(300);
+  await grid.locator('.ghost-button').click();
+  await wait(2500);
+  await shot('power-from-save');
+  s = await state();
+  const plant = s.power.find((p) => p.id === s.activePower);
+  ok(
+    'Make a power plant tab opens a plant with the circuit’s generators',
+    s.mode === 'power' &&
+      !s.overview &&
+      (await page.locator('.plan-tab-label').textContent()) === 'Coal plant' &&
+      s.power.length === 1 &&
+      plant.name === 'Coal plant' &&
+      JSON.stringify(plant.plants.map((p) => [p.generator, p.fuel, p.by, p.amount, p.clock])) ===
+        JSON.stringify([['Build_GeneratorCoal_C', 'Desc_Coal_C', 'count', 20, 1]]),
+    JSON.stringify(plant?.plants),
+  );
   await page.click('.mode-switch [role=radio] >> nth=0');
   await wait(400);
 
@@ -478,6 +516,10 @@ try {
   await page.locator('.save-list').scrollIntoViewIfNeeded();
   await wait(400);
   await shot('phone-all');
+  await page.locator('.save-grids-title').scrollIntoViewIfNeeded();
+  await wait(300);
+  await shot('phone-all-power');
+  ok('a phone lists the power circuits too', (await page.locator('.save-grids-title + .save-cards .save-card').count()) === 1);
   await page.locator('.save-card .ghost-button').nth(1).dispatchEvent('click');
   await page.waitForSelector('.save-floor .react-flow__node', { timeout: 120000 });
   await wait(1500);

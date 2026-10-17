@@ -4,7 +4,7 @@ import { inflateBody } from './inflate';
 import { type Parsed, type Props, type Ref, readObjects, type Want } from './objects';
 import { SaveError } from './reader';
 import { LANDMARKS } from './map';
-import type { BuildingKind, SaveBuilding, SaveCount, SaveData, SaveLink } from './types';
+import type { BuildingKind, SaveBuilding, SaveCircuit, SaveCount, SaveData, SaveLink } from './types';
 
 /** The oldest save version read (1.0). */
 export const OLDEST_SAVE_VERSION = 46;
@@ -76,10 +76,11 @@ const MANAGERS = /\.(FGRecipeManager|BP_SchematicManager_C|BP_GamePhaseManager_C
 const PICKUP = /^(BP_WAT[12]|BP_Crystal(_mk[23])?|BP_DropPod)(_|\d|$)/;
 const COMPONENTS = /\.(FGFactoryConnectionComponent|FGPipeConnectionComponent|FGPipeConnectionFactory|FGInventoryComponent)$/;
 const NODES = /\.(BP_ResourceNode|BP_ResourceNodeGeyser|BP_FrackingSatellite|BP_FrackingCore|BP_ResourceDeposit)_C$/;
+const SWITCH = /^Build_(Priority)?PowerSwitch_C$/;
 
 /** Reads in full what the planner uses; keeps only the header of nodes (for their place) and of other factory buildings (to count them). */
 export const want: Want = (type) =>
-  MANAGERS.test(type) || COMPONENTS.test(type) || kindOf(idOf(type))
+  MANAGERS.test(type) || COMPONENTS.test(type) || kindOf(idOf(type)) || SWITCH.test(idOf(type))
     ? 'full'
     : NODES.test(type) || type.includes('/Buildable/Factory/')
       ? 'head'
@@ -125,6 +126,8 @@ export function extract(p: Parsed, header: SaveHeader): SaveData {
     objects: p.total,
   };
   const links = new Map<string, SaveLink>();
+  /** Power switches that are on: they join the circuits either side of them into one. */
+  const bridges = new Set<string>();
   const slotted = new Map<string, { sloops: number; shards: number }>();
   const add = (c: SaveCount, slot: boolean, n: number) => {
     if (slot) c.inMachines += n;
@@ -209,6 +212,7 @@ export function extract(p: Parsed, header: SaveHeader): SaveData {
     const kind = kindOf(cls);
     if (!kind) {
       if (o.pos && o.type.includes('/Buildable/Factory/')) out.other[cls] = (out.other[cls] ?? 0) + 1;
+      if (SWITCH.test(cls) && props.mIsSwitchOn === true) bridges.add(short(o.name));
       if (o.pos && LANDMARKS.includes(cls)) out.landmarks.push({ cls, x: Math.round(o.pos[0]), y: Math.round(o.pos[1]) });
       continue;
     }
@@ -259,8 +263,37 @@ export function extract(p: Parsed, header: SaveHeader): SaveData {
     if (s?.shards) b.shards = s.shards;
   }
   out.links = [...links.values()];
-  out.circuits = out.circuits.map((c) => ({ ...c, members: c.members.filter((m) => ids.has(m)) })).filter((c) => c.members.length);
+  out.circuits = joined(out.circuits, bridges)
+    .map((c) => ({ ...c, members: c.members.filter((m) => ids.has(m)) }))
+    .filter((c) => c.members.length);
   return out;
+}
+
+/** Circuits as the game runs them: those with a power switch between them that is on are one, under the first one's id. */
+function joined(circuits: SaveCircuit[], bridges: ReadonlySet<string>): SaveCircuit[] {
+  const up = circuits.map((_, i) => i);
+  const find = (i: number): number => {
+    let r = i;
+    while (up[r] !== r) r = up[r];
+    return r;
+  };
+  const seen = new Map<string, number>();
+  circuits.forEach((c, i) => {
+    for (const m of c.members) {
+      if (!bridges.has(m)) continue;
+      const j = seen.get(m);
+      if (j === undefined) seen.set(m, i);
+      else up[find(i)] = find(j);
+    }
+  });
+  const out = new Map<number, SaveCircuit>();
+  circuits.forEach((c, i) => {
+    const root = find(i);
+    const has = out.get(root);
+    if (has) has.members.push(...c.members);
+    else out.set(root, { id: circuits[root].id, members: [...c.members] });
+  });
+  return [...out.values()].map((c) => ({ ...c, members: [...new Set(c.members)] }));
 }
 
 export type SaveStep = 'read' | 'inflate' | 'parse' | 'extract';

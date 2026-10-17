@@ -1,4 +1,5 @@
-import { data } from '../data';
+import { data, generatorById } from '../data';
+import { PURITIES, type Purity } from '../extraction';
 import { NODES } from '../world';
 
 /** The map layers a save says were picked up: Somersloops, Mercer Spheres, the three slugs, and looted drop pods. */
@@ -75,6 +76,46 @@ export function cleanSaveMap(v: unknown): SaveMap | undefined {
       .map((f) => ({ ...f, recipes: f.recipes ?? {} })),
     missed: int(m.missed, 1e6) ? m.missed : 0,
   };
+}
+
+/** A power circuit in the save with generators on it (circuits.ts finds them). */
+export type SaveGrid = {
+  id: number;
+  /** Its generators as power plant rows: one per building, fuel and clock; geysers by purity, augmenters by being fed. */
+  plants: { generator: string; fuel?: string; clock: number; n: number; purity?: Purity; fed?: true }[];
+  batteries: number;
+  /** MW the generators make running, augmenter boost included. */
+  made: number;
+  /** MW its machines and extractors draw at their clocks. */
+  used: number;
+};
+
+/** Stored power circuits as they can be trusted; a broken one is left out. */
+export function cleanGrids(v: unknown): SaveGrid[] {
+  return arr(v).filter(
+    (g): g is SaveGrid =>
+      !!g &&
+      typeof g === 'object' &&
+      Number.isInteger(g.id) &&
+      int(g.batteries, 1e6) &&
+      num(g.made) &&
+      num(g.used) &&
+      arr(g.plants).length > 0 &&
+      arr(g.plants).every(
+        (p) =>
+          !!p &&
+          typeof p === 'object' &&
+          !!generatorById.get(p.generator) &&
+          (p.fuel === undefined || id(p.fuel)) &&
+          num(p.clock) &&
+          p.clock > 0 &&
+          p.clock <= 2.5 &&
+          int(p.n, 1e6) &&
+          p.n > 0 &&
+          (p.purity === undefined || PURITIES.includes(p.purity)) &&
+          (p.fed === undefined || p.fed === true),
+      ),
+  );
 }
 
 /** A production building, generator or extractor by its class. */

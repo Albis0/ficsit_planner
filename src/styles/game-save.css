@@ -719,6 +719,11 @@ li[data-state='now'] .save-mark {
   margin-top: auto;
 }
 
+/* All › From your save › Power circuits, under the factories. */
+.save-grids-title {
+  margin-top: 20px;
+}
+
 .save-counts {
   display: flex;
   flex-wrap: wrap;

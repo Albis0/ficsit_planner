@@ -1,6 +1,7 @@
 import { unlinkSave, useStore } from '../../store';
 import { type Answers, type Field, fieldsOf, merge, type SaveInfo, type Values, valuesOf } from './apply';
 import { type Found, gameKey } from './files';
+import { findGrids } from './circuits';
 import { findFactories } from './factories';
 import { keepSave, keptMembers } from './store-idb';
 import { toMap } from './toMap';
@@ -44,6 +45,7 @@ export async function takeSave(
     importedAt: Date.now(),
     answers,
     map: toMap(save, factories?.list ?? []),
+    ...(answers.power ? { grids: findGrids(save) } : {}),
     seen: game,
   };
   const lost = (p: { saveFactory?: string }) => !!p.saveFactory && !ids.has(p.saveFactory);

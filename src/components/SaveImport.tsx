@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { MILESTONES } from '../lib/unlocks';
 import { type StringKey, useT } from '../lib/i18n';
 import { ALL_ANSWERS, type Answers, conflicts, type Field, fieldsOf, unknownRecipes, type Values, valuesOf } from '../lib/save/apply';
@@ -16,6 +16,7 @@ import {
   saveTitle,
   savedWhen,
 } from '../lib/save/pick';
+import { findGrids } from '../lib/save/circuits';
 import { importSave, type SaveProgress } from '../lib/save/saveClient';
 import { mine, takeSave } from '../lib/save/take';
 import type { SaveData } from '../lib/save/types';
@@ -393,6 +394,8 @@ function Questions({ save, onImport, onClose }: { save: SaveData; onImport: (a: 
   const [a, setA] = useState<Answers>(ALL_ANSWERS);
   const v = valuesOf(save);
   const machines = save.buildings.filter((b) => b.kind === 'machine' || b.kind === 'extractor' || b.kind === 'generator').length;
+  // Circuits of poles and machines alone have nothing to make a power plant of.
+  const grids = useMemo(() => findGrids(save).length, [save]);
   const rows: { id: keyof Answers; label: StringKey; hint: string }[] = [
     {
       id: 'progress',
@@ -401,7 +404,7 @@ function Questions({ save, onImport, onClose }: { save: SaveData; onImport: (a: 
     },
     { id: 'inventory', label: 'saveQInventory', hint: t('saveQInventoryHint', { sloops: v.sloops, shards: v.shards }) },
     { id: 'factories', label: 'saveQFactories', hint: t('saveMachines', { n: machines }) },
-    { id: 'power', label: 'saveQPower', hint: t(save.circuits.length === 1 ? 'saveCircuit' : 'saveCircuits', { n: save.circuits.length }) },
+    { id: 'power', label: 'saveQPower', hint: t(grids === 1 ? 'saveCircuit' : 'saveCircuits', { n: grids }) },
   ];
   return (
     <Dialog
@@ -510,11 +513,12 @@ function Conflict({
 
 /** What came in, and what did not with a short reason why. */
 function Result({ step, onClose }: { step: Extract<Step, { at: 'done' }>; onClose: () => void }) {
-  const { t } = useT();
+  const { t, num } = useT();
   const { save, taken, kept, unlinked } = step;
   const v = valuesOf(save);
   const answers = useStore((s) => s.save?.answers) ?? ALL_ANSWERS;
   const map = useStore((s) => s.save?.map);
+  const grids = useStore((s) => s.save?.grids);
   const came: [string, string][] = [];
   const not: string[] = [];
   const parts = (c: SaveData['sloops']) =>
@@ -545,9 +549,15 @@ function Result({ step, onClose }: { step: Extract<Step, { at: 'done' }>; onClos
     if (map.missed) not.push(t('saveMapMissed', { n: map.missed }));
     if (unlinked) not.push(t(unlinked === 1 ? 'saveUnlinkedOne' : 'saveUnlinked', { n: unlinked }));
   }
+  if (grids?.length) {
+    const mw = grids.reduce((s, g) => s + g.made, 0);
+    came.push([t(grids.length === 1 ? 'saveCircuit' : 'saveCircuits', { n: grids.length }), t('saveGridsMade', { mw: num(mw) })]);
+  }
   for (const f of kept) not.push(t('saveKept', { what: t(FIELD_KEY[f]) }));
   if (!answers.progress) not.push(t('saveLeftOff', { what: t('saveQProgress') }));
   if (!answers.inventory) not.push(t('saveLeftOff', { what: t('saveQInventory') }));
+  if (!answers.factories) not.push(t('saveLeftOff', { what: t('saveQFactories') }));
+  if (!answers.power) not.push(t('saveLeftOff', { what: t('saveQPower') }));
   const unknown = unknownRecipes(save);
   if (unknown.ficsmas) not.push(t('saveFicsmas', { n: unknown.ficsmas }));
   if (unknown.alternates)
