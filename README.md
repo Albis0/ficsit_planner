@@ -254,8 +254,8 @@ bun run extract:codex                                      # after extract: it r
 bun run extract:milestones                                 # after extract:codex: the milestones the tier window lists
 bun run icons                                              # needs the .NET 10 SDK
 bun run icons:codex
-bun run extract:map                                        # the world map: nodes and tiles, needs .NET too
-bun run extract:world                                      # after extract:map: finds, creatures and their icons
+bun run extract:map                                        # the world map: nodes, tiles and node names, needs .NET too
+bun run extract:world                                      # after extract:map: finds, creatures, their icons and pickup names
 bun run extract:elevator                                   # the Space Elevator's phases, needs .NET too
 bun run insights                                           # last: the Codex's worked-out lines (a test fails until it's run)
 dotnet run --project tools/icon-extractor -- "D:/SteamLibrary/steamapps/common/Satisfactory"
@@ -274,6 +274,9 @@ Commit the changed files under `src/data` and `public/icons` afterwards.
   so `UsmapPatch.cs` inserts a placeholder before loading it. The engine version is set in `Program.cs`
   (`EGame.GAME_UE5_6`). Bump it if a game update moves to a newer Unreal version. Pass `--find <text>` in place
   of the manifest to list archive paths containing that text, to look up an icon by hand.
+- `src/data/world-names.json` holds the game's own names of the map's pickups and nodes, in the order of
+  `finds.json` and `world.json`. A save names what was picked up but no longer says where it was, so a save import
+  finds it by name. Both extract scripts write their part of the file; run both.
 
 ## Notes
 

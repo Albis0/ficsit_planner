@@ -6,6 +6,7 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import sharp from 'sharp';
+import { writeNames } from './world-names.mjs';
 
 const GAME = process.argv[2] ?? 'C:/Program Files/Epic Games/Satisfactory';
 const TMP = fs.mkdtempSync(path.join(os.tmpdir(), 'ficsit-map-'));
@@ -65,6 +66,7 @@ const cores = raw.filter((n) => n.kind === 'core').map((n) => n.id);
 const nodes = raw
   .filter((n) => n.kind !== 'core')
   .map((n) => ({
+    id: n.id,
     kind: n.kind,
     item: n.resource,
     purity: PURITY[n.purity] ?? 1,
@@ -76,6 +78,9 @@ const nodes = raw
 const wells = raw
   .filter((n) => n.kind === 'core')
   .map((n) => ({ item: n.resource, x: px(n.x, BOUNDS.x0, BOUNDS.x1), y: px(n.y, BOUNDS.y0, BOUNDS.y1) }));
+// The game's actor names, in the same order, kept apart: only a save import needs them (a save names what a miner sits on).
+writeNames({ node: nodes.map((n) => n.id), well: cores });
+for (const n of nodes) delete n.id;
 fs.writeFileSync('src/data/world.json', `${JSON.stringify({ size: SIZE, bounds: BOUNDS, nodes, wells })}\n`);
 console.log(`nodes: ${nodes.length}, well cores: ${wells.length}`);
 fs.rmSync(TMP, { recursive: true, force: true });

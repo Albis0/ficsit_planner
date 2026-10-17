@@ -7,6 +7,7 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import sharp from 'sharp';
+import { writeNames } from './world-names.mjs';
 
 const GAME = process.argv[2] ?? 'C:/Program Files/Epic Games/Satisfactory';
 const TMP = fs.mkdtempSync(path.join(os.tmpdir(), 'ficsit-world-'));
@@ -90,9 +91,9 @@ creatures.sort(
 
 // Icons: the game's 256 px creature pictures, stored like the item icons.
 const icons = [...new Set(creatures.map((c) => c.icon).filter(Boolean))];
+const MONSTERS = 'FactoryGame/Content/FactoryGame/Equipment/ObjectScanner/Icons/Monsters_256';
 extractor('tex', TMP, ...icons.map((i) => (i === 'Monsters' ? MONSTERS : `${ICON}/${i}`)));
 // Which texture each creature's icon comes from, so the app knows the icon exists (and `bun run icons:world` can redo them).
-const MONSTERS = 'FactoryGame/Content/FactoryGame/Equipment/ObjectScanner/Icons/Monsters_256';
 fs.writeFileSync(
   'src/data/world-icons.json',
   `${JSON.stringify(Object.fromEntries(creatures.map((c) => [c.id, c.icon === 'Monsters' ? MONSTERS : `${ICON}/${c.icon}`])), null, 1)}
@@ -141,6 +142,22 @@ const counts = Object.fromEntries(
 counts.podFree = finds.pod.filter((p) => !p[2]).length;
 counts.podPower = finds.pod.filter((p) => p[2] && 'mw' in p[2]).length;
 fs.writeFileSync('src/data/finds.json', `${JSON.stringify(finds)}\n`);
+// A save lists what was picked up by actor name only (the actor is gone), so the pickups keep their names, in finds' order.
+const PICKUPS = ['sloop', 'sphere', 'slug1', 'slug2', 'slug3', 'pod'];
+writeNames(
+  Object.fromEntries(
+    PICKUPS.map((kind) => [
+      kind,
+      found
+        .filter((f) => f.kind === kind)
+        .map((f) => {
+          // shortcut: one name per point; a second actor at the same spot would need a list here.
+          if (f.names.length > 1) throw new Error(`${kind} at ${f.x},${f.y} has names ${f.names.join(', ')}`);
+          return f.names[0];
+        }),
+    ]),
+  ),
+);
 fs.writeFileSync('src/data/creatures.json', `${JSON.stringify({ creatures, counts }, null, 1)}\n`);
 console.log(
   Object.entries(finds)

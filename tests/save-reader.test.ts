@@ -1,5 +1,8 @@
 import { describe, expect, test } from 'bun:test';
 import { deflateSync } from 'node:zlib';
+import finds from '../src/data/finds.json';
+import names from '../src/data/world-names.json';
+import world from '../src/data/world.json';
 import { extract } from '../src/lib/save/extract';
 import { readHeader } from '../src/lib/save/header';
 import { inflateBody } from '../src/lib/save/inflate';
@@ -188,6 +191,16 @@ describe('what the planner takes', () => {
     expect(s.collected.sort()).toEqual(['BP_Crystal_mk3_5', 'BP_DropPod3', 'BP_DropPod7', 'BP_WAT2_C_UAID_1']);
     expect(s.sloops).toEqual({ free: 0, inMachines: 0, inDepot: 4 });
     expect(s.shards).toEqual({ free: 0, inMachines: 0, inDepot: 30 });
+  });
+});
+
+describe('the map knows the game names', () => {
+  test('one name per point, in the order of the map layers, and no name twice', () => {
+    for (const k of ['sloop', 'sphere', 'slug1', 'slug2', 'slug3', 'pod'] as const) expect(names[k]).toHaveLength(finds[k].length);
+    expect(names.node).toHaveLength(world.nodes.length);
+    expect(names.well).toHaveLength(world.wells.length);
+    const all = Object.values(names).flat();
+    expect(new Set(all).size).toBe(all.length);
   });
 });
 

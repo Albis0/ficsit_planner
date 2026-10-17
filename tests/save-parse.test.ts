@@ -2,6 +2,8 @@ import { describe, expect, test } from 'bun:test';
 import { existsSync, readdirSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { Parser } from '@etothepii/satisfactory-file-parser';
+import names from '../src/data/world-names.json';
+import world from '../src/data/world.json';
 import { OLDEST_SAVE_VERSION, readSave } from '../src/lib/save/extract';
 import { readHeader } from '../src/lib/save/header';
 import { SaveError } from '../src/lib/save/reader';
@@ -22,6 +24,8 @@ const idOf = (path: string) => path.slice(path.lastIndexOf('.') + 1);
 const short = (path: string) => path.slice(path.indexOf('.') + 1);
 const prop = (o: Any, name: string) => o.properties?.[name];
 const round = (v: number) => Math.round(v * 1e6) / 1e6;
+/** Game units to a spot on the map picture, as scripts/extract-map.mjs places nodes. */
+const px = (v: number, lo: number, hi: number) => ((v - lo) / (hi - lo)) * world.size;
 
 function reference(bytes: Uint8Array) {
   const save: Any = Parser.ParseSave('x', bytes.slice().buffer, { throwErrors: true });
@@ -114,6 +118,16 @@ describe.skipIf(!files.length)('real saves read the same as the reference parser
       expect(ours.shards.free + ours.shards.inMachines).toBe(ref.items.shards);
       expect(ours.sloops.inDepot).toBe(ref.depot.sloops);
       expect(ours.shards.inDepot).toBe(ref.depot.shards);
+      // Every pickup and node the save names is on our map, and a miner's node by name sits where the save puts it.
+      const known = new Set(Object.values(names).flat());
+      expect(ours.collected.filter((c) => !known.has(c))).toEqual([]);
+      for (const b of ours.buildings.filter((b) => /^BP_(ResourceNode|Fracking)/.test(b.node ?? ''))) {
+        const i = names.node.indexOf(b.node!);
+        const spot = i >= 0 ? world.nodes[i] : world.wells[names.well.indexOf(b.node!)];
+        const [x, y] = b.nodeAt!;
+        expect(Math.abs(px(x, world.bounds.x0, world.bounds.x1) - spot.x)).toBeLessThan(1);
+        expect(Math.abs(px(y, world.bounds.y0, world.bounds.y1) - spot.y)).toBeLessThan(1);
+      }
       // Nothing that names the player comes out.
       expect(JSON.stringify(ours)).not.toContain('mCachedPlayerName');
     }, 60_000);

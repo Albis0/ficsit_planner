@@ -108,7 +108,8 @@ if (mode == "world")
     };
     var cells = provider.Files.Keys.Where(k => k.Contains("GameLevel01/Persistent_Level", StringComparison.OrdinalIgnoreCase) && k.EndsWith(".umap")).ToList();
     var list = new List<object>();
-    var seen = new HashSet<string>();
+    // An actor that shows up again at the same spot (in another cell) is one point; its names are kept together.
+    var seen = new Dictionary<string, List<string>>();
     var n = 0;
     foreach (var cell in cells)
     {
@@ -127,7 +128,13 @@ if (mode == "world")
             }
             catch { continue; }
             var key = $"{kind}:{Math.Round(at.X / 50)}:{Math.Round(at.Y / 50)}:{Math.Round(at.Z / 50)}";
-            if (!seen.Add(key)) continue;
+            if (seen.TryGetValue(key, out var same))
+            {
+                same.Add(e.Name);
+                continue;
+            }
+            var names = new List<string> { e.Name };
+            seen[key] = names;
             string? what = null;
             object? cost = null;
             int? count = null;
@@ -153,7 +160,7 @@ if (mode == "world")
                     };
                 }
             }
-            list.Add(new { kind, what, cost, count, x = Math.Round(at.X), y = Math.Round(at.Y), z = Math.Round(at.Z) });
+            list.Add(new { kind, names, what, cost, count, x = Math.Round(at.X), y = Math.Round(at.Y), z = Math.Round(at.Z) });
         }
     }
     File.WriteAllText(args[2], JsonConvert.SerializeObject(list, Formatting.Indented));
