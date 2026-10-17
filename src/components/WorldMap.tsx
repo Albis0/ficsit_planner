@@ -5,9 +5,10 @@ import { data } from '../lib/data';
 import { PURITIES, PURITY } from '../lib/extraction';
 import { CREATURE_RING, type Layer, LAYER_GROUPS, LAYER_ITEM, LAYER_RING, type PointLayer, useWorld } from '../lib/finds';
 import { useT } from '../lib/i18n';
-import type { PickedLayer } from '../lib/save/map';
+import { buildingOf, type PickedLayer } from '../lib/save/map';
 import { MAP_SIZE, MAX_TILE_ZOOM, NODES, type WorldNode } from '../lib/world';
 import { useStore } from '../store';
+import { openSaveFloor } from './SaveFactories';
 
 const base = import.meta.env.BASE_URL;
 /** Leaflet's flat map: at zoom 0 the picture is one 256 px tile, so a picture pixel is 1/(size/256) of a unit. */
@@ -59,8 +60,8 @@ interface PinOptions extends L.CircleMarkerOptions {
 const ARC = '#fa9549';
 /** How many production buildings and generators a save factory has. */
 const size = (f: { count: Record<string, number> }) => Object.values(f.count).reduce((n, c) => n + c, 0);
-/** A building, by its id: production buildings, generators, extractors. */
-const building = (id: string) => data.machines[id] ?? data.generators.find((g) => g.id === id) ?? data.extractors.find((e) => e.id === id);
+/** Text from the player (a factory tab's name) put into a popup's HTML. */
+const esc = (v: string) => v.replace(/[&<>"']/g, (c) => `&#${c.charCodeAt(0)};`);
 
 /*
   A pin drawn on the map's one canvas instead of an element of its own: thousands of them stay smooth.
@@ -241,6 +242,21 @@ export default function WorldMap() {
         .setContent(o.label())
         .openOn(m);
     });
+    // A save factory's popup links it to a factory tab, or opens its floor.
+    m.on('popupopen', (e: L.PopupEvent) => {
+      const el = e.popup.getElement();
+      el?.querySelector<HTMLSelectElement>('[data-save-link]')?.addEventListener('change', (ev) => {
+        const pick = ev.currentTarget as HTMLSelectElement;
+        const id = pick.dataset.saveLink ?? '';
+        const s = useStore.getState();
+        const linked = s.plans.find((p) => p.saveFactory === id);
+        if (pick.value) s.linkSave(pick.value, id);
+        else if (linked) s.linkSave(linked.id, undefined);
+      });
+      el?.querySelector<HTMLButtonElement>('[data-save-open]')?.addEventListener('click', (ev) => {
+        openSaveFloor((ev.currentTarget as HTMLButtonElement).dataset.saveOpen ?? '');
+      });
+    });
     layer.current = group;
     map.current = m;
     const resize = new ResizeObserver(() => {
@@ -281,10 +297,10 @@ export default function WorldMap() {
     const factories = [...(saved?.factories ?? [])].sort((a, b) => size(b) - size(a));
     for (const f of factories) {
       const [x0, y0, x1, y1] = f.box;
-      const title = data.items[f.item] ? itemName(f.item) : name(building(f.item));
+      const title = data.items[f.item] ? itemName(f.item) : name(buildingOf(f.item));
       const lines = Object.entries(f.count)
         .sort((a, b) => b[1] - a[1])
-        .map(([cls, n]) => `${n} × ${name(building(cls))}`);
+        .map(([cls, n]) => `${n} × ${name(buildingOf(cls))}`);
       group.addLayer(
         L.rectangle(L.latLngBounds(at(x0, y1), at(x1, y0)), {
           color: ARC,
@@ -293,7 +309,16 @@ export default function WorldMap() {
           fillColor: ARC,
           fillOpacity: 0.06,
           interactive: true,
-          label: () => pop(title, t('mapFromSave'), ...lines),
+          // Under its buildings, the factory tab it is linked to and the way to its floor.
+          label: () => {
+            const plans = useStore.getState().plans;
+            const linked = plans.find((p) => p.saveFactory === f.id)?.id;
+            const options = [
+              `<option value="">${esc(t('saveNotLinked'))}</option>`,
+              ...plans.map((p) => `<option value="${esc(p.id)}"${p.id === linked ? ' selected' : ''}>${esc(p.name)}</option>`),
+            ].join('');
+            return `${pop(title, t('mapFromSave'), ...lines).slice(0, -'</div>'.length)}<span class="map-pop-save"><select class="save-link" data-save-link="${f.id}" aria-label="${esc(t('saveLinkLabel', { name: title }))}">${options}</select><button type="button" class="ghost-button" data-save-open="${f.id}">${esc(t('saveOpenFloor'))}</button></span></div>`;
+          },
         } as L.PolylineOptions),
       );
       const tip = L.tooltip({ permanent: true, direction: 'top', className: 'map-factory-label', offset: [0, -2], interactive: false })
@@ -327,7 +352,7 @@ export default function WorldMap() {
         scale: n.kind === 'well' ? 0.78 : 1,
         arc: m && m.clock / 2.5,
         label: () =>
-          `<div class="map-pop"><b>${itemName(n.item)}</b><span class="map-pop-purity purity-${n.purity}">${t(PURITIES[n.purity])}</span>${n.kind === 'well' ? `<span class="map-pop-kind">${t('wellNode')}</span>` : ''}<span class="map-pop-yield">${yields(n)}</span>${m ? `<span class="map-pop-miner">${name(building(m.cls))} · ${pct(m.clock)}</span>` : ''}</div>`,
+          `<div class="map-pop"><b>${itemName(n.item)}</b><span class="map-pop-purity purity-${n.purity}">${t(PURITIES[n.purity])}</span>${n.kind === 'well' ? `<span class="map-pop-kind">${t('wellNode')}</span>` : ''}<span class="map-pop-yield">${yields(n)}</span>${m ? `<span class="map-pop-miner">${name(buildingOf(m.cls))} · ${pct(m.clock)}</span>` : ''}</div>`,
       });
     });
     for (const [cls, x, y] of saved?.landmarks ?? [])
@@ -397,6 +422,14 @@ export default function WorldMap() {
   // Asked to show one resource or layer (from the Codex): frame its points.
   useEffect(() => {
     if (!focus || !map.current) return;
+    // A factory from the game save: its box.
+    if (focus.startsWith('save:')) {
+      const box = saved?.factories.find((f) => f.id === focus.slice(5))?.box;
+      if (box)
+        map.current.flyToBounds(L.latLngBounds(at(box[0], box[3]), at(box[2], box[1])).pad(0.4), { duration: 0.6, maxZoom: MAX_TILE_ZOOM });
+      set({ mapFocus: undefined });
+      return;
+    }
     let pts = NODES.filter((n) => n.item === focus).map((n) => at(n.x, n.y));
     if (!pts.length && world) {
       const i = world.creatures.findIndex((c) => c.id === focus);
@@ -407,7 +440,7 @@ export default function WorldMap() {
     if (!pts.length && !world) return;
     if (pts.length) map.current.flyToBounds(L.latLngBounds(pts).pad(0.2), { duration: 0.6, maxZoom: MAX_TILE_ZOOM - 1 });
     set({ mapFocus: undefined });
-  }, [focus, set, world]);
+  }, [focus, set, world, saved]);
 
   return <div ref={box} className="world-map" />;
 }

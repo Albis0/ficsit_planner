@@ -4,6 +4,7 @@ import names from '../src/data/world-names.json';
 import world from '../src/data/world.json';
 import { clusters, LONG_LINE, NEAR } from '../src/lib/save/cluster';
 import { readSave } from '../src/lib/save/extract';
+import { findFactories } from '../src/lib/save/factories';
 import { cleanSaveMap } from '../src/lib/save/map';
 import { toMap, toPx } from '../src/lib/save/toMap';
 import type { SaveBuilding, SaveData, SaveLink } from '../src/lib/save/types';
@@ -77,7 +78,7 @@ describe('a save on the map', () => {
         ],
         landmarks: [{ cls: 'Build_TradingPost_C', x: world.bounds.x0, y: world.bounds.y1 }],
       }),
-      true,
+      [],
     );
     expect(m.picked).toEqual({ sloop: [3], pod: [0], slug2: [1] });
     expect(m.miners).toEqual([[5, 'Build_MinerMk2_C', 1.5]]);
@@ -93,14 +94,14 @@ describe('a save on the map', () => {
       at('g', 'generator', NEAR * 10, { cls: 'Build_GeneratorCoal_C' }),
       at('x', 'extractor', NEAR * 20),
     ];
-    const m = toMap(save({ buildings: b }), true);
-    expect(m.factories.map((f) => [f.item, f.count])).toEqual([
-      ['Desc_IronRod_C', { Build_SmelterMk1_C: 1, Build_ConstructorMk1_C: 2 }],
-      ['Build_GeneratorCoal_C', { Build_GeneratorCoal_C: 1 }],
+    const { list } = findFactories({ buildings: b, links: [] });
+    expect(list.map((f) => [f.item, f.count, f.recipes])).toEqual([
+      ['Desc_IronRod_C', { Build_SmelterMk1_C: 1, Build_ConstructorMk1_C: 2 }, { Recipe_IngotIron_C: 1, Recipe_IronRod_C: 2 }],
+      ['Build_GeneratorCoal_C', { Build_GeneratorCoal_C: 1 }, {}],
     ]);
     const [x0, y0] = toPx(-1500, -1500);
-    expect(m.factories[0].box.slice(0, 2)).toEqual([x0, y0]);
-    expect(toMap(save({ buildings: b }), false).factories).toEqual([]);
+    expect(list[0].box.slice(0, 2)).toEqual([x0, y0]);
+    expect(toMap(save({ buildings: b }), list).factories).toBe(list);
   });
 
   test('a stored save map is checked', () => {
@@ -118,14 +119,23 @@ describe('a save on the map', () => {
           ['Build_Mam_C', 1, 2],
           ['Build_Lamp_C', 1, 2],
         ],
-        factories: [{ id: 'a', item: 'Desc_IronRod_C', box: [0, 0, 1, 1], count: { Build_ConstructorMk1_C: 2 } }, { id: 'b' }],
+        factories: [
+          { id: 'a', item: 'Desc_IronRod_C', box: [0, 0, 1, 1], count: { Build_ConstructorMk1_C: 2 }, recipes: { Recipe_IronRod_C: 2 } },
+          // Kept before recipes were counted.
+          { id: 'c', item: 'Desc_IronRod_C', box: [0, 0, 1, 1], count: {} },
+          { id: 'b' },
+          { id: 'd', item: 'Desc_IronRod_C', box: [0, 0, 1, 1], count: {}, recipes: { 'bad id': 1 } },
+        ],
         missed: -1,
       }),
     ).toEqual({
       picked: { sloop: [1] },
       miners: [[0, 'Build_MinerMk1_C', 1]],
       landmarks: [['Build_Mam_C', 1, 2]],
-      factories: [{ id: 'a', item: 'Desc_IronRod_C', box: [0, 0, 1, 1], count: { Build_ConstructorMk1_C: 2 } }],
+      factories: [
+        { id: 'a', item: 'Desc_IronRod_C', box: [0, 0, 1, 1], count: { Build_ConstructorMk1_C: 2 }, recipes: { Recipe_IronRod_C: 2 } },
+        { id: 'c', item: 'Desc_IronRod_C', box: [0, 0, 1, 1], count: {}, recipes: {} },
+      ],
       missed: 0,
     });
   });
@@ -134,8 +144,9 @@ describe('a save on the map', () => {
 const SPACE = 'C:/code/ficsit-saves/ela/SPACEDELAELEVATORE.sav';
 
 describe.skipIf(!existsSync(SPACE))('the player save on the map', () => {
-  test('SPACEDELAELEVATORE: every miner on a node, what was picked up, three factories', async () => {
-    const m = toMap(await readSave(new Uint8Array(readFileSync(SPACE))), true);
+  test('SPACEDELAELEVATORE: every miner on a node, what was picked up, four factories', async () => {
+    const data = await readSave(new Uint8Array(readFileSync(SPACE)));
+    const m = toMap(data, findFactories(data).list);
     expect(m.miners).toHaveLength(21);
     expect(m.missed).toBe(0);
     expect(Object.fromEntries(Object.entries(m.picked).map(([l, i]) => [l, i.length]))).toEqual({
@@ -146,7 +157,12 @@ describe.skipIf(!existsSync(SPACE))('the player save on the map', () => {
       sloop: 3,
       pod: 3,
     });
-    expect(m.factories.map((f) => f.item).sort()).toEqual(['Build_GeneratorCoal_C', 'Desc_ModularFrame_C', 'Desc_SteelPlateReinforced_C']);
+    expect(m.factories.map((f) => f.item).sort()).toEqual([
+      'Build_GeneratorCoal_C',
+      'Desc_ModularFrame_C',
+      'Desc_SAMIngot_C',
+      'Desc_SteelPlateReinforced_C',
+    ]);
     expect(m.landmarks.map((l) => l[0])).toContain('Build_TradingPost_C');
   });
 });

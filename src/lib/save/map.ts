@@ -1,3 +1,4 @@
+import { data } from '../data';
 import { NODES } from '../world';
 
 /** The map layers a save says were picked up: Somersloops, Mercer Spheres, the three slugs, and looted drop pods. */
@@ -7,7 +8,7 @@ export type PickedLayer = (typeof PICKED_LAYERS)[number];
 /** Buildings with no card in the planner that the map shows where the save has them. */
 export const LANDMARKS = ['Build_TradingPost_C', 'Build_SpaceElevator_C', 'Build_Mam_C', 'Build_ResourceSinkShop_C', 'Build_RadarTower_C'];
 
-/** A factory in the save as the map draws it: a dashed box around its buildings, named after what it makes. */
+/** A factory in the save: a dashed box around its buildings on the map, named after what it makes; its floor is kept apart (store-idb). */
 export type SaveFactory = {
   id: string;
   /** What it is named after: its main product, or for a power plant its generator. */
@@ -16,6 +17,8 @@ export type SaveFactory = {
   box: [number, number, number, number];
   /** Production buildings and generators in it, by class. */
   count: Record<string, number>;
+  /** Machines on each recipe: what a factory linked to it is held against. */
+  recipes: Record<string, number>;
 };
 
 /** What a save puts on the map. Indexes point into finds.json and world.json, places are map picture px. */
@@ -33,6 +36,8 @@ const int = (v: unknown, below: number): v is number => Number.isInteger(v) && (
 const num = (v: unknown): v is number => typeof v === 'number' && Number.isFinite(v);
 const id = (v: unknown): v is string => typeof v === 'string' && /^\w{1,80}$/.test(v);
 const arr = (v: unknown) => (Array.isArray(v) ? v : []);
+const counts = (v: unknown): v is Record<string, number> =>
+  !!v && typeof v === 'object' && !Array.isArray(v) && Object.entries(v).every(([k, n]) => id(k) && int(n, 1e6));
 
 /** A stored save map as it can be trusted; anything broken is left out. */
 export function cleanSaveMap(v: unknown): SaveMap | undefined {
@@ -53,19 +58,28 @@ export function cleanSaveMap(v: unknown): SaveMap | undefined {
     landmarks: arr(m.landmarks).filter(
       (x): x is SaveMap['landmarks'][number] => Array.isArray(x) && LANDMARKS.includes(x[0]) && num(x[1]) && num(x[2]),
     ),
-    factories: arr(m.factories).filter(
-      (f): f is SaveFactory =>
-        !!f &&
-        typeof f === 'object' &&
-        id(f.id) &&
-        id(f.item) &&
-        Array.isArray(f.box) &&
-        f.box.length === 4 &&
-        f.box.every(num) &&
-        !!f.count &&
-        typeof f.count === 'object' &&
-        Object.entries(f.count).every(([k, n]) => id(k) && int(n, 1e6)),
-    ),
+    factories: arr(m.factories)
+      .filter(
+        (f): f is SaveFactory =>
+          !!f &&
+          typeof f === 'object' &&
+          id(f.id) &&
+          id(f.item) &&
+          Array.isArray(f.box) &&
+          f.box.length === 4 &&
+          f.box.every(num) &&
+          counts(f.count) &&
+          // Kept before recipes were counted: they come with the next import.
+          (f.recipes === undefined || counts(f.recipes)),
+      )
+      .map((f) => ({ ...f, recipes: f.recipes ?? {} })),
     missed: int(m.missed, 1e6) ? m.missed : 0,
   };
 }
+
+/** A production building, generator or extractor by its class. */
+export const buildingOf = (id: string): { name: string } | undefined =>
+  data.machines[id] ?? data.generators.find((g) => g.id === id) ?? data.extractors.find((e) => e.id === id);
+
+/** What a save factory is called: the part it is named after, or for a power plant its generator. */
+export const factoryTitle = (f: Pick<SaveFactory, 'item'>): { name: string } | undefined => data.items[f.item] ?? buildingOf(f.item);

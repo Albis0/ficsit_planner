@@ -28,8 +28,8 @@ interface Base {
   /** Top left corner on the floor. */
   x: number;
   y: number;
-  /** Ticked once it's built in the game. */
-  done?: true;
+  /** Ticked once it's built in the game: by the player, or by the game save the factory is linked to. */
+  done?: true | 'save';
   /** The player's own name for it. */
   label?: string;
 }

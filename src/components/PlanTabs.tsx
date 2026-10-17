@@ -2,11 +2,13 @@ import { type CSSProperties, type MouseEvent as ReactMouseEvent, useCallback, us
 import { createPortal } from 'react-dom';
 import { useT } from '../lib/i18n';
 import { useOverview } from '../lib/overview';
+import { factoryTitle } from '../lib/save/map';
 import { copyTab } from '../lib/share';
 import { useStore } from '../store';
 import { Glyph } from './Glyph';
 import { Icon } from './Icon';
 import { CardMenu } from './modeler/CardMenu';
+import { useSaveFactory } from './SaveFactories';
 
 /** The tabs on screen: factories in the factory planner, power plants in the power planner. */
 function useTabs() {
@@ -334,7 +336,7 @@ function PlanList({ at, onClose }: { at: { x: number; y: number }; onClose: () =
           type="button"
           className="plan-row-name"
           onClick={() => {
-            set({ overview: true, inspect: undefined });
+            set({ overview: true, saveView: undefined, inspect: undefined });
             onClose();
           }}
         >
@@ -412,7 +414,8 @@ function PlanList({ at, onClose }: { at: { x: number; y: number }; onClose: () =
  * renames it; + adds another of the same kind, ⋯ has rename, duplicate and delete.
  */
 export function PlanTabs() {
-  const { t } = useT();
+  const { t, name } = useT();
+  const saveView = useSaveFactory(useStore((s) => s.saveView));
   const tabs = useTabs();
   const editing = useStore((s) => s.renaming);
   const set = useStore((s) => s.set);
@@ -445,7 +448,8 @@ export function PlanTabs() {
 
   const stopEditing = () => set({ renaming: undefined });
   const current = tabs.list.find((p) => p.id === tabs.active);
-  const shown = overview ? t('overviewTab') : (current?.name ?? '');
+  // A factory from the game save open in place of the "All" page goes by its own name.
+  const shown = overview ? (saveView ? name(factoryTitle(saveView)) : t('overviewTab')) : (current?.name ?? '');
 
   return (
     <nav className={`plan-tabs ${tabs.power ? 'power' : ''}`} aria-label={tabs.label} ref={box}>

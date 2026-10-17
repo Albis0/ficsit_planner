@@ -1,5 +1,6 @@
 // Imports a real game save the way a player would: the button, the window, the folder, the picker, the cover while
-// it reads, the first questions, what came in, the map; then a refresh after the player changed things, Settings › Game save,
+// it reads, the first questions, what came in, the map, the save's factories (All, the read-only floor, a copy, a link and
+// its ticks); then a refresh after the player changed things, Settings › Game save,
 // forgetting it, and the same on a phone.
 //
 //   bun run build && node e2e/save-import.mjs
@@ -143,13 +144,13 @@ try {
     /Tier 4/.test(came) && /3 alternate recipes/.test(came) && /2 Somersloops/.test(came) && /21 power shards/.test(came),
     came,
   );
-  ok('the result says what came onto the map', /The map/.test(came) && /21 nodes mined/.test(came) && /3 factories/.test(came), came);
+  ok('the result says what came onto the map', /The map/.test(came) && /21 nodes mined/.test(came) && /4 factories/.test(came), came);
   let s = await state();
   ok(
     'the map takes the miners, pickups and factories',
     s.save?.map?.miners.length === 21 &&
       s.save.map.picked.slug1?.length === 15 &&
-      s.save.map.factories.length === 3 &&
+      s.save.map.factories.length === 4 &&
       s.save.map.missed === 0,
   );
   ok(
@@ -195,7 +196,7 @@ try {
     'the filter names the followed game',
     (await page.locator('.map-nav .section-title').first().textContent()) === 'From your save · ela',
   );
-  ok('the factories are named on the map', (await page.locator('.map-factory-label').count()) === 3);
+  ok('the factories are named on the map', (await page.locator('.map-factory-label').count()) === 4);
   for (const layer of ['Blue Power Slug', 'Mercer Sphere', 'Somersloop']) await page.locator('.map-item', { hasText: layer }).click();
   const label = await page.locator('.map-factory-label').first().boundingBox();
   await page.mouse.move(label.x + label.width / 2, label.y + label.height + 30);
@@ -232,6 +233,114 @@ try {
   await page.click('.mode-switch [role=radio] >> nth=0');
   await wait(400);
 
+  section = 'save factories';
+  const openAll = async () => {
+    await page.click('.plan-current');
+    await page.click('.plan-row.all .plan-row-name');
+    await page.waitForSelector('.save-card');
+  };
+  await openAll();
+  await page.locator('.save-list').scrollIntoViewIfNeeded();
+  await wait(300);
+  await shot('all-from-save');
+  ok('All lists the save’s factories', (await page.locator('.save-card').count()) === 4);
+  const frames = s.save.map.factories[0].id;
+  await page.locator('.save-card .ghost-button').first().click();
+  await page.waitForSelector('.save-floor .react-flow__node', { timeout: 60000 });
+  await wait(1500);
+  await shot('save-floor');
+  ok(
+    'the floor opens read only, named after the factory',
+    (await page.locator('.plan-tab-label').textContent()) === 'Modular Frame' &&
+      (await page.locator('.save-stamp').isVisible()) &&
+      (await page.locator('.react-flow.read-only').count()) === 1,
+  );
+  // Dragged and double-clicked, a card stays where it is, unticked, with no panel.
+  const cards = page.locator('.save-floor .react-flow__node');
+  const box = await cards.nth(3).boundingBox();
+  await page.mouse.move(box.x + 30, box.y + 30);
+  await page.mouse.down();
+  await page.mouse.move(box.x + 160, box.y + 110, { steps: 6 });
+  await page.mouse.up();
+  await cards.nth(3).dblclick();
+  await wait(400);
+  ok(
+    'a card on it does not move, tick or open a panel',
+    (await page.locator('.save-floor .react-flow__node.draggable, .save-floor .react-flow__node.selected').count()) === 0 &&
+      (await page.locator('.save-floor .done').count()) === 0 &&
+      (await page.locator('.save-floor .react-flow__node button:visible').count()) === 0 &&
+      (await page.locator('.inspector').count()) === 0,
+    `${await page.locator('.save-floor .react-flow__node.draggable').count()} ${await page.locator('.save-floor .done').count()} ${await page.locator('.inspector').count()}`,
+  );
+  await page.click('.save-info-head');
+  ok('the box beside it folds', (await page.locator('.save-info-body').count()) === 0);
+  await page.click('.save-info-head');
+  await page.setViewportSize({ width: 900, height: 800 });
+  await wait(600);
+  await shot('save-floor-900');
+  await page.setViewportSize({ width: 1280, height: 800 });
+  await wait(400);
+  await page.click('.save-info .primary-button');
+  await page.waitForSelector('.save-compare');
+  await wait(2500);
+  await shot('copy-compare');
+  s = await state();
+  const copy = s.plans.at(-1);
+  ok(
+    'a copy is a hand-built tab linked to the factory',
+    s.plans.length === 2 && copy.floor === 'manual' && copy.saveFactory === frames && copy.model.nodes.length > 100,
+  );
+  ok(
+    'every machine of the copy is ticked from the save',
+    copy.model.nodes.filter((n) => n.k === 'machine').every((n) => n.done === 'save'),
+  );
+  ok('the box compares recipe by recipe', (await page.locator('.save-compare-rows li').count()) === 12);
+  await openAll();
+  await page.locator('.save-card .save-link').first().selectOption('f1');
+  await wait(300);
+  s = await state();
+  ok(
+    'a save factory is linked to one tab: the copy lets go, and its ticks with it',
+    s.plans[0].saveFactory === frames && !s.plans[1].saveFactory && s.plans[1].model.nodes.every((n) => !n.done),
+  );
+  await page.click('.plan-current');
+  await page.locator('.plan-row', { hasText: 'Modular Frames' }).locator('.plan-row-name').click();
+  await page.waitForSelector('.save-compare');
+  await wait(2500);
+  await shot('auto-compare');
+  s = await state();
+  ok(
+    'the Auto tab is ticked where the save has every machine',
+    JSON.stringify([...(s.plans[0].savedBuilt ?? [])].sort()) ===
+      JSON.stringify(['Recipe_IngotIron_C', 'Recipe_IronPlateReinforced_C', 'Recipe_IronPlate_C', 'Recipe_Screw_C']),
+    JSON.stringify(s.plans[0].savedBuilt),
+  );
+  await page.click('.mode-switch [role=radio] >> nth=3');
+  await page.waitForSelector('.map-factory-label');
+  await wait(1200);
+  const tag = await page.locator('.map-factory-label').first().boundingBox();
+  await page.mouse.move(tag.x + tag.width / 2, tag.y + tag.height + 30);
+  for (let i = 0; i < 3; i++) {
+    await page.mouse.wheel(0, -300);
+    await wait(400);
+  }
+  await wait(1200);
+  const big = await page.locator('.map-factory-label:visible').first().boundingBox();
+  await page.mouse.click(big.x + big.width / 2 - 60, big.y + big.height + 150);
+  await page.waitForSelector('.map-pop-save');
+  await shot('map-factory-link');
+  ok('the map popup names the linked tab', (await page.locator('.map-pop-save select').inputValue()) === 'f1');
+  await page.click('.map-pop-save .ghost-button');
+  await page.waitForSelector('.save-floor .react-flow__node', { timeout: 60000 });
+  ok('Open floor on the map opens it', (await page.locator('.save-info-head').textContent()).includes('Modular Frame'));
+  await page.click('.save-info .text-button');
+  await wait(1500);
+  await shot('show-on-map');
+  s = await state();
+  ok('Show on map goes to the map', s.mode === 'map');
+  await page.click('.mode-switch [role=radio] >> nth=0');
+  await wait(400);
+
   section = 'refresh';
   // The player changes things in the planner since the import.
   s = await state();
@@ -257,6 +366,7 @@ try {
   ok('the result says the tier was kept', (await page.locator('.save-came.not').textContent()).includes('Tier: you kept yours'));
   s = await state();
   ok('kept tier stays, sloops follow the game', s.tier === 6 && s.inventory.sloops === 2, `${s.tier} ${s.inventory.sloops}`);
+  ok('the factory is found again: its link stays', s.plans[0].saveFactory === frames && s.save.map.factories[0].id === frames);
   await page.click('.save-foot .primary-button');
 
   section = 'settings';
@@ -360,6 +470,22 @@ try {
   await wait(1500);
   await shot('phone-map-filter');
   ok('the phone filter has the picked-up switch', await page.locator('.map-picked').isVisible());
+  await page.locator('.mode-switch [role=radio] >> nth=0').dispatchEvent('click');
+  await wait(500);
+  await page.locator('.plan-current').dispatchEvent('click');
+  await page.locator('.plan-row.all .plan-row-name').dispatchEvent('click');
+  await page.waitForSelector('.save-card');
+  await page.locator('.save-list').scrollIntoViewIfNeeded();
+  await wait(400);
+  await shot('phone-all');
+  await page.locator('.save-card .ghost-button').nth(1).dispatchEvent('click');
+  await page.waitForSelector('.save-floor .react-flow__node', { timeout: 120000 });
+  await wait(1500);
+  await shot('phone-save-floor');
+  ok('a phone opens a save factory read only', await page.locator('.save-stamp').isVisible());
+  await page.locator('.save-info-head').dispatchEvent('click');
+  await wait(300);
+  await shot('phone-save-floor-folded');
 } catch (e) {
   ok('ran to the end', false, e.message.split('\n')[0]);
   await shot('stopped').catch(() => {});

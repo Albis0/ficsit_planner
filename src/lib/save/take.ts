@@ -1,7 +1,8 @@
-import { useStore } from '../../store';
+import { unlinkSave, useStore } from '../../store';
 import { type Answers, type Field, fieldsOf, merge, type SaveInfo, type Values, valuesOf } from './apply';
 import { type Found, gameKey } from './files';
-import { keepSave } from './store-idb';
+import { findFactories } from './factories';
+import { keepSave, keptMembers } from './store-idb';
 import { toMap } from './toMap';
 import type { SaveData } from './types';
 
@@ -13,10 +14,18 @@ export function mine(): Values {
 
 /**
  * Puts what a save says in place: the fields the answers take, except those the player chose to keep. Alternates new
- * to the planner are turned on in every factory; nothing is turned off. The file is kept in this browser.
- * Returns the fields taken.
+ * to the planner are turned on in every factory; nothing is turned off. The file and its factories' floors are kept
+ * in this browser. Returns the fields taken, and how many factory tabs lost the save factory they were linked to.
  */
-export function takeSave(found: Found, save: SaveData, answers: Answers, keep: readonly Field[]): Field[] {
+export async function takeSave(
+  found: Found,
+  save: SaveData,
+  answers: Answers,
+  keep: readonly Field[],
+): Promise<{ taken: Field[]; unlinked: number }> {
+  // A factory found again keeps its id, so the factory tabs linked to it stay linked.
+  const factories = answers.factories ? findFactories(save, await keptMembers()) : undefined;
+  const ids = new Set(factories?.list.map((f) => f.id));
   const s = useStore.getState();
   const game = valuesOf(save);
   const taken = fieldsOf(answers).filter((f) => !keep.includes(f));
@@ -34,22 +43,23 @@ export function takeSave(found: Found, save: SaveData, answers: Answers, keep: r
     ...(save.phase ? { phase: save.phase } : {}),
     importedAt: Date.now(),
     answers,
-    map: toMap(save, answers.factories),
+    map: toMap(save, factories?.list ?? []),
     seen: game,
   };
+  const lost = (p: { saveFactory?: string }) => !!p.saveFactory && !ids.has(p.saveFactory);
+  const unlinked = s.plans.filter(lost).length;
   useStore.setState({
     tier: next.tier,
     skipped: next.skipped,
     unlocked: next.unlocked,
     inventory: { sloops: next.sloops, shards: next.shards },
-    plans: added.length
-      ? s.plans.map((p) => {
-          const missing = added.filter((id) => !p.enabled.includes(id));
-          return missing.length ? { ...p, enabled: [...p.enabled, ...missing] } : p;
-        })
-      : s.plans,
+    plans: s.plans.map((p) => {
+      const missing = added.filter((id) => !p.enabled.includes(id));
+      const q = lost(p) ? unlinkSave(p) : p;
+      return missing.length ? { ...q, enabled: [...q.enabled, ...missing] } : q;
+    }),
     save: info,
   });
-  void keepSave(found.file);
-  return taken;
+  await keepSave(found.file, factories);
+  return { taken, unlinked };
 }

@@ -23,6 +23,12 @@ const VARIANTS: Record<string, string>[] = [
   { ...lean('RIGHTUP'), ...COMPACT, ...DEPTH },
 ];
 
+/**
+ * A floor from a game save can hold a thousand cards or more: it is laid out one way only and less thoroughly, which
+ * takes seconds where the full set of tries would take minutes.
+ */
+const QUICK = { 'elk.layered.thoroughness': '7' };
+
 /** Workers the tries are shared between, so they run side by side. */
 const WORKERS = 2;
 
@@ -122,7 +128,13 @@ function score(lines: { x: number; y: number }[][]): number {
   return cross * 4 + bends + length / 400;
 }
 
-async function place(m: Model, variant: Record<string, string>, engine: ELK): Promise<Laid & { lines: { x: number; y: number }[][] }> {
+async function place(
+  m: Model,
+  variant: Record<string, string>,
+  engine: ELK,
+  /** Only one try: nothing to compare it with. */
+  alone = false,
+): Promise<Laid & { lines: { x: number; y: number }[][] }> {
   const parts = m.nodes.filter(isPart);
   const ids = new Set(parts.map((n) => n.id));
   const links = m.links.filter((l) => ids.has(l.a) && ids.has(l.b));
@@ -257,7 +269,7 @@ async function place(m: Model, variant: Record<string, string>, engine: ELK): Pr
           : undefined,
     });
   }
-  return { pos, routes, score: score(lines), lines };
+  return { pos, routes, score: alone ? 0 : score(lines), lines };
 }
 
 /**
@@ -266,18 +278,20 @@ async function place(m: Model, variant: Record<string, string>, engine: ELK): Pr
  * each column ordered so belts meet their ends in order without crossing, and every belt run in straight stretches
  * with square turns and a spot of its own for its label. Notes and boxes stay where they are.
  */
-export async function arrangeModel(m: Model): Promise<Model> {
-  return applyArrangement(m, await arrangement(m));
+export async function arrangeModel(m: Model, quick = false): Promise<Model> {
+  return applyArrangement(m, await arrangement(m, quick));
 }
 
 /** Where each card goes and each belt's bends, label spot and ends: a layout worked out, before it's put on a model. */
 export type Arrangement = Pick<Laid, 'pos' | 'routes'>;
 
 /** The model laid out afresh, as `arrangeModel` does, without putting it on the model yet. */
-export async function arrangement(m: Model): Promise<Arrangement> {
+export async function arrangement(m: Model, quick = false): Promise<Arrangement> {
   if (!m.nodes.some(isPart)) return { pos: new Map(), routes: new Map() };
   const pool = await elk();
-  const tries = await Promise.all(VARIANTS.map((v, i) => place(m, v, pool[i % pool.length])));
+  const tries = await Promise.all(
+    (quick ? [{ ...VARIANTS[0], ...QUICK }] : VARIANTS).map((v, i) => place(m, v, pool[i % pool.length], quick)),
+  );
   const best = tries.reduce((a, b) => (b.score < a.score ? b : a));
   return { pos: best.pos, routes: best.routes };
 }

@@ -2,10 +2,12 @@ import type { SaveBuilding, SaveLink } from './types';
 
 /** Belts, lifts, pipes and what sits in their run; they join buildings, they are not buildings of a factory. */
 const LINE = new Set<SaveBuilding['kind']>(['belt', 'lift', 'pipe', 'pass', 'pump']);
+/** Splitters, mergers and pipe junctions: part of a run when its length is counted, so a merger half way along a long line does not cut it in two short ones. */
+const ATTACHMENT = new Set<SaveBuilding['kind']>(['splitter', 'merger', 'smart', 'prog', 'prio', 'junction']);
 /** A run of belts or pipes longer than this, metres, is a line between two factories and does not join them. */
 export const LONG_LINE = 150;
-/** Factories whose buildings come closer than this, cm, are one factory. */
-export const NEAR = 6000;
+/** Buildings closer to each other than this, cm, are one factory. */
+export const NEAR = 4000;
 
 function unionFind(n: number) {
   const parent = Array.from({ length: n }, (_, i) => i);
@@ -25,12 +27,13 @@ function unionFind(n: number) {
 }
 
 /**
- * Splits a save's buildings into factories: buildings joined by a short belt or pipe run, or standing next to each
+ * Splits a save's buildings into factories: buildings joined by a short run of belts or pipes, or standing near each
  * other, are one factory. Returns the buildings of each, belts and pipes left out.
  */
 export function clusters(buildings: readonly SaveBuilding[], links: readonly SaveLink[]): SaveBuilding[][] {
   const index = new Map(buildings.map((b, i) => [b.id, i]));
   const isLine = (i: number) => LINE.has(buildings[i].kind);
+  const inRun = (i: number) => isLine(i) || ATTACHMENT.has(buildings[i].kind);
   const uf = unionFind(buildings.length);
   const pairs: [number, number][] = [];
   for (const l of links) {
@@ -38,58 +41,59 @@ export function clusters(buildings: readonly SaveBuilding[], links: readonly Sav
     const b = index.get(l.b);
     if (a !== undefined && b !== undefined && a !== b) pairs.push([a, b]);
   }
-  // Each run of line pieces, its length, and the buildings at its ends.
+  // Each run of line pieces and the splitters and mergers on it, its belt length, and the buildings at its ends.
   const runs = unionFind(buildings.length);
-  for (const [a, b] of pairs) if (isLine(a) && isLine(b)) runs.join(a, b);
+  for (const [a, b] of pairs) if (inRun(a) && inRun(b)) runs.join(a, b);
   const length = new Map<number, number>();
   buildings.forEach((b, i) => {
     if (isLine(i)) length.set(runs.find(i), (length.get(runs.find(i)) ?? 0) + (b.length ?? 0));
   });
   const ends = new Map<number, number[]>();
+  const add = (run: number, i: number) => {
+    const has = ends.get(run);
+    if (has) has.push(i);
+    else ends.set(run, [i]);
+  };
   for (const [a, b] of pairs) {
-    if (isLine(a) === isLine(b)) {
-      if (!isLine(a)) uf.join(a, b);
+    if (inRun(a) === inRun(b)) {
+      if (!inRun(a)) uf.join(a, b);
       continue;
     }
-    const [line, end] = isLine(a) ? [a, b] : [b, a];
-    const run = runs.find(line);
-    const has = ends.get(run);
-    if (has) has.push(end);
-    else ends.set(run, [end]);
+    const [line, end] = inRun(a) ? [a, b] : [b, a];
+    add(runs.find(line), end);
   }
+  buildings.forEach((b, i) => {
+    if (ATTACHMENT.has(b.kind)) add(runs.find(i), i);
+  });
   for (const [run, list] of ends) if ((length.get(run) ?? 0) <= LONG_LINE) for (const e of list) uf.join(list[0], e);
 
-  const groups = new Map<number, number[]>();
-  buildings.forEach((_, i) => {
+  // Buildings that stand near each other: each checked against those in its own and the next squares of a grid.
+  const grid = new Map<string, number[]>();
+  const cell = (x: number, y: number) => `${Math.floor(x / NEAR)},${Math.floor(y / NEAR)}`;
+  buildings.forEach((b, i) => {
+    if (isLine(i)) return;
+    const k = cell(b.x, b.y);
+    const has = grid.get(k);
+    if (has) has.push(i);
+    else grid.set(k, [i]);
+  });
+  buildings.forEach((b, i) => {
+    if (isLine(i)) return;
+    const cx = Math.floor(b.x / NEAR);
+    const cy = Math.floor(b.y / NEAR);
+    for (let dx = -1; dx <= 1; dx++)
+      for (let dy = -1; dy <= 1; dy++)
+        for (const j of grid.get(`${cx + dx},${cy + dy}`) ?? [])
+          if (j > i && Math.hypot(buildings[j].x - b.x, buildings[j].y - b.y) <= NEAR) uf.join(i, j);
+  });
+
+  const groups = new Map<number, SaveBuilding[]>();
+  buildings.forEach((b, i) => {
     if (isLine(i)) return;
     const r = uf.find(i);
     const has = groups.get(r);
-    if (has) has.push(i);
-    else groups.set(r, [i]);
+    if (has) has.push(b);
+    else groups.set(r, [b]);
   });
-  // Groups that come close merge: boxes sorted by their left edge, each checked against the ones starting before its right edge ends.
-  const list = [...groups.values()].map((g) => {
-    const box = { g, x0: Infinity, x1: -Infinity, y0: Infinity, y1: -Infinity };
-    for (const i of g) {
-      const { x, y } = buildings[i];
-      box.x0 = Math.min(box.x0, x);
-      box.x1 = Math.max(box.x1, x);
-      box.y0 = Math.min(box.y0, y);
-      box.y1 = Math.max(box.y1, y);
-    }
-    return box;
-  });
-  list.sort((a, b) => a.x0 - b.x0);
-  const near = unionFind(list.length);
-  for (let i = 0; i < list.length; i++)
-    for (let j = i + 1; j < list.length && list[j].x0 <= list[i].x1 + NEAR; j++)
-      if (list[j].y0 <= list[i].y1 + NEAR && list[i].y0 <= list[j].y1 + NEAR) near.join(i, j);
-  const merged = new Map<number, SaveBuilding[]>();
-  list.forEach((c, i) => {
-    const r = near.find(i);
-    const has = merged.get(r) ?? [];
-    for (const k of c.g) has.push(buildings[k]);
-    merged.set(r, has);
-  });
-  return [...merged.values()];
+  return [...groups.values()];
 }

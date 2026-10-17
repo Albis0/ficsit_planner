@@ -6,6 +6,7 @@ import type { PoolParty } from '../lib/pool';
 import { useStore } from '../store';
 import { Icon } from './Icon';
 import { RecipeBrowser } from './RecipeBrowser';
+import { SaveFactoryList } from './SaveFactories';
 import { RateChips } from './Summary';
 
 /** A list of items as icon-and-rate chips, or a dash when there are none. */
@@ -238,6 +239,8 @@ function Factories() {
             </tbody>
           </table>
         </section>
+
+        <SaveFactoryList />
 
         {plants.length > 0 && (
           <section className="ov-section">

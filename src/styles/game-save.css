@@ -642,3 +642,299 @@ li[data-state='now'] .save-mark {
 .map-picked button {
   flex: 1;
 }
+
+/* All › From your save: a card for each factory in the save, its buildings, the tab it is linked to, its floor. */
+.save-list-head {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 8px;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: inherit;
+  font: inherit;
+  letter-spacing: inherit;
+  text-transform: inherit;
+  cursor: pointer;
+}
+
+.save-list-head .glyph {
+  align-self: center;
+}
+
+.save-list-head small {
+  font: 500 15px var(--font-body);
+  letter-spacing: 0;
+  text-transform: none;
+  color: var(--faint);
+}
+
+.save-list-head:hover {
+  color: var(--paper);
+}
+
+.save-cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 12px;
+}
+
+.save-card {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 12px 14px 14px;
+  background: var(--panel);
+  border: 1px solid var(--line);
+}
+
+.save-card header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.save-card header span {
+  display: grid;
+  min-width: 0;
+}
+
+.save-card header b {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font: 700 21px var(--font-display);
+}
+
+.save-card header small {
+  color: var(--faint);
+  font-size: 14px;
+}
+
+/* The link and the button sit on the card's last line, whatever is above them. */
+.save-card footer {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 10px;
+  margin-top: auto;
+}
+
+.save-counts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 14px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.save-counts li {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.save-counts b {
+  font: 700 19px var(--font-display);
+}
+
+.save-link {
+  width: 100%;
+  min-width: 0;
+  padding: 7px 10px;
+  background: var(--bg);
+  border: 1px solid var(--line-2);
+  color: var(--paper);
+  font: 600 15px var(--font-body);
+}
+
+/* A save factory's floor: read only, what it is in a box on the left, a small stamp along the top. Its cards have no
+   buttons: they would change the factory tab on screen, not this floor. */
+.save-floor .react-flow.read-only .react-flow__node button {
+  display: none;
+}
+
+.save-stamp {
+  position: absolute;
+  top: 14px;
+  left: 50%;
+  z-index: 5;
+  transform: translateX(-50%);
+  padding: 3px 12px;
+  background: rgb(31 31 31 / 0.85);
+  border: 2px solid var(--ficsit);
+  color: var(--ficsit);
+  font: 700 15px / 1.2 var(--font-display);
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  pointer-events: none;
+}
+
+.save-floor .busy {
+  left: auto;
+  right: 18px;
+}
+
+.save-info,
+.save-compare {
+  position: absolute;
+  top: 14px;
+  z-index: 7;
+  width: 300px;
+  max-height: calc(100% - 104px);
+  overflow-y: auto;
+  background: var(--panel);
+  border: 1px solid var(--line-2);
+  border-top: 4px solid var(--ficsit);
+  box-shadow: 0 14px 40px rgb(0 0 0 / 0.5);
+}
+
+.save-info {
+  left: 14px;
+}
+
+.save-compare {
+  right: 14px;
+}
+
+.save-info-head,
+.save-compare-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 12px 14px;
+  border: 0;
+  background: none;
+  color: var(--paper);
+  font: 700 20px / 1.15 var(--font-display);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  text-align: left;
+  cursor: pointer;
+}
+
+.save-compare-head {
+  font-size: 18px;
+}
+
+.save-info-head span,
+.save-compare-head span {
+  flex: 1;
+  min-width: 0;
+}
+
+.save-info-head .glyph:last-child,
+.save-compare-head .glyph {
+  color: var(--faint);
+}
+
+.save-info-body {
+  display: grid;
+  gap: 14px;
+  padding: 0 14px 14px;
+}
+
+.save-info-from {
+  margin: 0;
+  color: var(--dim);
+  font-size: 15px;
+}
+
+.save-info-link {
+  display: grid;
+  gap: 6px;
+  color: var(--dim);
+  font-size: 14px;
+}
+
+.save-info .text-button {
+  justify-self: center;
+  color: var(--ficsit);
+}
+
+/* On a linked factory tab: recipe by recipe, how many of its machines the save has. */
+.save-compare-rows {
+  display: grid;
+  gap: 10px;
+  margin: 0;
+  padding: 0 14px 14px;
+  list-style: none;
+}
+
+.save-compare-rows li {
+  display: grid;
+  grid-template-columns: 26px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 4px 8px;
+}
+
+.save-compare-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 15px;
+}
+
+.save-compare-rows b {
+  font: 700 17px var(--font-display);
+  color: var(--ficsit);
+}
+
+.save-compare-rows li[data-done] b {
+  color: var(--supply);
+}
+
+.save-bar {
+  grid-column: 1 / -1;
+  height: 7px;
+  background: var(--bg);
+  border: 1px solid var(--line);
+}
+
+.save-bar i {
+  display: block;
+  height: 100%;
+  background: repeating-linear-gradient(-45deg, var(--ficsit) 0 6px, var(--ficsit-deep) 6px 12px);
+}
+
+/* The map: a save factory's popup links it to a tab and opens its floor. */
+.map-pop-save {
+  display: flex;
+  gap: 6px;
+  margin-top: 8px;
+}
+
+.map-pop-save .save-link {
+  flex: 1;
+  width: auto;
+  max-width: 180px;
+  padding: 4px 6px;
+  font-size: 14px;
+}
+
+.map-pop-save .ghost-button {
+  padding: 4px 10px;
+  font-size: 15px;
+}
+
+@media (max-width: 900px) {
+  .save-info,
+  .save-compare {
+    top: 10px;
+    width: min(420px, calc(100% - 20px));
+  }
+
+  .save-info {
+    left: 10px;
+  }
+
+  .save-compare {
+    right: 10px;
+  }
+
+  .save-stamp {
+    top: auto;
+    bottom: 84px;
+  }
+}

@@ -15,6 +15,7 @@ import { SaveFailedNotice } from './components/SaveFailedNotice';
 import { PollCard } from './components/PollCard';
 import { ModeSwitch } from './components/ModeSwitch';
 import { OverviewPage } from './components/Overview';
+import { SaveCompare, SaveFloor } from './components/SaveFactories';
 import { PlanTabs } from './components/PlanTabs';
 import { PlantInspector, PowerQuickStart, PowerSummary } from './components/PowerFloor';
 import { PowerPanel } from './components/PowerPanel';
@@ -155,6 +156,7 @@ export default function App() {
       overview: x.overview,
       pane: x.pane,
       plans: x.plans,
+      saveView: x.saveView,
       power: x.power,
       seenUpdates: x.seenUpdates,
       set: x.set,
@@ -471,7 +473,7 @@ export default function App() {
             <WorldMap />
           </Suspense>
         )}
-        {overviewOn && <OverviewPage />}
+        {overviewOn && (s.saveView ? <SaveFloor key={s.saveView} id={s.saveView} /> : <OverviewPage />)}
         {!bookMode &&
           !overviewOn &&
           shown &&
@@ -565,6 +567,9 @@ export default function App() {
               ) : (
                 <AutoAreaPanel fallback={<Inspector result={result} />} />
               ))}
+            {shown && !powerMode && s.view === 'graph' && plan.saveFactory && (
+              <SaveCompare plan={plan} result={result} ready={manual ? !!hand.calc && !hand.busy : !solved.busy} />
+            )}
             {busy && <Busy solverLoad={solverLoad} />}
             {shown && (
               <div className="floor-bar">

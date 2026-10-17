@@ -32,7 +32,7 @@ type Step =
   | { at: 'read'; found: Found; progress: SaveProgress }
   | { at: 'ask'; found: Found; save: SaveData }
   | { at: 'conflict'; found: Found; save: SaveData; fields: Field[] }
-  | { at: 'done'; found: Found; save: SaveData; taken: Field[]; kept: Field[] };
+  | { at: 'done'; found: Found; save: SaveData; taken: Field[]; kept: Field[]; unlinked: number };
 
 const STEPS: { id: SaveStep; key: StringKey }[] = [
   { id: 'read', key: 'saveStepRead' },
@@ -80,7 +80,7 @@ export default function SaveImport({ onClose }: { onClose: () => void }) {
         if (!current) return setStep({ at: 'ask', found, save });
         const fields = conflicts(mine(), current.seen, valuesOf(save), fieldsOf(current.answers));
         if (fields.length) return setStep({ at: 'conflict', found, save, fields });
-        finish(found, save, current.answers, []);
+        void finish(found, save, current.answers, []);
       },
       (e: { reason?: string }) => {
         cancel.current = undefined;
@@ -90,9 +90,17 @@ export default function SaveImport({ onClose }: { onClose: () => void }) {
     );
   };
 
-  const finish = (found: Found, save: SaveData, answers: Answers, keep: Field[]) => {
-    const taken = takeSave(found, save, answers, keep);
-    setStep({ at: 'done', found, save, taken, kept: keep });
+  // Taking a save finds its factories and keeps their floors, a moment's work; a second click meanwhile does nothing.
+  const finishing = useRef(false);
+  const finish = async (found: Found, save: SaveData, answers: Answers, keep: Field[]) => {
+    if (finishing.current) return;
+    finishing.current = true;
+    try {
+      const { taken, unlinked } = await takeSave(found, save, answers, keep);
+      setStep({ at: 'done', found, save, taken, kept: keep, unlinked });
+    } finally {
+      finishing.current = false;
+    }
   };
 
   /** Lists the saves in what was chosen. A refresh goes straight to the newest save of the game it follows. */
@@ -123,13 +131,13 @@ export default function SaveImport({ onClose }: { onClose: () => void }) {
   if (step.at === 'read') return <Reading step={step} onCancel={close} />;
   if (step.at === 'pick')
     return <Picker step={step} onPick={(s) => setStep({ ...step, ...s })} onImport={() => read(step.save)} onClose={close} />;
-  if (step.at === 'ask') return <Questions save={step.save} onImport={(a) => finish(step.found, step.save, a, [])} onClose={close} />;
+  if (step.at === 'ask') return <Questions save={step.save} onImport={(a) => void finish(step.found, step.save, a, [])} onClose={close} />;
   if (step.at === 'conflict')
     return (
       <Conflict
         step={step}
         game={followed?.game ?? ''}
-        onRefresh={(keep) => finish(step.found, step.save, followed?.answers ?? ALL_ANSWERS, keep)}
+        onRefresh={(keep) => void finish(step.found, step.save, followed?.answers ?? ALL_ANSWERS, keep)}
         onClose={close}
       />
     );
@@ -503,7 +511,7 @@ function Conflict({
 /** What came in, and what did not with a short reason why. */
 function Result({ step, onClose }: { step: Extract<Step, { at: 'done' }>; onClose: () => void }) {
   const { t } = useT();
-  const { save, taken, kept } = step;
+  const { save, taken, kept, unlinked } = step;
   const v = valuesOf(save);
   const answers = useStore((s) => s.save?.answers) ?? ALL_ANSWERS;
   const map = useStore((s) => s.save?.map);
@@ -535,6 +543,7 @@ function Result({ step, onClose }: { step: Extract<Step, { at: 'done' }>; onClos
         .join(', '),
     ]);
     if (map.missed) not.push(t('saveMapMissed', { n: map.missed }));
+    if (unlinked) not.push(t(unlinked === 1 ? 'saveUnlinkedOne' : 'saveUnlinked', { n: unlinked }));
   }
   for (const f of kept) not.push(t('saveKept', { what: t(FIELD_KEY[f]) }));
   if (!answers.progress) not.push(t('saveLeftOff', { what: t('saveQProgress') }));
