@@ -1,5 +1,6 @@
 import { cleanUnlocked, dropSource, MAX_TIER, newPlan, newPowerPlan, type Plan, POOL, type PowerPlan, useStore } from '../store';
 import { clearBackups } from './autobackup';
+import { forgetSave } from './save/store-idb';
 import { planStorage } from './safeStorage';
 import { cleanNumber, cleanPlan, cleanPowerPlan, cleanSettings, gridToPower } from './sanitize';
 import { DEFAULT_SETTINGS, sameSettings } from './settings';
@@ -7,7 +8,7 @@ import { cleanSkipped } from './unlocks';
 
 export const KIND = 'ficsit-planner';
 
-/** Everything this app keeps in the browser: the saved session, the answers to its questions, an unsent report, the saved copies. */
+/** Everything this app keeps in the browser: the saved session, the answers to its questions, an unsent report, the saved copies, the game save. */
 export async function wipeLocal() {
   // The plans may still be waiting to be written; drop them too, or leaving the page would put them back.
   planStorage.storage.removeItem(KIND);
@@ -15,6 +16,7 @@ export async function wipeLocal() {
     for (const key of Object.keys(localStorage)) if (key.startsWith('ficsit-')) localStorage.removeItem(key);
   } catch {}
   await clearBackups();
+  await forgetSave();
 }
 
 /** Everything worth keeping in one file: factories, power plants and the settings. */

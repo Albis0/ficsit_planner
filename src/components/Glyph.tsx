@@ -26,6 +26,8 @@ const PATHS = {
   send: 'M3 11 21 3l-8 18-2-8z M11 13l10-10',
   download: 'M12 4v11 M7 10l5 5 5-5 M4 20h16',
   upload: 'M12 20V9 M7 14l5-5 5 5 M4 4h16',
+  /** An arrow going down into a tray: something comes in from outside (a game save). */
+  import: 'M12 3v11 M7.5 9.5 12 14l4.5-4.5 M4 13v7h16v-7',
   reset: 'M4 4v6h6 M5.5 15a7.5 7.5 0 1 0 1.8-7.8L4 10',
   trash: 'M4 7h16 M9 7V4h6v3 M6 7l1 13h10l1-13',
   share:

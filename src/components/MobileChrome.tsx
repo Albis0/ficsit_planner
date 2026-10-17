@@ -1,3 +1,4 @@
+import { SaveSheetRow } from './SaveButton';
 import { useEffect, useRef } from 'react';
 import { useT } from '../lib/i18n';
 import { offAt } from '../lib/unlocks';
@@ -110,6 +111,7 @@ export function MobileMenu({ onClose, onTier }: { onClose: () => void; onTier: (
             {tierOff > 0 && <span className="tier-off"> · {t('tierOff', { n: tierOff })}</span>}
           </button>
         </div>
+        <SaveSheetRow onDone={onClose} />
         {!codex && (
           <div className="sheet-group">
             <span className="control-label">{power ? t('plantName') : t('planName')}</span>

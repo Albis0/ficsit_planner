@@ -55,6 +55,7 @@ import { useMediaQuery } from './lib/useMediaQuery';
 import { useUndoKeys } from './lib/undoKeys';
 import { startAutoBackup } from './lib/autobackup';
 import { startPolls } from './lib/polls';
+import { SaveButton, SaveFlow } from './components/SaveButton';
 import { LATEST_UPDATE } from './locales/updates.en';
 import { useSolverLoading, useSolverReady } from './lib/solverClient';
 import { bootDone, bootText } from './lib/boot';
@@ -388,6 +389,7 @@ export default function App() {
         {bookMode ? <span className="topbar-fill" /> : <PlanTabs />}
         <div className="topbar-controls">
           <InstallButton />
+          <SaveButton />
           <button type="button" className="tier-button" title={t('unlockedTier')} onClick={() => setTierOpen(true)}>
             {t('tier')} <b>{s.tier}</b>
             {tierOff > 0 && <span className="tier-off"> · {t('tierOff', { n: tierOff })}</span>}
@@ -590,8 +592,9 @@ export default function App() {
       <MobileNav />
       {menuOpen && <MobileMenu onClose={() => setMenuOpen(false)} onTier={() => setTierOpen(true)} />}
       {(!s.onboarded || tierOpen) && <TierDialog onClose={() => setTierOpen(false)} />}
-      {s.dialog === 'settings' && <SettingsDialog onClose={() => s.set({ dialog: undefined })} />}
+      {s.dialog === 'settings' && <SettingsDialog onClose={() => s.set({ dialog: undefined, settingsAt: undefined })} />}
       {s.dialog === 'report' && <ReportDialog onClose={() => s.set({ dialog: undefined })} />}
+      <SaveFlow />
       <TipLayer />
       <Notice />
       <MovedNotice />

@@ -17,6 +17,7 @@ import { floorTargets, sameTargets, withTargets } from './lib/model/targets';
 import { cleanSkipped, setSkipped } from './lib/unlocks';
 import { emptyModel, type Model } from './lib/model/types';
 import type { Carrier } from './lib/transport';
+import type { SaveInfo } from './lib/save/apply';
 
 export const MAX_TIER = Math.max(...data.recipes.map((r) => r.tier ?? 0));
 
@@ -220,7 +221,11 @@ interface State {
   activePower: string;
   settings: Settings;
   /** Open modal. Not persisted. */
-  dialog?: 'settings' | 'report';
+  dialog?: 'settings' | 'report' | 'save';
+  /** The Settings section to open on, when something else than the usual is asked for. Not persisted. */
+  settingsAt?: 'save';
+  /** The game save last imported and what it said; unset until the first import. Never in a backup or a shared link. */
+  save?: SaveInfo;
   /** Highest milestone tier the player has unlocked in their save. Recipes and buildings above it sit out. */
   tier: number;
   /** Alternate and converter recipes the player has unlocked in the game: every new factory starts with them on. */
@@ -278,6 +283,7 @@ interface State {
         | 'mapFilter'
         | 'mapFocus'
         | 'dialog'
+        | 'settingsAt'
         | 'tier'
         | 'equalWeights'
         | 'customWeights'
@@ -449,6 +455,7 @@ export const persisted = (s: State): Persisted => ({
   seenUpdates: s.seenUpdates,
   onboarded: s.onboarded,
   inventory: s.inventory,
+  save: s.save,
   view: s.view,
   tab: s.tab,
   plans: s.plans,
@@ -870,6 +877,7 @@ type Persisted = Partial<
     | 'seenUpdates'
     | 'onboarded'
     | 'inventory'
+    | 'save'
     | 'view'
     | 'tab'
     | 'plans'
@@ -954,6 +962,7 @@ export function mergeState<S extends State>(persisted: unknown, current: S): S {
       sloops: Math.round(cleanNumber(p.inventory?.sloops, 0, 1e4, 0)),
       shards: Math.round(cleanNumber(p.inventory?.shards, 0, 1e4, 0)),
     },
+    save: cleanSave(p.save),
     view: cleanChoice(p.view, ['graph', 'table', 'transport'] as const, current.view),
     tab: cleanChoice(p.tab, ['targets', 'recipes', 'resources'] as const, current.tab),
     deckHeight: typeof p.deckHeight === 'number' ? cleanNumber(p.deckHeight, 100, 4000, 320) : undefined,
@@ -963,6 +972,39 @@ export function mergeState<S extends State>(persisted: unknown, current: S): S {
     graphDir: p.graphDir === 'LR' || p.graphDir === 'TB' ? p.graphDir : undefined,
     plans,
     active,
+  };
+}
+
+/** The followed game save as kept, checked like the rest; anything malformed drops it, as if never imported. */
+export function cleanSave(v: unknown): SaveInfo | undefined {
+  const s = v as Partial<SaveInfo> | undefined;
+  if (!s || typeof s !== 'object' || typeof s.session !== 'string' || !s.seen || !s.answers) return undefined;
+  const text = (x: unknown) => (typeof x === 'string' ? x.slice(0, 200) : '');
+  const count = (x: unknown) => Math.round(cleanNumber(x, 0, 1e5, 0));
+  const a = s.answers;
+  return {
+    session: s.session.slice(0, 200),
+    game: text(s.game),
+    file: text(s.file),
+    savedAt: cleanNumber(s.savedAt, 0, 1e14, 0),
+    playSeconds: Math.round(cleanNumber(s.playSeconds, 0, 1e9, 0)),
+    saveVersion: count(s.saveVersion),
+    build: cleanNumber(s.build, 0, 1e9, 0),
+    ...(typeof s.phase === 'string' ? { phase: s.phase.slice(0, 100) } : {}),
+    importedAt: cleanNumber(s.importedAt, 0, 1e14, 0),
+    answers: {
+      progress: a.progress !== false,
+      inventory: a.inventory !== false,
+      factories: a.factories !== false,
+      power: a.power !== false,
+    },
+    seen: {
+      tier: Math.round(cleanNumber(s.seen.tier, 0, MAX_TIER, 0)),
+      skipped: cleanSkipped(s.seen.skipped),
+      unlocked: cleanUnlocked(s.seen.unlocked),
+      sloops: count(s.seen.sloops),
+      shards: count(s.seen.shards),
+    },
   };
 }
 

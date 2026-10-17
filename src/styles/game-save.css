@@ -1,0 +1,610 @@
+/* ---------- Game save: top bar button, import windows, Settings › Game save ---------- */
+
+.save-anchor {
+  position: relative;
+  display: inline-flex;
+}
+
+.save-button .glyph:last-child:not(:first-child) {
+  margin-left: -4px;
+}
+
+.save-menu {
+  position: absolute;
+  z-index: 60;
+  top: calc(100% + 6px);
+  right: 0;
+  min-width: 250px;
+  display: flex;
+  flex-direction: column;
+  padding: 4px;
+  background: var(--raised);
+  border: 1px solid var(--line-2);
+  border-top: 3px solid var(--mode);
+  box-shadow: 0 10px 24px rgb(0 0 0 / 0.5);
+}
+
+.save-menu-head {
+  padding: 6px 12px 8px;
+  color: var(--faint);
+  font-size: 13px;
+  border-bottom: 1px solid var(--line);
+  margin-bottom: 4px;
+  white-space: nowrap;
+}
+
+/* Phone menu row: label with the followed game under it, one button beside. */
+.save-sheet-text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.save-sheet-text small {
+  color: var(--faint);
+  font-size: 14px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.save-sheet-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  flex: none;
+}
+
+/* Windows */
+.save-dialog {
+  width: min(620px, calc(100vw - 16px));
+}
+
+.save-dialog.wide {
+  width: min(900px, calc(100vw - 16px));
+}
+
+/* Where a window fills the screen (phones, narrow windows) the body takes the height and the foot stays at the bottom. */
+.save-body {
+  flex: 1 1 auto;
+  box-sizing: border-box;
+  min-width: 0;
+  padding: 18px 20px;
+  overflow: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  font: 500 15px / 1.4 var(--font-body);
+}
+
+.save-foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px 20px;
+  border-top: 1px solid var(--line);
+  background: var(--panel-2);
+}
+
+.save-foot .primary-button {
+  white-space: nowrap;
+}
+
+.save-small {
+  margin: 0;
+  color: var(--faint);
+  font-size: 13px;
+}
+
+.save-label {
+  font: 700 13px / 1 var(--font-display);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--faint);
+}
+
+.save-h {
+  margin: 0;
+  font: 700 20px / 1.2 var(--font-display);
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.save-two {
+  display: grid;
+  align-content: start;
+  grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr);
+  gap: 20px;
+}
+
+.save-col {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  min-width: 0;
+}
+
+.save-big {
+  padding: 14px 18px;
+  font-size: 18px;
+  justify-content: center;
+}
+
+.save-wide {
+  justify-content: center;
+}
+
+.save-drop {
+  border: 2px dashed var(--line-2);
+  padding: 14px;
+  text-align: center;
+  color: var(--faint);
+}
+
+.save-drop[data-over] {
+  border-color: var(--ficsit);
+  color: var(--ficsit);
+}
+
+.save-path {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  min-width: 0;
+  padding: 6px 6px 6px 10px;
+  background: var(--bg);
+  border: 1px solid var(--line);
+}
+
+.save-path code {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 13px;
+  color: var(--dim);
+}
+
+.save-path .ghost-button {
+  flex: none;
+  padding: 4px 10px;
+  font-size: 14px;
+}
+
+.save-safe {
+  margin: 0;
+  display: flex;
+  gap: 6px;
+  align-items: center;
+  color: var(--supply);
+  font-size: 13px;
+}
+
+.save-safe .glyph {
+  flex: none;
+}
+
+/* A drawing of the system's chooser. Light, like the real ones; the address bar ringed. */
+.save-win {
+  border: 1px solid var(--line-2);
+  background: #f3f3f3;
+  color: #222;
+  font:
+    13px system-ui,
+    sans-serif;
+}
+
+.save-win-bar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px;
+  background: #e6e6e6;
+}
+
+.save-win-address {
+  flex: 1;
+  min-width: 0;
+  padding: 3px 6px;
+  background: #fff;
+  border: 2px solid var(--ficsit);
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.save-win-lights {
+  flex: none;
+  width: 42px;
+  height: 10px;
+  background:
+    radial-gradient(circle at 5px 5px, #ff5f57 4.5px, transparent 5px), radial-gradient(circle at 21px 5px, #febc2e 4.5px, transparent 5px),
+    radial-gradient(circle at 37px 5px, #28c840 4.5px, transparent 5px);
+}
+
+.save-win-files {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-height: 84px;
+  padding: 6px;
+}
+
+.save-win-folder,
+.save-win-file {
+  padding: 3px 6px;
+}
+
+.save-win-folder::before {
+  content: '';
+  display: inline-block;
+  width: 14px;
+  height: 10px;
+  margin-right: 6px;
+  background: #f4c552;
+  border-top: 2px solid #e0a92e;
+  vertical-align: -1px;
+}
+
+.save-win-folder.sel,
+.save-win-file.sel {
+  background: #cce4f7;
+  outline: 1px solid #99c9ef;
+}
+
+.save-win-foot {
+  display: flex;
+  justify-content: flex-end;
+  padding: 6px;
+  background: #e6e6e6;
+}
+
+.save-win-btn {
+  padding: 4px 16px;
+  background: #0067c0;
+  color: #fff;
+  border-radius: 3px;
+  outline: 2px solid var(--ficsit);
+}
+
+.save-win.mac {
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.save-win.mac .save-win-address,
+.save-win.mac .save-win-btn {
+  border-radius: 5px;
+}
+
+.save-win.linux .save-win-bar,
+.save-win.linux .save-win-foot {
+  background: #ebebeb;
+}
+
+.save-win.linux .save-win-btn {
+  background: #3584e4;
+}
+
+.save-win.ios .save-win-bar,
+.save-win.android .save-win-bar {
+  justify-content: center;
+  font-weight: 700;
+}
+
+.save-win.ios,
+.save-win.android {
+  border-radius: 10px;
+  overflow: hidden;
+}
+
+.save-win.ios .save-win-file.sel,
+.save-win.android .save-win-file.sel {
+  outline: 2px solid var(--ficsit);
+}
+
+/* Picker: games down the side, the chosen game's saves beside. */
+.save-split {
+  display: grid;
+  grid-template-columns: 240px minmax(0, 1fr);
+  gap: 0;
+  padding: 0;
+}
+
+.save-side {
+  display: flex;
+  flex-direction: column;
+  background: var(--bg);
+  border-right: 1px solid var(--line);
+  max-height: min(420px, 60vh);
+  overflow: auto;
+}
+
+.save-side-row {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+  padding: 12px 36px 12px 14px;
+  background: none;
+  border: 0;
+  border-bottom: 1px solid var(--line);
+  color: var(--paper);
+  font: inherit;
+  text-align: left;
+}
+
+.save-side-row b {
+  overflow-wrap: anywhere;
+}
+
+.save-side-row small {
+  color: var(--faint);
+}
+
+.save-side-row[aria-checked='true'] {
+  background: var(--panel);
+  box-shadow: inset 4px 0 var(--ficsit);
+}
+
+.save-side-row .save-badge {
+  position: absolute;
+  right: 10px;
+  top: 12px;
+}
+
+.save-saves {
+  padding: 18px 20px;
+  max-height: min(420px, 60vh);
+  overflow: auto;
+}
+
+.save-badge {
+  display: inline-block;
+  padding: 1px 7px;
+  font: 700 12px / 1.5 var(--font-body);
+  background: var(--raised);
+  color: var(--dim);
+  border-radius: 3px;
+}
+
+.save-badge.warn {
+  background: var(--power);
+  color: #241c00;
+}
+
+.save-warn {
+  margin: 0;
+  color: var(--power);
+  font-size: 14px;
+}
+
+.save-list {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.save-list-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 12px;
+  padding: 8px 10px;
+  background: var(--panel-2);
+  border: 1px solid var(--line);
+}
+
+.save-list-row:has(input:checked) {
+  border-color: var(--ficsit);
+}
+
+.save-list-row[data-off] {
+  opacity: 0.55;
+}
+
+.save-list-row input,
+.save-radio input {
+  accent-color: var(--ficsit);
+}
+
+.save-list-row b {
+  overflow-wrap: anywhere;
+}
+
+.save-list-row span {
+  color: var(--dim);
+  font-size: 13px;
+}
+
+/* The cover while a save is read. */
+.save-block {
+  border: 0;
+  padding: 0;
+  background: transparent;
+  max-width: none;
+  max-height: none;
+}
+
+.save-block::backdrop {
+  background: rgb(8 9 10 / 72%);
+  backdrop-filter: blur(3px);
+}
+
+.save-panel {
+  width: min(440px, calc(100vw - 32px));
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: 20px;
+  background: var(--panel);
+  border: 1px solid var(--line-2);
+  border-top: 4px solid var(--ficsit);
+  color: var(--paper);
+  clip-path: polygon(0 0, calc(100% - 18px) 0, 100% 18px, 100% 100%, 0 100%);
+}
+
+.save-progress {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.save-progress li {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  color: var(--faint);
+}
+
+.save-progress li small {
+  margin-left: auto;
+  color: var(--ficsit);
+  font-weight: 700;
+}
+
+.save-progress li[data-state='done'] {
+  color: var(--dim);
+}
+
+.save-progress li[data-state='now'] {
+  color: var(--paper);
+  font-weight: 700;
+}
+
+.save-mark {
+  flex: none;
+  width: 20px;
+  height: 20px;
+  box-sizing: border-box;
+  display: grid;
+  place-items: center;
+  border: 2px solid var(--line-2);
+  border-radius: 50%;
+}
+
+li[data-state='done'] .save-mark {
+  background: var(--supply);
+  border-color: var(--supply);
+  color: #102000;
+}
+
+li[data-state='now'] .save-mark {
+  border-color: var(--ficsit);
+  border-top-color: transparent;
+  animation: save-spin 0.9s linear infinite;
+}
+
+@keyframes save-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.save-bar {
+  height: 8px;
+  overflow: hidden;
+  background: var(--bg);
+  border: 1px solid var(--line);
+}
+
+.save-bar span {
+  display: block;
+  height: 100%;
+  background: repeating-linear-gradient(135deg, var(--ficsit) 0 8px, var(--ficsit-deep) 8px 16px);
+  transition: width 0.2s;
+}
+
+/* Refresh: yours or the game's, line by line. */
+.save-radio {
+  display: inline-flex;
+  gap: 6px;
+  align-items: center;
+}
+
+/* What came in, what did not. */
+.save-came {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.save-came li {
+  display: flex;
+  gap: 8px;
+  align-items: flex-start;
+}
+
+.save-came .glyph {
+  flex: none;
+  margin-top: 3px;
+  color: var(--supply);
+}
+
+.save-came.not .glyph {
+  color: var(--alert);
+}
+
+.save-came.not li {
+  color: var(--dim);
+}
+
+/* Settings › Game save */
+.save-line {
+  padding: 4px 0 8px;
+  line-height: 1.8;
+}
+
+.save-line .text-button {
+  padding: 0;
+  font-size: 15px;
+}
+
+@media (max-width: 640px) {
+  .save-two,
+  .save-split {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .save-side {
+    flex-direction: row;
+    overflow-x: auto;
+    border-right: 0;
+    border-bottom: 1px solid var(--line);
+    max-height: none;
+  }
+
+  .save-side-row {
+    min-width: 150px;
+    border-bottom: 0;
+    border-right: 1px solid var(--line);
+  }
+
+  .save-saves {
+    max-height: none;
+  }
+
+  .save-body,
+  .save-saves {
+    padding: 14px;
+  }
+
+  .save-split {
+    padding: 0;
+  }
+
+  .save-foot {
+    padding: 10px 14px;
+  }
+}

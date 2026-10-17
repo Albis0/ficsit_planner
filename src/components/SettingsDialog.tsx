@@ -25,8 +25,9 @@ import { RateInput } from './RateInput';
 import { Dialog } from './Dialog';
 import { Glyph, type GlyphName } from './Glyph';
 import { Preview, SpotContext, type Spot } from './SettingsPreview';
+import { SaveSection } from './SaveSection';
 
-type Section = 'layout' | 'floor' | 'colors' | 'interface' | 'game' | 'data' | 'help' | 'updates';
+type Section = 'layout' | 'floor' | 'colors' | 'interface' | 'game' | 'data' | 'save' | 'help' | 'updates';
 
 const SECTIONS: { id: Section; glyph: GlyphName }[] = [
   { id: 'layout', glyph: 'layout' },
@@ -35,6 +36,7 @@ const SECTIONS: { id: Section; glyph: GlyphName }[] = [
   { id: 'interface', glyph: 'sliders' },
   { id: 'game', glyph: 'factory' },
   { id: 'data', glyph: 'database' },
+  { id: 'save', glyph: 'import' },
   { id: 'help', glyph: 'help' },
   { id: 'updates', glyph: 'news' },
 ];
@@ -55,7 +57,7 @@ export function SettingsDialog({ onClose }: { onClose: () => void }) {
   const { t } = useT();
   const unseen = useStore((s) => s.seenUpdates !== LATEST_UPDATE);
   // Opened from the dot on the gear: straight to what's new.
-  const [section, setSection] = useState<Section>(unseen ? 'updates' : 'layout');
+  const [section, setSection] = useState<Section>(() => useStore.getState().settingsAt ?? (unseen ? 'updates' : 'layout'));
   // On a phone the sections scroll sideways; bring the one it opened on into view.
   const nav = useRef<HTMLElement>(null);
   // In braces: newer browsers return a promise from scrolling, and an effect may only return its clean-up.
@@ -101,6 +103,7 @@ export function SettingsDialog({ onClose }: { onClose: () => void }) {
     interface: t('setInterface'),
     game: t('setGame'),
     data: t('setData'),
+    save: t('saveMenu'),
     help: t('setHelp'),
     updates: t('setUpdates'),
   };
@@ -147,6 +150,7 @@ export function SettingsDialog({ onClose }: { onClose: () => void }) {
                 {section === 'interface' && <InterfaceSection />}
                 {section === 'game' && <GameSection />}
                 {section === 'data' && <DataSection />}
+                {section === 'save' && <SaveSection />}
                 {section === 'help' && <HelpSection />}
                 {section === 'updates' && <UpdatesSection />}
               </div>
