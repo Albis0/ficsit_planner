@@ -22,6 +22,7 @@ const KIND = new Map<string, BuildingKind>([
   ...game.extractors.map((e) => [e.id, 'extractor'] as const),
   ...game.generators.map((g) => [g.id, 'generator'] as const),
   [game.powerStorage.id, 'battery'],
+  ['Build_FrackingSmasher_C', 'pressurizer'],
   ['Build_ConveyorAttachmentSplitter_C', 'splitter'],
   ['Build_ConveyorAttachmentMerger_C', 'merger'],
   ['Build_ConveyorAttachmentSplitterSmart_C', 'smart'],
@@ -69,7 +70,9 @@ const list = (v: unknown) => (Array.isArray(v) ? v : []);
 const round = (v: number, decimals: number) => Math.round(v * 10 ** decimals) / 10 ** decimals;
 const dist = (a: number[], b: number[]) => Math.hypot(a[0] - b[0], a[1] - b[1], a[2] - b[2]);
 
-const MANAGERS = /\.(FGRecipeManager|BP_SchematicManager_C|BP_GamePhaseManager_C|FGPowerCircuit|BP_DropPod_C)$/;
+const MANAGERS = /\.(FGRecipeManager|BP_SchematicManager_C|BP_GamePhaseManager_C|FGPowerCircuit|BP_DropPod_C|FGCentralStorageSubsystem)$/;
+/** The pickups the map shows: Somersloops and Mercer Spheres (WAT1, WAT2), the three slugs, and drop pods. Plants and debris are left out. */
+const PICKUP = /^(BP_WAT[12]|BP_Crystal(_mk[23])?|BP_DropPod)(_|\d|$)/;
 const COMPONENTS = /\.(FGFactoryConnectionComponent|FGPipeConnectionComponent|FGPipeConnectionFactory|FGInventoryComponent)$/;
 const NODES = /\.(BP_ResourceNode|BP_ResourceNodeGeyser|BP_FrackingSatellite|BP_FrackingCore|BP_ResourceDeposit)_C$/;
 
@@ -111,10 +114,10 @@ export function extract(p: Parsed, header: SaveHeader): SaveData {
     buildings: [],
     links: [],
     circuits: [],
-    sloops: { free: 0, inMachines: 0 },
-    shards: { free: 0, inMachines: 0 },
-    collected: p.collected.map(short),
-    pods: [],
+    sloops: { free: 0, inMachines: 0, inDepot: 0 },
+    shards: { free: 0, inMachines: 0, inDepot: 0 },
+    // A dismantled drop pod is in the destroyed list; one that still stands says it was looted itself (below).
+    collected: p.collected.map(short).filter((name) => PICKUP.test(name)),
     other: {},
     unknown,
     objects: p.total,
@@ -158,8 +161,16 @@ export function extract(p: Parsed, header: SaveHeader): SaveData {
         });
         continue;
       case 'BP_DropPod_C':
-        if (o.pos)
-          out.pods.push({ id: short(o.name), x: Math.round(o.pos[0]), y: Math.round(o.pos[1]), opened: props.mHasBeenOpened === true });
+        if (props.mHasBeenLooted === true) out.collected.push(short(o.name));
+        continue;
+      case 'FGCentralStorageSubsystem':
+        for (const s of list(props.mStoredItems)) {
+          const id = idOf(ref((s as Props)?.ItemClass)?.path ?? '');
+          // Most saves name the count "Amount"; one 1.1 save (modded) has "amount".
+          const n = num((s as Props)?.Amount) ?? num((s as Props)?.amount) ?? 0;
+          if (id === SLOOP) out.sloops.inDepot += n;
+          if (id === SHARD) out.shards.inDepot += n;
+        }
         continue;
       case 'FGFactoryConnectionComponent':
       case 'FGPipeConnectionComponent':
@@ -214,7 +225,7 @@ export function extract(p: Parsed, header: SaveHeader): SaveData {
       b.recipe = idOf(recipe.path);
       if (!RECIPES.has(b.recipe)) note(`recipe ${b.recipe}`);
     }
-    if (kind === 'machine' || kind === 'extractor' || kind === 'generator') {
+    if (kind === 'machine' || kind === 'extractor' || kind === 'pressurizer' || kind === 'generator') {
       // The game leaves out values that are at their default: no clock means 100%, no flag means not producing.
       b.clock = round(num(props.mCurrentPotential) ?? 1, 6);
       b.producing = props.mIsProducing === true;

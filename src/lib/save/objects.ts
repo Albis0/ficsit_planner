@@ -151,8 +151,7 @@ function readStruct(r: Reader, name: string, c: ReadContext): unknown {
       if (c.save < V_ITEM_STATE) readRef(r);
       else if (r.i32() >= 1) {
         readRef(r); // state struct type
-        r.i32(); // its size
-        readProps(r, c);
+        r.skip(r.count()); // the state itself (a mod's can be plain bytes), not needed
       }
       return item;
     }
@@ -418,7 +417,8 @@ function readLevel(r: Reader, persistent: boolean, save: number, saveUe5: number
     const size = r.i32();
     const at = r.pos;
     r.skip(size);
-    let objUe5 = levelUe5;
+    // An object kept from an older save (1.1 carried into 1.2) is still in the older layout, whatever its level says.
+    let objUe5 = objSave >= V_VERSION_DATA ? levelUe5 : 0;
     if (objSave >= V_VERSION_DATA && r.i32() === 1) objUe5 = readVersionData(r);
     const next = r.pos;
     if (keep === 'full') {

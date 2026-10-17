@@ -6,6 +6,8 @@ export type { SaveHeader };
 export type BuildingKind =
   | 'machine'
   | 'extractor'
+  /** Resource Well Pressurizer: stands on the well's core; its extractors stand on the satellites. */
+  | 'pressurizer'
   | 'generator'
   | 'battery'
   | 'splitter'
@@ -55,8 +57,8 @@ export type SaveLink = { a: string; ap: string; b: string; bp: string; pipe: boo
 
 export type SaveCircuit = { id: number; members: string[] };
 
-/** Somersloops or power shards: loose (inventories, storage) and slotted into buildings. */
-export type SaveCount = { free: number; inMachines: number };
+/** Somersloops or power shards: loose (inventories, storage), slotted into buildings, and uploaded to the Dimensional Depot. */
+export type SaveCount = { free: number; inMachines: number; inDepot: number };
 
 /** Everything the planner takes from a save, in the planner's own ids. Holds no player name or account. */
 export type SaveData = {
@@ -71,10 +73,8 @@ export type SaveData = {
   circuits: SaveCircuit[];
   sloops: SaveCount;
   shards: SaveCount;
-  /** Instance names of what was picked up or destroyed in the world. */
+  /** Instance names of the map pickups that are gone: Mercer Spheres, Somersloops, slugs, and drop pods whose hard drive was taken. */
   collected: string[];
-  /** Drop pods still standing, and whether they were opened. */
-  pods: { id: string; x: number; y: number; opened: boolean }[];
   /** Buildings the planner has no card for (HUB, MAM, lights…), by class, with how many. */
   other: Record<string, number>;
   /** What this version could not read or does not know, with how often. */

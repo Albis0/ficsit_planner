@@ -2,7 +2,9 @@ import { describe, expect, test } from 'bun:test';
 import { existsSync, readdirSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { Parser } from '@etothepii/satisfactory-file-parser';
-import { readSave } from '../src/lib/save/extract';
+import { OLDEST_SAVE_VERSION, readSave } from '../src/lib/save/extract';
+import { readHeader } from '../src/lib/save/header';
+import { SaveError } from '../src/lib/save/reader';
 
 // Real saves never go into the repo (they hold the player's name and account), so they live outside it. Without that
 // folder (CI, another machine) these tests are skipped. Each save is read by our reader and by etothepii's
@@ -28,7 +30,8 @@ function reference(bytes: Uint8Array) {
   const one = (cls: string) => objects.find((o) => o.typePath.endsWith(cls));
   const machines = new Map<string, string>();
   const extractors = new Map<string, string>();
-  for (const o of objects) {
+  // Mods' buildings (paths outside /Game/FactoryGame/) are not imported.
+  for (const o of objects.filter((o) => o.typePath.startsWith('/Game/FactoryGame/'))) {
     const recipe = prop(o, 'mCurrentRecipe');
     if (recipe) machines.set(short(o.instanceName), `${idOf(recipe.value.pathName)} ${round(prop(o, 'mCurrentPotential')?.value ?? 1)}`);
     const node = prop(o, 'mExtractableResource');
@@ -42,9 +45,19 @@ function reference(bytes: Uint8Array) {
     if (to) links.add([short(o.instanceName), short(to)].sort().join(' '));
   }
   const collected = new Set<string>();
+  const keep = (path: string) => /^(BP_WAT[12]|BP_Crystal(_mk[23])?|BP_DropPod)(_|\d|$)/.test(short(path)) && collected.add(short(path));
   for (const l of levels) {
-    for (const c of l.collectables ?? []) collected.add(short(c.pathName));
-    for (const list of Object.values(l.destroyedActorsMap ?? {}) as Any[][]) for (const c of list) collected.add(short(c.pathName));
+    for (const c of l.collectables ?? []) keep(c.pathName);
+    for (const list of Object.values(l.destroyedActorsMap ?? {}) as Any[][]) for (const c of list) keep(c.pathName);
+  }
+  // The game also counts looted drop pods in a set of its own; dismantled and still standing ones together.
+  const looted = prop(one('.FGScannableSubsystem'), 'mLootedDropPods')?.values?.length ?? 0;
+  const depot = { sloops: 0, shards: 0 };
+  for (const s of prop(one('.FGCentralStorageSubsystem'), 'mStoredItems')?.values ?? []) {
+    const id = idOf(s.properties?.ItemClass?.value?.pathName ?? '');
+    const n = (s.properties?.Amount ?? s.properties?.amount)?.value ?? 0;
+    if (id === 'Desc_WAT1_C') depot.sloops += n;
+    if (id === 'Desc_CrystalShard_C') depot.shards += n;
   }
   const items = { sloops: 0, shards: 0 };
   for (const o of objects.filter((o) => o.typePath.endsWith('.FGInventoryComponent')))
@@ -62,6 +75,8 @@ function reference(bytes: Uint8Array) {
     extractors,
     links,
     collected,
+    looted,
+    depot,
     items,
     connectors: objects.filter((o) => o.typePath.endsWith('.FGFactoryConnectionComponent')).length,
   };
@@ -71,21 +86,34 @@ describe.skipIf(!files.length)('real saves read the same as the reference parser
   for (const file of files) {
     test(file.slice(ROOT.length + 1), async () => {
       const bytes = new Uint8Array(readFileSync(file));
+      if (readHeader(bytes).saveVersion < OLDEST_SAVE_VERSION) {
+        await expect(readSave(bytes)).rejects.toBeInstanceOf(SaveError);
+        return;
+      }
       const ours = await readSave(bytes);
       const ref = reference(bytes);
       expect(ours.objects).toBe(ref.objects);
-      expect(ours.unknown).toEqual({});
+      // Everything is read; only recipes this version has no data for (FICSMAS) may be left over.
+      expect(Object.keys(ours.unknown).filter((k) => !k.startsWith('recipe '))).toEqual([]);
       expect(ours.recipes).toEqual(ref.recipes);
       expect(ours.schematics).toEqual(ref.schematics);
       expect(ours.phase).toBe(ref.phase);
       expect(new Map(ours.buildings.filter((b) => b.recipe).map((b) => [b.id, `${b.recipe} ${b.clock}`]))).toEqual(ref.machines);
       expect(new Map(ours.buildings.filter((b) => b.node).map((b) => [b.id, b.node]))).toEqual(ref.extractors);
-      // Water extractors stand in a water volume, not on a node.
-      expect(ours.buildings.filter((b) => b.node && !b.node.startsWith('FGWaterVolume')).every((b) => b.nodeAt)).toBe(true);
+      // Water extractors stand in a water volume, not on a node; mods bring nodes of their own (BP_DirtNode).
+      expect(ours.buildings.filter((b) => /^BP_(ResourceNode|Fracking)/.test(b.node ?? '')).every((b) => b.nodeAt)).toBe(true);
       expect(new Set(ours.links.map((l) => [`${l.a}.${l.ap}`, `${l.b}.${l.bp}`].sort().join(' ')))).toEqual(ref.links);
-      expect(new Set(ours.collected)).toEqual(ref.collected);
+      // A looted pod that still stands is known by a flag the reference reads wrong in 1.2, so pods are checked by count.
+      const pod = (name: string) => name.startsWith('BP_DropPod');
+      expect(new Set(ours.collected.filter((c) => !pod(c)))).toEqual(new Set([...ref.collected].filter((c) => !pod(c))));
+      expect(ours.collected.filter(pod)).toEqual(expect.arrayContaining([...ref.collected].filter(pod)));
+      // In creative mode the game's own count can lag behind the pods' flags (Release-032: 2 flagged, 1 counted).
+      if (ours.header.creative) expect(ours.collected.filter(pod).length).toBeGreaterThanOrEqual(ref.looted);
+      else expect(ours.collected.filter(pod)).toHaveLength(ref.looted);
       expect(ours.sloops.free + ours.sloops.inMachines).toBe(ref.items.sloops);
       expect(ours.shards.free + ours.shards.inMachines).toBe(ref.items.shards);
+      expect(ours.sloops.inDepot).toBe(ref.depot.sloops);
+      expect(ours.shards.inDepot).toBe(ref.depot.shards);
       // Nothing that names the player comes out.
       expect(JSON.stringify(ours)).not.toContain('mCachedPlayerName');
     }, 60_000);

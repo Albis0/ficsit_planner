@@ -1,8 +1,9 @@
 import { describe, expect, test } from 'bun:test';
 import { deflateSync } from 'node:zlib';
+import { extract } from '../src/lib/save/extract';
 import { readHeader } from '../src/lib/save/header';
 import { inflateBody } from '../src/lib/save/inflate';
-import { type ReadContext, readProps } from '../src/lib/save/objects';
+import { type Parsed, type ReadContext, readProps } from '../src/lib/save/objects';
 import { Reader, SaveError } from '../src/lib/save/reader';
 
 // Builds little-endian bytes the way the game writes them.
@@ -41,6 +42,22 @@ class Bytes {
 }
 
 const ctx = (complete: boolean): ReadContext => ({ save: complete ? 60 : 46, complete, unknown: {} });
+
+/** A 1.2 save header: session "ela", 58 hours, saved 2026-09-27 19:52 UTC. */
+function header() {
+  const ticks = 621355968000000000 + Date.UTC(2026, 8, 27, 19, 52) * 10000;
+  const b = new Bytes()
+    .i32(14)
+    .i32(60)
+    .i32(502094)
+    .str('SPACE')
+    .str('Persistent_Level')
+    .str('?opts')
+    .str('ela')
+    .i32(3600 * 58);
+  b.view(8, (d) => d.setBigInt64(0, BigInt(ticks), true));
+  return b.u8(0).i32(0).str('').i32(0).str('abc123').i32(1).i32(0).i32(0);
+}
 
 describe('reading bytes', () => {
   test('strings: one byte per character, UTF-16 when the length is negative, empty for zero', () => {
@@ -139,20 +156,44 @@ describe('the compressed body', () => {
   });
 });
 
+describe('what the planner takes', () => {
+  test('the map keeps spheres, sloops, slugs and looted pods; the depot counts sloops and shards on their own', () => {
+    const item = (id: string) => ({ level: '', path: `/Game/X.${id}` });
+    const parsed: Parsed = {
+      objects: [
+        { type: '/Game/X.BP_DropPod_C', name: 'L:PersistentLevel.BP_DropPod7', props: { mHasBeenOpened: true, mHasBeenLooted: true } },
+        { type: '/Game/X.BP_DropPod_C', name: 'L:PersistentLevel.BP_DropPod8', props: { mHasBeenOpened: true } },
+        {
+          type: '/Script/FactoryGame.FGCentralStorageSubsystem',
+          name: 'L:PersistentLevel.CentralStorageSubsystem',
+          props: {
+            mStoredItems: [
+              { ItemClass: item('Desc_WAT1_C'), Amount: 4 },
+              { ItemClass: item('Desc_CrystalShard_C'), Amount: 30 },
+              { ItemClass: item('Desc_WAT2_C'), Amount: 9 },
+            ],
+          },
+        },
+      ],
+      collected: [
+        'L:PersistentLevel.BP_WAT2_C_UAID_1',
+        'L:PersistentLevel.BP_Crystal_mk3_5',
+        'L:PersistentLevel.BP_NutBush12',
+        'L:PersistentLevel.BP_DropPod3',
+      ],
+      total: 3,
+      unknown: {},
+    };
+    const s = extract(parsed, readHeader(header().bytes));
+    expect(s.collected.sort()).toEqual(['BP_Crystal_mk3_5', 'BP_DropPod3', 'BP_DropPod7', 'BP_WAT2_C_UAID_1']);
+    expect(s.sloops).toEqual({ free: 0, inMachines: 0, inDepot: 4 });
+    expect(s.shards).toEqual({ free: 0, inMachines: 0, inDepot: 30 });
+  });
+});
+
 describe('the header', () => {
   test('reads names, play time and the save date', () => {
-    const ticks = 621355968000000000 + Date.UTC(2026, 8, 27, 19, 52) * 10000;
-    const b = new Bytes()
-      .i32(14)
-      .i32(60)
-      .i32(502094)
-      .str('SPACE')
-      .str('Persistent_Level')
-      .str('?opts')
-      .str('ela')
-      .i32(3600 * 58);
-    b.view(8, (d) => d.setBigInt64(0, BigInt(ticks), true));
-    b.u8(0).i32(0).str('').i32(0).str('abc123').i32(1).i32(0).i32(0);
+    const b = header();
     const h = readHeader(b.bytes);
     expect(h).toMatchObject({
       headerVersion: 14,
