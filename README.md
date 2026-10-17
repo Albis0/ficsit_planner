@@ -65,6 +65,7 @@ Coded with AI. What changed lately is under **Settings › Updates** in the app,
 - <img src="public/icons/Build_GeneratorNuclear_C.webp" width="28" height="28" align="top" alt="Nuclear Power Plant"> **Power planner.** Power plants are tabs too and can mix generators. Size one by the fuel you have, the MW you want or the factories it runs. The fuel chain, water, nuclear waste, augmenters and Power Storage are counted.
 - <img src="public/icons/Desc_HardDrive_C.webp" width="28" height="28" align="top" alt="Hard Drive"> **Codex.** Parts, resources, buildings, vehicles, equipment, milestones, MAM research, alternate recipes and the AWESOME Shop, with the game's descriptions, plus creatures, world finds and crash sites. Every part shows its whole production line and how each of its recipes compares; every alternate is ranked against the standard recipe. Guides cover getting started, the Space Elevator, power, oil and nuclear. **Build this factory** opens a factory for any part.
 - <img src="public/icons/Build_MinerMk3_C.webp" width="28" height="28" align="top" alt="Miner Mk.3"> **World map.** All 459 resource nodes, 118 well nodes and 31 geysers on the game's map, filtered by resource and purity. Pressing a node shows what each miner or extractor gets from it. Somersloops, Mercer Spheres, power slugs, crash sites, plants and creature spawns can be turned on too.
+- <img src="public/icons/Desc_HardDrive_C.webp" width="28" height="28" align="top" alt="Hard Drive"> **Game save.** Import your save to take its tier, milestones, alternates, Somersloops and power shards; see what you picked up and where you mine on the map; open each factory in it read only, copy it, or link a factory tab to it so what you built gets ticked; and make a power plant tab of each power circuit. See [Game save](#game-save).
 - <img src="public/icons/Desc_FreightWagon_C.webp" width="28" height="28" align="top" alt="Freight Wagon"> **Linked factories.** A factory can take an item from another factory tab, which then makes it on top of its own products.
 - <img src="public/icons/Desc_ModularFrameLightweight_C.webp" width="28" height="28" align="top" alt="Radio Control Unit"> **Share links.** The **Share** button copies a link that contains the factory (and the power plants that run it). Opening it adds a copy as a new tab. Nothing is uploaded.
 - <img src="public/icons/Desc_CircuitBoard_C.webp" width="28" height="28" align="top" alt="Circuit Board"> **Settings.** Panel position, card and text size, spacing, belt labels, colours, interface size, decimals and animations. **Game settings** take your save's part cost, power use and Space Elevator multipliers. Save all factories and settings to a file and load them back. **Help** explains the terms on screen, **Updates** lists what changed.
@@ -85,6 +86,34 @@ To make the cards or the interface bigger or smaller, open **Settings** (top rig
 Ctrl −, or pinch on a touch screen) works too. On a desktop, drag the panel's edge to resize it (double-click the
 edge to reset it), or click **Hide panel** to give the factory the whole screen. Amounts have up and down buttons
 (and the arrow keys) that move them one whole number at a time.
+
+## Game save
+
+**Import save** in the top bar reads a Satisfactory save (1.0 to 1.2) in the browser. Nothing is uploaded: the save
+holds your player name and account, so it never leaves your computer, and it is not in backups or share links.
+
+1. Click **Import save**. The save folder's path is copied for you:
+   `%LOCALAPPDATA%\FactoryGame\Saved\SaveGames` on Windows.
+2. Click **Choose folder**, paste the path into the window's address bar, pick the SaveGames folder and confirm.
+   You can also choose a single `.sav` file or drop one on the window. On a phone, choose the file.
+3. Pick the game. Its newest save is chosen for you, or pick another.
+4. The first time, say what the save may set: tier and alternates, Somersloops and shards, factories, power circuits.
+   Change it later in **Settings › Game save**.
+
+What comes in:
+
+- **Progress.** The tier, the milestones you skipped, your alternate recipes (turned on in every factory), and your
+  Somersloops and power shards (free and in machines).
+- **Map.** What you picked up is greyed out (or hidden), mined nodes get a ring as far round as the miner's clock,
+  and the HUB, Space Elevator, MAM, AWESOME Shop, radar towers and your factories are marked.
+- **Factories.** All › From your save lists the factories found in the save. Open one to see it read only, every
+  building a card with its belts and pipes, or make a copy of it as a factory tab. Link a factory tab to one and the
+  machines the game has built are ticked.
+- **Power circuits.** Each circuit with generators shows what it makes and draws, and becomes a power plant tab with
+  one click.
+
+**Refresh** reads the newest save of the same game again. If you changed the tier, alternates or inventory since the
+last import, you choose which to keep. **Forget** in Settings › Game save removes it from the browser.
 
 ## Development
 
@@ -210,6 +239,7 @@ the belt count low. dagre lays the graph out left to right, or top to bottom on 
 | `tools/icon-extractor/` | .NET icon extractor |
 | `tools/map-extractor/`, `scripts/extract-map.mjs` | .NET world reader (resource nodes, the map picture) and the script that tiles the map |
 | `src/lib/world.ts`, `src/components/WorldMap.tsx`, `src/components/MapNav.tsx` | the world map: node data, the map (Leaflet), its filter |
+| `src/lib/save/` | the game save reader (header, zlib chunks, objects) in a Web Worker, and what the planner takes from it: progress, map, factories as floors, power circuits |
 | `tests/` | solver, hand-checked production lines (`golden`), random plans (`fuzz`), extraction and your own nodes, build groups, split by destination, game multipliers, auto placement, graph layout, unlock tiers, Codex insights, saved state (with a 0.12 save that every later version must still load, `fixtures/`), feedback bans and string tests |
 | `e2e/` | the screen sweep (`sweep.mjs`, `checks.js`) and the screenshot comparison (`visual.mjs`, `baseline/`) |
 | `docs/manual-test.md` | a click-through checklist for testing the app by hand before a release |
@@ -287,6 +317,10 @@ Commit the changed files under `src/data` and `public/icons` afterwards.
 ## Thanks
 
 - [@dberlin](https://github.com/dberlin): the fix that keeps changes made while the Manual floor is being laid out.
+- [GreyHak](https://github.com/GreyHak/sat_sav_parse) (`sat_sav_parse`) and
+  [etothepii](https://github.com/etothepii4/satisfactory-file-parser) (`satisfactory-file-parser`): their save readers
+  explained the save format. The planner's reader is its own code; etothepii's parser checks it in the tests.
+- Hot-Category2986 and BouBouRziPorC on Reddit, who asked to bring a save in.
 - Everyone who reported bugs and asked for features on Reddit; they're named in Settings › Updates.
 
 ## License
