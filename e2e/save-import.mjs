@@ -1,5 +1,5 @@
 // Imports a real game save the way a player would: the button, the window, the folder, the picker, the cover while
-// it reads, the first questions, what came in; then a refresh after the player changed things, Settings › Game save,
+// it reads, the first questions, what came in, the map; then a refresh after the player changed things, Settings › Game save,
 // forgetting it, and the same on a phone.
 //
 //   bun run build && node e2e/save-import.mjs
@@ -143,7 +143,15 @@ try {
     /Tier 4/.test(came) && /3 alternate recipes/.test(came) && /2 Somersloops/.test(came) && /21 power shards/.test(came),
     came,
   );
+  ok('the result says what came onto the map', /The map/.test(came) && /21 nodes mined/.test(came) && /3 factories/.test(came), came);
   let s = await state();
+  ok(
+    'the map takes the miners, pickups and factories',
+    s.save?.map?.miners.length === 21 &&
+      s.save.map.picked.slug1?.length === 15 &&
+      s.save.map.factories.length === 3 &&
+      s.save.map.missed === 0,
+  );
   ok(
     'tier, alternates and inventory are taken',
     s.tier === 4 && ALT.every((a) => s.unlocked.includes(a)) && s.inventory.sloops === 2 && s.inventory.shards === 21,
@@ -177,6 +185,52 @@ try {
   await shot('menu');
   ok('the menu names the followed game', (await page.locator('.save-menu-head').textContent()).startsWith('ela · saved'));
   await page.keyboard.press('Escape');
+
+  section = 'map';
+  await page.click('.mode-switch [role=radio] >> nth=3');
+  await page.waitForSelector('.map-picked');
+  await wait(1500);
+  await shot('map');
+  ok(
+    'the filter names the followed game',
+    (await page.locator('.map-nav .section-title').first().textContent()) === 'From your save · ela',
+  );
+  ok('the factories are named on the map', (await page.locator('.map-factory-label').count()) === 3);
+  for (const layer of ['Blue Power Slug', 'Mercer Sphere', 'Somersloop']) await page.locator('.map-item', { hasText: layer }).click();
+  const label = await page.locator('.map-factory-label').first().boundingBox();
+  await page.mouse.move(label.x + label.width / 2, label.y + label.height + 30);
+  for (let i = 0; i < 3; i++) {
+    await page.mouse.wheel(0, -300);
+    await wait(400);
+  }
+  await wait(1200);
+  await shot('map-close');
+  const near = await page.locator('.map-factory-label:visible').first().boundingBox();
+  await page.mouse.click(near.x + near.width / 2 - 60, near.y + near.height + 150);
+  await wait(400);
+  await shot('map-factory-popup');
+  ok(
+    'a factory says what it has',
+    /From your save/.test(
+      (await page
+        .locator('.map-pop')
+        .textContent()
+        .catch(() => '')) ?? '',
+    ),
+  );
+  await page.keyboard.press('Escape');
+  await page.click('.map-picked [role=radio] >> nth=1');
+  s = await state();
+  ok('Hide is kept', s.mapFilter.picked === 'hide');
+  await wait(600);
+  await shot('map-hide');
+  await page.click('.map-picked [role=radio] >> nth=0');
+  await page.setViewportSize({ width: 900, height: 800 });
+  await wait(800);
+  await shot('map-900');
+  await page.setViewportSize({ width: 1280, height: 800 });
+  await page.click('.mode-switch [role=radio] >> nth=0');
+  await wait(400);
 
   section = 'refresh';
   // The player changes things in the planner since the import.
@@ -296,6 +350,16 @@ try {
   await wait(300);
   await shot('phone-menu-followed');
   ok('the phone menu names the followed game', (await page.locator('.save-sheet-text small').textContent()).startsWith('Dunarr · saved'));
+  await page.keyboard.press('Escape');
+  await wait(300);
+  await page.locator('.mode-switch [role=radio] >> nth=3').dispatchEvent('click');
+  await wait(1500);
+  await shot('phone-map');
+  ok('the phone map names factories', (await page.locator('.map-factory-label').count()) > 0);
+  await page.locator('.mobile-nav button', { hasText: 'Filter' }).dispatchEvent('click');
+  await wait(1500);
+  await shot('phone-map-filter');
+  ok('the phone filter has the picked-up switch', await page.locator('.map-picked').isVisible());
 } catch (e) {
   ok('ran to the end', false, e.message.split('\n')[0]);
   await shot('stopped').catch(() => {});

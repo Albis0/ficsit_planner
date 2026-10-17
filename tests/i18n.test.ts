@@ -60,6 +60,7 @@ const DYNAMIC_PREFIXES = [
   'guide_',
   'guideText_',
   'kind_',
+  'landmark_',
   'layer_',
   'mapGroup_',
   'pageKind_',

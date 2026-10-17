@@ -18,6 +18,7 @@ import { cleanSkipped, setSkipped } from './lib/unlocks';
 import { emptyModel, type Model } from './lib/model/types';
 import type { Carrier } from './lib/transport';
 import type { SaveInfo } from './lib/save/apply';
+import { cleanSaveMap } from './lib/save/map';
 
 export const MAX_TIER = Math.max(...data.recipes.map((r) => r.tier ?? 0));
 
@@ -998,6 +999,7 @@ export function cleanSave(v: unknown): SaveInfo | undefined {
       factories: a.factories !== false,
       power: a.power !== false,
     },
+    ...(s.map ? { map: cleanSaveMap(s.map) } : {}),
     seen: {
       tier: Math.round(cleanNumber(s.seen.tier, 0, MAX_TIER, 0)),
       skipped: cleanSkipped(s.seen.skipped),

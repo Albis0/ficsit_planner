@@ -26,9 +26,11 @@ export interface MapFilter {
   purities: number[];
   /** Artifacts, power slugs, crash sites, plants and creatures that show. */
   layers: string[];
+  /** What a followed save says was picked up: greyed out, hidden, or shown like the rest. */
+  picked: 'grey' | 'hide' | 'show';
 }
 
-export const DEFAULT_MAP_FILTER: MapFilter = { hidden: [], purities: [0, 1, 2], layers: DEFAULT_LAYERS };
+export const DEFAULT_MAP_FILTER: MapFilter = { hidden: [], purities: [0, 1, 2], layers: DEFAULT_LAYERS, picked: 'grey' };
 
 /** The resources on the map, in the order the filter lists them: ores, then fluids, then geysers. */
 export const MAP_GROUPS: { id: 'ores' | 'fluids' | 'geysers'; items: string[] }[] = (() => {
@@ -54,7 +56,8 @@ export function cleanMapFilter(v: unknown): MapFilter {
     ? [...new Set(f.purities.filter((p): p is number => p === 0 || p === 1 || p === 2))].sort()
     : DEFAULT_MAP_FILTER.purities;
   const layers = Array.isArray(f.layers) ? [...new Set(f.layers.filter(knownLayer))] : DEFAULT_MAP_FILTER.layers;
-  return { hidden: [...new Set(hidden)], purities, layers };
+  const picked = f.picked === 'hide' || f.picked === 'show' ? f.picked : 'grey';
+  return { hidden: [...new Set(hidden)], purities, layers, picked };
 }
 
 /** Nodes of one resource by purity: [impure, normal, pure]. */

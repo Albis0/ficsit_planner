@@ -3,6 +3,7 @@ import { readHeader, type SaveHeader } from './header';
 import { inflateBody } from './inflate';
 import { type Parsed, type Props, type Ref, readObjects, type Want } from './objects';
 import { SaveError } from './reader';
+import { LANDMARKS } from './map';
 import type { BuildingKind, SaveBuilding, SaveCount, SaveData, SaveLink } from './types';
 
 /** The oldest save version read (1.0). */
@@ -119,6 +120,7 @@ export function extract(p: Parsed, header: SaveHeader): SaveData {
     // A dismantled drop pod is in the destroyed list; one that still stands says it was looted itself (below).
     collected: p.collected.map(short).filter((name) => PICKUP.test(name)),
     other: {},
+    landmarks: [],
     unknown,
     objects: p.total,
   };
@@ -207,6 +209,7 @@ export function extract(p: Parsed, header: SaveHeader): SaveData {
     const kind = kindOf(cls);
     if (!kind) {
       if (o.pos && o.type.includes('/Buildable/Factory/')) out.other[cls] = (out.other[cls] ?? 0) + 1;
+      if (o.pos && LANDMARKS.includes(cls)) out.landmarks.push({ cls, x: Math.round(o.pos[0]), y: Math.round(o.pos[1]) });
       continue;
     }
     if (!o.props || !o.pos || !o.rot) continue; // already counted as unread

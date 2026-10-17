@@ -31,18 +31,21 @@ test('the filter lists every resource once', () => {
 });
 
 test('a saved filter is cleaned', () => {
-  expect(cleanMapFilter(undefined)).toEqual({ hidden: [], purities: [0, 1, 2], layers: [] });
+  expect(cleanMapFilter(undefined)).toEqual({ hidden: [], purities: [0, 1, 2], layers: [], picked: 'grey' });
   expect(
     cleanMapFilter({
       hidden: ['Desc_Coal_C', 'nope', 3, 'Desc_Coal_C'],
       purities: [2, 5, 0, 2],
       layers: ['slug1', 'x', 'Desc_HogBasic_C', 4],
+      picked: 'hide',
     }),
   ).toEqual({
     hidden: ['Desc_Coal_C'],
     purities: [0, 2],
     layers: ['slug1', 'Desc_HogBasic_C'],
+    picked: 'hide',
   });
+  expect(cleanMapFilter({ picked: 'nope' }).picked).toBe('grey');
 });
 
 test('the finds and creatures read from the level', async () => {

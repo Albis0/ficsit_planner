@@ -506,6 +506,7 @@ function Result({ step, onClose }: { step: Extract<Step, { at: 'done' }>; onClos
   const { save, taken, kept } = step;
   const v = valuesOf(save);
   const answers = useStore((s) => s.save?.answers) ?? ALL_ANSWERS;
+  const map = useStore((s) => s.save?.map);
   const came: [string, string][] = [];
   const not: string[] = [];
   const parts = (c: SaveData['sloops']) =>
@@ -520,6 +521,21 @@ function Result({ step, onClose }: { step: Extract<Step, { at: 'done' }>; onClos
   if (taken.includes('recipes')) came.push([altCount(v.unlocked.length, t), t('saveAltsOn')]);
   if (taken.includes('sloops')) came.push([t('saveSloops', { n: v.sloops }), parts(save.sloops)]);
   if (taken.includes('shards')) came.push([t('saveShards', { n: v.shards }), parts(save.shards)]);
+  if (map) {
+    const picked = Object.values(map.picked).reduce((n, l) => n + l.length, 0);
+    const n = map.factories.length;
+    came.push([
+      t('saveMap'),
+      [
+        picked && t('saveMapPicked', { n: picked }),
+        map.miners.length && t(map.miners.length === 1 ? 'saveMapMinedOne' : 'saveMapMined', { n: map.miners.length }),
+        n && t(n === 1 ? 'saveMapFactoriesOne' : 'saveMapFactories', { n }),
+      ]
+        .filter(Boolean)
+        .join(', '),
+    ]);
+    if (map.missed) not.push(t('saveMapMissed', { n: map.missed }));
+  }
   for (const f of kept) not.push(t('saveKept', { what: t(FIELD_KEY[f]) }));
   if (!answers.progress) not.push(t('saveLeftOff', { what: t('saveQProgress') }));
   if (!answers.inventory) not.push(t('saveLeftOff', { what: t('saveQInventory') }));

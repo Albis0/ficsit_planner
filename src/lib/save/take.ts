@@ -2,6 +2,7 @@ import { useStore } from '../../store';
 import { type Answers, type Field, fieldsOf, merge, type SaveInfo, type Values, valuesOf } from './apply';
 import { type Found, gameKey } from './files';
 import { keepSave } from './store-idb';
+import { toMap } from './toMap';
 import type { SaveData } from './types';
 
 /** The planner's own values for what a save can set. */
@@ -33,6 +34,7 @@ export function takeSave(found: Found, save: SaveData, answers: Answers, keep: r
     ...(save.phase ? { phase: save.phase } : {}),
     importedAt: Date.now(),
     answers,
+    map: toMap(save, answers.factories),
     seen: game,
   };
   useStore.setState({

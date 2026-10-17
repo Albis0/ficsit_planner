@@ -77,6 +77,8 @@ export type SaveData = {
   collected: string[];
   /** Buildings the planner has no card for (HUB, MAM, lights…), by class, with how many. */
   other: Record<string, number>;
+  /** Where the HUB, the Space Elevator, the MAM, the AWESOME Shop and radar towers stand, cm. */
+  landmarks: { cls: string; x: number; y: number }[];
   /** What this version could not read or does not know, with how often. */
   unknown: Record<string, number>;
   /** Objects in the save, read or not. */

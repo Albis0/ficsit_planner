@@ -5,6 +5,7 @@ import { data } from '../lib/data';
 import { PURITIES, PURITY } from '../lib/extraction';
 import { CREATURE_RING, type Layer, LAYER_GROUPS, LAYER_ITEM, LAYER_RING, type PointLayer, useWorld } from '../lib/finds';
 import { useT } from '../lib/i18n';
+import type { PickedLayer } from '../lib/save/map';
 import { MAP_SIZE, MAX_TILE_ZOOM, NODES, type WorldNode } from '../lib/world';
 import { useStore } from '../store';
 
@@ -49,7 +50,17 @@ interface PinOptions extends L.CircleMarkerOptions {
   scale: number;
   /** What the popup says, built when it opens. */
   label: () => string;
+  /** Picked up, by the followed save: drawn faint with a cross. */
+  picked?: boolean;
+  /** Mined, by the followed save: an arc around the pin as far round as the clock (a full turn is 250%). */
+  arc?: number;
 }
+
+const ARC = '#fa9549';
+/** How many production buildings and generators a save factory has. */
+const size = (f: { count: Record<string, number> }) => Object.values(f.count).reduce((n, c) => n + c, 0);
+/** A building, by its id: production buildings, generators, extractors. */
+const building = (id: string) => data.machines[id] ?? data.generators.find((g) => g.id === id) ?? data.extractors.find((e) => e.id === id);
 
 /*
   A pin drawn on the map's one canvas instead of an element of its own: thousands of them stay smooth.
@@ -70,9 +81,62 @@ const Pin: new (at: L.LatLng, options: PinOptions) => L.CircleMarker = (L.Circle
     const p = this._point;
     const rad = this._radius;
     const o: PinOptions = this.options;
+    // A dashed factory box drawn before leaves its dashes on the canvas.
+    ctx.setLineDash([]);
+    const far = pin.size < 15;
+    if (o.arc) {
+      ctx.beginPath();
+      ctx.arc(p.x, p.y, rad + (far ? 2.5 : 4), -Math.PI / 2, -Math.PI / 2 + Math.PI * 2 * Math.min(1, o.arc));
+      ctx.lineWidth = far ? 2.5 : 3.5;
+      ctx.strokeStyle = ARC;
+      ctx.stroke();
+    }
     ctx.beginPath();
     ctx.arc(p.x, p.y, rad, 0, Math.PI * 2);
-    if (pin.size < 15) {
+    if (o.picked) {
+      // From far away a dark dot with a cross; closer in the pin itself, faint, with the cross on its shoulder.
+      if (far) {
+        ctx.fillStyle = 'rgba(20,21,22,0.92)';
+        ctx.fill();
+      } else {
+        ctx.globalAlpha = 0.35;
+        ctx.fillStyle = 'rgba(20,21,22,0.88)';
+        ctx.fill();
+        ctx.lineWidth = 2;
+        ctx.strokeStyle = o.ring;
+        ctx.stroke();
+        const img = image(o.icon);
+        if (img) {
+          const s = rad * 1.56;
+          ctx.drawImage(img, p.x - s / 2, p.y - s / 2, s, s);
+        }
+        ctx.globalAlpha = 1;
+      }
+      const c = far ? 0 : rad * 0.72;
+      const r = far ? rad : Math.max(5, rad * 0.42);
+      const cx = p.x + c;
+      const cy = p.y - c;
+      if (!far) {
+        ctx.beginPath();
+        ctx.arc(cx, cy, r, 0, Math.PI * 2);
+        ctx.fillStyle = '#141516';
+        ctx.fill();
+        ctx.lineWidth = 1.5;
+        ctx.strokeStyle = '#e8e6e1';
+        ctx.stroke();
+      }
+      const k = r * 0.45;
+      ctx.beginPath();
+      ctx.moveTo(cx - k, cy - k);
+      ctx.lineTo(cx + k, cy + k);
+      ctx.moveTo(cx + k, cy - k);
+      ctx.lineTo(cx - k, cy + k);
+      ctx.lineWidth = far ? 1.5 : 2;
+      ctx.strokeStyle = '#e8e6e1';
+      ctx.stroke();
+      return;
+    }
+    if (far) {
       ctx.fillStyle = o.ring;
       ctx.fill();
       ctx.lineWidth = 1;
@@ -98,11 +162,14 @@ export default function WorldMap() {
   const { t, name, num } = useT();
   const filter = useStore((s) => s.mapFilter);
   const focus = useStore((s) => s.mapFocus);
+  const saved = useStore((s) => s.save?.map);
   const set = useStore((s) => s.set);
   const world = useWorld();
   const box = useRef<HTMLDivElement>(null);
   const map = useRef<L.Map>(undefined);
   const layer = useRef<L.FeatureGroup>(undefined);
+  /** Hides factory names that would overlap; run again after each zoom. */
+  const declutter = useRef(() => {});
 
   const itemName = useMemo(() => (item: string) => (item === 'Desc_Geyser_C' ? t('geyser') : name(data.items[item])), [t, name]);
 
@@ -162,6 +229,7 @@ export default function WorldMap() {
       pin.size = Math.round(Math.min(34, Math.max(6, (256 * 2 ** m.getZoom()) / 70)));
     };
     m.on('zoom', size);
+    m.on('zoomend moveend', () => declutter.current());
     size();
     // biome-ignore lint/suspicious/noExplicitAny: Leaflet's canvas internals aren't in its types.
     redraw = () => (renderer as any)._redraw?.();
@@ -201,30 +269,91 @@ export default function WorldMap() {
     const add = (x: number, y: number, o: Omit<PinOptions, 'interactive'>) =>
       group.addLayer(new Pin(at(x, y), { ...o, interactive: true }));
     const hidden = new Set(filter.hidden);
-    for (const n of NODES) {
-      if (hidden.has(n.item) || !filter.purities.includes(n.purity)) continue;
+    const pop = (title: string, ...lines: string[]) =>
+      `<div class="map-pop"><b>${title}</b>${lines
+        .filter(Boolean)
+        .map((l) => `<span class="map-pop-kind">${l}</span>`)
+        .join('')}</div>`;
+    const pct = (clock: number) => `${num(Math.round(clock * 1000) / 10)}%`;
+    // The followed save's factories, under everything else: a dashed box and its name above it. Where names would
+    // overlap, the bigger factory's shows.
+    const labels: L.Tooltip[] = [];
+    const factories = [...(saved?.factories ?? [])].sort((a, b) => size(b) - size(a));
+    for (const f of factories) {
+      const [x0, y0, x1, y1] = f.box;
+      const title = data.items[f.item] ? itemName(f.item) : name(building(f.item));
+      const lines = Object.entries(f.count)
+        .sort((a, b) => b[1] - a[1])
+        .map(([cls, n]) => `${n} × ${name(building(cls))}`);
+      group.addLayer(
+        L.rectangle(L.latLngBounds(at(x0, y1), at(x1, y0)), {
+          color: ARC,
+          weight: 2,
+          dashArray: '6 5',
+          fillColor: ARC,
+          fillOpacity: 0.06,
+          interactive: true,
+          label: () => pop(title, t('mapFromSave'), ...lines),
+        } as L.PolylineOptions),
+      );
+      const tip = L.tooltip({ permanent: true, direction: 'top', className: 'map-factory-label', offset: [0, -2], interactive: false })
+        .setLatLng(at((x0 + x1) / 2, y0))
+        .setContent(title);
+      group.addLayer(tip);
+      labels.push(tip);
+    }
+    declutter.current = () => {
+      const view = box.current?.getBoundingClientRect();
+      const shown: DOMRect[] = [];
+      for (const tip of labels) {
+        const el = tip.getElement();
+        if (!el) continue;
+        el.style.visibility = '';
+        const r = el.getBoundingClientRect();
+        const cut = view && (r.left < view.left || r.right > view.right || r.top < view.top);
+        if (cut || shown.some((s) => r.left < s.right + 4 && r.right + 4 > s.left && r.top < s.bottom + 2 && r.bottom + 2 > s.top))
+          el.style.visibility = 'hidden';
+        else shown.push(r);
+      }
+    };
+    requestAnimationFrame(() => declutter.current());
+    const mined = new Map((saved?.miners ?? []).map(([i, cls, clock]) => [i, { cls, clock }]));
+    NODES.forEach((n, i) => {
+      if (hidden.has(n.item) || !filter.purities.includes(n.purity)) return;
+      const m = mined.get(i);
       add(n.x, n.y, {
         ring: PURITY_RING[n.purity],
         icon: iconOf(n.item),
         scale: n.kind === 'well' ? 0.78 : 1,
+        arc: m && m.clock / 2.5,
         label: () =>
-          `<div class="map-pop"><b>${itemName(n.item)}</b><span class="map-pop-purity purity-${n.purity}">${t(PURITIES[n.purity])}</span>${n.kind === 'well' ? `<span class="map-pop-kind">${t('wellNode')}</span>` : ''}<span class="map-pop-yield">${yields(n)}</span></div>`,
+          `<div class="map-pop"><b>${itemName(n.item)}</b><span class="map-pop-purity purity-${n.purity}">${t(PURITIES[n.purity])}</span>${n.kind === 'well' ? `<span class="map-pop-kind">${t('wellNode')}</span>` : ''}<span class="map-pop-yield">${yields(n)}</span>${m ? `<span class="map-pop-miner">${name(building(m.cls))} · ${pct(m.clock)}</span>` : ''}</div>`,
       });
-    }
+    });
+    for (const [cls, x, y] of saved?.landmarks ?? [])
+      add(x, y, {
+        ring: '#e8e6e1',
+        icon: cls,
+        scale: 1.1,
+        label: () => pop(t(`landmark_${cls}` as 'landmark_Build_Mam_C'), t('mapFromSave')),
+      });
     if (!world) return;
     const on = new Set(filter.layers);
-    const pop = (title: string, ...lines: string[]) =>
-      `<div class="map-pop"><b>${title}</b>${lines.map((l) => `<span class="map-pop-kind">${l}</span>`).join('')}</div>`;
+    const pickedIn = (l: string) => new Set(filter.picked === 'show' ? [] : (saved?.picked[l as PickedLayer] ?? []));
     for (const g of LAYER_GROUPS)
       for (const l of g.layers as readonly Layer[]) {
         if (!on.has(l)) continue;
         const item = LAYER_ITEM[l];
+        const picked = pickedIn(l);
+        const gone = (i: number) => picked.has(i) && filter.picked === 'hide';
         if (l === 'pod') {
-          for (const [x, y, cost] of world.finds.pod)
+          world.finds.pod.forEach(([x, y, cost], i) => {
+            if (gone(i)) return;
             add(x, y, {
               ring: LAYER_RING.pod,
               icon: item,
               scale: 1,
+              picked: picked.has(i),
               label: () =>
                 pop(
                   t('crashSite'),
@@ -234,17 +363,22 @@ export default function WorldMap() {
                       ? t('crashSitePower', { mw: num(cost.mw) })
                       : t('crashSiteItems', { n: cost.amount, item: partName(cost.item) }),
                   t('crashSiteGives'),
+                  picked.has(i) ? t('mapPicked') : '',
                 ),
             });
+          });
           continue;
         }
-        for (const [x, y] of world.finds[l as PointLayer])
+        world.finds[l as PointLayer].forEach(([x, y], i) => {
+          if (gone(i)) return;
           add(x, y, {
             ring: LAYER_RING[l],
             icon: item,
             scale: g.id === 'plants' ? 0.8 : 1,
-            label: () => pop(t(`layer_${l}` as 'layer_sloop')),
+            picked: picked.has(i),
+            label: () => pop(t(`layer_${l}` as 'layer_sloop'), picked.has(i) ? t('mapPicked') : ''),
           });
+        });
       }
     world.creatures.forEach((c, i) => {
       if (!on.has(c.id)) return;
@@ -258,7 +392,7 @@ export default function WorldMap() {
         });
       }
     });
-  }, [filter, itemName, yields, t, num, world]);
+  }, [filter, itemName, yields, t, num, name, world, saved]);
 
   // Asked to show one resource or layer (from the Codex): frame its points.
   useEffect(() => {

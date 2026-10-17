@@ -1,6 +1,7 @@
 import codex from '../../data/codex.json';
 import { data } from '../data';
 import { MILESTONES } from '../unlocks';
+import type { SaveMap } from './map';
 import type { SaveCount, SaveData } from './types';
 
 /** What a game save sets in the planner: the tier, the milestones not bought, the alternates, and the sloops and shards. */
@@ -28,6 +29,8 @@ export type SaveInfo = {
   phase?: string;
   importedAt: number;
   answers: Answers;
+  /** What the save puts on the map; it comes in on every import, no question asked. */
+  map?: SaveMap;
   /** What the game said last time; a planner value that differs from it was changed by the player since. */
   seen: Values;
 };

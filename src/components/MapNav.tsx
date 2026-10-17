@@ -24,7 +24,12 @@ export function openMapOn(id: string) {
     mode: 'map',
     pane: 'floor',
     inspect: undefined,
-    mapFilter: { hidden: layer ? all : all.filter((i) => i !== id), purities: [0, 1, 2], layers: layer ? [layer] : [] },
+    mapFilter: {
+      hidden: layer ? all : all.filter((i) => i !== id),
+      purities: [0, 1, 2],
+      layers: layer ? [layer] : [],
+      picked: useStore.getState().mapFilter.picked,
+    },
     mapFocus: layer ?? id,
   });
 }
@@ -34,6 +39,7 @@ export function MapNav() {
   const { t, name, num } = useT();
   const world = useWorld();
   const filter = useStore((s) => s.mapFilter);
+  const game = useStore((s) => (s.save?.map ? s.save.game : undefined));
   const layers = new Set(filter.layers);
   const flip = (id: string) =>
     set({ mapFilter: { ...filter, layers: layers.has(id) ? filter.layers.filter((l) => l !== id) : [...filter.layers, id] } });
@@ -68,6 +74,25 @@ export function MapNav() {
         <Glyph name="map" size={22} />
         {t('worldMap')}
       </h2>
+      {game !== undefined && (
+        <section className="stack">
+          <h3 className="section-title">{t('mapFromSaveGame', { game })}</h3>
+          <span className="map-picked-label">{t('mapPicked')}</span>
+          <div className="segmented map-picked" role="radiogroup" aria-label={t('mapPicked')}>
+            {(['grey', 'hide', 'show'] as const).map((p) => (
+              <button
+                key={p}
+                type="button"
+                role="radio"
+                aria-checked={filter.picked === p}
+                onClick={() => set({ mapFilter: { ...filter, picked: p } })}
+              >
+                {t(p === 'grey' ? 'mapPickedGrey' : p === 'hide' ? 'mapPickedHide' : 'mapPickedShow')}
+              </button>
+            ))}
+          </div>
+        </section>
+      )}
       <section className="stack">
         <h3 className="section-title">{t('purity')}</h3>
         <div className="map-purities" role="group" aria-label={t('purity')}>
@@ -146,7 +171,10 @@ export function MapNav() {
           <p className="hint">{t('mapLoading')}</p>
         )}
       </section>
-      {(filter.hidden.length > 0 || filter.purities.length < 3 || filter.layers.join() !== DEFAULT_MAP_FILTER.layers.join()) && (
+      {(filter.hidden.length > 0 ||
+        filter.purities.length < 3 ||
+        filter.picked !== 'grey' ||
+        filter.layers.join() !== DEFAULT_MAP_FILTER.layers.join()) && (
         <button type="button" className="text-button map-reset" onClick={() => set({ mapFilter: DEFAULT_MAP_FILTER })}>
           {t('resetFilter')}
         </button>
