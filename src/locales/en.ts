@@ -1138,6 +1138,7 @@ export const en = {
   cardMenu: 'Card',
   copy: 'Copy',
   copied: 'Copied',
+  copyByHand: 'Press Ctrl+C',
   statColor: 'Colour on the pipe',
   paste: 'Paste',
   markBuilt: 'Mark built',

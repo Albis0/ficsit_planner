@@ -165,6 +165,7 @@ function Choose({
   const [os] = useState(osOf);
   const phone = isPhone(os);
   const [copied, setCopied] = useState<Os>();
+  const [byHand, setByHand] = useState<Os>();
   const [over, setOver] = useState(false);
   // Opening the window copies the path, so it is ready for the chooser's address bar.
   useEffect(() => {
@@ -186,9 +187,21 @@ function Choose({
         <div className="save-path" key={x}>
           <b>{SYSTEM_NAME[x]}</b>
           <code title={SAVE_PATHS[x]}>{SAVE_PATHS[x]}</code>
-          <button type="button" className="ghost-button small" onClick={() => void copySavePath(x).then((ok) => ok && setCopied(x))}>
+          <button
+            type="button"
+            className="ghost-button small"
+            onClick={(e) => {
+              // Without a secure page the browser refuses the clipboard: select the path, so Ctrl+C does it.
+              const code = e.currentTarget.parentElement?.querySelector('code');
+              void copySavePath(x).then((ok) => {
+                setCopied(ok ? x : undefined);
+                setByHand(ok ? undefined : x);
+                if (!ok && code) getSelection()?.selectAllChildren(code);
+              });
+            }}
+          >
             <Glyph name={copied === x ? 'check' : 'copy'} size={16} />
-            {copied === x ? t('copied') : t('copy')}
+            {copied === x ? t('copied') : byHand === x ? t('copyByHand') : t('copy')}
           </button>
         </div>
       ))}

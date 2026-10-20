@@ -201,6 +201,9 @@
   white-space: nowrap;
   font-size: 13px;
   color: var(--dim);
+  /* The app does not select text; the path must be selectable when the clipboard is refused. */
+  -webkit-user-select: text;
+  user-select: text;
 }
 
 .save-path .ghost-button {

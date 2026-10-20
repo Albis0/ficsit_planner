@@ -120,6 +120,17 @@ try {
     (await page.locator('.save-where .save-path').count()) === 3 &&
       (await page.locator('.save-where .save-path code').first().textContent()) === clip,
   );
+  // A page the browser does not trust refuses the clipboard: the path is then selected for Ctrl+C.
+  await page.evaluate(() => {
+    navigator.clipboard.writeText = () => Promise.reject(new Error('refused'));
+  });
+  await page.locator('.save-path button').nth(1).click();
+  await wait(200);
+  ok(
+    'a refused clipboard selects the path instead',
+    (await page.locator('.save-path button').nth(1).textContent()) === 'Press Ctrl+C' &&
+      (await page.evaluate(() => getSelection()?.toString())) === (await page.locator('.save-path code').nth(1).textContent()),
+  );
 
   await choose(() => page.click('.save-dialog .save-big'), `${SAVES}/ela`);
   await page.waitForSelector('.save-side-row');
