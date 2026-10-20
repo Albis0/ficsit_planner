@@ -53,7 +53,8 @@ export type FoundFactories = { list: SaveFactory[]; floors: Map<string, FloorFro
 
 /** The save's factories: each named, boxed on the map, counted, and drawn as a floor. */
 export function findFactories(save: Pick<SaveData, 'buildings' | 'links'>, previous: Members = {}): FoundFactories {
-  const groups = clusters(save.buildings, save.links).filter((g) => g.some((b) => b.kind === 'machine' || b.kind === 'generator'));
+  // A group of only generators is a power plant: it is listed under Power circuits, not as a factory.
+  const groups = clusters(save.buildings, save.links).filter((g) => g.some((b) => b.kind === 'machine'));
   // Big ones first, so they get their old id before a small piece split off them could.
   groups.sort((a, b) => b.length - a.length);
   const models = toModels(save.buildings, save.links, groups);

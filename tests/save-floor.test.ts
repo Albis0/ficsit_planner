@@ -190,14 +190,9 @@ describe('ticks from the save', () => {
 const SPACE = 'C:/code/ficsit-saves/ela/SPACEDELAELEVATORE.sav';
 
 describe.skipIf(!existsSync(SPACE))('the player save as floors', () => {
-  test('SPACEDELAELEVATORE: four factories, every building drawn, every machine on its belts', async () => {
+  test('SPACEDELAELEVATORE: three factories (the coal plant is not one), every building drawn, every machine on its belts', async () => {
     const found = findFactories(await readSave(new Uint8Array(readFileSync(SPACE))));
-    expect(found.list.map((f) => f.item)).toEqual([
-      'Desc_ModularFrame_C',
-      'Build_GeneratorCoal_C',
-      'Desc_SteelPlateReinforced_C',
-      'Desc_SAMIngot_C',
-    ]);
+    expect(found.list.map((f) => f.item)).toEqual(['Desc_ModularFrame_C', 'Desc_SteelPlateReinforced_C', 'Desc_SAMIngot_C']);
     for (const f of found.list) {
       const { model, skipped } = found.floors.get(f.id)!;
       expect(skipped).toBe(0);

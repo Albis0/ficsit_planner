@@ -86,7 +86,7 @@ describe('a save on the map', () => {
     expect(m.landmarks).toEqual([['Build_TradingPost_C', 0, world.size]]);
   });
 
-  test('a factory is named after what it makes and does not use itself; a power plant after its generator', () => {
+  test('a factory is named after what it makes and does not use itself; a power plant on its own is not a factory', () => {
     const b = [
       at('s', 'machine', 0, { cls: 'Build_SmelterMk1_C', recipe: 'Recipe_IngotIron_C' }),
       at('c', 'machine', 100, { recipe: 'Recipe_IronRod_C' }),
@@ -97,7 +97,6 @@ describe('a save on the map', () => {
     const { list } = findFactories({ buildings: b, links: [] });
     expect(list.map((f) => [f.item, f.count, f.recipes])).toEqual([
       ['Desc_IronRod_C', { Build_SmelterMk1_C: 1, Build_ConstructorMk1_C: 2 }, { Recipe_IngotIron_C: 1, Recipe_IronRod_C: 2 }],
-      ['Build_GeneratorCoal_C', { Build_GeneratorCoal_C: 1 }, {}],
     ]);
     const [x0, y0] = toPx(-1500, -1500);
     expect(list[0].box.slice(0, 2)).toEqual([x0, y0]);
@@ -144,7 +143,7 @@ describe('a save on the map', () => {
 const SPACE = 'C:/code/ficsit-saves/ela/SPACEDELAELEVATORE.sav';
 
 describe.skipIf(!existsSync(SPACE))('the player save on the map', () => {
-  test('SPACEDELAELEVATORE: every miner on a node, what was picked up, four factories', async () => {
+  test('SPACEDELAELEVATORE: every miner on a node, what was picked up, three factories', async () => {
     const data = await readSave(new Uint8Array(readFileSync(SPACE)));
     const m = toMap(data, findFactories(data).list);
     expect(m.miners).toHaveLength(21);
@@ -157,12 +156,7 @@ describe.skipIf(!existsSync(SPACE))('the player save on the map', () => {
       sloop: 3,
       pod: 3,
     });
-    expect(m.factories.map((f) => f.item).sort()).toEqual([
-      'Build_GeneratorCoal_C',
-      'Desc_ModularFrame_C',
-      'Desc_SAMIngot_C',
-      'Desc_SteelPlateReinforced_C',
-    ]);
+    expect(m.factories.map((f) => f.item).sort()).toEqual(['Desc_ModularFrame_C', 'Desc_SAMIngot_C', 'Desc_SteelPlateReinforced_C']);
     expect(m.landmarks.map((l) => l[0])).toContain('Build_TradingPost_C');
   });
 });

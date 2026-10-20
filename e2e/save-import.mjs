@@ -144,14 +144,14 @@ try {
     /Tier 4/.test(came) && /3 alternate recipes/.test(came) && /2 Somersloops/.test(came) && /21 power shards/.test(came),
     came,
   );
-  ok('the result says what came onto the map', /The map/.test(came) && /21 nodes mined/.test(came) && /4 factories/.test(came), came);
+  ok('the result says what came onto the map', /The map/.test(came) && /21 nodes mined/.test(came) && /3 factories/.test(came), came);
   ok('the result counts the power circuit', /1 circuit/.test(came) && /1,500 MW of generators/.test(came), came);
   let s = await state();
   ok(
     'the map takes the miners, pickups and factories',
     s.save?.map?.miners.length === 21 &&
       s.save.map.picked.slug1?.length === 15 &&
-      s.save.map.factories.length === 4 &&
+      s.save.map.factories.length === 3 &&
       s.save.map.missed === 0,
   );
   ok(
@@ -197,7 +197,7 @@ try {
     'the filter names the followed game',
     (await page.locator('.map-nav .section-title').first().textContent()) === 'From your save · ela',
   );
-  ok('the factories are named on the map', (await page.locator('.map-factory-label').count()) === 4);
+  ok('the factories are named on the map', (await page.locator('.map-factory-label').count()) === 3);
   for (const layer of ['Blue Power Slug', 'Mercer Sphere', 'Somersloop']) await page.locator('.map-item', { hasText: layer }).click();
   const label = await page.locator('.map-factory-label').first().boundingBox();
   await page.mouse.move(label.x + label.width / 2, label.y + label.height + 30);
@@ -244,7 +244,11 @@ try {
   await page.locator('.save-list').scrollIntoViewIfNeeded();
   await wait(300);
   await shot('all-from-save');
-  ok('All lists the save’s factories', (await page.locator('.save-cards').first().locator('.save-card').count()) === 4);
+  ok('All lists the save’s factories', (await page.locator('.save-cards').first().locator('.save-card').count()) === 3);
+  ok(
+    'the coal plant is under Power circuits, not a factory card',
+    !(await page.locator('.save-cards').first().textContent()).includes('Coal-Powered'),
+  );
   const frames = s.save.map.factories[0].id;
   await page.locator('.save-card .ghost-button').first().click();
   await page.waitForSelector('.save-floor .react-flow__node', { timeout: 60000 });
