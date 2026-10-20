@@ -8,7 +8,6 @@ import { useT } from '../lib/i18n';
 import { buildingOf, type PickedLayer } from '../lib/save/map';
 import { MAP_SIZE, MAX_TILE_ZOOM, NODES, type WorldNode } from '../lib/world';
 import { useStore } from '../store';
-import { openSaveFloor } from './SaveFactories';
 
 const base = import.meta.env.BASE_URL;
 /** Leaflet's flat map: at zoom 0 the picture is one 256 px tile, so a picture pixel is 1/(size/256) of a unit. */
@@ -58,10 +57,6 @@ interface PinOptions extends L.CircleMarkerOptions {
 }
 
 const ARC = '#fa9549';
-/** How many production buildings and generators a save factory has. */
-const size = (f: { count: Record<string, number> }) => Object.values(f.count).reduce((n, c) => n + c, 0);
-/** Text from the player (a factory tab's name) put into a popup's HTML. */
-const esc = (v: string) => v.replace(/[&<>"']/g, (c) => `&#${c.charCodeAt(0)};`);
 
 /*
   A pin drawn on the map's one canvas instead of an element of its own: thousands of them stay smooth.
@@ -82,8 +77,6 @@ const Pin: new (at: L.LatLng, options: PinOptions) => L.CircleMarker = (L.Circle
     const p = this._point;
     const rad = this._radius;
     const o: PinOptions = this.options;
-    // A dashed factory box drawn before leaves its dashes on the canvas.
-    ctx.setLineDash([]);
     const far = pin.size < 15;
     if (o.arc) {
       ctx.beginPath();
@@ -169,8 +162,6 @@ export default function WorldMap() {
   const box = useRef<HTMLDivElement>(null);
   const map = useRef<L.Map>(undefined);
   const layer = useRef<L.FeatureGroup>(undefined);
-  /** Hides factory names that would overlap; run again after each zoom. */
-  const declutter = useRef(() => {});
 
   const itemName = useMemo(() => (item: string) => (item === 'Desc_Geyser_C' ? t('geyser') : name(data.items[item])), [t, name]);
 
@@ -230,7 +221,6 @@ export default function WorldMap() {
       pin.size = Math.round(Math.min(34, Math.max(6, (256 * 2 ** m.getZoom()) / 70)));
     };
     m.on('zoom', size);
-    m.on('zoomend moveend', () => declutter.current());
     size();
     // biome-ignore lint/suspicious/noExplicitAny: Leaflet's canvas internals aren't in its types.
     redraw = () => (renderer as any)._redraw?.();
@@ -241,21 +231,6 @@ export default function WorldMap() {
         .setLatLng(e.latlng)
         .setContent(o.label())
         .openOn(m);
-    });
-    // A save factory's popup links it to a factory tab, or opens its floor.
-    m.on('popupopen', (e: L.PopupEvent) => {
-      const el = e.popup.getElement();
-      el?.querySelector<HTMLSelectElement>('[data-save-link]')?.addEventListener('change', (ev) => {
-        const pick = ev.currentTarget as HTMLSelectElement;
-        const id = pick.dataset.saveLink ?? '';
-        const s = useStore.getState();
-        const linked = s.plans.find((p) => p.saveFactory === id);
-        if (pick.value) s.linkSave(pick.value, id);
-        else if (linked) s.linkSave(linked.id, undefined);
-      });
-      el?.querySelector<HTMLButtonElement>('[data-save-open]')?.addEventListener('click', (ev) => {
-        openSaveFloor((ev.currentTarget as HTMLButtonElement).dataset.saveOpen ?? '');
-      });
     });
     layer.current = group;
     map.current = m;
@@ -291,57 +266,6 @@ export default function WorldMap() {
         .map((l) => `<span class="map-pop-kind">${l}</span>`)
         .join('')}</div>`;
     const pct = (clock: number) => `${num(Math.round(clock * 1000) / 10)}%`;
-    // The followed save's factories, under everything else: a dashed box and its name above it. Where names would
-    // overlap, the bigger factory's shows.
-    const labels: L.Tooltip[] = [];
-    const factories = [...(saved?.factories ?? [])].sort((a, b) => size(b) - size(a));
-    for (const f of factories) {
-      const [x0, y0, x1, y1] = f.box;
-      const title = data.items[f.item] ? itemName(f.item) : name(buildingOf(f.item));
-      const lines = Object.entries(f.count)
-        .sort((a, b) => b[1] - a[1])
-        .map(([cls, n]) => `${n} × ${name(buildingOf(cls))}`);
-      group.addLayer(
-        L.rectangle(L.latLngBounds(at(x0, y1), at(x1, y0)), {
-          color: ARC,
-          weight: 2,
-          dashArray: '6 5',
-          fillColor: ARC,
-          fillOpacity: 0.06,
-          interactive: true,
-          // Under its buildings, the factory tab it is linked to and the way to its floor.
-          label: () => {
-            const plans = useStore.getState().plans;
-            const linked = plans.find((p) => p.saveFactory === f.id)?.id;
-            const options = [
-              `<option value="">${esc(t('saveNotLinked'))}</option>`,
-              ...plans.map((p) => `<option value="${esc(p.id)}"${p.id === linked ? ' selected' : ''}>${esc(p.name)}</option>`),
-            ].join('');
-            return `${pop(title, t('mapFromSave'), ...lines).slice(0, -'</div>'.length)}<span class="map-pop-save"><select class="save-link" data-save-link="${f.id}" aria-label="${esc(t('saveLinkLabel', { name: title }))}">${options}</select><button type="button" class="ghost-button" data-save-open="${f.id}">${esc(t('saveOpenFloor'))}</button></span></div>`;
-          },
-        } as L.PolylineOptions),
-      );
-      const tip = L.tooltip({ permanent: true, direction: 'top', className: 'map-factory-label', offset: [0, -2], interactive: false })
-        .setLatLng(at((x0 + x1) / 2, y0))
-        .setContent(title);
-      group.addLayer(tip);
-      labels.push(tip);
-    }
-    declutter.current = () => {
-      const view = box.current?.getBoundingClientRect();
-      const shown: DOMRect[] = [];
-      for (const tip of labels) {
-        const el = tip.getElement();
-        if (!el) continue;
-        el.style.visibility = '';
-        const r = el.getBoundingClientRect();
-        const cut = view && (r.left < view.left || r.right > view.right || r.top < view.top);
-        if (cut || shown.some((s) => r.left < s.right + 4 && r.right + 4 > s.left && r.top < s.bottom + 2 && r.bottom + 2 > s.top))
-          el.style.visibility = 'hidden';
-        else shown.push(r);
-      }
-    };
-    requestAnimationFrame(() => declutter.current());
     const mined = new Map((saved?.miners ?? []).map(([i, cls, clock]) => [i, { cls, clock }]));
     NODES.forEach((n, i) => {
       if (hidden.has(n.item) || !filter.purities.includes(n.purity)) return;
@@ -422,14 +346,6 @@ export default function WorldMap() {
   // Asked to show one resource or layer (from the Codex): frame its points.
   useEffect(() => {
     if (!focus || !map.current) return;
-    // A factory from the game save: its box.
-    if (focus.startsWith('save:')) {
-      const box = saved?.factories.find((f) => f.id === focus.slice(5))?.box;
-      if (box)
-        map.current.flyToBounds(L.latLngBounds(at(box[0], box[3]), at(box[2], box[1])).pad(0.4), { duration: 0.6, maxZoom: MAX_TILE_ZOOM });
-      set({ mapFocus: undefined });
-      return;
-    }
     let pts = NODES.filter((n) => n.item === focus).map((n) => at(n.x, n.y));
     if (!pts.length && world) {
       const i = world.creatures.findIndex((c) => c.id === focus);
@@ -440,7 +356,7 @@ export default function WorldMap() {
     if (!pts.length && !world) return;
     if (pts.length) map.current.flyToBounds(L.latLngBounds(pts).pad(0.2), { duration: 0.6, maxZoom: MAX_TILE_ZOOM - 1 });
     set({ mapFocus: undefined });
-  }, [focus, set, world, saved]);
+  }, [focus, set, world]);
 
   return <div ref={box} className="world-map" />;
 }

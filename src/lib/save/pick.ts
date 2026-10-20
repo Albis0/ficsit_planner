@@ -26,6 +26,10 @@ export const SAVE_PATHS: Record<Os, string> = {
   android: WINDOWS,
 };
 
+/** The systems a game runs on, as the import window lists them. */
+export const SYSTEMS = ['windows', 'mac', 'linux'] as const;
+export const SYSTEM_NAME: Record<(typeof SYSTEMS)[number], string> = { windows: 'Windows', mac: 'Mac · CrossOver', linux: 'Linux · Steam' };
+
 /** Puts the save folder's path on the clipboard, for the chooser's address bar. False when the browser says no. */
 export async function copySavePath(os = osOf()): Promise<boolean> {
   try {

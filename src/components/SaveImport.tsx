@@ -13,6 +13,8 @@ import {
   type Os,
   osOf,
   SAVE_PATHS,
+  SYSTEM_NAME,
+  SYSTEMS,
   saveTitle,
   savedWhen,
 } from '../lib/save/pick';
@@ -162,102 +164,88 @@ function Choose({
 }) {
   const [os] = useState(osOf);
   const phone = isPhone(os);
-  const [copied, setCopied] = useState<boolean>();
+  const [copied, setCopied] = useState<Os>();
   const [over, setOver] = useState(false);
   // Opening the window copies the path, so it is ready for the chooser's address bar.
   useEffect(() => {
-    void copySavePath(os).then(setCopied);
+    void copySavePath(os).then((ok) => ok && setCopied(os));
   }, [os]);
   const step: StringKey = phone ? 'saveStepPhone' : os === 'mac' ? 'saveStepMac' : os === 'linux' ? 'saveStepLinux' : 'saveStepWindows';
-  return (
-    <Dialog title={t('saveImport')} icon="import" className="save-dialog wide" onClose={onClose}>
-      <div className="save-body save-two">
-        <div className="save-col">
-          <span className="save-label">{t(phone ? 'saveOnPhone' : 'saveInWindow')}</span>
-          <ChooserPicture os={os} path={SAVE_PATHS[os]} />
-          <p className="save-small">{t(step)}</p>
-        </div>
-        <div className="save-col">
-          <button type="button" className="primary-button save-big" disabled={busy} onClick={() => chooseSaves(!phone, onFiles)}>
-            <Glyph name="import" size={20} />
-            {t(phone ? 'saveChooseFilePhone' : 'saveChooseFolder')}
+  const choose = (
+    <button type="button" className="primary-button save-big" disabled={busy} onClick={() => chooseSaves(!phone, onFiles)}>
+      <Glyph name="import" size={20} />
+      {t(phone ? 'saveChooseFilePhone' : 'saveChooseFolder')}
+    </button>
+  );
+  // Every system's path, the reader's own first: a phone, or a Mac without the Windows path, is no stranger here.
+  const systems = phone ? [...SYSTEMS] : [os as (typeof SYSTEMS)[number], ...SYSTEMS.filter((x) => x !== os)];
+  const where = (
+    <section className="save-where">
+      <span className="save-label">{t(phone ? 'saveOnPc' : 'saveWhere')}</span>
+      {systems.map((x) => (
+        <div className="save-path" key={x}>
+          <b>{SYSTEM_NAME[x]}</b>
+          <code title={SAVE_PATHS[x]}>{SAVE_PATHS[x]}</code>
+          <button type="button" className="ghost-button small" onClick={() => void copySavePath(x).then((ok) => ok && setCopied(x))}>
+            <Glyph name={copied === x ? 'check' : 'copy'} size={16} />
+            {copied === x ? t('copied') : t('copy')}
           </button>
-          {!phone && (
-            <>
-              <button type="button" className="ghost-button save-wide" disabled={busy} onClick={() => chooseSaves(false, onFiles)}>
-                {t('saveChooseFile')}
-              </button>
-              {/* biome-ignore lint/a11y/noStaticElementInteractions: dropping is a mouse shortcut; the two buttons above do the same by keyboard */}
-              <div
-                className="save-drop"
-                data-over={over || undefined}
-                onDragOver={(e) => {
-                  e.preventDefault();
-                  setOver(true);
-                }}
-                onDragLeave={() => setOver(false)}
-                onDrop={(e) => {
-                  e.preventDefault();
-                  setOver(false);
-                  void droppedFiles(e.dataTransfer).then(onFiles);
-                }}
-              >
-                {t('saveDrop')}
-              </div>
-            </>
-          )}
-          {phone && <span className="save-label">{t('saveOnPc')}</span>}
-          <div className="save-path">
-            <code title={SAVE_PATHS[os]}>{SAVE_PATHS[os]}</code>
-            <button type="button" className="ghost-button small" onClick={() => void copySavePath(os).then(setCopied)}>
-              <Glyph name={copied ? 'check' : 'copy'} size={16} />
-              {copied ? t('copied') : t('copy')}
-            </button>
-          </div>
-          {busy && <p className="save-small">{t('saveLooking')}</p>}
-          {note && (
-            <p className="setting-note bad" role="alert">
-              {t(note)}
-            </p>
-          )}
-          <p className="save-safe">
-            <Glyph name="lock" size={16} /> {t('saveSafe')}
-          </p>
         </div>
+      ))}
+      {!phone && <p className="save-small">{t(step)}</p>}
+    </section>
+  );
+  return (
+    <Dialog title={t('saveImport')} icon="import" className="save-dialog" onClose={onClose}>
+      <div className="save-body">
+        {phone ? (
+          <>
+            <p className="save-small">{t(step)}</p>
+            {choose}
+            {where}
+          </>
+        ) : (
+          <>
+            {/* biome-ignore lint/a11y/noStaticElementInteractions: dropping is a mouse shortcut; the two buttons inside do the same by keyboard */}
+            <div
+              className="save-drop"
+              data-over={over || undefined}
+              onDragOver={(e) => {
+                e.preventDefault();
+                setOver(true);
+              }}
+              onDragLeave={() => setOver(false)}
+              onDrop={(e) => {
+                e.preventDefault();
+                setOver(false);
+                void droppedFiles(e.dataTransfer).then(onFiles);
+              }}
+            >
+              <span className="save-drop-icon">
+                <Glyph name="import" size={32} />
+              </span>
+              <b>{t('saveDrop')}</b>
+              <div className="save-drop-actions">
+                {choose}
+                <button type="button" className="ghost-button save-wide" disabled={busy} onClick={() => chooseSaves(false, onFiles)}>
+                  {t('saveChooseFile')}
+                </button>
+              </div>
+            </div>
+            {where}
+          </>
+        )}
+        {busy && <p className="save-small">{t('saveLooking')}</p>}
+        {note && (
+          <p className="setting-note bad" role="alert">
+            {t(note)}
+          </p>
+        )}
+        <p className="save-safe">
+          <Glyph name="lock" size={16} /> {t('saveSafe')}
+        </p>
       </div>
     </Dialog>
-  );
-}
-
-/** A small drawing of the chooser the system will open, with the path in its address bar. */
-function ChooserPicture({ os, path }: { os: Os; path: string }) {
-  if (isPhone(os))
-    return (
-      <div className={`save-win ${os}`} aria-hidden>
-        <div className="save-win-bar">
-          <span>{os === 'ios' ? 'Browse' : 'Recent'}</span>
-        </div>
-        <div className="save-win-files">
-          <span className="save-win-file sel">MyFactory.sav</span>
-          <span className="save-win-file">MyFactory_autosave_0.sav</span>
-        </div>
-      </div>
-    );
-  return (
-    <div className={`save-win ${os}`} aria-hidden>
-      <div className="save-win-bar">
-        {os === 'mac' && <span className="save-win-lights" />}
-        <span className="save-win-address">{path}</span>
-      </div>
-      <div className="save-win-files">
-        <span className="save-win-folder sel">SaveGames</span>
-        <span className="save-win-folder">Config</span>
-        <span className="save-win-folder">Logs</span>
-      </div>
-      <div className="save-win-foot">
-        <span className="save-win-btn">{os === 'windows' ? 'Select Folder' : 'Upload'}</span>
-      </div>
-    </div>
   );
 }
 
@@ -541,11 +529,11 @@ function Result({ step, onClose }: { step: Extract<Step, { at: 'done' }>; onClos
       [
         picked && t('saveMapPicked', { n: picked }),
         map.miners.length && t(map.miners.length === 1 ? 'saveMapMinedOne' : 'saveMapMined', { n: map.miners.length }),
-        n && t(n === 1 ? 'saveMapFactoriesOne' : 'saveMapFactories', { n }),
       ]
         .filter(Boolean)
         .join(', '),
     ]);
+    if (n) came.push([t(n === 1 ? 'saveMapFactoriesOne' : 'saveMapFactories', { n }), t('saveFactoriesOnAll')]);
     if (map.missed) not.push(t('saveMapMissed', { n: map.missed }));
     if (unlinked) not.push(t(unlinked === 1 ? 'saveUnlinkedOne' : 'saveUnlinked', { n: unlinked }));
   }

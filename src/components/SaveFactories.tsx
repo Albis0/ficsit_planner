@@ -72,10 +72,6 @@ export function SaveLink({ f }: { f: SaveFactory }) {
 export const openSaveFloor = (id: string) =>
   useStore.getState().set({ mode: 'factory', overview: true, saveView: id, pane: 'floor', inspect: undefined });
 
-/** Shows a save factory on the map. */
-export const showSaveOnMap = (id: string) =>
-  useStore.getState().set({ mode: 'map', pane: 'floor', inspect: undefined, mapFocus: `save:${id}` });
-
 /** All › From your save: a card for each factory in the followed save, to link it to a factory tab or open its floor. */
 export function SaveFactoryList() {
   const { t, name } = useT();
@@ -287,9 +283,6 @@ function SaveInfo({ f, floor }: { f: SaveFactory; floor?: KeptFloor }) {
             onClick={() => floor && copyFromSave(title, floor.model, f.id)}
           >
             {t('saveCopy')}
-          </button>
-          <button type="button" className="text-button" onClick={() => showSaveOnMap(f.id)}>
-            {t('saveShowOnMap')}
           </button>
         </div>
       )}

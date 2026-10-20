@@ -116,8 +116,9 @@ try {
   const clip = await page.evaluate(() => navigator.clipboard.readText());
   ok('opening the window copies the save path', clip === '%LOCALAPPDATA%\\FactoryGame\\Saved\\SaveGames', clip);
   ok(
-    'the window shows the path in a picture of the chooser',
-    (await page.locator('.save-win-address').textContent()).includes('SaveGames'),
+    'the window lists the path of every system',
+    (await page.locator('.save-where .save-path').count()) === 3 &&
+      (await page.locator('.save-where .save-path code').first().textContent()) === clip,
   );
 
   await choose(() => page.click('.save-dialog .save-big'), `${SAVES}/ela`);
@@ -197,29 +198,8 @@ try {
     'the filter names the followed game',
     (await page.locator('.map-nav .section-title').first().textContent()) === 'From your save · ela',
   );
-  ok('the factories are named on the map', (await page.locator('.map-factory-label').count()) === 3);
+  ok('the map has no factory boxes', (await page.locator('.map-factory-label, .leaflet-overlay-pane path').count()) === 0);
   for (const layer of ['Blue Power Slug', 'Mercer Sphere', 'Somersloop']) await page.locator('.map-item', { hasText: layer }).click();
-  const label = await page.locator('.map-factory-label').first().boundingBox();
-  await page.mouse.move(label.x + label.width / 2, label.y + label.height + 30);
-  for (let i = 0; i < 3; i++) {
-    await page.mouse.wheel(0, -300);
-    await wait(400);
-  }
-  await wait(1200);
-  await shot('map-close');
-  const near = await page.locator('.map-factory-label:visible').first().boundingBox();
-  await page.mouse.click(near.x + near.width / 2 - 60, near.y + near.height + 150);
-  await wait(400);
-  await shot('map-factory-popup');
-  ok(
-    'a factory says what it has',
-    /From your save/.test(
-      (await page
-        .locator('.map-pop')
-        .textContent()
-        .catch(() => '')) ?? '',
-    ),
-  );
   await page.keyboard.press('Escape');
   await page.click('.map-picked [role=radio] >> nth=1');
   s = await state();
@@ -320,29 +300,6 @@ try {
       JSON.stringify(['Recipe_IngotIron_C', 'Recipe_IronPlateReinforced_C', 'Recipe_IronPlate_C', 'Recipe_Screw_C']),
     JSON.stringify(s.plans[0].savedBuilt),
   );
-  await page.click('.mode-switch [role=radio] >> nth=3');
-  await page.waitForSelector('.map-factory-label');
-  await wait(1200);
-  const tag = await page.locator('.map-factory-label').first().boundingBox();
-  await page.mouse.move(tag.x + tag.width / 2, tag.y + tag.height + 30);
-  for (let i = 0; i < 3; i++) {
-    await page.mouse.wheel(0, -300);
-    await wait(400);
-  }
-  await wait(1200);
-  const big = await page.locator('.map-factory-label:visible').first().boundingBox();
-  await page.mouse.click(big.x + big.width / 2 - 60, big.y + big.height + 150);
-  await page.waitForSelector('.map-pop-save');
-  await shot('map-factory-link');
-  ok('the map popup names the linked tab', (await page.locator('.map-pop-save select').inputValue()) === 'f1');
-  await page.click('.map-pop-save .ghost-button');
-  await page.waitForSelector('.save-floor .react-flow__node', { timeout: 60000 });
-  ok('Open floor on the map opens it', (await page.locator('.save-info-head').textContent()).includes('Modular Frame'));
-  await page.click('.save-info .text-button');
-  await wait(1500);
-  await shot('show-on-map');
-  s = await state();
-  ok('Show on map goes to the map', s.mode === 'map');
   await page.click('.mode-switch [role=radio] >> nth=0');
   await wait(400);
 
@@ -507,7 +464,6 @@ try {
   await page.locator('.mode-switch [role=radio] >> nth=3').dispatchEvent('click');
   await wait(1500);
   await shot('phone-map');
-  ok('the phone map names factories', (await page.locator('.map-factory-label').count()) > 0);
   await page.locator('.mobile-nav button', { hasText: 'Filter' }).dispatchEvent('click');
   await wait(1500);
   await shot('phone-map-filter');

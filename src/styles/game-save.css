@@ -112,13 +112,6 @@
   letter-spacing: 0.03em;
 }
 
-.save-two {
-  display: grid;
-  align-content: start;
-  grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr);
-  gap: 20px;
-}
-
 .save-col {
   display: flex;
   flex-direction: column;
@@ -136,16 +129,51 @@
   justify-content: center;
 }
 
+/* The place to drop a save: the two buttons sit inside it. */
 .save-drop {
-  border: 2px dashed var(--line-2);
-  padding: 14px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 14px;
+  padding: 26px 20px 22px;
   text-align: center;
-  color: var(--faint);
+  background: linear-gradient(180deg, var(--panel-2), var(--bg));
+  border: 2px dashed var(--line-2);
+  border-top: 4px solid var(--ficsit);
+  color: var(--dim);
+  font-size: 17px;
 }
 
 .save-drop[data-over] {
   border-color: var(--ficsit);
+  background: var(--panel-2);
   color: var(--ficsit);
+}
+
+.save-drop-icon {
+  display: grid;
+  place-items: center;
+  width: 64px;
+  height: 64px;
+  background: var(--bg);
+  border: 2px solid var(--ficsit);
+  color: var(--ficsit);
+}
+
+.save-drop-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 10px;
+}
+
+.save-where {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 12px 14px;
+  background: var(--panel-2);
+  border: 1px solid var(--line);
 }
 
 .save-path {
@@ -156,6 +184,13 @@
   padding: 6px 6px 6px 10px;
   background: var(--bg);
   border: 1px solid var(--line);
+}
+
+.save-path b {
+  flex: none;
+  width: 108px;
+  color: var(--dim);
+  font-size: 14px;
 }
 
 .save-path code {
@@ -185,125 +220,6 @@
 
 .save-safe .glyph {
   flex: none;
-}
-
-/* A drawing of the system's chooser. Light, like the real ones; the address bar ringed. */
-.save-win {
-  border: 1px solid var(--line-2);
-  background: #f3f3f3;
-  color: #222;
-  font:
-    13px system-ui,
-    sans-serif;
-}
-
-.save-win-bar {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 6px;
-  background: #e6e6e6;
-}
-
-.save-win-address {
-  flex: 1;
-  min-width: 0;
-  padding: 3px 6px;
-  background: #fff;
-  border: 2px solid var(--ficsit);
-  overflow: hidden;
-  white-space: nowrap;
-  text-overflow: ellipsis;
-}
-
-.save-win-lights {
-  flex: none;
-  width: 42px;
-  height: 10px;
-  background:
-    radial-gradient(circle at 5px 5px, #ff5f57 4.5px, transparent 5px), radial-gradient(circle at 21px 5px, #febc2e 4.5px, transparent 5px),
-    radial-gradient(circle at 37px 5px, #28c840 4.5px, transparent 5px);
-}
-
-.save-win-files {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-  min-height: 84px;
-  padding: 6px;
-}
-
-.save-win-folder,
-.save-win-file {
-  padding: 3px 6px;
-}
-
-.save-win-folder::before {
-  content: '';
-  display: inline-block;
-  width: 14px;
-  height: 10px;
-  margin-right: 6px;
-  background: #f4c552;
-  border-top: 2px solid #e0a92e;
-  vertical-align: -1px;
-}
-
-.save-win-folder.sel,
-.save-win-file.sel {
-  background: #cce4f7;
-  outline: 1px solid #99c9ef;
-}
-
-.save-win-foot {
-  display: flex;
-  justify-content: flex-end;
-  padding: 6px;
-  background: #e6e6e6;
-}
-
-.save-win-btn {
-  padding: 4px 16px;
-  background: #0067c0;
-  color: #fff;
-  border-radius: 3px;
-  outline: 2px solid var(--ficsit);
-}
-
-.save-win.mac {
-  border-radius: 8px;
-  overflow: hidden;
-}
-
-.save-win.mac .save-win-address,
-.save-win.mac .save-win-btn {
-  border-radius: 5px;
-}
-
-.save-win.linux .save-win-bar,
-.save-win.linux .save-win-foot {
-  background: #ebebeb;
-}
-
-.save-win.linux .save-win-btn {
-  background: #3584e4;
-}
-
-.save-win.ios .save-win-bar,
-.save-win.android .save-win-bar {
-  justify-content: center;
-  font-weight: 700;
-}
-
-.save-win.ios,
-.save-win.android {
-  border-radius: 10px;
-  overflow: hidden;
-}
-
-.save-win.ios .save-win-file.sel,
-.save-win.android .save-win-file.sel {
-  outline: 2px solid var(--ficsit);
 }
 
 /* Picker: games down the side, the chosen game's saves beside. */
@@ -572,7 +488,19 @@ li[data-state='now'] .save-mark {
 }
 
 @media (max-width: 640px) {
-  .save-two,
+  .save-path {
+    flex-wrap: wrap;
+  }
+
+  .save-path b {
+    flex: 1;
+  }
+
+  .save-path code {
+    order: 3;
+    flex: 1 0 100%;
+  }
+
   .save-split {
     grid-template-columns: minmax(0, 1fr);
   }
@@ -609,22 +537,7 @@ li[data-state='now'] .save-mark {
   }
 }
 
-/* The map: the followed save's factories and the picked-up filter. */
-.map-factory-label {
-  padding: 3px 8px;
-  background: #f2f0eb;
-  color: #1b1c1d;
-  border: 0;
-  border-radius: 3px;
-  box-shadow: 0 2px 6px rgb(0 0 0 / 0.45);
-  font: 700 13px / 1.3 var(--font-body);
-  white-space: nowrap;
-}
-
-.map-factory-label::before {
-  border-top-color: #f2f0eb;
-}
-
+/* The map: the followed save's picked-up filter and miners. */
 .map-pop-miner {
   color: var(--ficsit);
   font-weight: 700;
@@ -901,26 +814,6 @@ li[data-state='now'] .save-mark {
   display: block;
   height: 100%;
   background: repeating-linear-gradient(-45deg, var(--ficsit) 0 6px, var(--ficsit-deep) 6px 12px);
-}
-
-/* The map: a save factory's popup links it to a tab and opens its floor. */
-.map-pop-save {
-  display: flex;
-  gap: 6px;
-  margin-top: 8px;
-}
-
-.map-pop-save .save-link {
-  flex: 1;
-  width: auto;
-  max-width: 180px;
-  padding: 4px 6px;
-  font-size: 14px;
-}
-
-.map-pop-save .ghost-button {
-  padding: 4px 10px;
-  font-size: 15px;
 }
 
 @media (max-width: 900px) {

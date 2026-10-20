@@ -1,12 +1,8 @@
 import { data } from '../data';
 import { clusters } from './cluster';
 import type { SaveFactory } from './map';
-import { toPx } from './toMap';
 import { type FloorFromSave, toModels } from './toModel';
 import type { SaveBuilding, SaveData } from './types';
-
-/** A factory box reaches this far past its outermost buildings, cm: buildings are drawn by their middle. */
-const PAD = 1500;
 
 const RECIPE = new Map(data.recipes.map((r) => [r.id, r]));
 
@@ -51,7 +47,7 @@ function sameAs(group: readonly SaveBuilding[], previous: Members, taken: Set<st
 
 export type FoundFactories = { list: SaveFactory[]; floors: Map<string, FloorFromSave>; members: Members };
 
-/** The save's factories: each named, boxed on the map, counted, and drawn as a floor. */
+/** The save's factories: each named, counted, and drawn as a floor. */
 export function findFactories(save: Pick<SaveData, 'buildings' | 'links'>, previous: Members = {}): FoundFactories {
   // A group of only generators is a power plant: it is listed under Power circuits, not as a factory.
   const groups = clusters(save.buildings, save.links).filter((g) => g.some((b) => b.kind === 'machine'));
@@ -70,19 +66,11 @@ export function findFactories(save: Pick<SaveData, 'buildings' | 'links'>, previ
     }
     const item = mainItem(group) ?? group.find((b) => b.kind === 'generator')?.cls;
     if (!item) return;
-    let [x0, y0, x1, y1] = [Infinity, Infinity, -Infinity, -Infinity];
-    for (const b of group) {
-      x0 = Math.min(x0, b.x);
-      y0 = Math.min(y0, b.y);
-      x1 = Math.max(x1, b.x);
-      y1 = Math.max(y1, b.y);
-    }
-    const box = [...toPx(x0 - PAD, y0 - PAD), ...toPx(x1 + PAD, y1 + PAD)] as SaveFactory['box'];
     const ids = group.map((b) => b.id).sort();
     let id = sameAs(group, previous, taken) ?? ids[0];
     for (let n = 2; taken.has(id); n++) id = `${ids[0].slice(0, 70)}_${n}`;
     taken.add(id);
-    found.list.push({ id, item, box, count, recipes });
+    found.list.push({ id, item, count, recipes });
     found.floors.set(id, models[i]);
     found.members[id] = ids;
   });
