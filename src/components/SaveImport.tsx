@@ -529,11 +529,11 @@ function Result({ step, onClose }: { step: Extract<Step, { at: 'done' }>; onClos
       [
         picked && t('saveMapPicked', { n: picked }),
         map.miners.length && t(map.miners.length === 1 ? 'saveMapMinedOne' : 'saveMapMined', { n: map.miners.length }),
+        n && t(n === 1 ? 'saveMapFactoriesOne' : 'saveMapFactories', { n }),
       ]
         .filter(Boolean)
         .join(', '),
     ]);
-    if (n) came.push([t(n === 1 ? 'saveMapFactoriesOne' : 'saveMapFactories', { n }), t('saveFactoriesOnAll')]);
     if (map.missed) not.push(t('saveMapMissed', { n: map.missed }));
     if (unlinked) not.push(t(unlinked === 1 ? 'saveUnlinkedOne' : 'saveUnlinked', { n: unlinked }));
   }

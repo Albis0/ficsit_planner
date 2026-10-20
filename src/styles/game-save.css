@@ -537,7 +537,21 @@ li[data-state='now'] .save-mark {
   }
 }
 
-/* The map: the followed save's picked-up filter and miners. */
+/* The map: the followed save's factories and the picked-up filter. */
+.map-factory-label {
+  padding: 3px 8px;
+  background: #f2f0eb;
+  color: #1b1c1d;
+  border: 0;
+  border-radius: 3px;
+  box-shadow: 0 2px 6px rgb(0 0 0 / 0.45);
+  font: 700 13px / 1.3 var(--font-body);
+  white-space: nowrap;
+}
+
+.map-factory-label::before {
+  border-top-color: #f2f0eb;
+}
 .map-pop-miner {
   color: var(--ficsit);
   font-weight: 700;

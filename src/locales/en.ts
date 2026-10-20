@@ -1252,7 +1252,7 @@ export const en = {
   saveLinkLabel: 'Factory tab linked to {name}',
   saveOpen: 'Open',
   saveCopy: 'Make a copy as factory',
-  saveFactoriesOnAll: 'under All › From your save',
+  saveShowOnMap: 'Show on map',
   saveReadOnly: 'Read only',
   saveFloorFrom: 'From {game}, saved {when}. Read only.',
   saveFloorLeftOut: '{n} buildings and belts not drawn',

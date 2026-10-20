@@ -9,18 +9,20 @@ export type PickedLayer = (typeof PICKED_LAYERS)[number];
 /** Buildings with no card in the planner that the map shows where the save has them. */
 export const LANDMARKS = ['Build_TradingPost_C', 'Build_SpaceElevator_C', 'Build_Mam_C', 'Build_ResourceSinkShop_C', 'Build_RadarTower_C'];
 
-/** A factory in the save, named after what it makes; its floor is kept apart (store-idb). */
+/** A factory in the save: a dashed box around its buildings on the map, named after what it makes; its floor is kept apart (store-idb). */
 export type SaveFactory = {
   id: string;
   /** What it is named after: its main product, or for a power plant its generator. */
   item: string;
+  /** On the map picture, px: left, top, right, bottom. */
+  box: [number, number, number, number];
   /** Production buildings and generators in it, by class. */
   count: Record<string, number>;
   /** Machines on each recipe: what a factory linked to it is held against. */
   recipes: Record<string, number>;
 };
 
-/** What a save puts on the map, and the factories it lists. Indexes point into finds.json and world.json, places are map picture px. */
+/** What a save puts on the map. Indexes point into finds.json and world.json, places are map picture px. */
 export type SaveMap = {
   picked: Partial<Record<PickedLayer, number[]>>;
   /** Nodes with an extractor on them: node index, extractor class, clock (1 = 100%). */
@@ -64,11 +66,14 @@ export function cleanSaveMap(v: unknown): SaveMap | undefined {
           typeof f === 'object' &&
           id(f.id) &&
           id(f.item) &&
+          Array.isArray(f.box) &&
+          f.box.length === 4 &&
+          f.box.every(num) &&
           counts(f.count) &&
           // Kept before recipes were counted: they come with the next import.
           (f.recipes === undefined || counts(f.recipes)),
       )
-      .map((f) => ({ id: f.id, item: f.item, count: f.count, recipes: f.recipes ?? {} })),
+      .map((f) => ({ ...f, recipes: f.recipes ?? {} })),
     missed: int(m.missed, 1e6) ? m.missed : 0,
   };
 }

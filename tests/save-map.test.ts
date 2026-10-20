@@ -6,7 +6,7 @@ import { clusters, LONG_LINE, NEAR } from '../src/lib/save/cluster';
 import { readSave } from '../src/lib/save/extract';
 import { findFactories } from '../src/lib/save/factories';
 import { cleanSaveMap } from '../src/lib/save/map';
-import { toMap } from '../src/lib/save/toMap';
+import { toMap, toPx } from '../src/lib/save/toMap';
 import type { SaveBuilding, SaveData, SaveLink } from '../src/lib/save/types';
 
 const at = (id: string, kind: SaveBuilding['kind'], x: number, more: Partial<SaveBuilding> = {}): SaveBuilding => ({
@@ -98,6 +98,8 @@ describe('a save on the map', () => {
     expect(list.map((f) => [f.item, f.count, f.recipes])).toEqual([
       ['Desc_IronRod_C', { Build_SmelterMk1_C: 1, Build_ConstructorMk1_C: 2 }, { Recipe_IngotIron_C: 1, Recipe_IronRod_C: 2 }],
     ]);
+    const [x0, y0] = toPx(-1500, -1500);
+    expect(list[0].box.slice(0, 2)).toEqual([x0, y0]);
     expect(toMap(save({ buildings: b }), list).factories).toBe(list);
   });
 
@@ -117,11 +119,11 @@ describe('a save on the map', () => {
           ['Build_Lamp_C', 1, 2],
         ],
         factories: [
-          { id: 'a', item: 'Desc_IronRod_C', count: { Build_ConstructorMk1_C: 2 }, recipes: { Recipe_IronRod_C: 2 } },
+          { id: 'a', item: 'Desc_IronRod_C', box: [0, 0, 1, 1], count: { Build_ConstructorMk1_C: 2 }, recipes: { Recipe_IronRod_C: 2 } },
           // Kept before recipes were counted.
-          { id: 'c', item: 'Desc_IronRod_C', count: {} },
+          { id: 'c', item: 'Desc_IronRod_C', box: [0, 0, 1, 1], count: {} },
           { id: 'b' },
-          { id: 'd', item: 'Desc_IronRod_C', count: {}, recipes: { 'bad id': 1 } },
+          { id: 'd', item: 'Desc_IronRod_C', box: [0, 0, 1, 1], count: {}, recipes: { 'bad id': 1 } },
         ],
         missed: -1,
       }),
@@ -130,8 +132,8 @@ describe('a save on the map', () => {
       miners: [[0, 'Build_MinerMk1_C', 1]],
       landmarks: [['Build_Mam_C', 1, 2]],
       factories: [
-        { id: 'a', item: 'Desc_IronRod_C', count: { Build_ConstructorMk1_C: 2 }, recipes: { Recipe_IronRod_C: 2 } },
-        { id: 'c', item: 'Desc_IronRod_C', count: {}, recipes: {} },
+        { id: 'a', item: 'Desc_IronRod_C', box: [0, 0, 1, 1], count: { Build_ConstructorMk1_C: 2 }, recipes: { Recipe_IronRod_C: 2 } },
+        { id: 'c', item: 'Desc_IronRod_C', box: [0, 0, 1, 1], count: {}, recipes: {} },
       ],
       missed: 0,
     });

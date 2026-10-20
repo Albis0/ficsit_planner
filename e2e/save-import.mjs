@@ -198,8 +198,29 @@ try {
     'the filter names the followed game',
     (await page.locator('.map-nav .section-title').first().textContent()) === 'From your save · ela',
   );
-  ok('the map has no factory boxes', (await page.locator('.map-factory-label, .leaflet-overlay-pane path').count()) === 0);
+  ok('the factories are named on the map', (await page.locator('.map-factory-label').count()) === 3);
   for (const layer of ['Blue Power Slug', 'Mercer Sphere', 'Somersloop']) await page.locator('.map-item', { hasText: layer }).click();
+  const label = await page.locator('.map-factory-label').first().boundingBox();
+  await page.mouse.move(label.x + label.width / 2, label.y + label.height + 30);
+  for (let i = 0; i < 3; i++) {
+    await page.mouse.wheel(0, -300);
+    await wait(400);
+  }
+  await wait(1200);
+  await shot('map-close');
+  const near = await page.locator('.map-factory-label:visible').first().boundingBox();
+  await page.mouse.click(near.x + near.width / 2 - 60, near.y + near.height + 150);
+  await wait(400);
+  await shot('map-factory-popup');
+  ok(
+    'a factory says what it has',
+    /From your save/.test(
+      (await page
+        .locator('.map-pop')
+        .textContent()
+        .catch(() => '')) ?? '',
+    ),
+  );
   await page.keyboard.press('Escape');
   await page.click('.map-picked [role=radio] >> nth=1');
   s = await state();
@@ -300,6 +321,32 @@ try {
       JSON.stringify(['Recipe_IngotIron_C', 'Recipe_IronPlateReinforced_C', 'Recipe_IronPlate_C', 'Recipe_Screw_C']),
     JSON.stringify(s.plans[0].savedBuilt),
   );
+  await page.click('.mode-switch [role=radio] >> nth=3');
+  await page.waitForSelector('.map-factory-label');
+  await wait(1200);
+  const tag = await page.locator('.map-factory-label').first().boundingBox();
+  await page.mouse.move(tag.x + tag.width / 2, tag.y + tag.height + 30);
+  for (let i = 0; i < 3; i++) {
+    await page.mouse.wheel(0, -300);
+    await wait(400);
+  }
+  await wait(1200);
+  const big = await page.locator('.map-factory-label:visible').first().boundingBox();
+  await page.mouse.click(big.x + big.width / 2 - 60, big.y + big.height + 150);
+  await page.waitForSelector('.map-pop');
+  await shot('map-factory-popup-linked');
+  ok('the map popup is only to read: no link, no Open floor', (await page.locator('.map-pop select, .map-pop button').count()) === 0);
+  await page.mouse.click(5, 300);
+  await page.click('.mode-switch [role=radio] >> nth=0');
+  await wait(400);
+  await openAll();
+  await page.locator('.save-card .ghost-button').first().click();
+  await page.waitForSelector('.save-floor .react-flow__node', { timeout: 60000 });
+  await page.click('.save-info .text-button');
+  await wait(1500);
+  await shot('show-on-map');
+  s = await state();
+  ok('Show on map goes to the map', s.mode === 'map');
   await page.click('.mode-switch [role=radio] >> nth=0');
   await wait(400);
 
@@ -464,6 +511,7 @@ try {
   await page.locator('.mode-switch [role=radio] >> nth=3').dispatchEvent('click');
   await wait(1500);
   await shot('phone-map');
+  ok('the phone map names factories', (await page.locator('.map-factory-label').count()) > 0);
   await page.locator('.mobile-nav button', { hasText: 'Filter' }).dispatchEvent('click');
   await wait(1500);
   await shot('phone-map-filter');
