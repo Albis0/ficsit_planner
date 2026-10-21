@@ -205,10 +205,13 @@ try {
   await page.waitForSelector('.map-picked');
   await wait(1500);
   await shot('map');
-  ok(
-    'the filter names the followed game',
-    (await page.locator('.map-nav .section-title').first().textContent()) === 'From your save · ela',
-  );
+  ok('the save card names the followed game', ((await page.locator('.map-save-game').textContent()) ?? '').startsWith('ela · '));
+  await page.click('.map-save-more');
+  ok('the card lists each find on its own', (await page.locator('.map-save-rows li').count()) === 6);
+  ok('hard drives are among them', (await page.locator('.map-save-rows').textContent()).includes('Hard drive'));
+  await wait(800);
+  await shot('map-details');
+  await page.click('.map-save-more');
   ok('the factories are named on the map', (await page.locator('.map-factory-label').count()) === 3);
   for (const layer of ['Blue Power Slug', 'Mercer Sphere', 'Somersloop']) await page.locator('.map-item', { hasText: layer }).click();
   const label = await page.locator('.map-factory-label').first().boundingBox();
@@ -526,6 +529,9 @@ try {
   await page.locator('.mobile-nav button', { hasText: 'Filter' }).dispatchEvent('click');
   await wait(1500);
   await shot('phone-map-filter');
+  await page.locator('.map-save-more').dispatchEvent('click');
+  await wait(800);
+  await shot('phone-map-details');
   ok('the phone filter has the picked-up switch', await page.locator('.map-picked').isVisible());
   await page.locator('.mode-switch [role=radio] >> nth=0').dispatchEvent('click');
   await wait(500);

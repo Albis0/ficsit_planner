@@ -3,7 +3,10 @@ import { useT } from '../lib/i18n';
 import { PURITIES } from '../lib/extraction';
 import { type Layer, LAYER_GROUPS, LAYER_ITEM, LAYER_RING, CREATURE_RING, layerCount, layerOfItem, useWorld } from '../lib/finds';
 import { DEFAULT_MAP_FILTER, MAP_GROUPS, NODES, purityCounts } from '../lib/world';
+import { PICKED_LAYERS } from '../lib/save/map';
+import type { SaveInfo } from '../lib/save/apply';
 import { useStore } from '../store';
+import { useState } from 'react';
 import { Glyph } from './Glyph';
 import { Icon } from './Icon';
 
@@ -34,12 +37,79 @@ export function openMapOn(id: string) {
   });
 }
 
+/** The save's pickups on the map: how many of all, and for each find (what the Picked up setting does to them is the buttons). */
+function SaveCard({ info }: { info: SaveInfo }) {
+  const { t, num } = useT();
+  const world = useWorld();
+  const filter = useStore((s) => s.mapFilter);
+  const set = useStore((s) => s.set);
+  const [open, setOpen] = useState(false);
+  const rows = PICKED_LAYERS.map((l) => ({
+    l,
+    got: info.map?.picked[l]?.length ?? 0,
+    of: world ? layerCount(world, l) : 0,
+  }));
+  const got = rows.reduce((n, r) => n + r.got, 0);
+  const of = rows.reduce((n, r) => n + r.of, 0);
+  const bar = (n: number, total: number, ring?: string) => (
+    <span className="map-save-bar" style={{ ['--ring' as string]: ring }}>
+      <span style={{ width: `${total ? (100 * n) / total : 0}%` }} />
+    </span>
+  );
+  return (
+    <section className="map-save">
+      <div className="map-save-head">
+        <h3 className="map-save-title">{t('mapYourSave')}</h3>
+        <span className="map-save-game">{t('mapSaveGame', { game: info.game, hours: num(Math.round(info.playSeconds / 3600)) })}</span>
+      </div>
+      <div className="map-save-total">
+        <span>{t('mapPicked')}</span>
+        <span>
+          <strong>{num(got)}</strong> <small>{t('mapPickedOf', { total: num(of) })}</small>
+        </span>
+      </div>
+      {bar(got, of)}
+      <div className="segmented map-picked" role="radiogroup" aria-label={t('mapPicked')}>
+        {(['grey', 'hide', 'show'] as const).map((p) => (
+          <button
+            key={p}
+            type="button"
+            role="radio"
+            aria-checked={filter.picked === p}
+            onClick={() => set({ mapFilter: { ...filter, picked: p } })}
+          >
+            {t(p === 'grey' ? 'mapPickedGrey' : p === 'hide' ? 'mapPickedHide' : 'mapPickedShow')}
+          </button>
+        ))}
+      </div>
+      <button type="button" className="map-save-more" aria-expanded={open} onClick={() => setOpen(!open)}>
+        {t('mapPickedDetails')}
+        <span className="map-save-chevron" aria-hidden />
+      </button>
+      {open && (
+        <ul className="map-save-rows">
+          {rows.map(({ l, got, of }) => (
+            <li key={l}>
+              <Icon id={LAYER_ITEM[l]} size={26} />
+              <span className="map-save-name">{l === 'pod' ? t('whereHardDrive') : t(`layer_${l}`)}</span>
+              <span className="map-save-n">
+                {num(got)} / {num(of)}
+              </span>
+              {bar(got, of, LAYER_RING[l])}
+            </li>
+          ))}
+        </ul>
+      )}
+    </section>
+  );
+}
+
 /** The map's panel: which purities show, and which resources, each with how many nodes of each purity it has. */
 export function MapNav() {
   const { t, name, num } = useT();
   const world = useWorld();
   const filter = useStore((s) => s.mapFilter);
-  const game = useStore((s) => (s.save?.map ? s.save.game : undefined));
+  const save = useStore((s) => s.save);
   const layers = new Set(filter.layers);
   const flip = (id: string) =>
     set({ mapFilter: { ...filter, layers: layers.has(id) ? filter.layers.filter((l) => l !== id) : [...filter.layers, id] } });
@@ -74,25 +144,7 @@ export function MapNav() {
         <Glyph name="map" size={22} />
         {t('worldMap')}
       </h2>
-      {game !== undefined && (
-        <section className="stack">
-          <h3 className="section-title">{t('mapFromSaveGame', { game })}</h3>
-          <span className="map-picked-label">{t('mapPicked')}</span>
-          <div className="segmented map-picked" role="radiogroup" aria-label={t('mapPicked')}>
-            {(['grey', 'hide', 'show'] as const).map((p) => (
-              <button
-                key={p}
-                type="button"
-                role="radio"
-                aria-checked={filter.picked === p}
-                onClick={() => set({ mapFilter: { ...filter, picked: p } })}
-              >
-                {t(p === 'grey' ? 'mapPickedGrey' : p === 'hide' ? 'mapPickedHide' : 'mapPickedShow')}
-              </button>
-            ))}
-          </div>
-        </section>
-      )}
+      {save?.map && <SaveCard info={save} />}
       <section className="stack">
         <h3 className="section-title">{t('purity')}</h3>
         <div className="map-purities" role="group" aria-label={t('purity')}>

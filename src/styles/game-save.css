@@ -560,9 +560,112 @@ li[data-state='now'] .save-mark {
   font-weight: 700;
 }
 
-.map-picked-label {
+/* The map panel's card for what the save picked up: a total and a bar, and a fold with each find on its own. */
+.map-save {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 12px 14px;
+  background: var(--panel-2);
+  border: 1px solid var(--line);
+  border-radius: 6px;
+}
+
+.map-save-head,
+.map-save-total {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.map-save-title {
+  margin: 0;
+  font: 700 18px var(--font-body);
+  letter-spacing: 0;
+  text-transform: none;
+}
+
+.map-save-game,
+.map-save-total small {
   color: var(--faint);
   font-size: 14px;
+}
+
+.map-save-total strong {
+  font-size: 22px;
+}
+
+.map-save-bar {
+  --ring: var(--ficsit);
+  display: block;
+  height: 6px;
+  background: var(--bg);
+  border-radius: 3px;
+  overflow: hidden;
+}
+
+.map-save-bar > span {
+  display: block;
+  height: 100%;
+  background: var(--ring);
+}
+
+.map-save-more {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  min-height: 32px;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--dim);
+  font: 600 14px var(--font-body);
+  cursor: pointer;
+}
+
+.map-save-chevron {
+  width: 8px;
+  height: 8px;
+  margin: 0 4px 2px;
+  border: solid var(--faint);
+  border-width: 0 2px 2px 0;
+  transform: rotate(-45deg);
+  transition: transform 0.15s ease-out;
+}
+
+.map-save-more[aria-expanded='true'] .map-save-chevron {
+  margin: 2px 4px 0;
+  transform: rotate(45deg);
+}
+
+.map-save-more:hover .map-save-chevron {
+  border-color: var(--ficsit);
+}
+
+.map-save-rows {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.map-save-rows li {
+  display: grid;
+  grid-template-columns: 26px 1fr auto;
+  align-items: center;
+  gap: 2px 10px;
+}
+
+.map-save-rows .map-save-bar {
+  grid-column: 2 / -1;
+}
+
+.map-save-n {
+  color: var(--dim);
+  font: 700 13px var(--font-body);
 }
 
 .map-picked {
