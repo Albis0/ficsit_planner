@@ -1,4 +1,15 @@
-import { cleanUnlocked, dropSource, MAX_TIER, newPlan, newPowerPlan, type Plan, POOL, type PowerPlan, useStore } from '../store';
+import {
+  cleanStandardOff,
+  cleanUnlocked,
+  dropSource,
+  MAX_TIER,
+  newPlan,
+  newPowerPlan,
+  type Plan,
+  POOL,
+  type PowerPlan,
+  useStore,
+} from '../store';
 import { clearBackups } from './autobackup';
 import { forgetSave } from './save/store-idb';
 import { planStorage } from './safeStorage';
@@ -31,27 +42,31 @@ export function buildExport() {
     settings: s.settings,
     tier: s.tier,
     unlocked: s.unlocked,
+    standardOff: s.standardOff,
     skipped: s.skipped,
   };
 }
 
 /** How far the player has got: the tier, the milestones not bought and the alternate recipes unlocked. */
-export type Progress = { tier: number; skipped: string[]; unlocked: string[] };
+export type Progress = { tier: number; skipped: string[]; unlocked: string[]; standardOff?: string[] };
 
 /** The progress a file carries, checked like a saved session; undefined for older files that have none. */
-function progressOf(file: { tier?: unknown; skipped?: unknown; unlocked?: unknown }): Progress | undefined {
+function progressOf(file: { tier?: unknown; skipped?: unknown; unlocked?: unknown; standardOff?: unknown }): Progress | undefined {
   if (typeof file.tier !== 'number') return undefined;
   return {
     tier: Math.round(cleanNumber(file.tier, 0, MAX_TIER, 0)),
     skipped: cleanSkipped(file.skipped),
     unlocked: cleanUnlocked(file.unlocked),
+    // Files from before the switch have none: the player's own list stays.
+    ...(Array.isArray(file.standardOff) ? { standardOff: cleanStandardOff(file.standardOff) } : {}),
   };
 }
 
 const same = (a: readonly string[], b: readonly string[]) => a.length === b.length && a.every((x) => b.includes(x));
 
 /** Puts a file's progress in place of the player's own; only ever called from the button that offers it. */
-export const applyProgress = (p: Progress) => useStore.setState({ tier: p.tier, skipped: p.skipped, unlocked: p.unlocked });
+export const applyProgress = (p: Progress) =>
+  useStore.setState({ tier: p.tier, skipped: p.skipped, unlocked: p.unlocked, ...(p.standardOff ? { standardOff: p.standardOff } : {}) });
 export type ExportFile = ReturnType<typeof buildExport>;
 
 /** Whether a copy holds anything worth keeping: a factory with something in it, a plant, a hand-built floor. */
@@ -107,6 +122,7 @@ export function importData(parsed: unknown): ImportResult {
       tier?: unknown;
       skipped?: unknown;
       unlocked?: unknown;
+      standardOff?: unknown;
     };
     if (file?.kind !== KIND || !Array.isArray(file.plans)) return { ok: false };
     const s = useStore.getState();
@@ -166,7 +182,13 @@ export function importData(parsed: unknown): ImportResult {
     // Offered, never applied here: a copy from another day shouldn't change what the player has unlocked on its own.
     const theirs = progressOf(file);
     const progress =
-      theirs && (theirs.tier !== s.tier || !same(theirs.skipped, s.skipped) || !same(theirs.unlocked, s.unlocked)) ? theirs : undefined;
+      theirs &&
+      (theirs.tier !== s.tier ||
+        !same(theirs.skipped, s.skipped) ||
+        !same(theirs.unlocked, s.unlocked) ||
+        (!!theirs.standardOff && !same(theirs.standardOff, s.standardOff)))
+        ? theirs
+        : undefined;
     return {
       ok: true,
       progress,

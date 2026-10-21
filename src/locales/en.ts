@@ -465,6 +465,7 @@ export const en = {
   progressUse: 'Use it',
   progressUsed: 'Your tier, milestones and alternates are now the file’s.',
   progressAlts: '{n} alternates unlocked',
+  progressStdOff: '{n} standard recipes off',
   autoBackups: 'Auto backups',
   autoBackupsHint: 'The last three copies, made quietly. Restoring adds one as new tabs; yours stay.',
   restore: 'Restore',

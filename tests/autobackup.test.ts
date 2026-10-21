@@ -67,6 +67,7 @@ describe('automatic copies', () => {
         tier: 9,
         skipped: [],
         unlocked: [],
+        standardOff: [],
       });
 
     test('the file carries the tier, the milestones not bought and the alternates', () => {
@@ -85,6 +86,25 @@ describe('automatic copies', () => {
       expect(useStore.getState()).toMatchObject({ tier: 2, skipped: [], unlocked: [] });
       if (r.ok && r.progress) applyProgress(r.progress);
       expect(useStore.getState()).toMatchObject({ tier: 5, skipped: ['Schematic_6-1_C'], unlocked: [alt] });
+    });
+
+    test('the standard recipes switched off travel with the copy, and a copy without the list leaves yours alone', () => {
+      const std = data.recipes.find((r) => r.kind === 'standard')!.id;
+      bare();
+      useStore.setState({ standardOff: [std] });
+      const file = JSON.parse(JSON.stringify(buildExport()));
+      expect(file.standardOff).toEqual([std]);
+      useStore.setState({ standardOff: [] });
+      const r = importData(file);
+      expect(r).toMatchObject({ ok: true, progress: { standardOff: [std] } });
+      if (r.ok && r.progress) applyProgress(r.progress);
+      expect(useStore.getState().standardOff).toEqual([std]);
+      const { standardOff: _, ...older } = file;
+      bare();
+      useStore.setState({ standardOff: [std] });
+      const o = importData(older);
+      if (o.ok && o.progress) applyProgress(o.progress);
+      expect(useStore.getState().standardOff).toEqual([std]);
     });
 
     test('nothing is offered when the progress is already the same', () => {

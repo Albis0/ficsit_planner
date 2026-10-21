@@ -835,6 +835,7 @@ const progressWords = (p: Progress, t: ReturnType<typeof useT>['t']) =>
     `${t('tier')} ${p.tier}`,
     offAt(p.tier, p.skipped) > 0 ? t('tierOff', { n: offAt(p.tier, p.skipped) }) : '',
     p.unlocked.length > 0 ? t('progressAlts', { n: p.unlocked.length }) : '',
+    p.standardOff?.length ? t('progressStdOff', { n: p.standardOff.length }) : '',
   ]
     .filter(Boolean)
     .join(' · ');
