@@ -3,7 +3,7 @@ import { data } from '../lib/data';
 import { useT } from '../lib/i18n';
 import { type FactoryRow, type PlantRow, useOverview } from '../lib/overview';
 import type { PoolParty } from '../lib/pool';
-import { useStore } from '../store';
+import { defaultEnabled, useStore } from '../store';
 import { Icon } from './Icon';
 import { RecipeBrowser } from './RecipeBrowser';
 import { SaveFactoryList } from './SaveFactories';
@@ -51,17 +51,19 @@ export function OverviewPage() {
   );
 }
 
-/** Marks the alternate and converter recipes the player has unlocked in the game; every new factory starts with them on. */
+/** The recipes every new factory starts with: the alternate and converter ones unlocked in the game, and the standard ones left on. */
 function UnlockedRecipes() {
   const { t } = useT();
   const unlocked = useStore((s) => s.unlocked);
+  const standardOff = useStore((s) => s.standardOff);
+  const enabled = [...defaultEnabled().filter((id) => !standardOff.includes(id)), ...unlocked];
   const setUnlocked = useStore((s) => s.setUnlocked);
   const applyUnlocked = useStore((s) => s.applyUnlocked);
   const behind = useStore((s) => s.plans.some((p) => s.unlocked.some((id) => !p.enabled.includes(id))));
   return (
     <RecipeBrowser
-      enabled={unlocked}
-      onToggle={(id) => setUnlocked([id], !unlocked.includes(id))}
+      enabled={enabled}
+      onToggle={(id) => setUnlocked([id], !enabled.includes(id))}
       onSet={setUnlocked}
       optionalOnly
       extra={

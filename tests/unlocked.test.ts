@@ -17,7 +17,7 @@ const rivalItem = (() => {
 
 beforeEach(() => {
   const plan = newPlan('Factory 1');
-  useStore.setState({ unlocked: [], plans: [plan], active: plan.id });
+  useStore.setState({ unlocked: [], standardOff: [], plans: [plan], active: plan.id });
 });
 
 describe('unlocked recipes', () => {
@@ -26,6 +26,21 @@ describe('unlocked recipes', () => {
     current().addPlan('Factory 2');
     const made = current().plans.at(-1)!;
     expect(made.enabled).toEqual([...defaultEnabled(), alternates[0], converters[0]]);
+  });
+
+  test('a standard recipe switched off on the All page is left out of new factories only', () => {
+    const before = current().plans[0].enabled;
+    current().setUnlocked([standard], false);
+    expect(current().standardOff).toEqual([standard]);
+    expect(current().plans[0].enabled).toEqual(before);
+    current().addPlan('Factory 2');
+    expect(current().plans.at(-1)!.enabled).toEqual(defaultEnabled().filter((id) => id !== standard));
+    current().setUnlocked([standard], true);
+    expect(current().standardOff).toEqual([]);
+  });
+
+  test('only standard recipes are kept in the off list', () => {
+    expect(mergeState({ standardOff: [standard, alternates[0], 'Recipe_Gone_C', standard, 4] }, current()).standardOff).toEqual([standard]);
   });
 
   test('with nothing marked, a new factory starts as it always did', () => {

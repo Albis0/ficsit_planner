@@ -215,13 +215,13 @@ export const makeFromLeftover =
     };
   };
 
-/** A blank factory tab: the standard recipes, plus the ones the player marked as unlocked on the All page. */
-export const newPlan = (name: string, unlocked: string[] = []): Plan => ({
+/** A blank factory tab: the standard recipes (less the ones switched off on the All page), plus the ones marked as unlocked there. */
+export const newPlan = (name: string, unlocked: string[] = [], off: string[] = []): Plan => ({
   id: uid(),
   name,
   targets: [],
   supplies: [],
-  enabled: [...defaultEnabled(), ...unlocked],
+  enabled: [...defaultEnabled().filter((id) => !off.includes(id)), ...unlocked],
   caps: {},
   fixed: {},
   mods: {},
@@ -252,6 +252,8 @@ interface State {
   tier: number;
   /** Alternate and converter recipes the player has unlocked in the game: every new factory starts with them on. */
   unlocked: string[];
+  /** Standard recipes switched off on the All page: every new factory starts without them. */
+  standardOff: string[];
   /** Milestones of the tiers above the player has not bought: what they open stays locked. Ids in lib/unlocks. */
   skipped: string[];
   /** Which page of "All" is on screen. Not persisted. */
@@ -461,11 +463,16 @@ export const aimOf = (s: Pick<State, 'equalWeights' | 'fewestBuildings' | 'custo
   s.fewestBuildings ? 'buildings' : s.customWeights ? 'custom' : s.equalWeights ? 'equal' : 'rarity';
 
 /* Read while the store is created, so it has to be defined above it. */
+const standard = new Set(data.recipes.filter((r) => r.kind === 'standard').map((r) => r.id));
 const optional = new Set(data.recipes.filter((r) => r.kind === 'alternate' || r.kind === 'converter').map((r) => r.id));
 
 /** The unlocked list as saved: only alternate and converter recipes this build knows, each once. */
 export const cleanUnlocked = (v: unknown): string[] =>
   Array.isArray(v) ? [...new Set(v.filter((id): id is string => typeof id === 'string' && optional.has(id)))] : [];
+
+/** The standard recipes switched off for new factories, as saved: only standard recipes this build knows, each once. */
+export const cleanStandardOff = (v: unknown): string[] =>
+  Array.isArray(v) ? [...new Set(v.filter((id): id is string => typeof id === 'string' && standard.has(id)))] : [];
 
 /** What a reload keeps: the part of the state written to the browser's storage. */
 export const persisted = (s: State): Persisted => ({
@@ -479,6 +486,7 @@ export const persisted = (s: State): Persisted => ({
   sideWidth: s.sideWidth,
   tier: s.tier,
   unlocked: s.unlocked,
+  standardOff: s.standardOff,
   skipped: s.skipped,
   equalWeights: s.equalWeights,
   customWeights: s.customWeights,
@@ -574,6 +582,7 @@ export const useStore = create<State>()(
         settings: DEFAULT_SETTINGS,
         tier: MAX_TIER,
         unlocked: [],
+        standardOff: [],
         skipped: [],
         equalWeights: false,
         customWeights: false,
@@ -676,7 +685,7 @@ export const useStore = create<State>()(
             typeof patch === 'function' ? undefined : `plan:${Object.keys(patch).join()}`,
           ),
         addPlan: (name) => {
-          const p = newPlan(name, get().unlocked);
+          const p = newPlan(name, get().unlocked, get().standardOff);
           set({ plans: [...get().plans, p], active: p.id, inspect: undefined });
         },
         copyFromSave: (name, model, factory) => {
@@ -688,6 +697,7 @@ export const useStore = create<State>()(
                 plans.map((x) => x.name),
               ),
               get().unlocked,
+              get().standardOff,
             ),
             floor: 'manual',
             model,
@@ -707,7 +717,7 @@ export const useStore = create<State>()(
           const { plans, active } = get();
           const cur = plans.find((p) => p.id === active);
           const blank = cur && cur.targets.length === 0 && cur.supplies.length === 0 ? cur : undefined;
-          let enabled = [...defaultEnabled(), ...get().unlocked];
+          let enabled = [...defaultEnabled().filter((id) => !get().standardOff.includes(id)), ...get().unlocked];
           if (recipe) {
             const rivals = new Set(data.recipes.filter((r) => r.id !== recipe && r.outputs[0]?.item === item).map((r) => r.id));
             enabled = [...enabled.filter((id) => !rivals.has(id)), recipe];
@@ -777,7 +787,7 @@ export const useStore = create<State>()(
         },
         removePlan: (id) => {
           const plans = get().plans.filter((p) => p.id !== id);
-          if (plans.length === 0) plans.push(newPlan('Factory 1', get().unlocked));
+          if (plans.length === 0) plans.push(newPlan('Factory 1', get().unlocked, get().standardOff));
           const active = get().active === id ? plans[Math.max(0, get().plans.findIndex((p) => p.id === id) - 1)].id : get().active;
           // Power plants stop counting a factory that's gone, and what came from it is simply on hand now.
           const power = get().power.map((pp) => (pp.factories === 'all' ? pp : { ...pp, factories: pp.factories.filter((f) => f !== id) }));
@@ -832,11 +842,14 @@ export const useStore = create<State>()(
           }),
         setUnlocked: (ids, on) => {
           const cur = new Set(get().unlocked);
+          const off = new Set(get().standardOff);
           for (const id of ids) {
-            if (on) cur.add(id);
-            else cur.delete(id);
+            // A standard recipe is on for new factories unless it is in the off list.
+            const list = standard.has(id) ? off : cur;
+            if (on === !standard.has(id)) list.add(id);
+            else list.delete(id);
           }
-          set({ unlocked: [...cur] });
+          set({ unlocked: [...cur], standardOff: [...off] });
         },
         markSkipped: (ids, skipped) => {
           const cur = new Set(get().skipped);
@@ -947,6 +960,7 @@ type Persisted = Partial<
     | 'settings'
     | 'tier'
     | 'unlocked'
+    | 'standardOff'
     | 'skipped'
     | 'equalWeights'
     | 'customWeights'
@@ -1029,6 +1043,7 @@ export function mergeState<S extends State>(persisted: unknown, current: S): S {
     settings: cleanSettings(p.settings),
     tier: Math.round(cleanNumber(p.tier, 0, MAX_TIER, current.tier)),
     unlocked: cleanUnlocked(p.unlocked),
+    standardOff: cleanStandardOff(p.standardOff),
     skipped: cleanSkipped(p.skipped),
     equalWeights: p.equalWeights === true,
     customWeights: p.customWeights === true,
