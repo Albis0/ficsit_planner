@@ -1,5 +1,5 @@
 // Imports a real game save the way a player would: the button, the window, the folder, the picker, the cover while
-// it reads, the first questions, what came in, the map, the save's factories (All, the read-only floor, a copy, a link and
+// it reads, the first questions, what came in, the map, the save's factories (All, the read-only floor, a link and
 // its ticks), its power circuit as a plant tab; then a refresh after the player changed things, Settings › Game save,
 // forgetting it, and the same on a phone.
 //
@@ -300,29 +300,12 @@ try {
   await shot('save-floor-900');
   await page.setViewportSize({ width: 1280, height: 800 });
   await wait(400);
-  await page.click('.save-info .primary-button');
-  await page.waitForSelector('.save-compare');
-  await wait(2500);
-  await shot('copy-compare');
   s = await state();
-  const copy = s.plans.at(-1);
-  ok(
-    'a copy is a hand-built tab linked to the factory',
-    s.plans.length === 2 && copy.floor === 'manual' && copy.saveFactory === frames && copy.model.nodes.length > 100,
-  );
-  ok(
-    'every machine of the copy is ticked from the save',
-    copy.model.nodes.filter((n) => n.k === 'machine').every((n) => n.done === 'save'),
-  );
-  ok('the box compares recipe by recipe', (await page.locator('.save-compare-rows li').count()) === 12);
   await openAll();
   await page.locator('.save-card .save-link').first().selectOption('f1');
   await wait(300);
   s = await state();
-  ok(
-    'a save factory is linked to one tab: the copy lets go, and its ticks with it',
-    s.plans[0].saveFactory === frames && !s.plans[1].saveFactory && s.plans[1].model.nodes.every((n) => !n.done),
-  );
+  ok('a save factory is linked to a factory tab', s.plans.length === 1 && s.plans[0].saveFactory === frames);
   await page.click('.plan-current');
   await page.locator('.plan-row', { hasText: 'Modular Frames' }).locator('.plan-row-name').click();
   await page.waitForSelector('.save-compare');

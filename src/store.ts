@@ -353,7 +353,6 @@ interface State {
   updatePlan: (patch: Partial<Plan> | ((p: Plan) => Partial<Plan>)) => void;
   addPlan: (name: string) => void;
   /** A new factory tab built by hand from a game save factory's floor, linked to that factory. */
-  copyFromSave: (name: string, model: Model, factory: string) => void;
   /** Links a factory tab to a factory in the game save, or unlinks it; a save factory is linked to one tab at most. */
   linkSave: (plan: string, factory: string | undefined) => void;
   /**
@@ -687,23 +686,6 @@ export const useStore = create<State>()(
         addPlan: (name) => {
           const p = newPlan(name, get().unlocked, get().standardOff);
           set({ plans: [...get().plans, p], active: p.id, inspect: undefined });
-        },
-        copyFromSave: (name, model, factory) => {
-          const plans = get().plans.map((p) => (p.saveFactory === factory ? unlinkSave(p) : p));
-          const p: Plan = {
-            ...newPlan(
-              freeName(
-                name,
-                plans.map((x) => x.name),
-              ),
-              get().unlocked,
-              get().standardOff,
-            ),
-            floor: 'manual',
-            model,
-            saveFactory: factory,
-          };
-          set({ plans: [...plans, p], active: p.id, mode: 'factory', overview: undefined, saveView: undefined, inspect: undefined });
         },
         linkSave: (plan, factory) =>
           set({

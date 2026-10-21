@@ -1255,7 +1255,6 @@ export const en = {
   saveNotLinked: 'Not linked',
   saveLinkLabel: 'Factory tab linked to {name}',
   saveOpen: 'Open',
-  saveCopy: 'Make a copy as factory',
   saveShowOnMap: 'Show on map',
   saveReadOnly: 'Read only',
   saveFloorFrom: 'From {game}, saved {when}. Read only.',

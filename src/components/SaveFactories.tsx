@@ -259,7 +259,6 @@ export function SaveFloor({ id }: { id: string }) {
 function SaveInfo({ f, floor }: { f: SaveFactory; floor?: KeptFloor }) {
   const { t, name } = useT();
   const save = useStore((s) => s.save);
-  const copyFromSave = useStore((s) => s.copyFromSave);
   const phone = useMediaQuery('(max-width: 900px)');
   const [open, setOpen] = useState(!phone);
   const title = name(factoryTitle(f));
@@ -280,14 +279,6 @@ function SaveInfo({ f, floor }: { f: SaveFactory; floor?: KeptFloor }) {
             <span>{t('saveLinkedTo')}</span>
             <SaveLink f={f} />
           </div>
-          <button
-            type="button"
-            className="primary-button"
-            disabled={!floor?.laid}
-            onClick={() => floor && copyFromSave(title, floor.model, f.id)}
-          >
-            {t('saveCopy')}
-          </button>
           <button type="button" className="text-button" onClick={() => showSaveOnMap(f.id)}>
             {t('saveShowOnMap')}
           </button>
