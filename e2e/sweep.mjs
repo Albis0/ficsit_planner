@@ -185,7 +185,16 @@ async function run(size) {
         await check(`manual inspector ${item}`);
         // The chooser, from a right click on the floor and from a belt let go on it.
         await page.keyboard.press('Escape');
-        await page.locator('.react-flow__pane').click({ button: 'right', position: { x: 30, y: 200 } });
+        // A spot of the empty floor: on a tablet the Auto/Manual bar and the card panel cover the corner of it.
+        const free = await page.evaluate(() => {
+          const pane = document.querySelector('.react-flow__pane');
+          const r = pane.getBoundingClientRect();
+          for (let y = r.top + 200; y < r.bottom - 10; y += 40)
+            for (let x = r.left + 30; x < r.right - 10; x += 40)
+              if (document.elementFromPoint(x, y) === pane) return { x: x - r.left, y: y - r.top };
+          return { x: 30, y: 200 };
+        });
+        await page.locator('.react-flow__pane').click({ button: 'right', position: free });
         await page.waitForTimeout(300);
         await check(`manual chooser ${item}`);
         await page.keyboard.press('Escape');

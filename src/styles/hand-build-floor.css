@@ -977,6 +977,13 @@
   color: var(--ficsit);
 }
 
+@media (pointer: coarse) {
+  .floor-io-name {
+    min-height: 32px;
+    justify-content: center;
+  }
+}
+
 .floor-io-now {
   color: var(--power);
   font: 600 14px var(--font-body);

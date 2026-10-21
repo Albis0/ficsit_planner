@@ -271,7 +271,9 @@ export function inspectPage(opts) {
       if (!shown(el) || inCanvas(el)) continue;
       // A box inside its label is hit through the label; a slider through its thumb; a link inside a sentence is
       // part of the text around it.
+      // (A fold head in a wide panel is only a title, with pointer events off.)
       if (el.closest('label') || el.type === 'range' || (el.tagName === 'A' && el.closest('p'))) continue;
+      if (getComputedStyle(el).pointerEvents === 'none') continue;
       const r = el.getBoundingClientRect();
       if (r.width < 28 || r.height < 28)
         add(

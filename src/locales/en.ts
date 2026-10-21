@@ -1165,9 +1165,12 @@ export const en = {
   saveSettings: 'Save settings',
   saveWhere: 'Where the game keeps its saves',
   saveOnPc: 'On your PC the saves are in',
-  saveStepWindows: "Paste the path (it's copied) into the address bar, pick SaveGames, press Select Folder, then Upload.",
-  saveStepMac: "Press ⌘⇧G, paste the path (it's copied), pick SaveGames, press Upload.",
-  saveStepLinux: "Press Ctrl+L, paste the path (it's copied), pick SaveGames, press Upload.",
+  saveStepWindows:
+    "Paste the path (it's copied) into the address bar, pick SaveGames, press Select Folder, then Upload. The window lists folders only; your saves are inside.",
+  saveStepMac:
+    "Press ⌘⇧G, paste the path (it's copied), pick SaveGames, press Upload. The window lists folders only; your saves are inside.",
+  saveStepLinux:
+    "Press Ctrl+L, paste the path (it's copied), pick SaveGames, press Upload. The window lists folders only; your saves are inside.",
   saveStepPhone: 'Copy a save from your PC to this phone (cloud drive, cable), then choose it.',
   saveChooseFolder: 'Choose folder',
   saveChooseFile: 'Choose one .sav file',

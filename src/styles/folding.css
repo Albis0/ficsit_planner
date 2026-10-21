@@ -676,9 +676,7 @@
     min-width: 0;
     overflow: hidden;
     text-align: right;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-    font: 600 15px var(--font-body);
+    font: 600 15px / 1.2 var(--font-body);
     letter-spacing: 0;
     text-transform: none;
     color: var(--faint);
