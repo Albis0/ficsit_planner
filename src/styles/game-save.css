@@ -786,37 +786,10 @@ li[data-state='now'] .save-mark {
   font: 600 15px var(--font-body);
 }
 
-/* A save factory's floor: read only, what it is in a box on the left, a small stamp along the top. Its cards have no
-   buttons: they would change the factory tab on screen, not this floor. */
-.save-floor .react-flow.read-only .react-flow__node button {
-  display: none;
-}
-
-.save-stamp {
-  position: absolute;
-  top: 14px;
-  left: 50%;
-  z-index: 5;
-  transform: translateX(-50%);
-  padding: 3px 12px;
-  background: rgb(31 31 31 / 0.85);
-  border: 2px solid var(--ficsit);
-  color: var(--ficsit);
-  font: 700 15px / 1.2 var(--font-display);
-  letter-spacing: 0.16em;
-  text-transform: uppercase;
-  pointer-events: none;
-}
-
-.save-floor .busy {
-  left: auto;
-  right: 18px;
-}
-
-.save-info,
 .save-compare {
   position: absolute;
   top: 14px;
+  right: 14px;
   z-index: 7;
   width: 300px;
   max-height: calc(100% - 104px);
@@ -827,15 +800,6 @@ li[data-state='now'] .save-mark {
   box-shadow: 0 14px 40px rgb(0 0 0 / 0.5);
 }
 
-.save-info {
-  left: 14px;
-}
-
-.save-compare {
-  right: 14px;
-}
-
-.save-info-head,
 .save-compare-head {
   display: flex;
   align-items: center;
@@ -845,50 +809,20 @@ li[data-state='now'] .save-mark {
   border: 0;
   background: none;
   color: var(--paper);
-  font: 700 20px / 1.15 var(--font-display);
+  font: 700 18px / 1.15 var(--font-display);
   letter-spacing: 0.04em;
   text-transform: uppercase;
   text-align: left;
   cursor: pointer;
 }
 
-.save-compare-head {
-  font-size: 18px;
-}
-
-.save-info-head span,
 .save-compare-head span {
   flex: 1;
   min-width: 0;
 }
 
-.save-info-head .glyph:last-child,
 .save-compare-head .glyph {
   color: var(--faint);
-}
-
-.save-info-body {
-  display: grid;
-  gap: 14px;
-  padding: 0 14px 14px;
-}
-
-.save-info-from {
-  margin: 0;
-  color: var(--dim);
-  font-size: 15px;
-}
-
-.save-info-link {
-  display: grid;
-  gap: 6px;
-  color: var(--dim);
-  font-size: 14px;
-}
-
-.save-info .text-button {
-  justify-self: center;
-  color: var(--ficsit);
 }
 
 /* On a linked factory tab: recipe by recipe, how many of its machines the save has. */
@@ -937,22 +871,9 @@ li[data-state='now'] .save-mark {
 }
 
 @media (max-width: 900px) {
-  .save-info,
   .save-compare {
     top: 10px;
-    width: min(420px, calc(100% - 20px));
-  }
-
-  .save-info {
-    left: 10px;
-  }
-
-  .save-compare {
     right: 10px;
-  }
-
-  .save-stamp {
-    top: auto;
-    bottom: 84px;
+    width: min(420px, calc(100% - 20px));
   }
 }

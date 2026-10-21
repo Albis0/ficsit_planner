@@ -280,8 +280,6 @@ interface State {
   pane: 'side' | 'floor';
   /** The "All" tab is open: every factory and power plant side by side, read-only. Not persisted. */
   overview?: boolean;
-  /** A factory from the game save open read-only, by its id, in place of the "All" page. Not persisted. */
-  saveView?: string;
   /** Factory tab being renamed. Not persisted. */
   renaming?: string;
   /** Height of the panel above the factory floor, set by dragging its edge; unset uses the layout default. */
@@ -323,7 +321,6 @@ interface State {
         | 'activePower'
         | 'inspect'
         | 'overview'
-        | 'saveView'
         | 'overviewTab'
         | 'pane'
         | 'renaming'
@@ -747,7 +744,6 @@ export const useStore = create<State>()(
             tab: 'targets',
             pane: 'floor',
             overview: undefined,
-            saveView: undefined,
             inspect: undefined,
           });
         },

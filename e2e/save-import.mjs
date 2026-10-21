@@ -1,5 +1,5 @@
 // Imports a real game save the way a player would: the button, the window, the folder, the picker, the cover while
-// it reads, the first questions, what came in, the map, the save's factories (All, the read-only floor, a link and
+// it reads, the first questions, what came in, the map, the save's factories (All, a link and
 // its ticks), its power circuit as a plant tab; then a refresh after the player changed things, Settings › Game save,
 // forgetting it, and the same on a phone.
 //
@@ -265,42 +265,6 @@ try {
     !(await page.locator('.save-cards').first().textContent()).includes('Coal-Powered'),
   );
   const frames = s.save.map.factories[0].id;
-  await page.locator('.save-card .ghost-button').first().click();
-  await page.waitForSelector('.save-floor .react-flow__node', { timeout: 60000 });
-  await wait(1500);
-  await shot('save-floor');
-  ok(
-    'the floor opens read only, named after the factory',
-    (await page.locator('.plan-tab-label').textContent()) === 'Modular Frame' &&
-      (await page.locator('.save-stamp').isVisible()) &&
-      (await page.locator('.react-flow.read-only').count()) === 1,
-  );
-  // Dragged and double-clicked, a card stays where it is, unticked, with no panel.
-  const cards = page.locator('.save-floor .react-flow__node');
-  const box = await cards.nth(3).boundingBox();
-  await page.mouse.move(box.x + 30, box.y + 30);
-  await page.mouse.down();
-  await page.mouse.move(box.x + 160, box.y + 110, { steps: 6 });
-  await page.mouse.up();
-  await cards.nth(3).dblclick();
-  await wait(400);
-  ok(
-    'a card on it does not move, tick or open a panel',
-    (await page.locator('.save-floor .react-flow__node.draggable, .save-floor .react-flow__node.selected').count()) === 0 &&
-      (await page.locator('.save-floor .done').count()) === 0 &&
-      (await page.locator('.save-floor .react-flow__node button:visible').count()) === 0 &&
-      (await page.locator('.inspector').count()) === 0,
-    `${await page.locator('.save-floor .react-flow__node.draggable').count()} ${await page.locator('.save-floor .done').count()} ${await page.locator('.inspector').count()}`,
-  );
-  await page.click('.save-info-head');
-  ok('the box beside it folds', (await page.locator('.save-info-body').count()) === 0);
-  await page.click('.save-info-head');
-  await page.setViewportSize({ width: 900, height: 800 });
-  await wait(600);
-  await shot('save-floor-900');
-  await page.setViewportSize({ width: 1280, height: 800 });
-  await wait(400);
-  s = await state();
   await openAll();
   await page.locator('.save-card .save-link').first().selectOption('f1');
   await wait(300);
@@ -334,16 +298,6 @@ try {
   await shot('map-factory-popup-linked');
   ok('the map popup is only to read: no link, no Open floor', (await page.locator('.map-pop select, .map-pop button').count()) === 0);
   await page.mouse.click(5, 300);
-  await page.click('.mode-switch [role=radio] >> nth=0');
-  await wait(400);
-  await openAll();
-  await page.locator('.save-card .ghost-button').first().click();
-  await page.waitForSelector('.save-floor .react-flow__node', { timeout: 60000 });
-  await page.click('.save-info .text-button');
-  await wait(1500);
-  await shot('show-on-map');
-  s = await state();
-  ok('Show on map goes to the map', s.mode === 'map');
   await page.click('.mode-switch [role=radio] >> nth=0');
   await wait(400);
 
@@ -528,14 +482,6 @@ try {
   await wait(300);
   await shot('phone-all-power');
   ok('a phone lists the power circuits too', (await page.locator('.save-grids-title + .save-cards .save-card').count()) === 1);
-  await page.locator('.save-card .ghost-button').nth(1).dispatchEvent('click');
-  await page.waitForSelector('.save-floor .react-flow__node', { timeout: 120000 });
-  await wait(1500);
-  await shot('phone-save-floor');
-  ok('a phone opens a save factory read only', await page.locator('.save-stamp').isVisible());
-  await page.locator('.save-info-head').dispatchEvent('click');
-  await wait(300);
-  await shot('phone-save-floor-folded');
 } catch (e) {
   ok('ran to the end', false, e.message.split('\n')[0]);
   await shot('stopped').catch(() => {});

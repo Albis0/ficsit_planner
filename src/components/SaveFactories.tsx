@@ -1,22 +1,14 @@
 import { useEffect, useMemo, useState } from 'react';
 import { data, generatorById, recipeById } from '../lib/data';
-import type { GameRules } from '../lib/game';
 import { useT } from '../lib/i18n';
-import { arrangeModel } from '../lib/model/arrange';
-import { isPart } from '../lib/model/types';
 import { PLANT_NAMES, type Plant, unitPower } from '../lib/power';
 import { buildingOf, factoryTitle, type SaveFactory, type SaveGrid } from '../lib/save/map';
 import { savedWhen } from '../lib/save/pick';
-import { type KeptFloor, keepFloor, keptFloor } from '../lib/save/store-idb';
 import { saveTicks } from '../lib/save/ticks';
 import type { SolveResult } from '../lib/solver';
-import { factoryPower } from '../lib/solution';
-import { useMediaQuery } from '../lib/useMediaQuery';
-import { type Plan, useStore, useTier } from '../store';
+import { type Plan, useStore } from '../store';
 import { Glyph } from './Glyph';
 import { Icon } from './Icon';
-import { useModelCalc } from './modeler/hosts';
-import { type ModelHost, ModelEditor } from './modeler/ModelEditor';
 
 /** A factory of the followed game save, by its id. */
 export const useSaveFactory = (id: string | undefined) =>
@@ -68,15 +60,7 @@ export function SaveLink({ f }: { f: SaveFactory }) {
   );
 }
 
-/** Opens a save factory's floor, read-only, in place of the "All" page. */
-export const openSaveFloor = (id: string) =>
-  useStore.getState().set({ mode: 'factory', overview: true, saveView: id, pane: 'floor', inspect: undefined });
-
-/** Shows a save factory on the map. */
-export const showSaveOnMap = (id: string) =>
-  useStore.getState().set({ mode: 'map', pane: 'floor', inspect: undefined, mapFocus: `save:${id}` });
-
-/** All › From your save: a card for each factory in the followed save, to link it to a factory tab or open its floor. */
+/** All › From your save: a card for each factory in the followed save, to link it to a factory tab. */
 export function SaveFactoryList() {
   const { t, name } = useT();
   const save = useStore((s) => s.save);
@@ -109,9 +93,6 @@ export function SaveFactoryList() {
                 <SaveCounts f={f} />
                 <footer>
                   <SaveLink f={f} />
-                  <button type="button" className="ghost-button" onClick={() => openSaveFloor(f.id)}>
-                    {t('saveOpen')}
-                  </button>
                 </footer>
               </article>
             );
@@ -172,119 +153,6 @@ function SaveGrids({ grids }: { grids: SaveGrid[] }) {
         })}
       </div>
     </>
-  );
-}
-
-const noop = () => {};
-/** Floors past this many cards are laid out the quick way (see arrange.ts). */
-const QUICK = 150;
-
-/** A save factory's floor, read-only: its cards and belts as built in the game, the totals over it, what it is beside it. */
-export function SaveFloor({ id }: { id: string }) {
-  const { t, num } = useT();
-  const f = useSaveFactory(id);
-  const importedAt = useStore((s) => s.save?.importedAt);
-  const tier = useTier();
-  const game: GameRules = useStore((s) => s.settings.game);
-  const [floor, setFloor] = useState<KeptFloor | 'gone'>();
-  const [laying, setLaying] = useState<number>();
-  // biome-ignore lint/correctness/useExhaustiveDependencies: a new import brings new floors
-  useEffect(() => {
-    let gone = false;
-    setFloor(undefined);
-    void (async () => {
-      const kept = await keptFloor(id);
-      if (gone) return;
-      if (!kept) return setFloor('gone');
-      if (kept.laid) return setFloor(kept);
-      // Laid out the first time it is opened, and kept that way.
-      const parts = kept.model.nodes.filter(isPart).length;
-      setLaying(parts);
-      const laid: KeptFloor = { ...kept, model: await arrangeModel(kept.model, parts > QUICK), laid: true };
-      void keepFloor(id, laid);
-      if (gone) return;
-      setLaying(undefined);
-      setFloor(laid);
-    })();
-    return () => {
-      gone = true;
-    };
-  }, [id, importedAt]);
-  const model = floor && floor !== 'gone' ? floor.model : undefined;
-  const hand = useModelCalc(model, tier, game, !!model);
-  const host = useMemo<ModelHost | undefined>(
-    () => (model ? { key: `save:${id}`, model, edit: noop, undo: noop, redo: noop } : undefined),
-    [model, id],
-  );
-  const power = hand.adapted ? factoryPower(hand.adapted.result, hand.adapted.extraction) : undefined;
-  return (
-    <>
-      {power && (
-        <div className="summary">
-          <div className="readouts">
-            <div className="readout power">
-              <span className="readout-label">{t('power')}</span>
-              <span className="readout-value">
-                {num(power.machines + power.extractors)} <small>MW</small>
-              </span>
-              <span className="readout-sub">{t('powerSplit', { machines: num(power.machines), extractors: num(power.extractors) })}</span>
-            </div>
-            <div className="readout">
-              <span className="readout-label">{t('machines')}</span>
-              <span className="readout-value">{power.count}</span>
-            </div>
-            <div className="readout">
-              <span className="readout-label">{t('extractors')}</span>
-              <span className="readout-value">{hand.adapted?.extraction.reduce((s, u) => s + u.built, 0)}</span>
-            </div>
-          </div>
-        </div>
-      )}
-      <div className="floor-view save-floor">
-        {host && <ModelEditor key={host.key} host={host} calc={hand.calc} readOnly />}
-        {model && <span className="save-stamp">{t('saveReadOnly')}</span>}
-        {f && <SaveInfo f={f} floor={floor !== 'gone' ? floor : undefined} />}
-        {laying !== undefined && <div className="busy">{t('saveFloorLaying', { n: num(laying) })}</div>}
-        {floor === 'gone' && (
-          <div className="floor-message">
-            <p className="hint">{t('saveFloorGone')}</p>
-          </div>
-        )}
-      </div>
-    </>
-  );
-}
-
-/** Beside a save factory's floor: what it is, where it is from, what it is linked to, and a copy to build on. Folds away. */
-function SaveInfo({ f, floor }: { f: SaveFactory; floor?: KeptFloor }) {
-  const { t, name } = useT();
-  const save = useStore((s) => s.save);
-  const phone = useMediaQuery('(max-width: 900px)');
-  const [open, setOpen] = useState(!phone);
-  const title = name(factoryTitle(f));
-  const skipped = floor?.skipped ?? 0;
-  return (
-    <aside className="save-info" data-open={open}>
-      <button type="button" className="save-info-head" aria-expanded={open} onClick={() => setOpen(!open)}>
-        <Glyph name="lock" size={20} />
-        <span>{title}</span>
-        <Glyph name={open ? 'chevronUp' : 'chevronDown'} size={18} />
-      </button>
-      {open && (
-        <div className="save-info-body">
-          {save && <p className="save-info-from">{t('saveFloorFrom', { game: save.game, when: savedWhen(save.savedAt, t('today')) })}</p>}
-          <SaveCounts f={f} />
-          {skipped > 0 && <p className="save-small">{skipped === 1 ? t('saveFloorLeftOutOne') : t('saveFloorLeftOut', { n: skipped })}</p>}
-          <div className="save-info-link">
-            <span>{t('saveLinkedTo')}</span>
-            <SaveLink f={f} />
-          </div>
-          <button type="button" className="text-button" onClick={() => showSaveOnMap(f.id)}>
-            {t('saveShowOnMap')}
-          </button>
-        </div>
-      )}
-    </aside>
   );
 }
 
