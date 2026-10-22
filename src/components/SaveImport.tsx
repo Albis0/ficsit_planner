@@ -35,7 +35,7 @@ type Step =
   | { at: 'read'; found: Found; progress: SaveProgress }
   | { at: 'ask'; found: Found; save: SaveData }
   | { at: 'conflict'; found: Found; save: SaveData; fields: Field[] }
-  | { at: 'done'; found: Found; save: SaveData; taken: Field[]; kept: Field[]; unlinked: number };
+  | { at: 'done'; found: Found; save: SaveData; taken: Field[]; kept: Field[] };
 
 const STEPS: { id: SaveStep; key: StringKey }[] = [
   { id: 'read', key: 'saveStepRead' },
@@ -99,8 +99,8 @@ export default function SaveImport({ onClose }: { onClose: () => void }) {
     if (finishing.current) return;
     finishing.current = true;
     try {
-      const { taken, unlinked } = await takeSave(found, save, answers, keep);
-      setStep({ at: 'done', found, save, taken, kept: keep, unlinked });
+      const { taken } = await takeSave(found, save, answers, keep);
+      setStep({ at: 'done', found, save, taken, kept: keep });
     } finally {
       finishing.current = false;
     }
@@ -515,7 +515,7 @@ function Conflict({
 /** What came in, and what did not with a short reason why. */
 function Result({ step, onClose }: { step: Extract<Step, { at: 'done' }>; onClose: () => void }) {
   const { t, num } = useT();
-  const { save, taken, kept, unlinked } = step;
+  const { save, taken, kept } = step;
   const v = valuesOf(save);
   const answers = useStore((s) => s.save?.answers) ?? ALL_ANSWERS;
   const map = useStore((s) => s.save?.map);
@@ -548,7 +548,6 @@ function Result({ step, onClose }: { step: Extract<Step, { at: 'done' }>; onClos
         .join(', '),
     ]);
     if (map.missed) not.push(t('saveMapMissed', { n: map.missed }));
-    if (unlinked) not.push(t(unlinked === 1 ? 'saveUnlinkedOne' : 'saveUnlinked', { n: unlinked }));
   }
   if (grids?.length) {
     const mw = grids.reduce((s, g) => s + g.made, 0);

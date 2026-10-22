@@ -157,12 +157,9 @@ describe('the followed save in the planner', () => {
       unlocked: [],
       inventory: { sloops: 0, shards: 0 },
       save: undefined,
-      plans: before.plans.map((p, i) =>
-        i === 0 ? { ...p, saveFactory: 'Gone_1', built: ['Recipe_Screw_C'], savedBuilt: ['Recipe_Screw_C'] } : p,
-      ),
     });
     const f = found({ sessionName: 'ela', saveName: 'SPACE', savedAt: 1000 });
-    const { taken, unlinked } = await take(
+    const { taken } = await take(
       f,
       data0({ schematics: ['Schematic_4-1_C'], recipes: [alt[0]], sloops: { free: 2, inMachines: 1, inDepot: 0 } }),
       ALL_ANSWERS,
@@ -170,10 +167,6 @@ describe('the followed save in the planner', () => {
     );
     const s = useStore.getState();
     expect(taken).toEqual(['tier', 'recipes', 'sloops']);
-    // A tab linked to a factory the save no longer has loses the link and the ticks the save gave it.
-    expect(unlinked).toBe(1);
-    expect(s.plans[0].saveFactory).toBeUndefined();
-    expect(s.plans[0].built).toBeUndefined();
     expect(s.tier).toBe(4);
     expect(s.unlocked).toEqual([alt[0]]);
     expect(s.inventory.sloops).toBe(3);

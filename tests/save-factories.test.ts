@@ -1,12 +1,9 @@
 import { describe, expect, test } from 'bun:test';
 import { existsSync, readFileSync } from 'node:fs';
 import names from '../src/data/world-names.json';
-import type { MNode } from '../src/lib/model/types';
 import { readSave } from '../src/lib/save/extract';
 import { findFactories } from '../src/lib/save/factories';
-import { saveTicks } from '../src/lib/save/ticks';
 import type { SaveBuilding, SaveLink } from '../src/lib/save/types';
-import type { SolveResult } from '../src/lib/solver';
 import { NODES } from '../src/lib/world';
 
 const IRON = NODES.findIndex((n) => n.item === 'Desc_OreIron_C' && n.kind === 'node' && n.purity === 2);
@@ -92,40 +89,6 @@ describe('the save factories, found again on the next import', () => {
   });
 });
 
-const machineCard = (id: string, r: string, done?: true | 'save'): MNode => ({
-  id,
-  x: 0,
-  y: 0,
-  k: 'machine',
-  recipe: r,
-  ...(done ? { done } : {}),
-});
-const use = (r: string, built: number, node?: string) =>
-  ({ recipe: { id: r }, built, ...(node ? { node } : {}) }) as SolveResult['recipes'][number];
-
-describe('ticks from the save', () => {
-  test('cards are ticked as far as the save has machines, the player’s own ticks stay and count', () => {
-    const plan = {
-      floor: 'manual' as const,
-      model: { nodes: [machineCard('1', 'R_A', true), machineCard('2', 'R_A'), machineCard('3', 'R_A', 'save'), machineCard('4', 'R_B')] },
-    };
-    const result = { recipes: [use('R_A', 2, '1'), use('R_A', 2, '2'), use('R_A', 1, '3'), use('R_B', 3, '4')] };
-    const next = saveTicks(plan, { R_A: 4, R_B: 3 }, result);
-    expect(next && 'nodes' in next && next.nodes.map((n) => n.done)).toEqual([true, 'save', undefined, 'save']);
-    // Nothing to change: undefined.
-    expect(saveTicks({ ...plan, model: { nodes: (next as { nodes: MNode[] }).nodes } }, { R_A: 4, R_B: 3 }, result)).toBeUndefined();
-  });
-
-  test('on the Auto floor a recipe is ticked when the save has all its machines', () => {
-    const result = { recipes: [use('R_A', 3), use('R_B', 2), use('R_C', 1)] };
-    expect(saveTicks({ built: ['R_C'], savedBuilt: ['R_B'] }, { R_A: 3, R_B: 1 }, result)).toEqual({
-      built: ['R_C', 'R_A'],
-      savedBuilt: ['R_A'],
-    });
-    expect(saveTicks({ built: ['R_C', 'R_A'], savedBuilt: ['R_A'] }, { R_A: 3, R_B: 1 }, result)).toBeUndefined();
-  });
-});
-
 const SPACE = 'C:/code/ficsit-ekler/ficsit-saves/ela/SPACEDELAELEVATORE.sav';
 
 describe.skipIf(!existsSync(SPACE))('the player save', () => {
@@ -133,36 +96,5 @@ describe.skipIf(!existsSync(SPACE))('the player save', () => {
     const found = findFactories(await readSave(new Uint8Array(readFileSync(SPACE))));
     expect(found.list.map((f) => f.item)).toEqual(['Desc_ModularFrame_C', 'Desc_SteelPlateReinforced_C', 'Desc_SAMIngot_C']);
     expect(Object.values(found.list[0].count).reduce((n, c) => n + c, 0)).toBe(60);
-  });
-});
-
-describe('a factory tab linked to a save factory', () => {
-  test('the link and the save’s ticks are kept with the tab, and taken off with the link', async () => {
-    const { cleanPlan } = await import('../src/lib/sanitize');
-    const { newPlan, unlinkSave } = await import('../src/store');
-    const raw = {
-      ...newPlan('Rods'),
-      saveFactory: 'Build_AssemblerMk1_C_2146008795',
-      built: ['Recipe_IronRod_C', 'Recipe_Screw_C'],
-      savedBuilt: ['Recipe_Screw_C', 'Recipe_IronPlate_C'],
-      floor: 'manual',
-      model: {
-        v: 1,
-        calc: 'basic',
-        seq: 9,
-        links: [],
-        nodes: [machineCard('1', 'Recipe_IronRod_C', 'save'), machineCard('2', 'Recipe_IronRod_C', true)],
-      },
-    };
-    const plan = cleanPlan(raw, newPlan('x'));
-    expect(plan.saveFactory).toBe('Build_AssemblerMk1_C_2146008795');
-    // Only ticks still on can have come from the save.
-    expect(plan.savedBuilt).toEqual(['Recipe_Screw_C']);
-    expect(plan.model?.nodes.map((n) => n.done)).toEqual(['save', true]);
-    expect(cleanPlan({ ...raw, saveFactory: 'bad id!' }, newPlan('x')).saveFactory).toBeUndefined();
-    const off = unlinkSave(plan);
-    expect(off.saveFactory).toBeUndefined();
-    expect(off.built).toEqual(['Recipe_IronRod_C']);
-    expect(off.model?.nodes.map((n) => n.done)).toEqual([undefined, true]);
   });
 });

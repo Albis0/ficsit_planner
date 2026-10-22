@@ -15,7 +15,7 @@ import { cleanMapFilter, DEFAULT_MAP_FILTER, type MapFilter } from './lib/world'
 import { autoScope, forget, powerScope, record, redo, undo } from './lib/model/history';
 import { floorTargets, sameTargets, withTargets } from './lib/model/targets';
 import { cleanSkipped, setSkipped } from './lib/unlocks';
-import { emptyModel, type MNode, type Model } from './lib/model/types';
+import { emptyModel, type Model } from './lib/model/types';
 import type { Carrier } from './lib/transport';
 import type { SaveInfo } from './lib/save/apply';
 import { cleanGrids, cleanSaveMap, type SaveGrid } from './lib/save/map';
@@ -55,10 +55,6 @@ export interface Plan {
   areas?: Model;
   /** Recipes whose machines are built in the game, ticked from the Auto floor; Manual cards start from them. */
   built?: string[];
-  /** The factory in the game save this tab is linked to (its id in the save's map): what is built there ticks the cards here. */
-  saveFactory?: string;
-  /** Of the recipes ticked built on the Auto floor, those the save ticked; the player's own ticks are never taken off. */
-  savedBuilt?: string[];
   /** Targets (by item) made on a line of their own, apart from the others; unset: everything is one line. */
   separate?: string[];
   /** Targets (by item) offered to the pool: what they make is added to what the factory leaves over; unset: none are. */
@@ -127,23 +123,6 @@ export const newPowerPlan = (name: string, factories: PowerPlan['factories'] = '
 /** The factory tabs a power plant feeds. */
 export const poweredBy = (pp: Pick<PowerPlan, 'factories'>, plans: Pick<Plan, 'id'>[]): Set<string> =>
   new Set(pp.factories === 'all' ? plans.map((p) => p.id) : pp.factories);
-
-/** A factory tab without its game save link, and without the built ticks the save gave it; the player's own ticks stay. */
-export function unlinkSave(p: Plan): Plan {
-  const { saveFactory: _, savedBuilt, built, model, ...rest } = p;
-  const mine = (built ?? []).filter((id) => !savedBuilt?.includes(id));
-  return {
-    ...rest,
-    ...(mine.length ? { built: mine } : {}),
-    ...(model
-      ? {
-          model: model.nodes.some((n) => n.done === 'save')
-            ? { ...model, nodes: model.nodes.map(({ done, ...n }) => (done === true ? { ...n, done } : n) as MNode) }
-            : model,
-        }
-      : {}),
-  };
-}
 
 /** The plan's built ticks with one recipe ticked or unticked; for `updatePlan`. */
 export const toggleBuilt =
@@ -351,7 +330,6 @@ interface State {
   addPlan: (name: string) => void;
   /** A new factory tab built by hand from a game save factory's floor, linked to that factory. */
   /** Links a factory tab to a factory in the game save, or unlinks it; a save factory is linked to one tab at most. */
-  linkSave: (plan: string, factory: string | undefined) => void;
   /**
    * Opens a factory making one item (the Codex's build buttons): in the tab on screen when it's still blank,
    * otherwise in a new tab named after the item. With a recipe, that recipe is the only one making the item.
@@ -684,14 +662,6 @@ export const useStore = create<State>()(
           const p = newPlan(name, get().unlocked, get().standardOff);
           set({ plans: [...get().plans, p], active: p.id, inspect: undefined });
         },
-        linkSave: (plan, factory) =>
-          set({
-            plans: get().plans.map((p) => {
-              if (p.id === plan)
-                return p.saveFactory === factory ? p : factory ? { ...unlinkSave(p), saveFactory: factory } : unlinkSave(p);
-              return factory && p.saveFactory === factory ? unlinkSave(p) : p;
-            }),
-          }),
         buildFactory: (item, name, recipe) => {
           const { plans, active } = get();
           const cur = plans.find((p) => p.id === active);

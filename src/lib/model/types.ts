@@ -29,7 +29,7 @@ interface Base {
   x: number;
   y: number;
   /** Ticked once it's built in the game: by the player, or by the game save the factory is linked to. */
-  done?: true | 'save';
+  done?: true;
   /** The player's own name for it. */
   label?: string;
 }

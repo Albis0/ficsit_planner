@@ -15,7 +15,6 @@ import { SaveFailedNotice } from './components/SaveFailedNotice';
 import { PollCard } from './components/PollCard';
 import { ModeSwitch } from './components/ModeSwitch';
 import { OverviewPage } from './components/Overview';
-import { SaveCompare } from './components/SaveFactories';
 import { PlanTabs } from './components/PlanTabs';
 import { PlantInspector, PowerQuickStart, PowerSummary } from './components/PowerFloor';
 import { PowerPanel } from './components/PowerPanel';
@@ -566,9 +565,6 @@ export default function App() {
               ) : (
                 <AutoAreaPanel fallback={<Inspector result={result} />} />
               ))}
-            {shown && !powerMode && s.view === 'graph' && plan.saveFactory && (
-              <SaveCompare plan={plan} result={result} ready={manual ? !!hand.calc && !hand.busy : !solved.busy} />
-            )}
             {busy && <Busy solverLoad={solverLoad} />}
             {shown && (
               <div className="floor-bar">

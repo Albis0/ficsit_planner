@@ -77,9 +77,6 @@ export async function decode(text: string, max = MAX_LINK): Promise<unknown> {
   return JSON.parse(new TextDecoder().decode(raw));
 }
 
-/** A tab as a link carries it: its link to a factory in the player's game save stays in this browser. */
-const unlinked = ({ saveFactory: _, savedBuilt: __, ...p }: Plan): Plan => p;
-
 /** The link for the tab on screen. */
 export async function shareLink(): Promise<string> {
   const { plans, power } = sharedTabs();
@@ -87,7 +84,7 @@ export async function shareLink(): Promise<string> {
     kind: KIND,
     v: 1,
     from: useStore.getState().mode === 'power' ? 'power' : 'factory',
-    plans: plans.map((p) => pack(unlinked(p))),
+    plans: plans.map(pack),
     power: power.map((pp) => ({ ...pp, chain: pack(pp.chain) })),
   };
   return `${location.origin}${location.pathname}${SHARE_HASH}${await encode(body)}`;

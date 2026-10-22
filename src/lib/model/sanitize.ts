@@ -72,7 +72,7 @@ function node(x: unknown): MNode | undefined {
     id,
     x: Math.round(within(o.x, -COORD, COORD, 0)),
     y: Math.round(within(o.y, -COORD, COORD, 0)),
-    ...(o.done === true ? { done: true as const } : o.done === 'save' ? { done: 'save' as const } : {}),
+    ...(o.done === true ? { done: true as const } : {}),
     ...(str(o.label, 60) ? { label: str(o.label, 60) } : {}),
   };
   const unknown = (was: string): MNode => ({ ...base, k: 'unknown', was: was.slice(0, 80), ins: 0, outs: 0 });

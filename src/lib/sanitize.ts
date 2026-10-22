@@ -113,9 +113,6 @@ export function cleanPlan(saved: unknown, fallback: Plan): Plan {
   const recipeList = (x: unknown) =>
     Array.isArray(x) ? [...new Set(x.filter((id): id is string => typeof id === 'string' && recipeById.has(id)))] : [];
   const built = recipeList(p.built);
-  // Only ticks that are still on can have come from the save.
-  const savedBuilt = recipeList(p.savedBuilt).filter((id) => built.includes(id));
-  const saveFactory = typeof p.saveFactory === 'string' && /^\w{1,80}$/.test(p.saveFactory) ? p.saveFactory : undefined;
   const aims = targets(p.targets ?? fallback.targets);
   // What each resource costs, as typed: a number from zero up.
   const weights = amounts(p.weights);
@@ -143,8 +140,6 @@ export function cleanPlan(saved: unknown, fallback: Plan): Plan {
     ...(model ? { model } : {}),
     ...(areas ? { areas } : {}),
     ...(built.length ? { built } : {}),
-    ...(saveFactory ? { saveFactory } : {}),
-    ...(savedBuilt.length ? { savedBuilt } : {}),
     ...(separate.length ? { separate } : {}),
     ...(pooled.length ? { pooled } : {}),
     ...(Object.keys(weights).length ? { weights } : {}),

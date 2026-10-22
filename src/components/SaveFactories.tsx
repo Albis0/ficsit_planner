@@ -1,18 +1,12 @@
-import { useEffect, useMemo, useState } from 'react';
-import { data, generatorById, recipeById } from '../lib/data';
+import { useState } from 'react';
+import { data, generatorById } from '../lib/data';
 import { useT } from '../lib/i18n';
 import { PLANT_NAMES, type Plant, unitPower } from '../lib/power';
-import { buildingOf, factoryTitle, type SaveFactory, type SaveGrid } from '../lib/save/map';
+import { buildingOf, type SaveGrid } from '../lib/save/map';
 import { savedWhen } from '../lib/save/pick';
-import { saveTicks } from '../lib/save/ticks';
-import type { SolveResult } from '../lib/solver';
-import { type Plan, useStore } from '../store';
+import { useStore } from '../store';
 import { Glyph } from './Glyph';
 import { Icon } from './Icon';
-
-/** A factory of the followed game save, by its id. */
-export const useSaveFactory = (id: string | undefined) =>
-  useStore((s) => (id ? s.save?.map?.factories.find((f) => f.id === id) : undefined));
 
 /** All › From your save: the power circuits of the followed save. */
 export function SaveFactoryList() {
@@ -84,88 +78,5 @@ function SaveGrids({ grids }: { grids: SaveGrid[] }) {
         })}
       </div>
     </>
-  );
-}
-
-/** The save ticks put on each factory tab, by import and save factory: a tab is ticked once per import, and what the player changes after stays. */
-const ticked = new Map<string, string>();
-
-/** Ticks a linked factory tab built where the game save has the machines (see saveTicks), once per import. */
-function useSaveTicks(plan: Plan, f: SaveFactory, result: SolveResult | undefined, ready: boolean) {
-  const importedAt = useStore((s) => s.save?.importedAt);
-  useEffect(() => {
-    const key = `${f.id}|${importedAt}`;
-    if (!ready || !result || ticked.get(plan.id) === key) return;
-    ticked.set(plan.id, key);
-    const next = saveTicks(plan, f.recipes, result);
-    if (!next) return;
-    useStore.setState((s) => ({
-      plans: s.plans.map((p) => {
-        if (p.id !== plan.id) return p;
-        if ('nodes' in next) return p.model ? { ...p, model: { ...p.model, nodes: next.nodes } } : p;
-        const { built: _, savedBuilt: __, ...rest } = p;
-        return {
-          ...rest,
-          ...(next.built.length ? { built: next.built } : {}),
-          ...(next.savedBuilt.length ? { savedBuilt: next.savedBuilt } : {}),
-        };
-      }),
-    }));
-  }, [plan, f, result, ready, importedAt]);
-}
-
-/** On a linked factory tab's floor: recipe by recipe, how many of its machines the game save has built. Folds away. */
-export function SaveCompare({ plan, result, ready }: { plan: Plan; result?: SolveResult; ready: boolean }) {
-  const { t, name } = useT();
-  const f = useSaveFactory(plan.saveFactory);
-  const game = useStore((s) => s.save?.game ?? '');
-  const inspect = useStore((s) => s.inspect);
-  const [open, setOpen] = useState(true);
-  if (!f) return null;
-  return (
-    <>
-      <Ticks plan={plan} f={f} result={result} ready={ready} />
-      {!inspect && result && (
-        <aside className="save-compare" data-open={open}>
-          <button type="button" className="save-compare-head" aria-expanded={open} onClick={() => setOpen(!open)}>
-            <span>{t('saveCompare', { name: name(factoryTitle(f)), game })}</span>
-            <Glyph name={open ? 'chevronUp' : 'chevronDown'} size={18} />
-          </button>
-          {open && <CompareRows f={f} result={result} />}
-        </aside>
-      )}
-    </>
-  );
-}
-
-function Ticks(p: { plan: Plan; f: SaveFactory; result?: SolveResult; ready: boolean }) {
-  useSaveTicks(p.plan, p.f, p.result, p.ready);
-  return null;
-}
-
-function CompareRows({ f, result }: { f: SaveFactory; result: SolveResult }) {
-  const { name } = useT();
-  const rows = useMemo(() => {
-    const planned = new Map<string, number>();
-    for (const r of result.recipes) if (r.built > 0) planned.set(r.recipe.id, (planned.get(r.recipe.id) ?? 0) + r.built);
-    return [...planned].map(([id, n]) => ({ recipe: recipeById.get(id), planned: n, have: f.recipes[id] ?? 0 }));
-  }, [result, f]);
-  return (
-    <ul className="save-compare-rows">
-      {rows.map(({ recipe, planned, have }) =>
-        recipe ? (
-          <li key={recipe.id} data-done={have >= planned || undefined}>
-            <Icon id={recipe.machine} size={26} />
-            <span className="save-compare-name">{name(recipe)}</span>
-            <b>
-              {have}/{planned}
-            </b>
-            <span className="save-bar" aria-hidden>
-              <i style={{ width: `${Math.min(1, have / planned) * 100}%` }} />
-            </span>
-          </li>
-        ) : null,
-      )}
-    </ul>
   );
 }
