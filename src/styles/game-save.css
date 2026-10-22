@@ -776,16 +776,6 @@ li[data-state='now'] .save-mark {
   font: 700 19px var(--font-display);
 }
 
-.save-link {
-  width: 100%;
-  min-width: 0;
-  padding: 7px 10px;
-  background: var(--bg);
-  border: 1px solid var(--line-2);
-  color: var(--paper);
-  font: 600 15px var(--font-body);
-}
-
 .save-compare {
   position: absolute;
   top: 14px;

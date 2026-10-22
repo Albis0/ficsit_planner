@@ -259,47 +259,13 @@ try {
   await page.locator('.save-list').scrollIntoViewIfNeeded();
   await wait(300);
   await shot('all-from-save');
-  ok('All lists the save’s factories', (await page.locator('.save-cards').first().locator('.save-card').count()) === 3);
   ok(
-    'the coal plant is under Power circuits, not a factory card',
-    !(await page.locator('.save-cards').first().textContent()).includes('Coal-Powered'),
+    'All lists the save’s power circuit only: no factory cards',
+    (await page.locator('.save-list .save-card').count()) === 1 &&
+      !(await page.locator('.save-list').textContent()).includes('Modular Frame'),
   );
+  s = await state();
   const frames = s.save.map.factories[0].id;
-  await openAll();
-  await page.locator('.save-card .save-link').first().selectOption('f1');
-  await wait(300);
-  s = await state();
-  ok('a save factory is linked to a factory tab', s.plans.length === 1 && s.plans[0].saveFactory === frames);
-  await page.click('.plan-current');
-  await page.locator('.plan-row', { hasText: 'Modular Frames' }).locator('.plan-row-name').click();
-  await page.waitForSelector('.save-compare');
-  await wait(2500);
-  await shot('auto-compare');
-  s = await state();
-  ok(
-    'the Auto tab is ticked where the save has every machine',
-    JSON.stringify([...(s.plans[0].savedBuilt ?? [])].sort()) ===
-      JSON.stringify(['Recipe_IngotIron_C', 'Recipe_IronPlateReinforced_C', 'Recipe_IronPlate_C', 'Recipe_Screw_C']),
-    JSON.stringify(s.plans[0].savedBuilt),
-  );
-  await page.click('.mode-switch [role=radio] >> nth=3');
-  await page.waitForSelector('.map-factory-label');
-  await wait(1200);
-  const tag = await page.locator('.map-factory-label').first().boundingBox();
-  await page.mouse.move(tag.x + tag.width / 2, tag.y + tag.height + 30);
-  for (let i = 0; i < 3; i++) {
-    await page.mouse.wheel(0, -300);
-    await wait(400);
-  }
-  await wait(1200);
-  const big = await page.locator('.map-factory-label:visible').first().boundingBox();
-  await page.mouse.click(big.x + big.width / 2 - 60, big.y + big.height + 150);
-  await page.waitForSelector('.map-pop');
-  await shot('map-factory-popup-linked');
-  ok('the map popup is only to read: no link, no Open floor', (await page.locator('.map-pop select, .map-pop button').count()) === 0);
-  await page.mouse.click(5, 300);
-  await page.click('.mode-switch [role=radio] >> nth=0');
-  await wait(400);
 
   section = 'save power';
   await openAll();
@@ -363,7 +329,7 @@ try {
   ok('the result says the tier was kept', (await page.locator('.save-came.not').textContent()).includes('Tier: you kept yours'));
   s = await state();
   ok('kept tier stays, sloops follow the game', s.tier === 6 && s.inventory.sloops === 2, `${s.tier} ${s.inventory.sloops}`);
-  ok('the factory is found again: its link stays', s.plans[0].saveFactory === frames && s.save.map.factories[0].id === frames);
+  ok('the factory is found again with the same id', s.save.map.factories[0].id === frames);
   await page.click('.save-foot .primary-button');
 
   section = 'settings';

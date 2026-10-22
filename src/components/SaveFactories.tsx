@@ -14,60 +14,13 @@ import { Icon } from './Icon';
 export const useSaveFactory = (id: string | undefined) =>
   useStore((s) => (id ? s.save?.map?.factories.find((f) => f.id === id) : undefined));
 
-const machinesIn = (f: SaveFactory) => Object.values(f.count).reduce((s, n) => s + n, 0);
-
-/** The buildings of a save factory as icons, the most first, each with how many. */
-export function SaveCounts({ f }: { f: SaveFactory }) {
-  const { name } = useT();
-  return (
-    <ul className="save-counts">
-      {Object.entries(f.count)
-        .sort((a, b) => b[1] - a[1])
-        .map(([cls, n]) => (
-          <li key={cls} title={name(buildingOf(cls))}>
-            <Icon id={cls} size={28} />
-            <b>{n}</b>
-          </li>
-        ))}
-    </ul>
-  );
-}
-
-/** Which factory tab a save factory is linked to; choosing one links it there, "Not linked" unlinks it. */
-export function SaveLink({ f }: { f: SaveFactory }) {
-  const { t, name } = useT();
-  const plans = useStore((s) => s.plans);
-  const linkSave = useStore((s) => s.linkSave);
-  const linked = plans.find((p) => p.saveFactory === f.id);
-  return (
-    <select
-      className="save-link"
-      value={linked?.id ?? ''}
-      aria-label={t('saveLinkLabel', { name: name(factoryTitle(f)) })}
-      onChange={(e) => {
-        const to = e.target.value;
-        if (to) linkSave(to, f.id);
-        else if (linked) linkSave(linked.id, undefined);
-      }}
-    >
-      <option value="">{t('saveNotLinked')}</option>
-      {plans.map((p) => (
-        <option key={p.id} value={p.id}>
-          {p.name}
-        </option>
-      ))}
-    </select>
-  );
-}
-
-/** All › From your save: a card for each factory in the followed save, to link it to a factory tab. */
+/** All › From your save: the power circuits of the followed save. */
 export function SaveFactoryList() {
-  const { t, name } = useT();
+  const { t } = useT();
   const save = useStore((s) => s.save);
-  const factories = save?.map?.factories ?? [];
   const grids = save?.grids ?? [];
   const [open, setOpen] = useState(true);
-  if (!save || (!factories.length && !grids.length)) return null;
+  if (!save || !grids.length) return null;
   return (
     <section className="ov-section save-list" data-open={open}>
       <h2 className="ov-title">
@@ -77,28 +30,6 @@ export function SaveFactoryList() {
           <small>{t('saveLine', { game: save.game, when: savedWhen(save.savedAt, t('today')) })}</small>
         </button>
       </h2>
-      {open && factories.length > 0 && (
-        <div className="save-cards">
-          {factories.map((f) => {
-            const n = machinesIn(f);
-            return (
-              <article key={f.id} className="save-card">
-                <header>
-                  <Icon id={f.item} size={40} />
-                  <span>
-                    <b>{name(factoryTitle(f))}</b>
-                    <small>{n === 1 ? t('saveMachine') : t('saveMachines', { n })}</small>
-                  </span>
-                </header>
-                <SaveCounts f={f} />
-                <footer>
-                  <SaveLink f={f} />
-                </footer>
-              </article>
-            );
-          })}
-        </div>
-      )}
       {open && grids.length > 0 && <SaveGrids grids={grids} />}
     </section>
   );
