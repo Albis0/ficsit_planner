@@ -20,11 +20,13 @@ jobs:
       - run: bun install --frozen-lockfile
       - run: bun run check
       - run: bun test
+      - run: bun run test:dom
       - run: bun run build
       # Opens a sample of every kind of screen at a laptop and a phone size and fails on anything new that's
       # cut off, off the window, drawn over something else or broken (see e2e/sweep.mjs).
       - run: node node_modules/playwright-core/cli.js install --with-deps chromium webkit firefox
       - run: node e2e/sweep.mjs --quick
+      - run: node e2e/a11y.mjs
       # The same sample in Safari's engine (every browser on an iPhone uses it) and in Firefox. Linux's WebKit build
       # drops page loads now and then, and can hang outright, so these report (in the artifact) without failing the run
       # and give up after a while.

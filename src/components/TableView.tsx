@@ -92,7 +92,8 @@ export function TableView({ result, extraction }: { result: SolveResult; extract
     ));
 
   return (
-    <div className="table-wrap">
+    // biome-ignore lint/a11y/noNoninteractiveTabindex: a scrolling area has to be reachable by keyboard
+    <div className="table-wrap" tabIndex={0}>
       <table className="plan-table">
         <thead>
           <tr>

@@ -888,6 +888,27 @@ const clash = (a, b) => a && b && a.x < b.x + b.width && b.x < a.x + a.width && 
     await wait(500);
     ok('a colour from the wheel', /^#[0-9a-f]{6}$/.test((await groups())[0].color ?? ''), (await groups())[0].color);
     await shot('a11-area');
+    // A colour typed as hex: six digits are taken as they are typed, the short form when the field is left.
+    const hex = page.locator('.color-hex');
+    await hex.scrollIntoViewIfNeeded();
+    await shot('a11-hex');
+    ok('the hex field shows the wheel’s colour', (await hex.inputValue()) === (await groups())[0].color);
+    await hex.fill('#ABC123');
+    await wait(500);
+    ok('six hex digits typed set the colour', (await groups())[0].color === '#abc123', (await groups())[0].color);
+    ok(
+      'and the area on the floor wears it',
+      (await page.locator('.area-node').evaluate((e) => e.style.getPropertyValue('--area'))) === '#abc123',
+    );
+    await hex.fill('#0f0');
+    ok('the short form waits for the field to be left', (await groups())[0].color === '#abc123');
+    await hex.blur();
+    await wait(500);
+    ok('then it is taken', (await groups())[0].color === '#00ff00', (await groups())[0].color);
+    await hex.fill('#zz');
+    await hex.blur();
+    await wait(300);
+    ok('what is not a colour is dropped', (await hex.inputValue()) === '#00ff00' && (await groups())[0].color === '#00ff00');
     await page.keyboard.press('Escape');
     await wait(300);
     await addHere();

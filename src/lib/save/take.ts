@@ -1,6 +1,6 @@
 import { useStore } from '../../store';
 import { type Answers, type Field, fieldsOf, merge, type SaveInfo, type Values, valuesOf } from './apply';
-import { type Found, gameKey } from './files';
+import { type Found, gameKey, kindOf } from './files';
 import { findGrids } from './circuits';
 import { findFactories } from './factories';
 import { keepSave, keptMembers } from './store-idb';
@@ -36,6 +36,7 @@ export async function takeSave(found: Found, save: SaveData, answers: Answers, k
     build: h.build,
     ...(save.phase ? { phase: save.phase } : {}),
     importedAt: Date.now(),
+    from: kindOf(found.file),
     answers,
     map: toMap(save, factories?.list ?? []),
     ...(answers.power ? { grids: findGrids(save) } : {}),

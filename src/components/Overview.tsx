@@ -95,7 +95,8 @@ function Factories() {
   return (
     <>
       <div className="summary">
-        <div className="readouts">
+        {/* biome-ignore lint/a11y/noNoninteractiveTabindex: a scrolling area has to be reachable by keyboard */}
+        <div className="readouts" tabIndex={0}>
           <div className="readout power">
             <span className="readout-label">{t('ovPowerUsed')}</span>
             <span className="readout-value">

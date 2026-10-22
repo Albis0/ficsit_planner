@@ -26,6 +26,14 @@ export function groupGames(found: Found[]): Game[] {
   return [...games.values()].sort((a, b) => b.saves[0].header.savedAt - a.saves[0].header.savedAt);
 }
 
+/** Which kind of save: one the player made, or one the game made by itself (<name>_autosave_0.sav). */
+export type SaveKind = 'manual' | 'auto';
+export const kindOf = (f: Pick<File, 'name'>): SaveKind => (/_autosave_?\d*\.sav$/i.test(f.name) ? 'auto' : 'manual');
+
+/** The newest save of a kind among a game's saves (they are newest first); the newest of any kind when there is none of it. */
+export const latestOf = (saves: Found[], kind: SaveKind | undefined): Found =>
+  (kind && saves.find((s) => kindOf(s.file) === kind)) || saves[0];
+
 /** Reads the header of every save among the files; files that are not saves are left out. */
 export async function findSaves(files: File[]): Promise<Found[]> {
   const found = await Promise.all(

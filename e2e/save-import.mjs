@@ -348,6 +348,14 @@ try {
   await wait(300);
   await shot('settings');
   ok('Settings opens on Game save', (await page.locator('.settings-heading').textContent()) === 'Game save');
+  s = await state();
+  ok('the kind of save last imported is what Refresh takes', s.save.from === 'manual' || s.save.from === 'auto', s.save.from);
+  const other = s.save.from === 'auto' ? 'manual' : 'auto';
+  await page
+    .locator('.settings-controls .segmented button', { hasText: other === 'auto' ? 'Latest autosave' : 'Latest save of yours' })
+    .click();
+  s = await state();
+  ok('and it can be switched to the other kind', s.save.from === other, s.save.from);
   await page.locator('.settings-controls [role=switch]').nth(1).click();
   s = await state();
   ok('turning sloops and shards off is kept', s.save.answers.inventory === false);

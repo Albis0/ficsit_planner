@@ -60,6 +60,26 @@ export function SaveSection() {
           {t('saveForget')}
         </button>
       </p>
+      <div className="setting">
+        <div className="setting-text">
+          <span className="setting-label">{t('saveFrom')}</span>
+        </div>
+        <div className="setting-control">
+          <div className="segmented" role="radiogroup" aria-label={t('saveFrom')}>
+            {(['manual', 'auto'] as const).map((k) => (
+              <button
+                key={k}
+                type="button"
+                role="radio"
+                aria-checked={save.from === k}
+                onClick={() => useStore.setState({ save: { ...save, from: k } })}
+              >
+                {t(k === 'manual' ? 'saveFromManual' : 'saveFromAuto')}
+              </button>
+            ))}
+          </div>
+        </div>
+      </div>
       <AnswerRow label={t('saveQProgress')} hint={t('saveFollow')} on={save.answers.progress} onChange={(on) => answer({ progress: on })} />
       <AnswerRow label={t('saveQInventory')} on={save.answers.inventory} onChange={(on) => answer({ inventory: on })} />
       <AnswerRow label={t('saveQFactories')} on={save.answers.factories} onChange={(on) => answer({ factories: on })} />

@@ -17,12 +17,14 @@ bun run dev        # http://localhost:1420
 ```sh
 bun run check      # Biome: lint + formatting (bun run format fixes most of it)
 bun test           # solver, hand-checked numbers, 2,000 random plans, graph, saved state and strings
+bun run test:dom   # components in a fake browser (tests/dom/*.dom.tsx; they run in a process of their own, so the others see no window)
 bun run build      # type check + production build
 bun run sweep      # opens every screen at five window sizes and reports layout problems (about 45 minutes)
 bun run visual     # compares 28 screens with the pictures in e2e/baseline (add -- --update after a change on purpose)
+bun run a11y       # axe on the main screens; a serious finding not listed in e2e/known-a11y.json fails
 ```
 
-CI runs the first three on every push, then a quick sweep (a sample of each kind of screen at a laptop and a
+CI runs the first four on every push, then a quick sweep (a sample of each kind of screen at a laptop and a
 phone size) in Chromium, WebKit (Safari's engine) and Firefox, and a pull request needs all of them green. The
 screenshot comparison runs locally only: the baseline is taken on Windows, and Linux draws fonts differently.
 

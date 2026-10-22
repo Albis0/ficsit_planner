@@ -1,6 +1,7 @@
 import codex from '../../data/codex.json';
 import { data } from '../data';
 import { MILESTONES } from '../unlocks';
+import type { SaveKind } from './files';
 import type { SaveGrid, SaveMap } from './map';
 import type { SaveCount, SaveData } from './types';
 
@@ -28,6 +29,8 @@ export type SaveInfo = {
   build: number;
   phase?: string;
   importedAt: number;
+  /** Which kind of save Refresh takes the newest of: the player's own, or the game's autosaves. */
+  from?: SaveKind;
   answers: Answers;
   /** What the save puts on the map; it comes in on every import, no question asked. */
   map?: SaveMap;

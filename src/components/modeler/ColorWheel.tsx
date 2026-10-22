@@ -3,6 +3,14 @@ import { hexToHsv, type Hsv, hsvToHex } from '../../lib/model/color';
 
 const SIZE = 148;
 
+/** '#abc123', 'abc123' or '#abc' as '#aabbcc'; anything else is not a colour yet. */
+export function typedHex(text: string): string | undefined {
+  const m = /^#?([0-9a-f]{3}|[0-9a-f]{6})$/i.exec(text.trim());
+  if (!m) return undefined;
+  const h = m[1].length === 3 ? [...m[1]].map((c) => c + c).join('') : m[1];
+  return `#${h.toLowerCase()}`;
+}
+
 /**
  * Any colour: round for the hue (round the wheel) and how strong it is (out from the middle), a slider for how light.
  * While the pointer is down only the wheel and `onLive` hear of it (the floor takes the colour straight away); the model
@@ -20,6 +28,7 @@ export function ColorWheel({
   onLive?: (hex: string) => void;
 }) {
   const [live, setLive] = useState<string>();
+  const [typed, setTyped] = useState<string>();
   const latest = useRef<string>(undefined);
   const hex = live ?? value;
   const c = hexToHsv(hex);
@@ -80,6 +89,31 @@ export function ColorWheel({
         onChange={(e) => show(hsvToHex({ ...c, v: Number(e.target.value) / 100 }))}
         onPointerUp={commit}
         onKeyUp={commit}
+      />
+      <input
+        className="text-field color-hex"
+        aria-label={`${label} (hex)`}
+        maxLength={7}
+        spellCheck={false}
+        autoComplete="off"
+        value={typed ?? hex}
+        onChange={(e) => {
+          setTyped(e.target.value);
+          // Six digits are taken as they are typed; the short '#abc' waits for the field to be left.
+          const next = e.target.value.replace('#', '').length === 6 ? typedHex(e.target.value) : undefined;
+          if (next && next !== value) {
+            onLive?.(next);
+            onChange(next);
+          }
+        }}
+        onBlur={() => {
+          const next = typed === undefined ? undefined : typedHex(typed);
+          if (next && next !== value) {
+            onLive?.(next);
+            onChange(next);
+          }
+          setTyped(undefined);
+        }}
       />
     </div>
   );

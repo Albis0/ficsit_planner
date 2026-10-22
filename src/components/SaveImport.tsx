@@ -3,7 +3,7 @@ import { MILESTONES } from '../lib/unlocks';
 import { type StringKey, useT } from '../lib/i18n';
 import { ALL_ANSWERS, type Answers, conflicts, type Field, fieldsOf, unknownRecipes, type Values, valuesOf } from '../lib/save/apply';
 import type { SaveStep } from '../lib/save/extract';
-import { droppedFiles, type Found, findSaves, type Game, groupGames } from '../lib/save/files';
+import { droppedFiles, type Found, findSaves, type Game, groupGames, latestOf } from '../lib/save/files';
 import {
   chooseSaves,
   copySavePath,
@@ -114,7 +114,8 @@ export default function SaveImport({ onClose }: { onClose: () => void }) {
     if (!games.length) return setStep({ at: 'choose', note: 'saveNone' });
     const session = useStore.getState().save?.session;
     const same = games.find((g) => g.key === session);
-    if (refresh && same && isSupported(same.saves[0].header)) return read(same.saves[0]);
+    const latest = same && latestOf(same.saves, useStore.getState().save?.from);
+    if (refresh && latest && isSupported(latest.header)) return read(latest);
     if (games.length === 1 && games[0].saves.length === 1 && isSupported(games[0].saves[0].header)) return read(games[0].saves[0]);
     const game = same ?? games[0];
     setStep({ at: 'pick', games, game: game.key, save: game.saves[0] });

@@ -1032,6 +1032,7 @@ export function cleanSave(v: unknown): SaveInfo | undefined {
     build: cleanNumber(s.build, 0, 1e9, 0),
     ...(typeof s.phase === 'string' ? { phase: s.phase.slice(0, 100) } : {}),
     importedAt: cleanNumber(s.importedAt, 0, 1e14, 0),
+    ...(s.from === 'manual' || s.from === 'auto' ? { from: s.from } : {}),
     answers: {
       progress: a.progress !== false,
       inventory: a.inventory !== false,

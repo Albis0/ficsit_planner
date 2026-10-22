@@ -84,7 +84,8 @@ export function PowerSummary({
 
   return (
     <div className="summary power-summary">
-      <div className="readouts">
+      {/* biome-ignore lint/a11y/noNoninteractiveTabindex: a scrolling area has to be reachable by keyboard */}
+      <div className="readouts" tabIndex={0}>
         <div className={`readout balance ${short ? 'short' : thin ? 'thin' : 'ok'}`}>
           <span className="readout-label">{have ? t('forTheGrid') : short ? t('gridShort') : t('covers')}</span>
           <span className="readout-value">

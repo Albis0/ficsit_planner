@@ -122,14 +122,16 @@ Needs [Bun](https://bun.sh).
 bun install
 bun run dev        # http://localhost:1420
 bun test           # solver, hand-checked numbers, random plans, graph, saved state and strings
+bun run test:dom   # components in a fake browser (happy-dom): the colour wheel, the card menu, Settings › Game save
 bun run check      # Biome lint + format check (bun run format to fix)
 bun run build      # type check + production bundle in dist/
 bun run preview    # serve dist/ with the service worker, as it will be deployed
 bun run sweep      # every screen at five window sizes, checked for layout problems (see CONTRIBUTING)
 bun run visual     # screenshots of 28 screens compared with e2e/baseline
+bun run a11y       # axe on the main screens at two sizes; what it finds and we left is in e2e/known-a11y.json
 ```
 
-CI (GitHub Actions) runs check, test and build on every push, then a sample of every screen in Chromium, WebKit
+CI (GitHub Actions) runs check, test, test:dom and build on every push, then a sample of every screen in Chromium, WebKit
 and Firefox.
 
 The build is a static site. To serve it from a sub-folder, for example GitHub Pages at `/<repo>/`, set
