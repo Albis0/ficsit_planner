@@ -93,7 +93,7 @@ export default function SaveImport({ onClose }: { onClose: () => void }) {
     );
   };
 
-  // Taking a save finds its factories and keeps their floors, a moment's work; a second click meanwhile does nothing.
+  // Taking a save finds its factories, a moment's work; a second click meanwhile does nothing.
   const finishing = useRef(false);
   const finish = async (found: Found, save: SaveData, answers: Answers, keep: Field[]) => {
     if (finishing.current) return;

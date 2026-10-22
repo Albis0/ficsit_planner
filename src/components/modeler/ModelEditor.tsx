@@ -191,11 +191,9 @@ interface CanvasProps {
   host: ModelHost;
   calc?: CalcResult;
   onArrange?: (m: Model) => void;
-  /** Looked at, not changed: no moving, laying belts, adding, ticking or opening a card's panel (a factory from a game save). */
-  readOnly?: boolean;
 }
 
-function Canvas({ host, calc, onArrange, readOnly = false }: CanvasProps) {
+function Canvas({ host, calc, onArrange }: CanvasProps) {
   const { t } = useT();
   const tier = useTier();
   const inspect = useStore((s) => s.inspect);
@@ -400,7 +398,6 @@ function Canvas({ host, calc, onArrange, readOnly = false }: CanvasProps) {
   );
 
   useEffect(() => {
-    if (readOnly) return;
     const onKey = (e: KeyboardEvent) => {
       if (typing(e)) {
         // Escape in a field of the panel leaves the field; a second one lets go of the card.
@@ -451,7 +448,7 @@ function Canvas({ host, calc, onArrange, readOnly = false }: CanvasProps) {
       window.removeEventListener('keydown', onKey);
       document.removeEventListener('paste', onPaste);
     };
-  }, [host, removeSelected, set, flowStore, pickedCards, copy, paste, duplicate, readOnly]);
+  }, [host, removeSelected, set, flowStore, pickedCards, copy, paste, duplicate]);
 
   const editCard = useCallback((id: string, patch: Record<string, unknown>) => host.edit((m) => updateNode(m, id, patch)), [host]);
   const removeCard = useCallback(
@@ -482,7 +479,6 @@ function Canvas({ host, calc, onArrange, readOnly = false }: CanvasProps) {
   /** Opens the chooser at a spot on the screen, for a new card there (fed by, or feeding, a waiting belt). */
   const choose = useCallback(
     (screen: { x: number; y: number } | undefined, want?: Want) => {
-      if (readOnly) return;
       const over = document.querySelector('.floor-view');
       const box = over?.getBoundingClientRect();
       if (!over || !box) return;
@@ -498,7 +494,7 @@ function Canvas({ host, calc, onArrange, readOnly = false }: CanvasProps) {
           : undefined;
       setChoosing({ over, flowAt, at, want });
     },
-    [flow, readOnly],
+    [flow],
   );
 
   const onPick = useCallback(
@@ -697,7 +693,6 @@ function Canvas({ host, calc, onArrange, readOnly = false }: CanvasProps) {
   // An area: the right button held down and dragged over the floor; a right click without a drag is still the build menu.
   const drawArea = useRef<(a: { x: number; y: number }, b: { x: number; y: number }) => void>(() => {});
   drawArea.current = (a, b) => {
-    if (readOnly) return;
     const p = flow.screenToFlowPosition(a);
     const q = flow.screenToFlowPosition(b);
     const [x, y] = [snapHalf(Math.min(p.x, q.x)), snapHalf(Math.min(p.y, q.y))];
@@ -760,7 +755,6 @@ function Canvas({ host, calc, onArrange, readOnly = false }: CanvasProps) {
     if (!n) return;
     const { w, h } = cardSize(n, dir);
     flow.setCenter(n.x + w / 2, n.y + h / 2, { zoom: Math.max(flow.getZoom(), 0.8), duration: 300 });
-    if (readOnly) return;
     setPicked(new Set());
     if (panelless(n)) {
       pickNext.current = new Set([id]);
@@ -818,9 +812,8 @@ function Canvas({ host, calc, onArrange, readOnly = false }: CanvasProps) {
                     if (c && a) for (const [id, p] of c.inside) to.set(id, { x: p.x + a.x - c.from.x, y: p.y + a.y - c.from.y });
                     host.edit((m) => moveNodes(m, to));
                   }}
-                  className={readOnly ? 'read-only' : undefined}
-                  onConnect={readOnly ? undefined : onConnect}
-                  onConnectEnd={readOnly ? undefined : onConnectEnd}
+                  onConnect={onConnect}
+                  onConnectEnd={onConnectEnd}
                   isValidConnection={isValid}
                   ref={flowEl}
                   onDoubleClick={(e) => {
@@ -835,10 +828,6 @@ function Canvas({ host, calc, onArrange, readOnly = false }: CanvasProps) {
                     if (coarse) return;
                     if (addWith === 'right' && performance.now() - drew.current > 500) choose({ x: e.clientX, y: e.clientY });
                   }}
-                  connectOnClick={!readOnly}
-                  nodesConnectable={!readOnly}
-                  nodesDraggable={!readOnly}
-                  elementsSelectable={!readOnly}
                   selectNodesOnDrag={false}
                   deleteKeyCode={null}
                   multiSelectionKeyCode={['Control', 'Meta']}
@@ -863,7 +852,7 @@ function Canvas({ host, calc, onArrange, readOnly = false }: CanvasProps) {
                   onMoveEnd={(_, v) => cameras.set(host.key, v)}
                   onNodeClick={(e, n) => {
                     // A tap on an end lays a belt; it doesn't open the card.
-                    if (readOnly || (e.target as HTMLElement).closest('.react-flow__handle')) return;
+                    if ((e.target as HTMLElement).closest('.react-flow__handle')) return;
                     setPicked(new Set());
                     // The card shows picked at once; its panel waits out a double click, which ticks it built instead.
                     clearTimeout(opening.current);
@@ -876,7 +865,7 @@ function Canvas({ host, calc, onArrange, readOnly = false }: CanvasProps) {
                   }}
                   onNodeContextMenu={(e, n) => {
                     e.preventDefault();
-                    if (readOnly || performance.now() - drew.current < 500) return;
+                    if (performance.now() - drew.current < 500) return;
                     const box = flowEl.current?.getBoundingClientRect();
                     if (!box) return;
                     clearTimeout(opening.current);
@@ -892,19 +881,18 @@ function Canvas({ host, calc, onArrange, readOnly = false }: CanvasProps) {
                   onNodeDoubleClick={(e, n) => {
                     clearTimeout(opening.current);
                     // A double click ticks a card built in the game, or unticks it.
-                    if (readOnly || (e.target as HTMLElement).closest('.react-flow__handle, button')) return;
+                    if ((e.target as HTMLElement).closest('.react-flow__handle, button')) return;
                     const was = model.nodes.find((x) => x.id === n.id);
                     if (was && isPart(was)) host.edit((m) => updateNode(m, n.id, { done: was.done ? undefined : true }));
                   }}
                   onEdgeClick={(ev, e) => {
                     // As with cards: the panel waits out a double click, which takes the belt off instead.
                     clearTimeout(opening.current);
-                    if (readOnly || ev.detail > 1) return;
+                    if (ev.detail > 1) return;
                     opening.current = window.setTimeout(() => pickLink(e.id), DOUBLE);
                   }}
                   onEdgeDoubleClick={(_, e) => {
                     clearTimeout(opening.current);
-                    if (readOnly) return;
                     host.edit((m) => removeLinks(m, [e.id]));
                     if (inspect === linkKey(e.id)) set({ inspect: undefined });
                   }}
@@ -936,7 +924,7 @@ function Canvas({ host, calc, onArrange, readOnly = false }: CanvasProps) {
                 >
                   {gridLines && <Background id="minor" variant={BackgroundVariant.Lines} gap={GRID} lineWidth={1} color="#2f2f2f" />}
                   {gridLines && <Background id="major" variant={BackgroundVariant.Lines} gap={GRID * 4} lineWidth={1} color="#3b3b3b" />}
-                  {parts === 0 && !choosing && !readOnly && (
+                  {parts === 0 && !choosing && (
                     <div className="floor-empty">
                       <button type="button" className="primary-button" onClick={() => choose(undefined)}>
                         {t('addFirst')}
@@ -1081,11 +1069,11 @@ function Canvas({ host, calc, onArrange, readOnly = false }: CanvasProps) {
 }
 
 /** The hand-built floor: cards where the player put them, belts they laid, the numbers on both. */
-export function ModelEditor({ host, calc, onArrange, readOnly }: CanvasProps) {
+export function ModelEditor({ host, calc, onArrange }: CanvasProps) {
   return (
     <ReactFlowProvider key={host.key}>
       {/* With the numbers off, cards and belts show none: not even zeros. */}
-      <Canvas host={host} calc={calc?.mode === 'off' ? undefined : calc} onArrange={onArrange} readOnly={readOnly} />
+      <Canvas host={host} calc={calc?.mode === 'off' ? undefined : calc} onArrange={onArrange} />
     </ReactFlowProvider>
   );
 }

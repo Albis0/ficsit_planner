@@ -2,7 +2,6 @@ import { data } from '../data';
 import { clusters } from './cluster';
 import type { SaveFactory } from './map';
 import { toPx } from './toMap';
-import { type FloorFromSave, toModels } from './toModel';
 import type { SaveBuilding, SaveData } from './types';
 
 /** A factory box reaches this far past its outermost buildings, cm: buildings are drawn by their middle. */
@@ -49,18 +48,17 @@ function sameAs(group: readonly SaveBuilding[], previous: Members, taken: Set<st
   return best;
 }
 
-export type FoundFactories = { list: SaveFactory[]; floors: Map<string, FloorFromSave>; members: Members };
+export type FoundFactories = { list: SaveFactory[]; members: Members };
 
-/** The save's factories: each named, boxed on the map, counted, and drawn as a floor. */
+/** The save's factories: each named, boxed on the map and counted. */
 export function findFactories(save: Pick<SaveData, 'buildings' | 'links'>, previous: Members = {}): FoundFactories {
   // A group of only generators is a power plant: it is listed under Power circuits, not as a factory.
   const groups = clusters(save.buildings, save.links).filter((g) => g.some((b) => b.kind === 'machine'));
   // Big ones first, so they get their old id before a small piece split off them could.
   groups.sort((a, b) => b.length - a.length);
-  const models = toModels(save.buildings, save.links, groups);
-  const found: FoundFactories = { list: [], floors: new Map(), members: {} };
+  const found: FoundFactories = { list: [], members: {} };
   const taken = new Set<string>();
-  groups.forEach((group, i) => {
+  for (const group of groups) {
     const count: Record<string, number> = {};
     const recipes: Record<string, number> = {};
     for (const b of group) {
@@ -69,7 +67,7 @@ export function findFactories(save: Pick<SaveData, 'buildings' | 'links'>, previ
       if (b.recipe && RECIPE.has(b.recipe)) recipes[b.recipe] = (recipes[b.recipe] ?? 0) + 1;
     }
     const item = mainItem(group) ?? group.find((b) => b.kind === 'generator')?.cls;
-    if (!item) return;
+    if (!item) continue;
     let [x0, y0, x1, y1] = [Infinity, Infinity, -Infinity, -Infinity];
     for (const b of group) {
       x0 = Math.min(x0, b.x);
@@ -83,8 +81,7 @@ export function findFactories(save: Pick<SaveData, 'buildings' | 'links'>, previ
     for (let n = 2; taken.has(id); n++) id = `${ids[0].slice(0, 70)}_${n}`;
     taken.add(id);
     found.list.push({ id, item, box, count, recipes });
-    found.floors.set(id, models[i]);
     found.members[id] = ids;
-  });
+  }
   return found;
 }

@@ -15,7 +15,7 @@ export function mine(): Values {
 
 /**
  * Puts what a save says in place: the fields the answers take, except those the player chose to keep. Alternates new
- * to the planner are turned on in every factory; nothing is turned off. The file and its factories' floors are kept
+ * to the planner are turned on in every factory; nothing is turned off. The file and the buildings of its factories are kept
  * in this browser. Returns the fields taken, and how many factory tabs lost the save factory they were linked to.
  */
 export async function takeSave(

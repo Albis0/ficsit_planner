@@ -1,13 +1,10 @@
 import { describe, expect, test } from 'bun:test';
 import { existsSync, readFileSync } from 'node:fs';
 import names from '../src/data/world-names.json';
-import { openEnds } from '../src/lib/model/checks';
-import { cleanModel } from '../src/lib/model/sanitize';
-import type { MachineNode, MNode, Model } from '../src/lib/model/types';
+import type { MNode } from '../src/lib/model/types';
 import { readSave } from '../src/lib/save/extract';
 import { findFactories } from '../src/lib/save/factories';
 import { saveTicks } from '../src/lib/save/ticks';
-import { toModels } from '../src/lib/save/toModel';
 import type { SaveBuilding, SaveLink } from '../src/lib/save/types';
 import type { SolveResult } from '../src/lib/solver';
 import { NODES } from '../src/lib/world';
@@ -80,64 +77,6 @@ const links: SaveLink[] = [
   ...run('w', 'FGPipeConnectionFactory', ['p1'], 'j', 'Connection0', true),
   ...run('j', 'Connection1', ['p2'], 'g', 'FGPipeConnectionFactory', true),
 ];
-const group = buildings.filter((b) => !['belt', 'pipe'].includes(b.kind));
-
-const card = (m: Model, k: string, test: (n: MNode) => boolean = () => true) => m.nodes.find((n) => n.k === k && test(n))!;
-const recipe = (r: string) => (n: MNode) => (n as MachineNode).recipe === r;
-const linkOf = (m: Model, a: MNode, b: MNode) => m.links.find((l) => l.a === a.id && l.b === b.id);
-
-describe('a factory from a save as a floor', () => {
-  const [{ model, skipped }] = toModels(buildings, links, [group]);
-
-  test('every building a card, every run of belts one belt, lines out of the factory input and output cards', () => {
-    const kinds: Record<string, number> = {};
-    for (const n of model.nodes) kinds[n.k] = (kinds[n.k] ?? 0) + 1;
-    expect(kinds).toEqual({ extract: 2, machine: 6, logistic: 2, gen: 1, in: 2, out: 1 });
-    expect(model.links).toHaveLength(12);
-    // The machine with no recipe is left out.
-    expect(skipped).toBe(1);
-    expect(cleanModel(model)?.links).toHaveLength(model.links.length);
-  });
-
-  test('a belt goes onto the end that takes what flows on it', () => {
-    const a = card(model, 'machine', recipe('Recipe_IronPlateReinforced_C'));
-    expect(linkOf(model, card(model, 'machine', recipe('Recipe_Screw_C')), a)?.bp).toBe(1);
-    expect(linkOf(model, card(model, 'machine', recipe('Recipe_IronPlate_C')), a)?.bp).toBe(0);
-    // Water by pipe onto the generator's water end, coal onto its belt end.
-    const g = card(model, 'gen');
-    expect(
-      linkOf(
-        model,
-        card(model, 'logistic', (n) => n.k === 'logistic' && n.kind === 'junction'),
-        g,
-      )?.bp,
-    ).toBe(1);
-    expect(model.links.find((l) => l.b === g.id && l.bp === 0)).toBeDefined();
-  });
-
-  test('a pipe junction takes in from the extractor and sends on to the generator', () => {
-    const j = card(model, 'logistic', (n) => n.k === 'logistic' && n.kind === 'junction');
-    expect(
-      linkOf(
-        model,
-        card(model, 'extract', (n) => n.k === 'extract' && n.item === 'Desc_Water_C'),
-        j,
-      ),
-    ).toBeDefined();
-    expect(openEnds(model).get(card(model, 'gen').id)).toEqual({ ins: [false, false], outs: [] });
-  });
-
-  test('a belt keeps its slowest mark; the miner is on its node, at its purity', () => {
-    const miner = card(model, 'extract', (n) => n.k === 'extract' && n.item === 'Desc_OreIron_C');
-    expect(miner).toMatchObject({ extractor: 'Build_MinerMk2_C', purity: 'pure' });
-    expect(linkOf(model, miner, card(model, 'machine', recipe('Recipe_IngotIron_C')))?.mk).toBe(1);
-  });
-
-  test('what leaves names what it carries; what comes in brings what is needed', () => {
-    expect(card(model, 'out')).toMatchObject({ item: 'Desc_IronPlateReinforced_C' });
-    expect(model.nodes.filter((n) => n.k === 'in').map((n) => (n as { item: string }).item)).toEqual(['Desc_Stone_C', 'Desc_Coal_C']);
-  });
-});
 
 describe('the save factories, found again on the next import', () => {
   test('a factory keeps its id when most of its buildings are still there', () => {
@@ -189,20 +128,11 @@ describe('ticks from the save', () => {
 
 const SPACE = 'C:/code/ficsit-saves/ela/SPACEDELAELEVATORE.sav';
 
-describe.skipIf(!existsSync(SPACE))('the player save as floors', () => {
-  test('SPACEDELAELEVATORE: three factories (the coal plant is not one), every building drawn, every machine on its belts', async () => {
+describe.skipIf(!existsSync(SPACE))('the player save', () => {
+  test('SPACEDELAELEVATORE: three factories, the coal plant is not one', async () => {
     const found = findFactories(await readSave(new Uint8Array(readFileSync(SPACE))));
     expect(found.list.map((f) => f.item)).toEqual(['Desc_ModularFrame_C', 'Desc_SteelPlateReinforced_C', 'Desc_SAMIngot_C']);
-    for (const f of found.list) {
-      const { model, skipped } = found.floors.get(f.id)!;
-      expect(skipped).toBe(0);
-      expect(cleanModel(model)?.nodes).toHaveLength(model.nodes.length);
-    }
-    const frames = found.floors.get(found.list[0].id)!.model;
-    const open = [...openEnds(frames).values()].reduce((s, o) => s + o.ins.filter(Boolean).length, 0);
-    // One constructor in the game has nothing on its input.
-    expect(open).toBe(1);
-    expect(frames.nodes.filter((n) => n.k === 'machine')).toHaveLength(60);
+    expect(Object.values(found.list[0].count).reduce((n, c) => n + c, 0)).toBe(60);
   });
 });
 
