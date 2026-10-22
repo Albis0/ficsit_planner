@@ -51,6 +51,13 @@ export function CardMenu({
       className="card-menu"
       role="menu"
       aria-label={t('cardMenu')}
+      onKeyDown={(e) => {
+        // The floor's own key handling would swallow this before it reaches the window.
+        if (e.key === 'Escape') {
+          e.stopPropagation();
+          onClose();
+        }
+      }}
       style={{ left: at.x, top: at.y, ...(fixed ? { position: 'fixed', zIndex: 60 } : {}) }}
     >
       {items.map((it) => (

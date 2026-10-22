@@ -1064,10 +1064,14 @@ const clash = (a, b) => a && b && a.x < b.x + b.width && b.x < a.x + a.width && 
     const rows = await page.locator('.recipe-row').count();
     const fixed = await page.locator('.recipe-row input:checked:disabled').count();
     ok('All: Standard lists the standard recipes', rows > 20, `${rows}`);
-    ok('All: each is on, with no tick to change', fixed === rows, `${fixed}/${rows}`);
+    const on = await page.locator('.recipe-row input:checked').count();
+    ok('All: each starts on, and can be changed', on === rows && fixed === 0, `${on}/${rows}, ${fixed} locked`);
     await page.locator('.recipe-row .recipe-name').first().click({ force: true });
     await wait(300);
-    ok('All: clicking one changes nothing', (await page.locator('.recipe-row input:checked:disabled').count()) === rows);
+    ok('All: clicking one turns it off', (await page.locator('.recipe-row input:checked').count()) === rows - 1);
+    await page.locator('.recipe-row .recipe-name').first().click({ force: true });
+    await wait(300);
+    ok('All: clicking it again turns it back on', (await page.locator('.recipe-row input:checked').count()) === rows);
   }
 
   // ── A12: automatic copies in Settings › Your data ──
@@ -2325,6 +2329,17 @@ const clash = (a, b) => a && b && a.x < b.x + b.width && b.x < a.x + a.width && 
     menuItems.map((x) => x.replace(/\s+/g, ' ')).join(' | '),
   );
   await shot('r-menu');
+  ok('the menu’s first entry has the keyboard focus', await page.evaluate(() => !!document.activeElement?.closest('.card-menu')));
+  await page.keyboard.press('Escape');
+  await wait(150);
+  ok('Escape closes the card menu', !(await page.locator('.card-menu').count()));
+  await card(asm.id).locator('.machine-body').click({ button: 'right' });
+  await wait(300);
+  await page.evaluate(() => document.body.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true })));
+  await wait(150);
+  ok('a press anywhere else closes the card menu', !(await page.locator('.card-menu').count()));
+  await card(asm.id).locator('.machine-body').click({ button: 'right' });
+  await wait(300);
   await page.locator('.card-menu button', { hasText: 'Mark built' }).click();
   await settle();
   ok('Mark built from the menu', (await model()).nodes.find((n) => n.id === asm.id)?.done === true);
