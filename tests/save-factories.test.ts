@@ -126,7 +126,7 @@ describe('ticks from the save', () => {
   });
 });
 
-const SPACE = 'C:/code/ficsit-saves/ela/SPACEDELAELEVATORE.sav';
+const SPACE = 'C:/code/ficsit-ekler/ficsit-saves/ela/SPACEDELAELEVATORE.sav';
 
 describe.skipIf(!existsSync(SPACE))('the player save', () => {
   test('SPACEDELAELEVATORE: three factories, the coal plant is not one', async () => {

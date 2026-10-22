@@ -140,7 +140,7 @@ describe('a save on the map', () => {
   });
 });
 
-const SPACE = 'C:/code/ficsit-saves/ela/SPACEDELAELEVATORE.sav';
+const SPACE = 'C:/code/ficsit-ekler/ficsit-saves/ela/SPACEDELAELEVATORE.sav';
 
 describe.skipIf(!existsSync(SPACE))('the player save on the map', () => {
   test('SPACEDELAELEVATORE: every miner on a node, what was picked up, three factories', async () => {

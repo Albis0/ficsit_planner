@@ -11,7 +11,7 @@ import { SaveError } from '../src/lib/save/reader';
 // Real saves never go into the repo (they hold the player's name and account), so they live outside it. Without that
 // folder (CI, another machine) these tests are skipped. Each save is read by our reader and by etothepii's
 // satisfactory-file-parser, and the two have to agree on everything the planner uses.
-const ROOT = 'C:/code/ficsit-saves';
+const ROOT = 'C:/code/ficsit-ekler/ficsit-saves';
 const files = existsSync(ROOT)
   ? readdirSync(ROOT, { recursive: true, encoding: 'utf8' })
       .filter((f) => f.endsWith('.sav'))

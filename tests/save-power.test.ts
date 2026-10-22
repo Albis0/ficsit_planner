@@ -99,8 +99,8 @@ describe('power circuits from a save', () => {
   });
 });
 
-const SPACE = 'C:/code/ficsit-saves/ela/SPACEDELAELEVATORE.sav';
-const DUNARR = 'C:/code/ficsit-saves/online/etothepii/Dunarr-076.sav';
+const SPACE = 'C:/code/ficsit-ekler/ficsit-saves/ela/SPACEDELAELEVATORE.sav';
+const DUNARR = 'C:/code/ficsit-ekler/ficsit-saves/online/etothepii/Dunarr-076.sav';
 
 describe.skipIf(!existsSync(SPACE))('the player save’s power', () => {
   test('SPACEDELAELEVATORE: one circuit, 20 coal generators, 16 batteries', async () => {

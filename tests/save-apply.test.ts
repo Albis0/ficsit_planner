@@ -205,7 +205,7 @@ describe('the followed save in the planner', () => {
   });
 });
 
-const SPACE = 'C:/code/ficsit-saves/ela/SPACEDELAELEVATORE.sav';
+const SPACE = 'C:/code/ficsit-ekler/ficsit-saves/ela/SPACEDELAELEVATORE.sav';
 
 describe.skipIf(!existsSync(SPACE))('the player save', () => {
   test('SPACEDELAELEVATORE: tier 4, every milestone up to it bought, three alternates', async () => {

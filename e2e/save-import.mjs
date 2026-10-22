@@ -5,14 +5,14 @@
 //
 //   bun run build && node e2e/save-import.mjs
 //
-// Needs the player saves in C:/code/ficsit-saves (never in the repo: they hold the player's name and account); without
+// Needs the player saves in C:/code/ficsit-ekler/ficsit-saves (never in the repo: they hold the player's name and account); without
 // them it says so and stops. Pictures go to e2e/out/save-import/, results to e2e/out/save-import.md.
 import fs from 'node:fs';
 import path from 'node:path';
 import { chromium } from 'playwright-core';
 import { preview } from 'vite';
 
-const SAVES = 'C:/code/ficsit-saves';
+const SAVES = 'C:/code/ficsit-ekler/ficsit-saves';
 if (!fs.existsSync(`${SAVES}/ela`)) {
   console.log(`No saves in ${SAVES}: skipped.`);
   process.exit(0);
