@@ -17,77 +17,188 @@
   border-color: var(--ficsit);
 }
 
-.tier-dialog {
+/*
+  The tier window: a charcoal plate with a cut corner and hazard stripes at the head. The phases are one
+  strip, the tiers sit on a line that runs orange up to the one chosen, and what it opens is a panel below.
+  The element in the selector keeps it above the metal casing the other windows get further down.
+*/
+dialog.tier-dialog {
   width: min(1100px, 92vw);
   max-height: 88vh;
-  padding: 32px 36px 36px;
+  padding: 0;
+  overflow: auto;
   background: var(--panel);
   color: var(--paper);
   border: 1px solid var(--line-2);
-  border-top: 4px solid var(--ficsit);
-  box-shadow: 0 30px 80px rgb(0 0 0 / 0.6);
+  border-radius: 0;
+  box-shadow: none;
+  clip-path: polygon(0 0, calc(100% - 22px) 0, 100% 22px, 100% 100%, 0 100%);
 }
 
 .tier-dialog::backdrop {
   background: rgb(8 9 10 / 0.75);
 }
 
-.phase-list {
+.tier-head {
   display: flex;
-  flex-direction: column;
-  gap: 18px;
-  margin-top: 18px;
-}
-
-/* Each phase is a row: its name on the left, its tiers beside it, so short phases leave no hole. */
-.phase {
-  display: grid;
-  grid-template-columns: 150px minmax(0, 1fr);
   align-items: center;
-  gap: 8px 16px;
+  gap: 16px;
+  height: 60px;
+  border-bottom: 1px solid var(--line);
 }
 
-.tier-dialog > .hint {
+.tier-head::before {
+  content: '';
+  align-self: stretch;
+  width: 46px;
+  background: repeating-linear-gradient(-45deg, var(--ficsit) 0 7px, var(--panel-2) 7px 14px);
+  clip-path: polygon(0 0, 100% 0, calc(100% - 14px) 100%, 0 100%);
+}
+
+.tier-head .quick-title {
+  margin: 0;
+  font: 700 30px var(--font-display);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: #fff;
+  text-shadow: none;
+}
+
+.tier-body {
+  padding: 18px 24px 20px;
+}
+
+.tier-body > .hint {
   max-width: 70ch;
   margin-top: 8px;
 }
 
-.phase-tiers {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 8px;
+.phase-list {
+  display: flex;
+  margin-bottom: 16px;
+  background: var(--panel-2);
+  border: 1px solid var(--line-2);
 }
 
-.tier-card {
+.phase {
+  flex: var(--n);
+  min-width: 0;
+  padding: 8px 12px 12px;
+}
+
+.phase + .phase {
+  border-left: 1px solid var(--line-2);
+}
+
+.phase.here {
+  background: rgb(250 149 73 / 0.1);
+}
+
+.phase-name {
+  margin: 0 0 8px;
+  font: 700 13px var(--font-display);
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--faint);
+}
+
+.phase.here .phase-name {
+  color: var(--ficsit);
+}
+
+.phase.done .phase-name {
+  color: var(--ficsit-deep);
+}
+
+/* The line behind the tiers: orange up to --at of its length, grey after. */
+.phase-tiers {
+  position: relative;
   display: flex;
   align-items: center;
-  gap: 14px;
-  min-height: 64px;
-  padding: 10px 14px;
-  background: var(--raised);
-  border: 1px solid var(--line);
-  text-align: left;
+  justify-content: space-around;
 }
 
-.tier-card:hover {
+.phase-tiers::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 50%;
+  height: 3px;
+  margin-top: -1.5px;
+  background: linear-gradient(90deg, var(--ficsit) calc(var(--at, 0) * 100%), #4a4a4a 0);
+}
+
+dialog.tier-dialog .tier-card {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  min-height: 0;
+  padding: 0;
+  border: 3px solid #555;
+  border-radius: 50%;
+  background: #262626;
+  box-shadow: none;
+  color: #9a9a9a;
+}
+
+dialog.tier-dialog .tier-card:hover {
   border-color: var(--ficsit);
 }
 
-.tier-card.current {
+dialog.tier-dialog .tier-card.passed {
+  background: var(--ficsit);
   border-color: var(--ficsit);
-  box-shadow: inset 4px 0 var(--ficsit);
+  color: var(--ficsit-ink);
+}
+
+dialog.tier-dialog .tier-card.current {
+  background: #161616;
+  border-color: var(--ficsit);
+  color: #fff;
+  box-shadow: none;
 }
 
 .tier-card-num {
-  flex: none;
-  min-width: 70px;
-  font: 700 22px var(--font-display);
+  font: 700 20px var(--font-display);
+}
+
+.tier-panel {
+  display: grid;
+  grid-template-columns: 1fr 1.5fr;
+  background: #1b1b1b;
+  border: 1px solid var(--line-2);
+}
+
+.tier-panel:has(> section:only-child) {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.tier-panel > section {
+  min-width: 0;
+  padding: 12px 16px 16px;
+}
+
+.tier-panel > section + section {
+  border-left: 1px solid var(--line-2);
+}
+
+.tier-panel-title {
+  margin: 0 0 10px;
+  font: 700 18px var(--font-display);
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: #fff;
 }
 
 .tier-card-unlocks {
   display: flex;
   flex-wrap: wrap;
-  gap: 4px;
+  gap: 6px;
 }
 
 /* Milestones under the tier cards: the ones of the chosen tier, the earlier tiers folded away. */
@@ -96,16 +207,16 @@
   font-weight: 500;
 }
 
-.milestones {
-  margin-top: 22px;
-}
-
 .milestone-row {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
   gap: 8px;
   margin-top: 8px;
+}
+
+.tier-panel .milestone-row {
+  margin-top: 0;
 }
 
 .milestone-tier {
@@ -179,6 +290,52 @@
 
   .milestone-tier {
     min-width: 0;
+  }
+
+  .tier-head {
+    height: calc(52px + env(safe-area-inset-top));
+    padding-top: env(safe-area-inset-top);
+  }
+
+  .tier-head .quick-title {
+    font-size: 22px;
+  }
+
+  .tier-body {
+    padding: 14px 14px calc(16px + env(safe-area-inset-bottom));
+  }
+
+  /* One row a phase: its name on the left, its tiers on a line beside it. */
+  .phase-list {
+    flex-direction: column;
+  }
+
+  .phase {
+    display: grid;
+    flex: none;
+    grid-template-columns: 78px minmax(0, 1fr);
+    align-items: center;
+    padding: 8px 10px;
+  }
+
+  .phase + .phase {
+    border-left: 0;
+    border-top: 1px solid var(--line-2);
+  }
+
+  .phase-name {
+    margin: 0;
+    font-size: 11px;
+    letter-spacing: 0.04em;
+  }
+
+  .tier-panel {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .tier-panel > section + section {
+    border-left: 0;
+    border-top: 1px solid var(--line-2);
   }
 }
 

@@ -572,23 +572,14 @@
   }
 
   /* Tier dialog fills the screen. */
-  .tier-dialog {
+  dialog.tier-dialog {
     width: 100vw;
     max-width: none;
     height: 100dvh;
     max-height: none;
     margin: 0;
-    padding: calc(20px + env(safe-area-inset-top)) 16px calc(24px + env(safe-area-inset-bottom));
     border: 0;
-    border-top: 4px solid var(--ficsit);
-  }
-
-  .phase {
-    grid-template-columns: minmax(0, 1fr);
-  }
-
-  .phase-tiers {
-    grid-template-columns: minmax(0, 1fr);
+    clip-path: none;
   }
 
   /* Along the top, under the bar: the bottom of a phone is where the thumbs and the buttons are. */

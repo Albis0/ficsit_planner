@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react';
+import { type CSSProperties, useEffect, useRef } from 'react';
 import { data, recipeById } from '../lib/data';
 import { useT } from '../lib/i18n';
 import { type Milestone, MILESTONES, offAt } from '../lib/unlocks';
@@ -90,66 +90,85 @@ export function TierDialog({ onClose }: { onClose: () => void }) {
         close();
       }}
     >
-      <h2 className="quick-title">{t('unlockedTier')}</h2>
-      <div className="phase-list">
-        {GROUPS.map((g) => (
-          <section key={g.phase} className="phase">
-            <h3 className="section-title">{g.phase === 0 ? t('phaseStart') : `${t('phase')} ${g.phase}`}</h3>
-            <div className="phase-tiers">
-              {g.tiers.map((step) => (
-                <button key={step} type="button" className={`tier-card ${tier === step ? 'current' : ''}`} onClick={() => pick(step)}>
-                  <span className="tier-card-num">
-                    {t('tier')} {step}
-                  </span>
-                  <span className="tier-card-unlocks">
-                    {unlocksAt(step).map((id) => (
-                      <span key={id} title={label(id)}>
-                        <Icon id={id} size={34} />
-                      </span>
-                    ))}
-                  </span>
-                </button>
+      <header className="tier-head">
+        <h2 className="quick-title">{t('unlockedTier')}</h2>
+      </header>
+      <div className="tier-body">
+        <div className="phase-list">
+          {GROUPS.map((g) => {
+            const done = g.tiers.every((x) => x < tier);
+            const current = g.tiers.includes(tier);
+            // How far along the line of this phase the orange runs: to the centre of the chosen tier.
+            const at = done ? 1 : current ? (g.tiers.indexOf(tier) + 0.5) / g.tiers.length : 0;
+            return (
+              <section
+                key={g.phase}
+                className={`phase ${done ? 'done' : current ? 'here' : ''}`}
+                style={{ '--n': g.tiers.length } as CSSProperties}
+              >
+                <h3 className="phase-name">{g.phase === 0 ? t('phaseStart') : `${t('phase')} ${g.phase}`}</h3>
+                <div className="phase-tiers" style={{ '--at': at } as CSSProperties}>
+                  {g.tiers.map((step) => (
+                    <button
+                      key={step}
+                      type="button"
+                      className={`tier-card ${tier === step ? 'current' : step < tier ? 'passed' : ''}`}
+                      aria-pressed={tier === step}
+                      onClick={() => pick(step)}
+                    >
+                      <span className="sr-only">{t('tier')} </span>
+                      <span className="tier-card-num">{step}</span>
+                    </button>
+                  ))}
+                </div>
+              </section>
+            );
+          })}
+        </div>
+        <div className="tier-panel">
+          <section>
+            <h3 className="tier-panel-title">{t('tierOpens')}</h3>
+            <span className="tier-card-unlocks">
+              {unlocksAt(tier).map((id) => (
+                <span key={id} title={label(id)}>
+                  <Icon id={id} size={42} />
+                </span>
               ))}
-            </div>
-          </section>
-        ))}
-      </div>
-      {here.length > 0 && (
-        <section className="milestones">
-          <h3 className="section-title">{t('milestonesAt', { tier })}</h3>
-          <div className="milestone-row">
-            <span className="milestone-tier">
-              {t('tier')} {tier}
             </span>
-            {here.map(chip)}
-          </div>
-        </section>
-      )}
-      {earlier.length > 0 && (
-        <details className="earlier-tiers">
-          <summary>
-            {t('earlierTiers', { n: earlier.length })}
-            {earlierOff > 0 && <b> · {t('tierOff', { n: earlierOff })}</b>}
-          </summary>
-          {earlier.map((step) => (
-            <div key={step} className="milestone-row">
-              <span className="milestone-tier">
-                {t('tier')} {step}
-              </span>
-              {MILESTONES.filter((m) => m.tier === step).map(chip)}
-            </div>
-          ))}
-        </details>
-      )}
-      <div className="tier-foot">
-        <span>{offAt(tier, skipped) > 0 && t('notBought', { n: offAt(tier, skipped) })}</span>
-        <button type="button" className="primary-button" onClick={close}>
-          {t('done')}
-        </button>
+          </section>
+          {here.length > 0 && (
+            <section className="milestones">
+              <h3 className="tier-panel-title">{t('tierMilestones')}</h3>
+              <div className="milestone-row">{here.map(chip)}</div>
+            </section>
+          )}
+        </div>
+        {earlier.length > 0 && (
+          <details className="earlier-tiers">
+            <summary>
+              {t('earlierTiers', { n: earlier.length })}
+              {earlierOff > 0 && <b> · {t('tierOff', { n: earlierOff })}</b>}
+            </summary>
+            {earlier.map((step) => (
+              <div key={step} className="milestone-row">
+                <span className="milestone-tier">
+                  {t('tier')} {step}
+                </span>
+                {MILESTONES.filter((m) => m.tier === step).map(chip)}
+              </div>
+            ))}
+          </details>
+        )}
+        <div className="tier-foot">
+          <span>{offAt(tier, skipped) > 0 && t('notBought', { n: offAt(tier, skipped) })}</span>
+          <button type="button" className="primary-button" onClick={close}>
+            {t('done')}
+          </button>
+        </div>
+        <p className="hint data-version">
+          {t('dataFrom')} Satisfactory {meta.gameVersion} (build {meta.changelist}), {meta.extractedAt}
+        </p>
       </div>
-      <p className="hint data-version">
-        {t('dataFrom')} Satisfactory {meta.gameVersion} (build {meta.changelist}), {meta.extractedAt}
-      </p>
     </dialog>
   );
 }
