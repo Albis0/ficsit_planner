@@ -65,20 +65,34 @@ export async function listBackups(): Promise<Backup[]> {
   }
 }
 
-/** Takes a copy if one is due. Quiet: any failure just means no copy this time. */
+const ask = <T>(req: IDBRequest<T>) =>
+  new Promise<T>((resolve, reject) => {
+    req.onsuccess = () => resolve(req.result);
+    req.onerror = () => reject(req.error);
+  });
+
+/**
+ * Takes a copy if one is due. Quiet: any failure just means no copy this time. The copies are big, so only their keys
+ * (the times) are read to find out whether six hours have passed; the plans are fingerprinted and the newest copy
+ * read only when a copy might really be due.
+ */
 export async function backupNow(now = Date.now()): Promise<void> {
   if (off) return;
   try {
-    const file = buildExport();
-    if (!hasPlans(file)) return;
-    const hash = fingerprint(file);
-    const list = await listBackups();
-    if (off || !isDue(list, now, hash)) return;
     const db = await open();
+    const times = (await ask(db.transaction(STORE).objectStore(STORE).getAllKeys())) as number[];
+    const newest = times.length ? Math.max(...times) : undefined;
+    if (newest !== undefined && now - newest < EVERY) return db.close();
+    const file = buildExport();
+    if (!hasPlans(file)) return db.close();
+    const hash = fingerprint(file);
+    const last =
+      newest === undefined ? undefined : ((await ask(db.transaction(STORE).objectStore(STORE).get(newest))) as Backup | undefined);
+    if (off || !isDue(last ? [last] : [], now, hash)) return db.close();
     const tx = db.transaction(STORE, 'readwrite');
     const store = tx.objectStore(STORE);
     store.put({ at: now, hash, factories: file.plans.length, plants: file.power.length, file } satisfies Backup);
-    for (const at of surplus([...list, { at: now }])) store.delete(at);
+    for (const at of surplus([...times.map((at) => ({ at })), { at: now }])) store.delete(at);
     await done(tx);
     db.close();
   } catch {}
