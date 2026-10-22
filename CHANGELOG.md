@@ -2,6 +2,24 @@
 
 All notable changes to FICSIT Planner. Dates are when the version was finished.
 
+## 0.14.1 — 2026-10-22
+
+### Added
+
+- Manual floor: the colour wheel takes a typed hex code too.
+- Settings › Game save: “Refresh takes” says whether Refresh reads the latest save of yours or the latest autosave.
+
+### Changed
+
+- Tier window: a new look. The phases sit in one strip, the tiers on a line that runs orange up to the one you chose, and what the tier opens and its milestones are in one panel below.
+- Big factories freeze much less when you change a number or click a card. On a 3,200-machine factory, with the processor slowed down to test, the longest freeze went from about 2.8 s to 0.6 s. Opening Settings or Report no longer redraws the whole app, and in the power planner it no longer builds the floor again.
+- While a window such as Settings is open, the belts behind it stand still.
+- Auto backups no longer load every saved copy a minute after you open the app or when you leave the page; they only look at the copies’ times until one is due.
+
+### Fixed
+
+- Auto floor: the belts no longer jump by a pixel every time the animation loops.
+
 ## 0.14.0 — 2026-10-22
 
 ### Added
