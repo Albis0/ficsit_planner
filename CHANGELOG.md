@@ -2,6 +2,26 @@
 
 All notable changes to FICSIT Planner. Dates are when the version was finished.
 
+## 0.14.0 — 2026-10-22
+
+### Added
+
+- Import save: read your Satisfactory save and bring your game into the planner. The button is in the top bar (on a phone, “Game save” in the ⋯ menu). The window copies the save folder’s path for you and shows the steps for Windows, macOS (CrossOver), Linux (Steam Proton) and phones. Choose the folder, one .sav file, or drop it on the window. Pick the game and its newest save is chosen for you, by the date inside the save. Nothing leaves your computer: the save stays in this browser, is left out of backup files and share links, and Delete everything removes it. Thanks to Hot-Category2986 and BouBouRziPorC.
+- Import save: the first time, you say what the save may set. Tier and the milestones you skipped, your alternate recipes (turned on in every factory), and your Somersloops and power shards, free and in machines. The result lists what came in and what did not, with the reason (FICSMAS recipes, alternates this version does not know).
+- Settings › Game save: the save you follow, Refresh from the game, Change, Forget, and a switch for each thing the save may set. Refresh asks, line by line, about anything you changed yourself since the last import: yours or the game’s.
+- Map: a “Your save” card with how many Somersloops, Mercer Spheres, slugs and hard drives you picked up, of how many there are. Picked up: Grey, Hide or Normal, and Details lists each find. Nodes with a miner get a ring as far round as the miner’s clock, and clicking one says “Miner Mk.2 · 150%”.
+- Map: the factories in your save are boxed with a dashed line and named after what they make; click one for its buildings. They are a guess from how far buildings stand apart and how long the belts between them run, so a big factory may show as two, or two close ones as one. The HUB, Space Elevator, MAM, AWESOME Shop and Radar Towers are marked too.
+- All › From your save: a card for each power circuit with generators, with what it makes and draws, its generators and batteries. “Make a power plant tab” opens a plant tab with the same generators, fuel and clock speeds.
+
+### Changed
+
+- All › Unlocked recipes: the standard recipes can be turned off now, not just the alternates. New factories start with that list, and backup files carry it.
+- Manual floor, on a tablet or phone: a card’s name button is easier to tap. Settings: the titles of folded sections wrap instead of being cut short.
+
+### Fixed
+
+- Manual floor: Escape closes the menu you get by right-clicking a card.
+
 ## 0.13.36 — 2026-10-16
 
 ### Added
