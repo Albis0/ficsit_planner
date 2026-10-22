@@ -106,8 +106,8 @@ What comes in:
   Somersloops and power shards (free and in machines).
 - **Map.** What you picked up is greyed out (or hidden), mined nodes get a ring as far round as the miner's clock,
   and the HUB, Space Elevator, MAM, AWESOME Shop, radar towers and your factories are marked.
-- **Factories.** All › From your save lists the factories found in the save. Link a factory tab to one and the machines
-  the game has built are ticked.
+- **Factories.** The factories found in the save are boxed and named on the map. They are a guess from how far buildings
+  stand apart and how long the belts between them run, so check them against your own idea of the factory.
 - **Power circuits.** Each circuit with generators shows what it makes and draws, and becomes a power plant tab with
   one click.
 
