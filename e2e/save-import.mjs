@@ -211,6 +211,15 @@ try {
   ok('hard drives are among them', (await page.locator('.map-save-rows').textContent()).includes('Hard drive'));
   await wait(800);
   await shot('map-details');
+  const rowNs = await page.locator('.map-save-n').allTextContents();
+  const rowGot = rowNs.reduce((n, t) => n + Number(t.split('/')[0].replace(/\D/g, '')), 0);
+  const total = Number((await page.locator('.map-save-total strong').textContent()).replace(/\D/g, ''));
+  ok('the total is what the rows add up to', total > 0 && total === rowGot, `${total} / ${rowGot}`);
+  ok('Grey, Hide and Normal are offered', (await page.locator('.map-picked [role=radio]').allTextContents()).length === 3);
+  await page.click('.map-picked [role=radio] >> nth=2');
+  ok('Normal is kept', (await state()).mapFilter.picked === 'show');
+  await page.click('.map-picked [role=radio] >> nth=0');
+  ok('Grey is kept', (await state()).mapFilter.picked === 'grey');
   await page.click('.map-save-more');
   ok('the factories are named on the map', (await page.locator('.map-factory-label').count()) === 3);
   for (const layer of ['Blue Power Slug', 'Mercer Sphere', 'Somersloop']) await page.locator('.map-item', { hasText: layer }).click();
