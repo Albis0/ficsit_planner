@@ -12,12 +12,15 @@ export interface SafeStorage {
   /** True while the last write did not go through. */
   failed: () => boolean;
   subscribe: (f: () => void) => () => void;
+  /** Like `storage.setItem`, but the text can be made when it is written: a burst of changes makes it once. */
+  queue: (name: string, value: string | (() => string)) => void;
   /** Writes what is waiting now. */
   flush: () => void;
 }
 
 export function makeSafeStorage(backend: () => Storage | undefined, wait = 300): SafeStorage {
-  const waiting = new Map<string, string>();
+  // A value can wait as a function: turning the plans into text is the costly part, so it is left for the write.
+  const waiting = new Map<string, string | (() => string)>();
   const listeners = new Set<() => void>();
   let timer: ReturnType<typeof setTimeout> | undefined;
   let bad = false;
@@ -38,7 +41,7 @@ export function makeSafeStorage(backend: () => Storage | undefined, wait = 300):
     let ok = true;
     for (const [name, value] of todo) {
       try {
-        backend()?.setItem(name, value);
+        backend()?.setItem(name, typeof value === 'function' ? value() : value);
       } catch {
         ok = false;
       }
@@ -57,8 +60,15 @@ export function makeSafeStorage(backend: () => Storage | undefined, wait = 300):
     }
   };
 
+  const queue = (name: string, value: string | (() => string)) => {
+    keep();
+    waiting.set(name, value);
+    if (timer === undefined) timer = setTimeout(flush, wait);
+  };
+
   return {
     flush,
+    queue,
     failed: () => bad,
     subscribe: (f) => {
       listeners.add(f);
@@ -67,18 +77,14 @@ export function makeSafeStorage(backend: () => Storage | undefined, wait = 300):
     storage: {
       getItem: (name) => {
         const queued = waiting.get(name);
-        if (queued !== undefined) return queued;
+        if (queued !== undefined) return typeof queued === 'function' ? queued() : queued;
         try {
           return backend()?.getItem(name) ?? null;
         } catch {
           return null;
         }
       },
-      setItem: (name, value) => {
-        keep();
-        waiting.set(name, value);
-        if (timer === undefined) timer = setTimeout(flush, wait);
-      },
+      setItem: (name, value) => queue(name, value),
       removeItem: (name) => {
         waiting.delete(name);
         try {
@@ -100,7 +106,14 @@ const local = () => {
 };
 
 export const planStorage = makeSafeStorage(local);
-export const jsonPlanStorage = createJSONStorage(() => planStorage.storage);
+const plain = createJSONStorage(() => planStorage.storage);
+
+/** The same as zustand's JSON storage, except the plans are turned into text once per write, not once per change. */
+export const jsonPlanStorage: typeof plain = plain && {
+  getItem: plain.getItem,
+  removeItem: plain.removeItem,
+  setItem: (name, value) => planStorage.queue(name, () => JSON.stringify(value)),
+};
 
 if (typeof window !== 'undefined') {
   window.addEventListener('pagehide', planStorage.flush);

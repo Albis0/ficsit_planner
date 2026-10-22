@@ -301,6 +301,11 @@
   animation-play-state: paused;
 }
 
+/* And while a window is open: the backdrop blurs what is behind it, and moving belts would make it do that every frame. */
+:root:has(dialog[open]) :is(.belt-slats, .pipe-fluid, .cable-core, .react-flow__edge-path.belt):not(dialog *) {
+  animation-play-state: paused;
+}
+
 .app[data-belt-motion='off'] .belt-slats,
 .app[data-belt-motion='off'] .pipe-fluid,
 .app[data-belt-motion='off'] .cable-core,

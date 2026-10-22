@@ -103,8 +103,10 @@ function useSolutions() {
   const manual = plan.floor === 'manual';
   const pp = useStore(activePowerPlan);
   const draws = useFactoryDraws(mode === 'power');
-  const load = powerLoad(pp, draws);
-  const { plants, sizeBy, have, headroom, ownLoad, chain } = pp;
+  const { plants, sizeBy, have, headroom, ownLoad, chain, want, factories, extra } = pp;
+  // The same object until something it is made from changes: the power floor is laid out again for a new one.
+  // biome-ignore lint/correctness/useExhaustiveDependencies: pp is read through its fields
+  const load = useMemo(() => powerLoad(pp, draws), [sizeBy, want, factories, extra, draws]);
 
   const { targets, supplies, enabled, caps, mods, fixed, extraction, separate, weights } = plan;
   const exports = useExports(plan.id);
@@ -135,6 +137,18 @@ function useSolutions() {
   return { factory, power, probe: probe.result, draws, load, hand, manual };
 }
 
+/** The windows that open over the app. Apart from App, so opening and closing one doesn't draw the whole app again. */
+function Dialogs() {
+  const dialog = useStore((x) => x.dialog);
+  const set = useStore((x) => x.set);
+  return (
+    <>
+      {dialog === 'settings' && <SettingsDialog onClose={() => set({ dialog: undefined, settingsAt: undefined })} />}
+      {dialog === 'report' && <ReportDialog onClose={() => set({ dialog: undefined })} />}
+    </>
+  );
+}
+
 export default function App() {
   const { t, lang } = useT();
   useTallPanel();
@@ -145,7 +159,6 @@ export default function App() {
       deckClosed: x.deckClosed,
       customWeights: x.customWeights,
       deckHeight: x.deckHeight,
-      dialog: x.dialog,
       equalWeights: x.equalWeights,
       fewestBuildings: x.fewestBuildings,
       graphDir: x.graphDir,
@@ -592,8 +605,8 @@ export default function App() {
       <MobileNav />
       {menuOpen && <MobileMenu onClose={() => setMenuOpen(false)} onTier={() => setTierOpen(true)} />}
       {(!s.onboarded || tierOpen) && <TierDialog onClose={() => setTierOpen(false)} />}
-      {s.dialog === 'settings' && <SettingsDialog onClose={() => s.set({ dialog: undefined, settingsAt: undefined })} />}
-      {s.dialog === 'report' && <ReportDialog onClose={() => s.set({ dialog: undefined })} />}
+      <Dialogs />
+
       <SaveFlow />
       <TipLayer />
       <Notice />

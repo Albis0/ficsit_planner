@@ -143,12 +143,22 @@ export function powerInput(pp: PowerPart, demand: number, tier: number, aim: Aim
   };
 }
 
+// Every store change runs the selectors, and the plans are the same array until a plan changes: work it out once per array.
+const exportKeys = new WeakMap<object, Map<string, string>>();
+function exportsKey(plans: Parameters<typeof exportsOf>[0], id: string): string {
+  const byId = exportKeys.get(plans) ?? new Map<string, string>();
+  exportKeys.set(plans, byId);
+  const key = byId.get(id) ?? JSON.stringify(exportsOf(plans, id));
+  byId.set(id, key);
+  return key;
+}
+
 /**
  * What other tabs take from this factory. Kept as the same array while nothing about it changes, so
  * editing an unrelated tab doesn't solve this one again.
  */
 export function useExports(id: string): Export[] {
-  const key = useStore((s) => JSON.stringify(exportsOf(s.plans, id)));
+  const key = useStore((s) => exportsKey(s.plans, id));
   return useMemo(() => JSON.parse(key) as Export[], [key]);
 }
 

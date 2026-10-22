@@ -99,6 +99,23 @@ describe('the safe store', () => {
     expect(f.data.get('a')).toBe('20');
   });
 
+  test('a value queued as a function is made once, when it is written, and reads see the newest', () => {
+    const f = fake();
+    const safe = makeSafeStorage(() => f.s);
+    let made = 0;
+    for (let i = 1; i <= 20; i++)
+      safe.queue('a', () => {
+        made++;
+        return String(i);
+      });
+    expect(made).toBe(0);
+    expect(safe.storage.getItem('a')).toBe('20');
+    expect(made).toBe(1);
+    tick();
+    expect(f.data.get('a')).toBe('20');
+    expect(made).toBe(2);
+  });
+
   test('flush writes at once, and nothing is left for the timer', () => {
     const f = fake();
     const safe = makeSafeStorage(() => f.s);

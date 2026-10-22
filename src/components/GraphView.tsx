@@ -899,6 +899,15 @@ function Canvas({ nodes, edges, sig, dir, areas }: { nodes: Node[]; edges: Edge[
     if (!areas) return;
     flow.setNodes((cur) => [...areaNodes(areas.nodes, inspect, cur), ...cur.filter((n) => n.type !== 'area')]);
   }, [areas, inspect, flow]);
+  // A new solve for the same machines: the flow was made with the first cards, so the new ones are put in here.
+  const placed = useRef({ nodes, edges });
+  // biome-ignore lint/correctness/useExhaustiveDependencies: areas and inspect have their own effect above
+  useEffect(() => {
+    if (placed.current.nodes === nodes && placed.current.edges === edges) return;
+    placed.current = { nodes, edges };
+    flow.setNodes(areas ? [...areaNodes(areas.nodes, inspect, flow.getNodes()), ...nodes] : nodes);
+    flow.setEdges(edges);
+  }, [nodes, edges, flow]);
   const opening = useRef<number>(undefined);
   // Which card of a split line was clicked: the view and the lit-up belts follow that one, not the line's first card.
   const [clicked, setClicked] = useState<string>();
@@ -1095,9 +1104,10 @@ export function GraphView({
   const spacing = useStore((s) => s.settings.spacing);
   const squareBelts = useStore((s) => s.settings.autoBelts === 'square');
   const splitters = useStore((s) => s.settings.autoSplitters);
-  // Uncontrolled flow remounted per solve: nodes stay draggable, and each new solve lays out fresh.
+  // Uncontrolled flow: nodes stay draggable, and each new solve lays out fresh. It is built again when the machines
+  // on it change; for the same machines (a number changed) the canvas swaps in the new cards and belts where it stands.
   // biome-ignore lint/correctness/useExhaustiveDependencies: skipKey() changes when the milestones bought do
-  const { nodes, edges, dir, key, sig } = useMemo(() => {
+  const { nodes, edges, dir, sig } = useMemo(() => {
     const box = document.querySelector('.floor-view')?.getBoundingClientRect();
     const g = buildGraph(result, tier, {
       dir: chosen,
@@ -1112,7 +1122,6 @@ export function GraphView({
     });
     return {
       ...g,
-      key: ++solveCount,
       sig:
         g.nodes
           .map((n) => n.id)
@@ -1120,6 +1129,9 @@ export function GraphView({
           .join('|') + g.dir,
     };
   }, [result, tier, chosen, scale, text, spacing, consumers, splitLines, squareBelts, splitters, skipKey()]);
+  const built = useRef({ sig, key: ++solveCount });
+  if (built.current.sig !== sig) built.current = { sig, key: ++solveCount };
+  const key = built.current.key;
   const exMap = useMemo(() => new Map(extraction.map((u) => [u.item, u])), [extraction]);
   const areas = usePlan().areas;
   // Ticking a machine built changes nothing the layout is made from, so the floor isn't laid out again for it.
