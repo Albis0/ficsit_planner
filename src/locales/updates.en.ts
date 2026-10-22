@@ -16,10 +16,19 @@ export const UPDATES: { version: string; date: string; title?: string; notes: Up
     notes: [
       ['added', 'Manual floor: the colour wheel takes a typed hex code too.'],
       ['added', 'Settings › Game save: “Refresh takes” says whether Refresh reads the latest save of yours or the latest autosave.'],
-      ['changed', 'Tier window: a new look. The phases sit in one strip, the tiers on a line that runs orange up to the one you chose, and what the tier opens and its milestones are in one panel below.'],
-      ['changed', 'Big factories freeze much less when you change a number or click a card. On a 3,200-machine factory, with the processor slowed down to test, the longest freeze went from about 2.8 s to 0.6 s. Opening Settings or Report no longer redraws the whole app, and in the power planner it no longer builds the floor again.'],
+      [
+        'changed',
+        'Tier window: a new look. The phases sit in one strip, the tiers on a line that runs orange up to the one you chose, and what the tier opens and its milestones are in one panel below.',
+      ],
+      [
+        'changed',
+        'Big factories freeze much less when you change a number or click a card. On a 3,200-machine factory, with the processor slowed down to test, the longest freeze went from about 2.8 s to 0.6 s. Opening Settings or Report no longer redraws the whole app, and in the power planner it no longer builds the floor again.',
+      ],
       ['changed', 'While a window such as Settings is open, the belts behind it stand still.'],
-      ['changed', 'Auto backups no longer load every saved copy a minute after you open the app or when you leave the page; they only look at the copies’ times until one is due.'],
+      [
+        'changed',
+        'Auto backups no longer load every saved copy a minute after you open the app or when you leave the page; they only look at the copies’ times until one is due.',
+      ],
       ['fixed', 'Auto floor: the belts no longer jump by a pixel every time the animation loops.'],
     ],
   },
