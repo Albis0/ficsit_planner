@@ -49,14 +49,19 @@ if (!preview) {
   const head = git('rev-parse', 'HEAD');
   if (head !== git('rev-parse', 'origin/main')) stop('this commit is not pushed to GitHub yet.');
   console.log(`> CI for ${head.slice(0, 7)}`);
-  const res = await fetch(`https://api.github.com/repos/${REPO}/actions/runs?head_sha=${head}&per_page=5`, {
-    headers: { accept: 'application/vnd.github+json' },
-  });
-  if (!res.ok) stop(`could not read CI status (HTTP ${res.status}).`);
-  const runs = (await res.json()).workflow_runs ?? [];
-  const ci = runs.find((r) => r.name === 'CI');
-  if (!ci) stop('CI has not started for this commit yet. Try again in a minute.');
-  if (ci.status !== 'completed') stop(`CI is still ${ci.status.replace('_', ' ')}. Try again when it finishes.`);
+  // A fresh push takes a minute to show up and a few more to finish: wait for it (up to 10 minutes) instead of refusing.
+  const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+  let ci;
+  for (let i = 0; i < 40; i++) {
+    const res = await fetch(`https://api.github.com/repos/${REPO}/actions/runs?head_sha=${head}&per_page=5`);
+    if (!res.ok)
+      stop(`could not read CI status (HTTP ${res.status}${res.status === 403 ? ', GitHub rate limit: try again in an hour' : ''}).`);
+    ci = ((await res.json()).workflow_runs ?? []).find((r) => r.name === 'CI');
+    if (ci?.status === 'completed') break;
+    console.log(`  CI ${ci ? ci.status.replace('_', ' ') : 'not started yet'}, waiting...`);
+    await sleep(15000);
+  }
+  if (ci?.status !== 'completed') stop('CI did not finish in 10 minutes. Try again later.');
   if (ci.conclusion !== 'success') stop(`CI ${ci.conclusion} for this commit: ${ci.html_url}`);
   console.log('  passed');
 }
