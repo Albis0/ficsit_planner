@@ -445,3 +445,134 @@
   color: var(--dim);
   font-size: 14px;
 }
+
+/* ---------- New Manual floor question ---------- */
+
+.floor-ask {
+  width: min(720px, 94vw);
+}
+
+.floor-ask-body {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: 20px 24px 22px;
+  overflow-y: auto;
+}
+
+.floor-ask-ways {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+.floor-ask-way {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 14px;
+  background: var(--raised);
+  border: 1px solid var(--line);
+  color: var(--paper);
+  text-align: left;
+  transition:
+    border-color 160ms,
+    background 160ms;
+}
+
+.floor-ask-way:hover {
+  border-color: var(--line-2);
+}
+
+.floor-ask-way b {
+  font: 700 20px var(--font-display);
+  letter-spacing: 0.02em;
+}
+
+.floor-ask-way[aria-checked='true'] {
+  border-color: var(--power);
+  box-shadow: inset 0 0 0 1px var(--power);
+  background: color-mix(in srgb, var(--power) 8%, var(--raised));
+}
+
+.floor-ask-sketch {
+  display: flex;
+  align-items: center;
+  min-height: 112px;
+  padding: 10px;
+  background: var(--bg);
+  border: 1px solid var(--line);
+}
+
+.fa-card {
+  display: flex;
+  flex-direction: column;
+  padding: 5px 9px;
+  background: var(--raised);
+  border-top: 3px solid var(--faint);
+  font: 700 13px var(--font-display);
+  line-height: 1.2;
+  white-space: nowrap;
+}
+
+.fa-card small {
+  color: var(--power);
+  font-size: 12px;
+}
+
+.fa-machine {
+  border-top-color: var(--power);
+}
+
+.fa-belt {
+  flex: none;
+  width: 18px;
+  height: 3px;
+  background: var(--line-2);
+}
+
+.fa-splitter {
+  flex: none;
+  width: 16px;
+  height: 16px;
+  border: 2px solid var(--power);
+  transform: rotate(45deg);
+}
+
+.fa-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.floor-ask-foot {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+}
+
+.floor-ask-remember {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.floor-ask-where {
+  flex: 1;
+  color: var(--dim);
+}
+
+@media (max-width: 560px) {
+  .floor-ask-ways {
+    grid-template-columns: 1fr;
+  }
+
+  .floor-ask-foot {
+    flex-wrap: wrap;
+  }
+
+  .floor-ask-where {
+    order: 3;
+    flex-basis: 100%;
+  }
+}

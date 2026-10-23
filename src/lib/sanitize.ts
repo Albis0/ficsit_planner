@@ -266,6 +266,7 @@ export function cleanSettings(saved: unknown): Settings {
     showLocked: typeof s.showLocked === 'boolean' ? s.showLocked : d.showLocked,
     summary: oneOf(s.summary, ['compact', 'full'] as const, d.summary),
     splitLines: oneOf(s.splitLines, ['each', 'one'] as const, d.splitLines),
+    newFloor: oneOf(s.newFloor, ['ask', 'kind', 'building'] as const, d.newFloor),
     game: gameOf(s.game),
   };
 }

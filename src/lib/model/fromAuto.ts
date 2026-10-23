@@ -1,8 +1,8 @@
-import type { Edge } from '@xyflow/react';
+import type { Edge, Node } from '@xyflow/react';
 import { data, transportFor } from '../data';
 import { type ExtractionSettings, extractorFor } from '../extraction';
 import { buildGraph, type EndpointNodeData, type FlowEdgeData, type MachineNodeData } from '../graph';
-import type { SolveResult } from '../solver';
+import type { SolveResult, Target } from '../solver';
 import { arrangeModel } from './arrange';
 import type { Dir } from './layout';
 import { extractorRate, mediumOf } from './ports';
@@ -31,6 +31,79 @@ const line = (item: string, rate: number, tier: number): { lanes?: number } => {
   return lanes > 1 ? { lanes } : {};
 };
 
+type Graph = ReturnType<typeof buildGraph>;
+
+/** Most cards one line may become, and most the floor may gain, when every building is a card of its own: the layout slows fast past a couple of hundred. */
+const MOST_PER_LINE = 64;
+const MOST_CARDS = 250;
+
+/**
+ * Every machine of a line as a card of its own (the "3 ×" card becomes three), each at its own clock and with its share
+ * of what the line takes and gives. Where one belt reaches or leaves several of them the splitters and mergers come from
+ * the same step that adds them for any belt feeding several machines; where several cards meet several (smelters into
+ * constructors), the belt gets a splitter of its own to run through, so it is merged once and split once. The same goes
+ * for a belt from a raw input or to an output, which stays one card however many buildings it feeds.
+ */
+function perBuilding(g: Graph): { graph: Graph; copies: Set<string>; buses: Map<string, string> } {
+  const copies = new Set<string>();
+  const buses = new Map<string, string>();
+  const shares = new Map<string, { id: string; share: number }[]>();
+  const kind = new Map(g.nodes.map((n) => [n.id, n.type]));
+  let total = 0;
+  const nodes: Node[] = g.nodes.flatMap((n) => {
+    if (n.type !== 'machine') return [n];
+    const { use } = n.data as MachineNodeData;
+    const k = use.clocks.length;
+    if (use.recipe.kind === 'power' || k < 2 || k > MOST_PER_LINE || total + k > MOST_CARDS) return [n];
+    total += k;
+    const sum = use.clocks.reduce((a, b) => a + b, 0);
+    const parts = use.clocks.map((clock, i) => {
+      const share = clock / sum;
+      const id = `${n.id}#${i}`;
+      copies.add(id);
+      const scale = (list: Target[]) => list.map((x) => ({ ...x, rate: x.rate * share }));
+      const own = {
+        ...use,
+        count: use.count * share,
+        built: 1,
+        clock,
+        clocks: [clock],
+        power: use.power * share,
+        inputs: scale(use.inputs),
+        outputs: scale(use.outputs),
+      };
+      return { id, share, node: { ...n, id, data: { ...n.data, use: own } } as Node };
+    });
+    shares.set(n.id, parts);
+    return parts.map((p) => p.node);
+  });
+  const side = (id: string) => shares.get(id) ?? [{ id, share: 1 }];
+  const edges = g.edges.flatMap((e): Edge[] => {
+    const a = side(e.source);
+    const b = side(e.target);
+    if (e.type !== 'flow' || a.length + b.length === 2) return [e];
+    const { rate, item } = e.data as FlowEdgeData;
+    const link = (id: string, source: string, target: string, r: number): Edge => ({
+      ...e,
+      id,
+      source,
+      target,
+      data: { ...e.data, rate: r },
+    });
+    const bus =
+      (a.length > 1 && (b.length > 1 || kind.get(e.target) === 'endpoint')) || (b.length > 1 && kind.get(e.source) === 'endpoint');
+    if (!bus) return a.flatMap((x) => b.map((y) => link(`${e.id}#${x.id}|${y.id}`, x.id, y.id, rate * x.share * y.share)));
+    const mid = `bus:${e.id}`;
+    buses.set(mid, item);
+    nodes.push({ id: mid, type: 'bus', position: { x: 0, y: 0 }, data: {} });
+    return [
+      ...a.map((x) => link(`${e.id}#${x.id}>`, x.id, mid, rate * x.share)),
+      ...b.map((y) => link(`${e.id}#>${y.id}`, mid, y.id, rate * y.share)),
+    ];
+  });
+  return { graph: { ...g, nodes, edges }, copies, buses };
+}
+
 export async function modelFromSolve(
   result: SolveResult,
   tier: number,
@@ -38,8 +111,15 @@ export async function modelFromSolve(
   dir: Dir = 'LR',
   /** Recipes ticked built on the Auto floor: their cards come ticked too. */
   built: string[] = [],
+  /** Each building a card of its own, instead of one card saying how many. */
+  eachBuilding = false,
 ): Promise<Model> {
-  const g = buildGraph(result, tier, { dir: 'LR', splitLines: 'each' });
+  const whole = buildGraph(result, tier, { dir: 'LR', splitLines: 'each' });
+  const {
+    graph: g,
+    copies,
+    buses,
+  } = eachBuilding ? perBuilding(whole) : { graph: whole, copies: new Set<string>(), buses: new Map<string, string>() };
   let seq = 1;
   const id = () => (seq++).toString(36);
   const nodes: MNode[] = [];
@@ -60,13 +140,19 @@ export async function modelFromSolve(
       ...at,
       k: 'machine',
       recipe: use.recipe.id,
-      auto: true,
+      ...(copies.has(n.id) ? {} : { auto: true as const }),
       ...(built.includes(use.recipe.id) ? { done: true as const } : {}),
       ...(Math.abs(use.clock - 1) > 1e-12 ? { clock: Math.max(0.01, use.clock) } : {}),
       ...(Math.round(use.mod.sloops) > 0 ? { sloops: Math.round(use.mod.sloops) } : {}),
     };
     nodes.push(m);
     byGraph.set(n.id, m);
+  }
+
+  for (const [mid, item] of buses) {
+    const m: MNode = { id: id(), ...at, k: 'logistic', kind: mediumOf(item) === 'pipe' ? 'junction' : 'splitter' };
+    nodes.push(m);
+    byGraph.set(mid, m);
   }
 
   const graphNode = new Map(g.nodes.map((n) => [n.id, n]));

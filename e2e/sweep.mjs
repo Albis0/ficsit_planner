@@ -38,7 +38,11 @@ const products = Object.keys(game.items).filter((id) => !game.items[id].raw && m
 const sample = (list, n) => (QUICK ? list.filter((_, i) => i % Math.ceil(list.length / n) === 0) : list);
 
 // Saved state the app reads on start: straight into a factory, a plant or a setting, with no first-run question.
-const saved = (state) => JSON.stringify({ state: { onboarded: true, tier: 9, lang: 'en', ...state }, version: 3 });
+const saved = (state) =>
+  JSON.stringify({
+    state: { onboarded: true, tier: 9, lang: 'en', ...state, settings: { newFloor: 'kind', ...state.settings } },
+    version: 3,
+  });
 const factory = (targets, extra = {}) =>
   saved({
     mode: 'factory',

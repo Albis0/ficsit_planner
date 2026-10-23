@@ -944,3 +944,29 @@ test('the build menu finds a splitter, a merger and a pipe junction by what they
   const splitter = { key: 'l:splitter', tab: 'logistic', init: { k: 'logistic', kind: 'splitter', x: 0, y: 0 }, tier: 0 } as never;
   expect(choiceWords(splitter).join(' ').toLowerCase()).toContain('splitter');
 });
+
+describe('a factory taken to the Manual floor building by building', () => {
+  const standard = () => new Set(data.recipes.filter((r) => r.kind === 'standard').map((r) => r.id));
+  const factory = () =>
+    solve(highs, {
+      targets: [{ item: 'Desc_Motor_C', rate: 20 }],
+      supplies: [],
+      enabledRecipes: standard(),
+      resourceCaps: {},
+      objective: 'resources',
+    });
+
+  test('has a card for every machine, with the same output as the card saying how many', async () => {
+    const auto = factory();
+    const kind = await modelFromSolve(auto, 9, DEFAULT_EXTRACTION);
+    const each = await modelFromSolve(auto, 9, DEFAULT_EXTRACTION, 'LR', [], true);
+    const machines = (m: Model) => m.nodes.filter((n) => n.k === 'machine');
+    expect(machines(each).length).toBeGreaterThanOrEqual(auto.recipes.reduce((a, u) => a + (u.recipe.kind === 'power' ? 0 : u.built), 0));
+    expect(machines(each).length).toBeGreaterThan(machines(kind).length);
+    expect(machines(each).some((n) => n.k === 'machine' && n.auto)).toBe(false);
+    expect(each.nodes.some((n) => n.k === 'logistic')).toBe(true);
+    expect(cleanModel(each)).toEqual(each);
+    const { result } = adaptModel(each, run(each));
+    expect(result.targets.find((t) => t.item === 'Desc_Motor_C')?.rate).toBeCloseTo(20, 4);
+  }, 60000);
+});

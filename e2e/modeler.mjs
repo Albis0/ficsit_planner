@@ -14,7 +14,7 @@ const OUT = path.resolve('e2e/out/modeler');
 fs.rmSync(OUT, { recursive: true, force: true });
 fs.mkdirSync(OUT, { recursive: true });
 
-const still = { beltMotion: false, motion: 'reduce' };
+const still = { beltMotion: false, motion: 'reduce', newFloor: 'kind' };
 const saved = (state) =>
   JSON.stringify({ state: { onboarded: true, tier: 9, lang: 'en', ...state, settings: { ...still, ...state.settings } }, version: 3 });
 const factory = (targets, extra = {}) =>
@@ -227,6 +227,45 @@ const clash = (a, b) => a && b && a.x < b.x + b.width && b.x < a.x + a.width && 
     'square belts: straight runs with rounded turns, no curves',
     squared.length > 0 && squared.every((d) => !/C/.test(d)),
     `${squared.length} belts`,
+  );
+
+  // ── A1b: a new Manual floor asks one card per kind or per building ──
+  section = 'A1b';
+  const motor = (settings) =>
+    saved({
+      mode: 'factory',
+      plans: [{ id: 'f1', name: 'Factory 1', targets: [{ item: 'Desc_Motor_C', rate: 10 }] }],
+      active: 'f1',
+      settings,
+    });
+  const manualOn = () =>
+    page.waitForFunction(() => document.querySelectorAll('.floor-kind button')[1]?.getAttribute('aria-checked') === 'true', null, {
+      timeout: 90000,
+    });
+  await open(motor({ newFloor: 'ask' }));
+  await page.click('.floor-kind button >> nth=1');
+  await page.waitForSelector('.floor-ask');
+  ok('Manual asks which way when several machines make a line', (await page.locator('.floor-ask-way').count()) === 2);
+  await page.keyboard.press('Escape');
+  await wait(400);
+  ok('closing the question leaves the floor on Auto', (await page.locator('.floor-ask').count()) === 0 && (await model()) == null);
+  await page.click('.floor-kind button >> nth=1');
+  await page.waitForSelector('.floor-ask');
+  await page.locator('.floor-ask-way').nth(1).click();
+  await page.locator('.floor-ask .toggle').click();
+  await page.locator('.floor-ask .primary-button').click();
+  await manualOn();
+  await settle();
+  const each = await model();
+  const cards = each.nodes.filter((n) => n.k === 'machine');
+  ok('each building is a card of its own', cards.length > 10 && cards.every((n) => !n.auto && (n.n ?? 1) === 1), `${cards.length} cards`);
+  ok(
+    'with splitters and mergers between',
+    each.nodes.some((n) => n.k === 'logistic'),
+  );
+  ok(
+    "Don't ask again keeps the choice in Settings",
+    (await page.evaluate(() => JSON.parse(localStorage.getItem('ficsit-planner')).state.settings.newFloor)) === 'building',
   );
 
   // ── A1: Auto to Manual ──

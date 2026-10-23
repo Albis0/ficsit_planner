@@ -36,7 +36,7 @@ const SIZES = {
 };
 
 // Belts stand still and nothing animates, so two runs of the same screen give the same picture.
-const still = { beltMotion: false, motion: 'reduce' };
+const still = { beltMotion: false, motion: 'reduce', newFloor: 'kind' };
 const saved = (state) =>
   JSON.stringify({ state: { onboarded: true, tier: 9, lang: 'en', ...state, settings: { ...still, ...state.settings } }, version: 3 });
 const factory = (targets, extra = {}) =>
@@ -99,6 +99,15 @@ const SCREENS = [
     state: factory([['Desc_Motor_C', 10]]),
     act: async (page) => {
       await page.locator('.react-flow__node-machine').first().dispatchEvent('click');
+    },
+  },
+  {
+    name: 'manual-question',
+    state: factory([['Desc_Motor_C', 10]], { settings: { newFloor: 'ask' } }),
+    act: async (page) => {
+      await page.click('.floor-kind button >> nth=1');
+      await page.waitForSelector('.floor-ask');
+      await page.waitForTimeout(500);
     },
   },
   {

@@ -3,6 +3,7 @@ import { useShallow } from 'zustand/react/shallow';
 import { lazy, Suspense, useEffect, useMemo, useState } from 'react';
 import { useCodexRoute } from './components/codex/route';
 import { autoDir, type FactoryLinks, GraphView } from './components/GraphView';
+import { FloorAsk } from './components/FloorAsk';
 import { Glyph } from './components/Glyph';
 import { Inspector } from './components/Inspector';
 import { ViewMenu } from './components/ViewMenu';
@@ -233,16 +234,26 @@ export default function App() {
   /** Auto or Manual: the first switch to Manual starts from the factory as worked out, or an empty floor. */
   // A model built afresh opens with a fresh camera.
   const [built, setBuilt] = useState(0);
-  const setFloor = async (floor: 'auto' | 'manual') => {
-    if (floor === 'auto' || plan.model) return s.setFloor(plan.id, floor);
+  const [asking, setAsking] = useState(false);
+  const startManual = async (eachBuilding: boolean) => {
     const solved = factory.result;
     // Running the way the Auto floor did.
     const model = solved
-      ? await lay(() => modelFromSolve(solved, s.tier, effectiveExtraction(plan.extraction, s.tier), s.graphDir ?? autoDir(), plan.built))
+      ? await lay(() =>
+          modelFromSolve(solved, s.tier, effectiveExtraction(plan.extraction, s.tier), s.graphDir ?? autoDir(), plan.built, eachBuilding),
+        )
       : emptyModel();
     forgetCamera(plan.id);
     setBuilt((n) => n + 1);
     s.setFloor(plan.id, 'manual', model);
+  };
+  const setFloor = async (floor: 'auto' | 'manual') => {
+    if (floor === 'auto' || plan.model) return s.setFloor(plan.id, floor);
+    const choice = s.settings.newFloor;
+    // Nothing to choose between when every line is a single machine.
+    const several = factory.result?.recipes.some((u) => u.recipe.kind !== 'power' && u.built > 1);
+    if (choice === 'ask' && several) return setAsking(true);
+    return startManual(choice === 'building');
   };
   const exports = useExports(plan.id);
   // Rebuilding a hand-built floor starts from what its panel lists: the floor's own outputs and inputs. Those become
@@ -268,7 +279,9 @@ export default function App() {
       const input = factoryInput({ ...plan, targets: from.targets, supplies }, s.tier, exports, aimOf(s), s.settings.game);
       if (!input) return;
       const r = await solveAsync(input);
-      const model = await lay(() => modelFromSolve(r, s.tier, effectiveExtraction(plan.extraction, s.tier), dirOf(m), plan.built));
+      const model = await lay(() =>
+        modelFromSolve(r, s.tier, effectiveExtraction(plan.extraction, s.tier), dirOf(m), plan.built, s.settings.newFloor === 'building'),
+      );
       forgetCamera(plan.id);
       setBuilt((n) => n + 1);
       s.updatePlan({ targets: from.targets, supplies });
@@ -606,6 +619,15 @@ export default function App() {
       {menuOpen && <MobileMenu onClose={() => setMenuOpen(false)} onTier={() => setTierOpen(true)} />}
       {(!s.onboarded || tierOpen) && <TierDialog onClose={() => setTierOpen(false)} />}
       <Dialogs />
+      {asking && (
+        <FloorAsk
+          onPick={(each) => {
+            setAsking(false);
+            startManual(each);
+          }}
+          onClose={() => setAsking(false)}
+        />
+      )}
 
       <SaveFlow />
       <TipLayer />
