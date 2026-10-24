@@ -969,4 +969,50 @@ describe('a factory taken to the Manual floor building by building', () => {
     const { result } = adaptModel(each, run(each));
     expect(result.targets.find((t) => t.item === 'Desc_Motor_C')?.rate).toBeCloseTo(20, 4);
   }, 60000);
+
+  test('shares belts out in trees: no splitter or merger with one belt, none with more than three, and branches of near-equal size', async () => {
+    const each = await modelFromSolve(factory(), 9, DEFAULT_EXTRACTION, 'TB', [], true);
+    const logistic = each.nodes.filter((n) => n.k === 'logistic');
+    expect(logistic.length).toBeGreaterThan(0);
+    const into = (id: string) => each.links.filter((l) => l.b === id);
+    const out = (id: string) => each.links.filter((l) => l.a === id);
+    const isLogistic = new Set(logistic.map((n) => n.id));
+    for (const n of logistic) {
+      const [i, o] = [into(n.id).length, out(n.id).length];
+      expect(i === 1 ? o >= 2 && o <= 3 : o === 1 && i >= 2 && i <= 3).toBe(true);
+    }
+    // Machines under a splitter, whatever the depth.
+    const splits = (id: string) => isLogistic.has(id) && into(id).length === 1 && out(id).length >= 2;
+    const under = (id: string): number => out(id).reduce((a, l) => a + (splits(l.b) ? under(l.b) : 1), 0);
+    for (const n of logistic) {
+      if (into(n.id).length !== 1) continue;
+      const parts = out(n.id).map((l) => (splits(l.b) ? under(l.b) : 1));
+      expect(Math.max(...parts) - Math.min(...parts)).toBeLessThanOrEqual(1);
+    }
+  }, 60000);
+
+  test('lays each line out in one row, each splitter over the machines it feeds and each merger under the ones it takes from', async () => {
+    const each = await modelFromSolve(factory(), 9, DEFAULT_EXTRACTION, 'TB', [], true);
+    const at = new Map(each.nodes.map((n) => [n.id, n]));
+    const centre = (id: string) => {
+      const n = at.get(id)!;
+      return n.x + cardSize(n, 'TB').w / 2;
+    };
+    let seen = 0;
+    for (const n of each.nodes) {
+      if (n.k !== 'logistic') continue;
+      const outs = each.links.filter((l) => l.a === n.id).map((l) => at.get(l.b)!);
+      const ins = each.links.filter((l) => l.b === n.id).map((l) => at.get(l.a)!);
+      const [side, ends] = outs.length >= 2 ? ['out', outs] : [undefined, ins];
+      if (!ends.length || ends.some((e) => e.k !== 'machine')) continue;
+      seen++;
+      // Machines of one splitter stand in a row.
+      expect(new Set(ends.map((e) => e.y)).size).toBe(1);
+      const xs = ends.map((e) => centre(e.id));
+      expect(centre(n.id)).toBeGreaterThanOrEqual(Math.min(...xs) - 1);
+      expect(centre(n.id)).toBeLessThanOrEqual(Math.max(...xs) + 1);
+      expect(side === 'out' ? n.y < ends[0].y : n.y > ends[0].y).toBe(true);
+    }
+    expect(seen).toBeGreaterThan(4);
+  }, 60000);
 });

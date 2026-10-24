@@ -19,7 +19,7 @@ import { type MLink, type MNode, type Model, MODEL_VERSION } from './types';
 /** A rate without the noise of adding floats (50.00000000000001 is 50). */
 const clean = (x: number) => Math.round(x * 1e9) / 1e9;
 
-/** Up to three outputs per splitter (three inputs per merger); more than that chains another one on. */
+/** Up to three outputs per splitter (three inputs per merger); more than that goes into a tree of them. */
 const FAN = 3;
 
 /**
@@ -41,8 +41,8 @@ const MOST_CARDS = 250;
  * Every machine of a line as a card of its own (the "3 ×" card becomes three), each at its own clock and with its share
  * of what the line takes and gives. Where one belt reaches or leaves several of them the splitters and mergers come from
  * the same step that adds them for any belt feeding several machines; where several cards meet several (smelters into
- * constructors), the belt gets a splitter of its own to run through, so it is merged once and split once. The same goes
- * for a belt from a raw input or to an output, which stays one card however many buildings it feeds.
+ * constructors), the merger tree's root belt goes straight into the splitter tree's root, so it is merged once and split
+ * once. A belt from a raw input or to an output stays one card however many buildings it feeds.
  */
 function perBuilding(g: Graph): { graph: Graph; copies: Set<string>; buses: Map<string, string> } {
   const copies = new Set<string>();
@@ -149,12 +149,6 @@ export async function modelFromSolve(
     byGraph.set(n.id, m);
   }
 
-  for (const [mid, item] of buses) {
-    const m: MNode = { id: id(), ...at, k: 'logistic', kind: mediumOf(item) === 'pipe' ? 'junction' : 'splitter' };
-    nodes.push(m);
-    byGraph.set(mid, m);
-  }
-
   const graphNode = new Map(g.nodes.map((n) => [n.id, n]));
   const out = new Map<string, Edge[]>();
   const into = new Map<string, Edge[]>();
@@ -195,41 +189,45 @@ export async function modelFromSolve(
     return Math.max(0, (side === 'in' ? r?.inputs : r?.outputs)?.findIndex((s) => s.item === item) ?? 0);
   };
 
-  /** A splitter (or merger) chain for one end feeding (or fed by) several belts; returns an end per belt. */
-  const fan = (edges: Edge[], end: End, item: string, side: 'split' | 'merge') => {
+  const tree = (edges: Edge[], item: string, side: 'split' | 'merge', feed?: End): { ends: End[]; root: End } => {
     const pipe = mediumOf(item) === 'pipe';
-    const ends: End[] = [];
     const rates = edges.map((e) => (e.data as FlowEdgeData).rate);
-    let feed = end;
-    let left = edges.length;
-    while (left > 0) {
-      // This link carries every belt still to be handed out (or taken in) from here on.
-      const lane = line(
-        item,
-        rates.slice(edges.length - left).reduce((a, b) => a + b, 0),
-        tier,
-      );
-      const last = left <= FAN;
-      const used = last ? left : FAN - 1;
-      const kind = pipe ? 'junction' : side === 'split' ? 'splitter' : 'merger';
+    const ends: End[] = new Array(edges.length);
+    const build = (from: number, to: number, up?: End): End => {
+      const n = to - from;
+      const k = n <= FAN ? n : Math.min(FAN, Math.ceil(n / FAN));
       const l: MNode = {
         id: id(),
         ...at,
         k: 'logistic',
-        kind,
+        kind: pipe ? 'junction' : side === 'split' ? 'splitter' : 'merger',
         ...(pipe && side === 'merge' ? { ins: 3 } : {}),
       };
       nodes.push(l);
-      // The belt between the end and this splitter (or merger).
-      if (side === 'split') links.push({ id: id(), a: feed.node, ap: feed.port, b: l.id, bp: 0, ...lane });
-      else links.push({ id: id(), a: l.id, ap: 0, b: feed.node, bp: feed.port, ...lane });
-      for (let i = 0; i < used; i++) ends.push({ node: l.id, port: i });
-      left -= used;
-      // The splitter's last output (merger's last input) carries on to the next one in the chain.
-      feed = { node: l.id, port: FAN - 1 };
-    }
-    return ends;
+      const lane = line(
+        item,
+        rates.slice(from, to).reduce((a, b) => a + b, 0),
+        tier,
+      );
+      if (up) {
+        if (side === 'split') links.push({ id: id(), a: up.node, ap: up.port, b: l.id, bp: 0, ...lane });
+        else links.push({ id: id(), a: l.id, ap: 0, b: up.node, bp: up.port, ...lane });
+      }
+      const base = Math.floor(n / k);
+      const extra = n % k;
+      let at2 = from;
+      for (let j = 0; j < k; j++) {
+        const size = base + (j < extra ? 1 : 0);
+        if (size === 1) ends[at2] = { node: l.id, port: j };
+        else build(at2, at2 + size, { node: l.id, port: j });
+        at2 += size;
+      }
+      return { node: l.id, port: 0 };
+    };
+    const root = build(0, edges.length, feed);
+    return { ends, root };
   };
+  const fan = (edges: Edge[], end: End, item: string, side: 'split' | 'merge') => tree(edges, item, side, end).ends;
 
   for (const [key, edges] of out) {
     const [from, item] = key.split('|');
@@ -252,6 +250,19 @@ export async function modelFromSolve(
       const ends = fan(edges, end, item, 'merge');
       for (const [i, e] of edges.entries()) targetOf.set(e.id, ends[i]);
     }
+  }
+
+  for (const [mid, item] of buses) {
+    const A = g.edges.filter((e) => e.type === 'flow' && e.target === mid);
+    const B = g.edges.filter((e) => e.type === 'flow' && e.source === mid);
+    const m = A.length > 1 ? tree(A, item, 'merge') : undefined;
+    const sp = B.length > 1 ? tree(B, item, 'split') : undefined;
+    if (m) for (const [i, e] of A.entries()) targetOf.set(e.id, m.ends[i]);
+    if (sp) for (const [i, e] of B.entries()) sourceOf.set(e.id, sp.ends[i]);
+    const total = A.reduce((a, e) => a + (e.data as FlowEdgeData).rate, 0);
+    if (m && sp) links.push({ id: id(), a: m.root.node, ap: 0, b: sp.root.node, bp: 0, ...line(item, total, tier) });
+    else if (m) sourceOf.set(B[0].id, m.root);
+    else if (sp) targetOf.set(A[0].id, sp.root);
   }
 
   for (const e of rounds) {
