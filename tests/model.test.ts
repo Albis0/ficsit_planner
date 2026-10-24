@@ -970,7 +970,7 @@ describe('a factory taken to the Manual floor building by building', () => {
     expect(result.targets.find((t) => t.item === 'Desc_Motor_C')?.rate).toBeCloseTo(20, 4);
   }, 60000);
 
-  test('shares belts out in trees: no splitter or merger with one belt, none with more than three, and branches of near-equal size', async () => {
+  test('shares belts out in trees: no splitter or merger with one belt, none with more than three, and no chains', async () => {
     const each = await modelFromSolve(factory(), 9, DEFAULT_EXTRACTION, 'TB', [], true);
     const logistic = each.nodes.filter((n) => n.k === 'logistic');
     expect(logistic.length).toBeGreaterThan(0);
@@ -981,14 +981,17 @@ describe('a factory taken to the Manual floor building by building', () => {
       const [i, o] = [into(n.id).length, out(n.id).length];
       expect(i === 1 ? o >= 2 && o <= 3 : o === 1 && i >= 2 && i <= 3).toBe(true);
     }
-    // Machines under a splitter, whatever the depth.
+    // No chains: a tree of splitters is no deeper than its machines call for (three to a splitter), plus one for the one that shares between lines.
     const splits = (id: string) => isLogistic.has(id) && into(id).length === 1 && out(id).length >= 2;
-    const under = (id: string): number => out(id).reduce((a, l) => a + (splits(l.b) ? under(l.b) : 1), 0);
+    const depth = (id: string): number => 1 + Math.max(0, ...out(id).map((l) => (splits(l.b) ? depth(l.b) : 0)));
+    const under = (id: string): number => out(id).reduce((n, l) => n + (splits(l.b) ? under(l.b) : 1), 0);
+    let checked = 0;
     for (const n of logistic) {
-      if (into(n.id).length !== 1) continue;
-      const parts = out(n.id).map((l) => (splits(l.b) ? under(l.b) : 1));
-      expect(Math.max(...parts) - Math.min(...parts)).toBeLessThanOrEqual(1);
+      if (!splits(n.id) || splits(into(n.id)[0].a)) continue;
+      checked++;
+      expect(depth(n.id)).toBeLessThanOrEqual(Math.ceil(Math.log(under(n.id)) / Math.log(3)) + 1);
     }
+    expect(checked).toBeGreaterThan(10);
   }, 60000);
 
   test('lays each line out in one row, each splitter over the machines it feeds and each merger under the ones it takes from', async () => {

@@ -78,6 +78,8 @@ function perBuilding(g: Graph): { graph: Graph; copies: Set<string>; buses: Map<
     return parts.map((p) => p.node);
   });
   const side = (id: string) => shares.get(id) ?? [{ id, share: 1 }];
+  // What the copies of one machine give, over every belt leaving it: they are merged once, however many places it goes.
+  const feeds = new Map<string, { edge: Edge; from: { id: string; share: number }[]; rate: number }>();
   const edges = g.edges.flatMap((e): Edge[] => {
     const a = side(e.source);
     const b = side(e.target);
@@ -88,19 +90,26 @@ function perBuilding(g: Graph): { graph: Graph; copies: Set<string>; buses: Map<
       id,
       source,
       target,
-      data: { ...e.data, rate: r },
+      // `group`: the belt of the line it goes to, so each line has splitters of its own under the one that shares between lines.
+      data: { ...e.data, rate: r, group: e.id },
     });
-    const bus =
-      (a.length > 1 && (b.length > 1 || kind.get(e.target) === 'endpoint')) || (b.length > 1 && kind.get(e.source) === 'endpoint');
+    const bus = a.length > 1 || (b.length > 1 && kind.get(e.source) === 'endpoint');
     if (!bus) return a.flatMap((x) => b.map((y) => link(`${e.id}#${x.id}|${y.id}`, x.id, y.id, rate * x.share * y.share)));
-    const mid = `bus:${e.id}`;
-    buses.set(mid, item);
-    nodes.push({ id: mid, type: 'bus', position: { x: 0, y: 0 }, data: {} });
-    return [
-      ...a.map((x) => link(`${e.id}#${x.id}>`, x.id, mid, rate * x.share)),
-      ...b.map((y) => link(`${e.id}#>${y.id}`, mid, y.id, rate * y.share)),
-    ];
+    const mid = a.length > 1 ? `bus:${e.source}|${item}` : `bus:${e.id}`;
+    if (!buses.has(mid)) {
+      buses.set(mid, item);
+      nodes.push({ id: mid, type: 'bus', position: { x: 0, y: 0 }, data: {} });
+    }
+    const onward = b.map((y) => link(`${e.id}#>${y.id}`, mid, y.id, rate * y.share));
+    if (a.length === 1) return [link(`${e.id}#${a[0].id}>`, a[0].id, mid, rate), ...onward];
+    const fed = feeds.get(mid);
+    if (fed) fed.rate += rate;
+    else feeds.set(mid, { edge: e, from: a, rate });
+    return onward;
   });
+  for (const [mid, { edge, from, rate }] of feeds)
+    for (const x of from)
+      edges.push({ ...edge, id: `${mid}#${x.id}>`, source: x.id, target: mid, data: { ...edge.data, rate: rate * x.share } });
   return { graph: { ...g, nodes, edges }, copies, buses };
 }
 
@@ -255,14 +264,37 @@ export async function modelFromSolve(
   for (const [mid, item] of buses) {
     const A = g.edges.filter((e) => e.type === 'flow' && e.target === mid);
     const B = g.edges.filter((e) => e.type === 'flow' && e.source === mid);
-    const m = A.length > 1 ? tree(A, item, 'merge') : undefined;
-    const sp = B.length > 1 ? tree(B, item, 'split') : undefined;
-    if (m) for (const [i, e] of A.entries()) targetOf.set(e.id, m.ends[i]);
-    if (sp) for (const [i, e] of B.entries()) sourceOf.set(e.id, sp.ends[i]);
-    const total = A.reduce((a, e) => a + (e.data as FlowEdgeData).rate, 0);
-    if (m && sp) links.push({ id: id(), a: m.root.node, ap: 0, b: sp.root.node, bp: 0, ...line(item, total, tier) });
-    else if (m) sourceOf.set(B[0].id, m.root);
-    else if (sp) targetOf.set(A[0].id, sp.root);
+    const rate = (es: Edge[]) => es.reduce((n, e) => n + (e.data as FlowEdgeData).rate, 0);
+    // The belts to one line go together; the line's own splitters share them out among its machines.
+    const to = new Map<string, Edge[]>();
+    for (const e of B) {
+      const key = (e.data as { group?: string }).group ?? e.id;
+      to.set(key, [...(to.get(key) ?? []), e]);
+    }
+    const lines = [...to.values()];
+    const merge = A.length > 1 ? tree(A, item, 'merge') : undefined;
+    if (merge) for (const [i, e] of A.entries()) targetOf.set(e.id, merge.ends[i]);
+    const own = lines.map((es) => (es.length > 1 ? tree(es, item, 'split') : undefined));
+    for (const [i, es] of lines.entries()) for (const [j, e] of es.entries()) if (own[i]) sourceOf.set(e.id, own[i]!.ends[j]);
+    // Between several lines, one more splitter shares what comes out of the merger.
+    const hub =
+      lines.length > 1
+        ? tree(
+            lines.map((es) => ({ ...es[0], data: { ...es[0].data, rate: rate(es) } })),
+            item,
+            'split',
+          )
+        : undefined;
+    for (const [i, es] of lines.entries()) {
+      if (!hub) break;
+      const at = hub.ends[i];
+      if (own[i]) links.push({ id: id(), a: at.node, ap: at.port, b: own[i]!.root.node, bp: 0, ...line(item, rate(es), tier) });
+      else sourceOf.set(es[0].id, at);
+    }
+    const entry = hub ? hub.root : own[0]?.root;
+    if (merge && entry) links.push({ id: id(), a: merge.root.node, ap: 0, b: entry.node, bp: entry.port, ...line(item, rate(A), tier) });
+    else if (merge) sourceOf.set(B[0].id, merge.root);
+    else if (entry) targetOf.set(A[0].id, entry);
   }
 
   for (const e of rounds) {

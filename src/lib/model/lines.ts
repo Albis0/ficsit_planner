@@ -71,10 +71,32 @@ export function findGroups(nodes: MNode[], links: MLink[]): Found[] {
     walk(root);
     return t;
   };
+  // A tree is a line's own when every machine at its leaves makes the same thing; a splitter above several lines is not.
+  const kinds = new Map<string, string | null>();
+  const kindOf = (id: string, side: 'split' | 'merge'): string | null => {
+    const key = `${side}|${id}`;
+    const hit = kinds.get(key);
+    if (hit !== undefined) return hit;
+    let one: string | null | undefined;
+    for (const l of (side === 'split' ? outL : inL).get(id) ?? []) {
+      const next = side === 'split' ? l.b : l.a;
+      const n = byId.get(next);
+      const k = (side === 'split' ? isSplit(next) : isMerge(next)) ? kindOf(next, side) : n?.k === 'machine' ? n.recipe : null;
+      one = one === undefined || one === k ? k : null;
+    }
+    kinds.set(key, one ?? null);
+    return one ?? null;
+  };
   const trees: Tree[] = [];
   for (const n of nodes) {
-    if (isSplit(n.id) && !isSplit(inL.get(n.id)![0].a)) trees.push(tree(n.id, 'split'));
-    if (isMerge(n.id) && !isMerge(outL.get(n.id)![0].b)) trees.push(tree(n.id, 'merge'));
+    if (isSplit(n.id) && kindOf(n.id, 'split')) {
+      const up = inL.get(n.id)![0].a;
+      if (!isSplit(up) || !kindOf(up, 'split')) trees.push(tree(n.id, 'split'));
+    }
+    if (isMerge(n.id) && kindOf(n.id, 'merge')) {
+      const down = outL.get(n.id)![0].b;
+      if (!isMerge(down) || !kindOf(down, 'merge')) trees.push(tree(n.id, 'merge'));
+    }
   }
   const good = trees.filter(
     (t) => t.leaves.length >= 2 && new Set(t.leaves).size === t.leaves.length && t.leaves.every((id) => byId.get(id)?.k === 'machine'),
@@ -211,9 +233,11 @@ export function layoutGroup(g: Found, all: Map<string, MNode>, links: MLink[], d
   lay(merges);
 
   const levels = (ts: Tree[]) => Math.max(0, ...ts.map((t) => (t.height.get(t.nodes[0]) ?? 0) + 1));
+  // Trees that reach the same machines (two things going into one) need a lane each belt; trees of their own machines don't.
+  const shared = (ts: Tree[]) => new Set(ts.flatMap((t) => t.leaves)).size < ts.reduce((n, t) => n + t.leaves.length, 0);
   const leafBelts = (ts: Tree[]) => ts.reduce((a, t) => a + t.leaves.length, 0);
   const chOf = (ts: Tree[]) =>
-    ts.length === 0 ? 0 : ts.length === 1 ? GRID * 3 + ROOM : Math.ceil((GRID * 2 + (leafBelts(ts) + 1) * HALF + ROOM) / GRID) * GRID;
+    ts.length === 0 ? 0 : !shared(ts) ? GRID * 3 + ROOM : Math.ceil((GRID * 2 + (leafBelts(ts) + 1) * HALF + ROOM) / GRID) * GRID;
   const chIn = chOf(splits);
   const chOut = chOf(merges);
   const Din = splits.length ? chIn + levels(splits) * (FZ + STEP) - STEP + 0 : 0;
@@ -270,7 +294,7 @@ export function layoutGroup(g: Found, all: Map<string, MNode>, links: MLink[], d
     );
   const level = new Map<string, number>();
   for (const ts of [splits, merges]) {
-    if (ts.length < 2) continue;
+    if (!shared(ts)) continue;
     const ls = leafLinks(ts)
       .map((l) => ({ l, from: abs(l.a, 'out', apOf.get(l.id)!).a, to: abs(l.b, 'in', bpOf.get(l.id)!).a }))
       .sort((p, q) => p.to - q.to || p.from - q.from);
