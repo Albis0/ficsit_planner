@@ -1018,4 +1018,26 @@ describe('a factory taken to the Manual floor building by building', () => {
     }
     expect(seen).toBeGreaterThan(4);
   }, 60000);
+  test('a line of machines stands in the order their belts lead on, so a splitter below them has none crossing', async () => {
+    const mk = (id: string, recipe: string): MNode => ({ id, x: 0, y: 0, k: 'machine', recipe });
+    const nodes: MNode[] = [
+      { id: 's', x: 0, y: 0, k: 'logistic', kind: 'splitter' },
+      mk('r1', 'Recipe_IronRod_C'),
+      mk('r2', 'Recipe_IronRod_C'),
+      mk('screws', 'Recipe_Screw_C'),
+      mk('rotor', 'Recipe_Rotor_C'),
+    ];
+    // The first rod machine feeds the screws, which go into the rotor's second input; the second feeds the rotor's first.
+    const link = (id: string, a: string, ap: number, b: string, bp: number): MLink => ({ id, a, ap, b, bp });
+    const links = [
+      link('0', 's', 0, 'r1', 0),
+      link('1', 's', 1, 'r2', 0),
+      link('2', 'r1', 0, 'screws', 0),
+      link('3', 'r2', 0, 'rotor', 0),
+      link('4', 'screws', 0, 'rotor', 1),
+    ];
+    const laid = await arrangeModel({ v: MODEL_VERSION, calc: 'basic', nodes, links, seq: 9, dir: 'TB' });
+    const x = (id: string) => laid.nodes.find((n) => n.id === id)!.x;
+    expect(x('r2')).toBeLessThan(x('r1'));
+  }, 60000);
 });

@@ -1,6 +1,6 @@
 import type { ELK, ElkExtendedEdge, ElkNode } from 'elkjs/lib/elk-api';
 import { cardSize, dirOf, endSpot, GRID, HALF, portY } from './layout';
-import { type Block, findGroups, layoutGroup, loose, type Pt, type Route } from './lines';
+import { type Block, findGroups, layoutGroup, leaning, loose, type Pt, type Route } from './lines';
 import { portsOf } from './ports';
 import { isPart, type MLink, type MNode, type Model } from './types';
 
@@ -145,24 +145,24 @@ async function place(
   const byId = new Map(nodes.map((n) => [n.id, n]));
   const full = (id: string) => byId.get(id) ?? ctx.all?.get(id);
   const slot = new Map<string, number>();
-  const far = (id: string, port: number) => {
-    const n = byId.get(id);
-    return n && loose(n) ? id : `${id}:${port}`;
-  };
-  const rank = (ls: MLink[], other: (l: MLink) => string, side: 'a' | 'b') => {
-    ls.sort((x, y) => other(x).localeCompare(other(y)) || x.id.localeCompare(y.id));
+  // A splitter's ends (a merger's) go in the order the belts lead on, by the ports they end on further along, so the
+  // left end feeds what leads left and its belts don't cross on the way.
+  const onward = leaning(links, true);
+  const back = leaning(links, false);
+  const rank = (ls: MLink[], key: (l: MLink) => number, side: 'a' | 'b') => {
+    ls.sort((x, y) => key(x) - key(y) || x.id.localeCompare(y.id));
     for (const [k, l] of ls.entries()) slot.set(`${l.id}:${side}`, k);
   };
   for (const n of nodes) {
     if (!loose(n)) continue;
     rank(
       links.filter((l) => l.a === n.id),
-      (l) => far(l.b, l.bp),
+      (l) => l.bp + onward(l.b) / 2,
       'a',
     );
     rank(
       links.filter((l) => l.b === n.id),
-      (l) => far(l.a, l.ap),
+      (l) => l.ap + back(l.a) / 2,
       'b',
     );
   }

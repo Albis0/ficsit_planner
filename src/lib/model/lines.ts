@@ -38,6 +38,29 @@ export interface Found {
   trees: Tree[];
 }
 
+/**
+ * How far to the left a card's belts lead on, from the ports they end on, further on (or further back) with less weight:
+ * what feeds the first ports of a machine, or the machine that feeds it, comes before what feeds the later ones.
+ */
+export function leaning(links: MLink[], onward: boolean): (id: string) => number {
+  const by = new Map<string, MLink[]>();
+  for (const l of links) by.set(onward ? l.a : l.b, [...(by.get(onward ? l.a : l.b) ?? []), l]);
+  const memo = new Map<string, number>();
+  const seen = new Set<string>();
+  const of = (id: string): number => {
+    const hit = memo.get(id);
+    if (hit !== undefined) return hit;
+    if (seen.has(id)) return 0;
+    seen.add(id);
+    const ls = by.get(id) ?? [];
+    const v = ls.length ? ls.reduce((t, l) => t + (onward ? l.bp + of(l.b) / 2 : l.ap + of(l.a) / 2), 0) / ls.length : 0;
+    seen.delete(id);
+    memo.set(id, v);
+    return v;
+  };
+  return of;
+}
+
 /** Lines of machines that share splitter and merger trees. */
 export function findGroups(nodes: MNode[], links: MLink[]): Found[] {
   const byId = new Map(nodes.map((n) => [n.id, n]));
@@ -178,7 +201,14 @@ export function layoutGroup(g: Found, all: Map<string, MNode>, links: MLink[], d
   const idx = new Map(order.map((id, i) => [id, i]));
   const rest = g.machines.filter((id) => !idx.has(id));
   for (const id of rest) idx.set(id, idx.size);
+  // With belts leaving (or reaching) the row on one side only, the machine whose belt leads on to the earlier ports stands
+  // first, so those belts don't have to cross each other on the way.
   const rowOf = [...idx.keys()];
+  if (!splits.length !== !merges.length) {
+    const key = leaning(links, splits.length > 0);
+    rowOf.sort((x, y) => key(x) - key(y) || idx.get(x)! - idx.get(y)!);
+    for (const [i, id] of rowOf.entries()) idx.set(id, i);
+  }
   const pitch = Math.max(...rowOf.map(sizeA)) + GRID * 2;
   const mA = new Map(rowOf.map((id) => [id, idx.get(id)! * pitch]));
   const Hm = Math.max(...rowOf.map(sizeF));

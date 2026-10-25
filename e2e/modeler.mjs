@@ -833,7 +833,10 @@ const clash = (a, b) => a && b && a.x < b.x + b.width && b.x < a.x + a.width && 
     const groups = async () => (await model()).nodes.filter((n) => n.k === 'group');
     const cardsOn = async () => (await model()).nodes.filter((n) => n.k !== 'group').length;
     // Round two cards when the corner above them is empty floor, else on a spot of empty floor.
-    const two = (await model()).nodes.filter((n) => n.k === 'machine').slice(0, 2);
+    // The first machine and the one nearest it: the layout may put any two first.
+    const all = (await model()).nodes.filter((n) => n.k === 'machine');
+    const near = all.slice(1).sort((p, q) => Math.hypot(p.x - all[0].x, p.y - all[0].y) - Math.hypot(q.x - all[0].x, q.y - all[0].y))[0];
+    const two = [all[0], near];
     const rects = await Promise.all(two.map((n) => card(n.id).boundingBox()));
     const floorBox = await page.locator('.react-flow').boundingBox();
     // A spot of empty floor above and left of both, found by stepping out from them.
@@ -893,7 +896,18 @@ const clash = (a, b) => a && b && a.x < b.x + b.width && b.x < a.x + a.width && 
     await page.keyboard.press('Escape');
     await wait(300);
     const edge = await page.locator('.area-node').boundingBox();
-    await page.mouse.click(edge.x + 2, edge.y + edge.height / 2);
+    // A spot on the left edge no card or belt lies over.
+    const onEdge = await page.evaluate(
+      ({ x, y, h }) => {
+        for (let k = 1; k < 20; k++) {
+          const py = y + (h * k) / 20;
+          if (document.elementFromPoint(x + 2, py)?.closest('.area-edge')) return py;
+        }
+        return y + h / 2;
+      },
+      { x: edge.x, y: edge.y, h: edge.height },
+    );
+    await page.mouse.click(edge.x + 2, onEdge);
     await wait(500);
     ok('and on its edge', (await page.locator('aside.inspector #area-name').count()) === 1);
     const tall = await page.locator('aside.inspector').evaluate((a) => a.scrollHeight);
