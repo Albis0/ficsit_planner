@@ -14,7 +14,7 @@ const COLORS = ['#fa9549', '#4fa8e6', '#7ac36a', '#c47be0', '#e6c84f', '#e66a6a'
 
 /**
  * The product chains of a floor: every machine that takes two things made by other machines (a Rotor takes rods and
- * screws) with all the machines that work only towards it, by the machine they work towards. A machine that feeds two
+ * screws), or that makes a final product, with all the machines that work only towards it, by the machine they work towards. A machine that feeds two
  * such products belongs to neither. The splitters and mergers whose belts all lead into one chain stand in it too.
  */
 export function chains(nodes: Node[], edges: Edge[]): Map<string, string[]> {
@@ -46,7 +46,8 @@ export function chains(nodes: Node[], edges: Edge[]): Map<string, string[]> {
     go(id);
     return [...found];
   };
-  const assembly = (id: string) => reach(id, inL).length >= 2;
+  // A chain ends in a machine that takes two things made by machines, or in one that hands its product on to no machine at all.
+  const assembly = (id: string) => reach(id, inL).length >= 2 || reach(id, outL).length === 0;
   const owner = new Map<string, string | undefined>();
   const ownerOf = (id: string, path = new Set<string>()): string | undefined => {
     if (owner.has(id)) return owner.get(id);
@@ -67,7 +68,8 @@ export function chains(nodes: Node[], edges: Edge[]): Map<string, string[]> {
     const o = ownerOf(id);
     if (o) members.set(o, [...(members.get(o) ?? []), id]);
   }
-  for (const [root, ids] of members) if (ids.length < 2) members.delete(root);
+  // A chain is two machines at least, or a machine of its own making a product from raw input alone (a line of one machine).
+  for (const [root, ids] of members) if (ids.length < 2 && reach(root, inL).length > 0) members.delete(root);
   // A splitter or merger goes with the chain all its belts lead into, and with a chain only.
   const chainOf = new Map([...members].flatMap(([root, ids]) => ids.map((id) => [id, root] as const)));
   for (let again = true; again; ) {
@@ -91,7 +93,6 @@ export function autoAreas(nodes: Node[], edges: Edge[]): GroupNode[] {
   const machines = new Map(nodes.filter((n) => n.type === 'machine').map((n) => [n.id, n]));
   const areas: GroupNode[] = [];
   for (const [root, ids] of members) {
-    if (ids.length < 2) continue;
     const boxes = ids.map((id) => byId.get(id)!);
     const x0 = Math.min(...boxes.map((n) => n.position.x));
     const y0 = Math.min(...boxes.map((n) => n.position.y));

@@ -347,3 +347,21 @@ test('Auto floor keeps each product chain together, so four chains of a larger f
     }
   }
 });
+
+test('with products on lines of their own, every line gets an area, a line of one machine too', () => {
+  const items = ['Desc_IronPlateReinforced_C', 'Desc_Cable_C', 'Desc_Cement_C'];
+  const r = solve(highs, {
+    targets: items.map((item) => ({ item, rate: 10 })),
+    supplies: [],
+    enabledRecipes: new Set(data.recipes.filter((x) => x.kind === 'standard').map((x) => x.id)),
+    resourceCaps: {},
+    objective: 'resources',
+    lines: items,
+  });
+  const { nodes, edges } = buildGraph(r, 9, { dir: 'LR', splitters: true });
+  expect(
+    autoAreas(nodes, edges)
+      .map((a) => a.label)
+      .sort(),
+  ).toEqual(['Cable', 'Concrete', 'Reinforced Iron Plate']);
+});
