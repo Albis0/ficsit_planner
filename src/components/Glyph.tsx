@@ -43,7 +43,6 @@ const PATHS = {
   // One card feeding two, laid out left to right.
   tidy: 'M3 9.5h6v5H3z M15 4h6v5h-6z M15 15h6v5h-6z M9 12h3 M12 6.5v11 M12 6.5h3 M12 17.5h3',
   // Round arrows: start again.
-  rebuild: 'M20 11a8 8 0 0 0-14.3-4.9L4 8 M4 4v4h4 M4 13a8 8 0 0 0 14.3 4.9L20 16 M20 20v-4h-4',
   eye: 'M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12z M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6z',
   eyeOff: 'M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12z M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6z M4 4l16 16',
   chevronLeft: 'M15 5l-7 7 7 7',

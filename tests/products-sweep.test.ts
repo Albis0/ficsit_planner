@@ -5,7 +5,7 @@ import { buildGraph } from '../src/lib/graph';
 import { DEFAULT_EXTRACTION } from '../src/lib/extraction';
 import { calcModel } from '../src/lib/model/calc';
 import { adaptModel } from '../src/lib/model/calc/adapter';
-import { modelFromSolve } from '../src/lib/model/fromAuto';
+import { modelFromSolve } from './helpers/fromAuto';
 import { cleanModel } from '../src/lib/model/sanitize';
 import { solve } from '../src/lib/solver';
 import { layoutEngine } from './helpers/elk';

@@ -1,15 +1,15 @@
 import type { Edge, Node } from '@xyflow/react';
-import { data, transportFor } from '../data';
-import { type ExtractionSettings, extractorFor } from '../extraction';
-import { buildGraph, type EndpointNodeData, type FlowEdgeData, type MachineNodeData } from '../graph';
-import type { SolveResult, Target } from '../solver';
-import { arrangeModel } from './arrange';
-import type { Dir } from './layout';
-import { extractorRate, mediumOf } from './ports';
-import { type MLink, type MNode, type Model, MODEL_VERSION } from './types';
+import { data, transportFor } from '../../src/lib/data';
+import { type ExtractionSettings, extractorFor } from '../../src/lib/extraction';
+import { buildGraph, type EndpointNodeData, type FlowEdgeData, type MachineNodeData } from '../../src/lib/graph';
+import type { SolveResult, Target } from '../../src/lib/solver';
+import { arrangeModel } from '../../src/lib/model/arrange';
+import type { Dir } from '../../src/lib/model/layout';
+import { extractorRate, mediumOf } from '../../src/lib/model/ports';
+import { type MLink, type MNode, type Model, MODEL_VERSION } from '../../src/lib/model/types';
 
 /*
-  A solved factory as a hand-built model, so the player starts from a working factory instead of an empty floor. Every
+  For tests: a solved factory as a hand-built model, a floor as big and as tangled as a player makes one. Every
   card on the Auto floor becomes a node; every belt a link. Where one output feeds several machines a splitter goes
   in, and where several belts feed one input a merger, because in the game one end holds one belt. Raw inputs become
   a miner (or pump) per belt, sized to what that belt carries. Then the whole of it is laid out afresh, splitters,
@@ -118,8 +118,6 @@ export async function modelFromSolve(
   tier: number,
   extraction: ExtractionSettings,
   dir: Dir = 'LR',
-  /** Recipes ticked built on the Auto floor: their cards come ticked too. */
-  built: string[] = [],
   /** Each building a card of its own, instead of one card saying how many. */
   eachBuilding = false,
 ): Promise<Model> {
@@ -150,7 +148,6 @@ export async function modelFromSolve(
       k: 'machine',
       recipe: use.recipe.id,
       ...(copies.has(n.id) ? {} : { auto: true as const }),
-      ...(built.includes(use.recipe.id) ? { done: true as const } : {}),
       ...(Math.abs(use.clock - 1) > 1e-12 ? { clock: Math.max(0.01, use.clock) } : {}),
       ...(Math.round(use.mod.sloops) > 0 ? { sloops: Math.round(use.mod.sloops) } : {}),
     };

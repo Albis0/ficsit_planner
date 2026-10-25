@@ -42,7 +42,7 @@ export function QuickPick() {
   const shown = (ids: string[]) => (hide ? ids.filter((id) => !itemLocked(id, tier)) : ids);
   const set = useStore((s) => s.set);
   const updatePlan = useStore((s) => s.updatePlan);
-  const setFloor = useStore((s) => s.setFloor);
+  const makeManual = useStore((s) => s.makeManual);
   const active = useStore((s) => s.active);
   const [q, setQ] = useState('');
 
@@ -109,7 +109,7 @@ export function QuickPick() {
             className="build-by-hand"
             title={t('manualHint')}
             onClick={() => {
-              setFloor(active, 'manual');
+              makeManual(active);
               set({ view: 'graph' });
             }}
           >

@@ -794,10 +794,6 @@ const DOUBLE = 250;
 
 let solveCount = 0;
 
-/** The way the factory floor last ran on screen, picked or fitted to it: a floor built by hand from it runs the same. */
-let shownDir: Direction = 'LR';
-export const autoDir = () => shownDir;
-
 /** Room kept along the floor's bottom edge for its buttons (view switch, direction, fit), so no card opens under them. */
 const BAR = 76;
 
@@ -1148,7 +1144,6 @@ export function GraphView({
     }),
     [consumers, ticked, updatePlan],
   );
-  if (!consumers) shownDir = dir;
   return (
     <Extraction.Provider value={exMap}>
       <Links.Provider value={links}>

@@ -398,13 +398,6 @@
     bottom: 10px;
   }
 
-  /* Auto / Manual sits over the view switch, so both fit beside Fit. */
-  .floor-bar:has(.floor-kind) {
-    flex-direction: column-reverse;
-    align-items: flex-start;
-    gap: 6px;
-  }
-
   .floor-hint {
     display: none;
   }

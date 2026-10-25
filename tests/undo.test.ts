@@ -52,14 +52,14 @@ describe('undo on the Auto floor', () => {
     expect(canUndo(autoScope(s().active))).toBe(false);
   });
 
-  test('on a hand-built floor the plan buttons leave things alone: the floor has its own undo', () => {
+  test('on a Manual factory the plan buttons leave things alone: the floor has its own undo', () => {
     const id = s().active;
-    s().setFloor(id, 'manual');
+    s().makeManual(id);
+    expect(s().plans[0].floor).toBe('manual');
     s().addTarget('Desc_Wire_C');
     const targets = s().plans[0].targets;
     s().undoPlan();
     expect(s().plans[0].targets).toBe(targets);
-    s().setFloor(id, 'auto');
   });
 });
 

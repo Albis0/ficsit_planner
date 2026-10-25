@@ -12,8 +12,8 @@ import { cleanChoice, cleanNumber, cleanPlan, cleanPowerPlan, cleanSettings, gri
 import { DEFAULT_SETTINGS, type Settings } from './lib/settings';
 import type { RecipeMod, Target } from './lib/solver';
 import { cleanMapFilter, DEFAULT_MAP_FILTER, type MapFilter } from './lib/world';
-import { autoScope, forget, powerScope, record, redo, undo } from './lib/model/history';
-import { floorTargets, sameTargets, withTargets } from './lib/model/targets';
+import { autoScope, powerScope, record, redo, undo } from './lib/model/history';
+import { floorTargets, sameTargets } from './lib/model/targets';
 import { cleanSkipped, setSkipped } from './lib/unlocks';
 import { emptyModel, type Model } from './lib/model/types';
 import type { Carrier } from './lib/transport';
@@ -365,7 +365,8 @@ interface State {
   setWeight: (item: string, weight: number | undefined) => void;
   setMod: (recipe: string, mod: RecipeMod | undefined) => void;
   /** Auto or Manual for a factory tab; a model to start Manual with, when there isn't one yet or it's rebuilt. */
-  setFloor: (plan: string, floor: 'auto' | 'manual', model?: Model) => void;
+  /** Turns a factory nothing has been put in yet into a Manual one; a factory with something in it stays as it is. */
+  makeManual: (plan: string) => void;
   /**
    * Changes a factory's hand-built model. The model before goes on the tab's undo list; edits sharing a merge key a
    * moment apart (typing, a slider) undo as one.
@@ -494,7 +495,7 @@ export const useStore = create<State>()(
           }),
         });
       };
-      // Plan edits go to whatever is on screen: the active factory, or the power plant's fuel plan. On the Auto floor
+      // Plan edits go to whatever is on screen: the active factory, or the power plant's fuel plan. On an Auto factory
       // the plan as it was goes on the tab's undo list; edits sharing a merge key a moment apart undo as one.
       const update = (fn: (p: Plan) => Partial<Plan>, merge?: string) => {
         if (get().mode === 'power') return power((pp) => ({ chain: { ...pp.chain, ...fn(pp.chain) } }), merge);
@@ -503,24 +504,16 @@ export const useStore = create<State>()(
             if (p.id !== get().active) return p;
             const patch = fn(p);
             if (p.floor !== 'manual' && changes(p, patch)) record(autoScope(p.id), p, merge);
-            // Targets and a hand-built floor's products are one list: new targets reach its output cards, one step to undo.
-            if (patch.targets && p.model && !patch.model) {
-              const model = withTargets(p.model, patch.targets);
-              if (model !== p.model) {
-                record(p.id, p.model, 'targets');
-                return { ...p, ...patch, model };
-              }
-            }
             return { ...p, ...patch };
           }),
         });
       };
-      /** A hand-built floor changed: its output cards are the factory's targets from here on. */
+      /** A Manual factory's floor changed: its output cards are the factory's targets from here on. */
       const withFloor = (p: Plan, model: Model): Plan => {
         const targets = floorTargets(model, p.targets);
         return sameTargets(targets, p.targets) ? { ...p, model } : { ...p, model, targets };
       };
-      /** Steps the Auto floor's plan, or the power plant, on screen back or forward one edit. */
+      /** Steps the Auto factory's plan, or the power plant, on screen back or forward one edit. */
       const stepPlan = (step: typeof undo) => {
         if (get().mode === 'power') {
           const id = activePowerPlan(get()).id;
@@ -535,14 +528,9 @@ export const useStore = create<State>()(
         if (!cur || cur.floor === 'manual') return;
         const snap = step(autoScope(id), cur);
         if (!snap) return;
-        // The tab keeps its name, and its hand-built floor as it is except for the targets it shares with the plan.
-        const { floor: _f, model: _m, name: _n, ...rest } = snap;
-        const model = cur.model && withTargets(cur.model, rest.targets);
-        if (model && model !== cur.model) record(id, cur.model, 'targets');
-        set({
-          plans: get().plans.map((p) => (p.id === id ? { ...rest, name: p.name, ...(model ? { model } : {}) } : p)),
-          inspect: undefined,
-        });
+        // The tab keeps its name.
+        const { name: _n, ...rest } = snap;
+        set({ plans: get().plans.map((p) => (p.id === id ? { ...rest, name: p.name } : p)), inspect: undefined });
       };
       const plants = (fn: (list: Plant[]) => Plant[], merge?: string) => power((pp) => ({ plants: fn(pp.plants) }), merge);
 
@@ -844,17 +832,15 @@ export const useStore = create<State>()(
             else mods[recipe] = mod;
             return { mods };
           }, `mod:${recipe}`),
-        setFloor: (id, floor, model) => {
-          if (model) forget(id);
+        makeManual: (id) =>
           set({
-            plans: get().plans.map((p) => {
-              if (p.id !== id) return p;
-              const { floor: _, ...rest } = p;
-              return { ...rest, ...(floor === 'manual' ? { floor } : {}), ...(model ? { model } : {}) };
-            }),
+            plans: get().plans.map((p) =>
+              p.id === id && !p.floor && p.targets.length === 0 && p.supplies.length === 0
+                ? { ...p, floor: 'manual', model: emptyModel() }
+                : p,
+            ),
             inspect: undefined,
-          });
-        },
+          }),
         editModel: (id, fn, merge) => {
           const plan = get().plans.find((p) => p.id === id);
           // A manual floor saved without its model starts from an empty one.

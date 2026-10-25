@@ -1,11 +1,5 @@
 /* ---------- Hand-built floor ---------- */
 
-/* Auto or Manual, ahead of the view switch. */
-.floor-kind button[aria-checked='true'] {
-  background: var(--ficsit);
-  color: var(--ficsit-ink);
-}
-
 /* An end of a machine: a square on its edge with the item it takes or gives; dashed while nothing is on it. */
 .react-flow__handle.port {
   width: 26px;

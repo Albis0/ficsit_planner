@@ -5,7 +5,7 @@ import { DEFAULT_EXTRACTION } from '../src/lib/extraction';
 import { adaptModel } from '../src/lib/model/calc/adapter';
 import { calcKey, calcModel } from '../src/lib/model/calc';
 import { builtTransport } from '../src/lib/model/calc/compile';
-import { modelFromSolve } from '../src/lib/model/fromAuto';
+import { modelFromSolve } from './helpers/fromAuto';
 import { applyArrangement, arrangeModel, arrangement } from '../src/lib/model/arrange';
 import { openCards, openEnds, ruleFlags } from '../src/lib/model/checks';
 import { choicesFor, choiceWords, placeChoice, wantAt } from '../src/lib/model/choices';
@@ -227,7 +227,7 @@ describe('max flow', () => {
   });
 });
 
-describe('from an Auto plan', () => {
+describe('a hand-built copy of an Auto plan', () => {
   const standard = () => new Set(data.recipes.filter((r) => r.kind === 'standard').map((r) => r.id));
   for (const [item, rate] of [
     ['Desc_Motor_C', 10],
@@ -284,22 +284,6 @@ describe('from an Auto plan', () => {
     expect(cleanModel(m)).toEqual(m);
     const { result } = adaptModel(m, run(m));
     expect(result.targets.find((t) => t.item === 'Desc_Motor_C')?.rate).toBeCloseTo(20, 4);
-  });
-
-  test('machines whose recipe was ticked built on the Auto floor start ticked on the Manual floor', async () => {
-    const auto = solve(highs, {
-      targets: [{ item: 'Desc_Wire_C', rate: 60 }],
-      supplies: [],
-      enabledRecipes: standard(),
-      resourceCaps: {},
-      objective: 'resources',
-    });
-    const ticked = auto.recipes[0].recipe.id;
-    const m = await modelFromSolve(auto, 9, DEFAULT_EXTRACTION, 'LR', [ticked]);
-    for (const n of m.nodes) if (n.k === 'machine') expect(!!n.done).toBe(n.recipe === ticked);
-    expect(m.nodes.some((n) => n.k === 'machine' && n.done)).toBe(true);
-    const plain = await modelFromSolve(auto, 9, DEFAULT_EXTRACTION);
-    expect(plain.nodes.some((n) => n.k === 'machine' && n.done)).toBe(false);
   });
 
   test('a target set lower afterwards takes fewer machines and slower belts, not machines running slower', async () => {
@@ -945,7 +929,7 @@ test('the build menu finds a splitter, a merger and a pipe junction by what they
   expect(choiceWords(splitter).join(' ').toLowerCase()).toContain('splitter');
 });
 
-describe('a factory taken to the Manual floor building by building', () => {
+describe('a hand-built copy with a card for every building', () => {
   const standard = () => new Set(data.recipes.filter((r) => r.kind === 'standard').map((r) => r.id));
   const factory = () =>
     solve(highs, {
@@ -959,7 +943,7 @@ describe('a factory taken to the Manual floor building by building', () => {
   test('has a card for every machine, with the same output as the card saying how many', async () => {
     const auto = factory();
     const kind = await modelFromSolve(auto, 9, DEFAULT_EXTRACTION);
-    const each = await modelFromSolve(auto, 9, DEFAULT_EXTRACTION, 'LR', [], true);
+    const each = await modelFromSolve(auto, 9, DEFAULT_EXTRACTION, 'LR', true);
     const machines = (m: Model) => m.nodes.filter((n) => n.k === 'machine');
     expect(machines(each).length).toBeGreaterThanOrEqual(auto.recipes.reduce((a, u) => a + (u.recipe.kind === 'power' ? 0 : u.built), 0));
     expect(machines(each).length).toBeGreaterThan(machines(kind).length);
@@ -971,7 +955,7 @@ describe('a factory taken to the Manual floor building by building', () => {
   }, 60000);
 
   test('shares belts out in trees: no splitter or merger with one belt, none with more than three, and no chains', async () => {
-    const each = await modelFromSolve(factory(), 9, DEFAULT_EXTRACTION, 'TB', [], true);
+    const each = await modelFromSolve(factory(), 9, DEFAULT_EXTRACTION, 'TB', true);
     const logistic = each.nodes.filter((n) => n.k === 'logistic');
     expect(logistic.length).toBeGreaterThan(0);
     const into = (id: string) => each.links.filter((l) => l.b === id);
@@ -995,7 +979,7 @@ describe('a factory taken to the Manual floor building by building', () => {
   }, 60000);
 
   test('lays each line out in one row, each splitter over the machines it feeds and each merger under the ones it takes from', async () => {
-    const each = await modelFromSolve(factory(), 9, DEFAULT_EXTRACTION, 'TB', [], true);
+    const each = await modelFromSolve(factory(), 9, DEFAULT_EXTRACTION, 'TB', true);
     const at = new Map(each.nodes.map((n) => [n.id, n]));
     const centre = (id: string) => {
       const n = at.get(id)!;

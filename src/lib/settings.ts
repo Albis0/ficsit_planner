@@ -50,8 +50,6 @@ export interface Settings {
   summary: 'compact' | 'full';
   /** A line whose output goes to several places, on the graph: a card per place, or one card that says how to split it. */
   splitLines: 'each' | 'one';
-  /** A Manual floor started from a worked-out factory: asks which way, or always one card per kind of machine, or one per building. */
-  newFloor: 'ask' | 'kind' | 'building';
   /** The save's own multipliers for part costs, power draw and the Space Elevator. */
   game: GameRules;
 }
@@ -103,7 +101,6 @@ export const DEFAULT_SETTINGS: Settings = {
   showLocked: false,
   summary: 'compact',
   splitLines: 'each',
-  newFloor: 'ask',
   game: DEFAULT_GAME,
 };
 

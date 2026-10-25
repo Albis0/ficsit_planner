@@ -1,12 +1,10 @@
 import type { Target } from '../solver';
 import { cardSize, dirOf, freeSpot } from './layout';
-import { addNode } from './ops';
 import { type IoNode, isPart, type Model } from './types';
 
 /*
-  A factory's targets and its hand-built floor are one list: each product is an output card on the floor, and its
-  amount is the most that card takes. Changing a product on either side changes it on the other; what the floor is
-  built from (recipes, machines, belts) stays the floor's own.
+  A Manual factory's targets are its floor's output cards: each product is an output card, and its amount is the most
+  that card takes. What the floor is built from (recipes, machines, belts) is the floor's own.
 */
 
 const products = (m: Model, item?: string) =>
@@ -52,33 +50,3 @@ export function floorTargets(m: Model, was: Target[]): Target[] {
 
 export const sameTargets = (a: Target[], b: Target[]) =>
   a.length === b.length && a.every((t, i) => t.item === b[i].item && Math.abs(t.rate - b[i].rate) < 1e-6);
-
-/**
- * The floor's output cards set to the factory's targets: a product on two cards shares its new amount as they did
- * (evenly when they had none); a new product gets a card of its own, ready for a belt; a product no longer wanted
- * takes its cards off. Returns the same model when nothing changes.
- */
-export function withTargets(m: Model, targets: Target[]): Model {
-  let next = m;
-  for (const t of targets) {
-    const cards = products(next, t.item);
-    if (!cards.length) {
-      next = addNode(next, { k: 'out', item: t.item, lim: t.rate, ...ioSpot(next, 'out') }).model;
-      continue;
-    }
-    const had = cards.reduce((s, c) => s + (c.lim ?? 0), 0);
-    const share = (c: IoNode) => (had > 1e-9 && cards.every((x) => x.lim !== undefined) ? (c.lim ?? 0) / had : 1 / cards.length);
-    const lims = new Map(cards.map((c) => [c.id, Math.round(t.rate * share(c) * 1e6) / 1e6]));
-    if (cards.every((c) => c.lim !== undefined && Math.abs(c.lim - lims.get(c.id)!) < 1e-6)) continue;
-    next = { ...next, nodes: next.nodes.map((n) => (lims.has(n.id) ? { ...n, lim: lims.get(n.id) } : n)) };
-  }
-  const wanted = new Set(targets.map((t) => t.item));
-  const gone = new Set(
-    products(next)
-      .filter((n) => !wanted.has(n.item!))
-      .map((n) => n.id),
-  );
-  if (gone.size)
-    next = { ...next, nodes: next.nodes.filter((n) => !gone.has(n.id)), links: next.links.filter((l) => !gone.has(l.a) && !gone.has(l.b)) };
-  return next;
-}

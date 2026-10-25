@@ -39,17 +39,7 @@ function Tool({
  * Over the hand-built floor: undo and redo side by side, tidying up and starting again, the numbers on or off, and what
  * an output with no belt does.
  */
-export function ModelToolbar({
-  host,
-  onTidy,
-  onRebuild,
-  unbounded,
-}: {
-  host: ModelHost;
-  onTidy: () => void;
-  onRebuild?: () => void;
-  unbounded?: boolean;
-}) {
+export function ModelToolbar({ host, onTidy, unbounded }: { host: ModelHost; onTidy: () => void; unbounded?: boolean }) {
   const { t } = useT();
   const { model } = host;
   const [drawer, setDrawer] = useState(false);
@@ -67,7 +57,6 @@ export function ModelToolbar({
       </div>
       <div className="tool-group">
         <Tool icon="tidy" label={t('tidy')} disabled={model.nodes.length === 0} onClick={onTidy} />
-        {onRebuild && <Tool icon="rebuild" label={t('rebuild')} onClick={onRebuild} />}
         <Tool
           icon={numbers ? 'eye' : 'eyeOff'}
           label={t('numbers')}

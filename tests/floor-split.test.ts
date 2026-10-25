@@ -151,3 +151,33 @@ describe('copies and links from before', () => {
     expect(await open(2)).toHaveLength(1);
   });
 });
+
+describe('a factory is Auto or Manual for good', () => {
+  const blank = () => {
+    const plan = newPlan('Factory 1');
+    useStore.setState({ mode: 'factory', plans: [plan], active: plan.id });
+    return plan.id;
+  };
+
+  test('a factory with nothing in it can be turned into a Manual one, and one with something in it cannot', () => {
+    const id = blank();
+    useStore.getState().makeManual(id);
+    expect(useStore.getState().plans[0]).toMatchObject({ id, floor: 'manual' });
+    expect(useStore.getState().plans[0].model?.nodes).toEqual([]);
+
+    const worked = blank();
+    useStore.getState().addTarget(aim.item);
+    useStore.getState().makeManual(worked);
+    expect(useStore.getState().plans[0].floor).toBeUndefined();
+    expect(useStore.getState().plans[0].model).toBeUndefined();
+  });
+
+  test('changing the targets of an Auto factory does nothing to a Manual one beside it', () => {
+    const auto = { ...newPlan('Auto'), id: 'a', targets: [aim] };
+    const manual = { ...newPlan('Manual'), id: 'm', targets: [aim], floor: 'manual' as const, model: floor() };
+    useStore.setState({ mode: 'factory', plans: [auto, manual], active: 'a' });
+    useStore.getState().setTarget(0, 99);
+    useStore.getState().undoPlan();
+    expect(useStore.getState().plans[1]).toBe(manual);
+  });
+});

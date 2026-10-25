@@ -2,8 +2,7 @@ import { offAt, skipKey } from './lib/unlocks';
 import { useShallow } from 'zustand/react/shallow';
 import { lazy, Suspense, useEffect, useMemo, useState } from 'react';
 import { useCodexRoute } from './components/codex/route';
-import { autoDir, type FactoryLinks, GraphView } from './components/GraphView';
-import { FloorAsk } from './components/FloorAsk';
+import { type FactoryLinks, GraphView } from './components/GraphView';
 import { Glyph } from './components/Glyph';
 import { Inspector } from './components/Inspector';
 import { ViewMenu } from './components/ViewMenu';
@@ -23,7 +22,6 @@ import { InstallButton, ClosedTab, Notice, PwaStatus } from './components/PwaSta
 import { useFactoryHost, useModelCalc } from './components/modeler/hosts';
 import { FloorPanel } from './components/modeler/FloorPanel';
 import { forgetCamera, ModelEditor } from './components/modeler/ModelEditor';
-import { floorEnds } from './lib/model/calc/adapter';
 import { applyArrangement, arrangement } from './lib/model/arrange';
 import { dirOf } from './lib/model/layout';
 import { AutoAreaPanel, ModelInspector } from './components/modeler/ModelInspector';
@@ -60,9 +58,7 @@ import { SaveButton, SaveFlow } from './components/SaveButton';
 import { LATEST_UPDATE } from './locales/updates.en';
 import { useSolverLoading, useSolverReady } from './lib/solverClient';
 import { bootDone, bootText } from './lib/boot';
-import { modelFromSolve } from './lib/model/fromAuto';
 import { emptyModel, type Model } from './lib/model/types';
-import { calcAsync, solveAsync } from './lib/solverClient';
 import { activePowerPlan, aimOf, POOL, usePlan, useStore, useTier } from './store';
 
 // Folding the panel moves the app's grid tracks: above the floor a row, beside it a column.
@@ -172,7 +168,6 @@ export default function App() {
       power: x.power,
       seenUpdates: x.seenUpdates,
       set: x.set,
-      setFloor: x.setFloor,
       settings: x.settings,
       sideWidth: x.sideWidth,
       tab: x.tab,
@@ -231,65 +226,9 @@ export default function App() {
     [solved.result, plan.extraction, s.tier, skipKey()],
   );
   const extraction = manual ? (hand.adapted?.extraction ?? []) : autoExtraction;
-  /** Auto or Manual: the first switch to Manual starts from the factory as worked out, or an empty floor. */
-  // A model built afresh opens with a fresh camera.
+  // A model laid out afresh opens with a fresh camera.
   const [built, setBuilt] = useState(0);
-  const [asking, setAsking] = useState(false);
-  const startManual = async (eachBuilding: boolean) => {
-    const solved = factory.result;
-    // Running the way the Auto floor did.
-    const model = solved
-      ? await lay(() =>
-          modelFromSolve(solved, s.tier, effectiveExtraction(plan.extraction, s.tier), s.graphDir ?? autoDir(), plan.built, eachBuilding),
-        )
-      : emptyModel();
-    forgetCamera(plan.id);
-    setBuilt((n) => n + 1);
-    s.setFloor(plan.id, 'manual', model);
-  };
-  const setFloor = async (floor: 'auto' | 'manual') => {
-    if (floor === 'auto' || plan.model) return s.setFloor(plan.id, floor);
-    const choice = s.settings.newFloor;
-    // Nothing to choose between when every line is a single machine.
-    const several = factory.result?.recipes.some((u) => u.recipe.kind !== 'power' && u.built > 1);
-    if (choice === 'ask' && several) return setAsking(true);
-    return startManual(choice === 'building');
-  };
   const exports = useExports(plan.id);
-  // Rebuilding a hand-built floor starts from what its panel lists: the floor's own outputs and inputs. Those become
-  // the factory's targets too, so Auto and Manual agree afterwards.
-  // With the numbers hidden the floor carries nothing to read them from, so they're worked out once on the click.
-  const hidden = plan.model?.calc === 'off';
-  const ends = useMemo(
-    () => (manualPlan && plan.model && !hidden ? floorEnds(plan.model, hand.calc) : undefined),
-    [manualPlan, plan.model, hand.calc, hidden],
-  );
-  const canRebuild = hidden ? !!plan.model?.nodes.some((n) => n.k === 'out' && n.tag !== 'spare') : !!ends?.targets.length;
-  const rebuild = async () => {
-    const m = plan.model;
-    if (!m || !window.confirm(t('rebuildConfirm'))) return;
-    try {
-      const from = hidden ? floorEnds(m, await calcAsync({ model: { ...m, calc: 'basic' }, tier: s.tier, game: s.settings.game })) : ends;
-      if (!from?.targets.length) return;
-      // A supply taken from another factory tab stays taken from it.
-      const supplies = from.supplies.map((x) => {
-        const tab = plan.supplies.find((y) => y.item === x.item)?.from;
-        return tab ? { ...x, from: tab } : x;
-      });
-      const input = factoryInput({ ...plan, targets: from.targets, supplies }, s.tier, exports, aimOf(s), s.settings.game);
-      if (!input) return;
-      const r = await solveAsync(input);
-      const model = await lay(() =>
-        modelFromSolve(r, s.tier, effectiveExtraction(plan.extraction, s.tier), dirOf(m), plan.built, s.settings.newFloor === 'building'),
-      );
-      forgetCamera(plan.id);
-      setBuilt((n) => n + 1);
-      s.updatePlan({ targets: from.targets, supplies });
-      s.setFloor(plan.id, 'manual', model);
-    } catch {
-      /* the Auto floor shows why it can't be solved */
-    }
-  };
 
   // Tidying up, or turning the floor the other way: laid out afresh, one step to undo, the whole floor in view.
   // A second click while one is still being worked out does nothing, and the layout goes onto the floor as it is by
@@ -571,12 +510,7 @@ export default function App() {
               ) : manual ? (
                 <>
                   <ModelEditor key={built} host={host} calc={hand.calc} onArrange={arrange} />
-                  <ModelToolbar
-                    host={host}
-                    onTidy={() => arrange(host.model)}
-                    onRebuild={canRebuild ? rebuild : undefined}
-                    unbounded={hand.calc?.unbounded}
-                  />
+                  <ModelToolbar host={host} onTidy={() => arrange(host.model)} unbounded={hand.calc?.unbounded} />
                 </>
               ) : (
                 <GraphView result={result} extraction={extraction} consumers={consumers} links={links} />
@@ -594,16 +528,6 @@ export default function App() {
             {busy && <Busy solverLoad={solverLoad} />}
             {shown && (
               <div className="floor-bar">
-                {!powerMode && (
-                  <div className="segmented floor-kind" role="radiogroup" aria-label={t('floorKind')}>
-                    <button type="button" role="radio" aria-checked={!manual} title={t('autoHint')} onClick={() => setFloor('auto')}>
-                      {t('floorAuto')}
-                    </button>
-                    <button type="button" role="radio" aria-checked={manual} title={t('manualHint')} onClick={() => setFloor('manual')}>
-                      {t('floorManual')}
-                    </button>
-                  </div>
-                )}
                 <ViewMenu powerMode={powerMode} />
                 {!s.inspect && !manual && (powerMode || s.view !== 'transport') && (
                   <span className="floor-hint-slot">
@@ -619,16 +543,6 @@ export default function App() {
       {menuOpen && <MobileMenu onClose={() => setMenuOpen(false)} onTier={() => setTierOpen(true)} />}
       {(!s.onboarded || tierOpen) && <TierDialog onClose={() => setTierOpen(false)} />}
       <Dialogs />
-      {asking && (
-        <FloorAsk
-          onPick={(each) => {
-            setAsking(false);
-            startManual(each);
-          }}
-          onClose={() => setAsking(false)}
-        />
-      )}
-
       <SaveFlow />
       <TipLayer />
       <Notice />

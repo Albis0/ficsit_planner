@@ -99,28 +99,3 @@ function describeUse0(recipe: string, clock: number, sloops: number, n: number):
   const r = recipeById.get(recipe);
   return r ? describeUse(r, { clock, sloops }, n, true) : undefined;
 }
-
-/**
- * A hand-built floor's products and what comes into it, as targets and supplies: each output card's limit, or what
- * reaches it when it has none, added up per item. Rebuilding starts from these, so the floor built afresh makes what
- * the panel lists. Inputs standing in for something nothing here could make aren't supplies.
- */
-export function floorEnds(model: Model, calc: CalcResult | undefined): { targets: Target[]; supplies: Target[] } {
-  const targets: Target[] = [];
-  const supplies: Target[] = [];
-  for (const n of model.nodes) {
-    if (n.k !== 'out' && n.k !== 'in') continue;
-    if (n.tag === 'spare' || n.tag === 'bring') continue;
-    let rate = 0;
-    let item = n.item;
-    for (const l of model.links) {
-      if (l.b !== n.id && l.a !== n.id) continue;
-      const c = calc?.links[l.id];
-      rate += c?.rate ?? 0;
-      item ??= c?.items[0]?.[0];
-    }
-    if (!item) continue;
-    add(n.k === 'out' ? targets : supplies, item, n.lim ?? rate);
-  }
-  return { targets, supplies };
-}

@@ -299,7 +299,7 @@ describe('taking from another factory', () => {
   });
 });
 
-describe('Auto and Manual share their targets', () => {
+describe('A Manual factory’s targets are its floor’s output cards', () => {
   const at = { x: 0, y: 0 };
   const plateModel = (lim?: number) => ({
     v: 1 as const,
@@ -318,12 +318,13 @@ describe('Auto and Manual share their targets', () => {
   };
   const plan = () => current().plans[0];
 
-  test('a target changed on the Auto side reaches the floor’s output card, one undo puts it back', () => {
+  test('the plan’s own target actions leave a Manual factory’s floor alone', () => {
     const id = setUp(30);
+    const before = plan().model;
     current().setTarget(0, 5);
-    expect(plan().model?.nodes.find((n) => n.id === 'o')).toMatchObject({ lim: 5 });
-    current().undoModel(id);
-    expect(plan().model?.nodes.find((n) => n.id === 'o')).toMatchObject({ lim: 30 });
+    current().addTarget('Desc_IronRod_C');
+    expect(plan().model).toBe(before);
+    expect(current().plans[0].id).toBe(id);
   });
 
   test('an output card’s amount set on the floor is the factory’s target', () => {
@@ -332,23 +333,10 @@ describe('Auto and Manual share their targets', () => {
     expect(plan().targets).toEqual([{ item: 'Desc_IronPlate_C', rate: 12 }]);
   });
 
-  test('a new target gets an output card; a removed one takes its card off; a floor without limits keeps its amounts', () => {
+  test('a floor without limits keeps its amounts when a card is moved', () => {
     const id = setUp();
-    // Moving a card on a floor converted before limits were kept changes no target.
     current().editModel(id, (m) => ({ ...m, nodes: m.nodes.map((n) => (n.id === 'm' ? { ...n, x: 40 } : n)) }));
     expect(plan().targets).toEqual([{ item: 'Desc_IronPlate_C', rate: 30 }]);
-    current().addTarget('Desc_IronRod_C');
-    expect(
-      plan()
-        .model?.nodes.filter((n) => n.k === 'out')
-        .map((n) => n.k === 'out' && [n.item, n.lim]),
-    ).toEqual([
-      ['Desc_IronPlate_C', 30],
-      ['Desc_IronRod_C', 10],
-    ]);
-    current().removeTarget(0);
-    expect(plan().model?.nodes.some((n) => n.id === 'o')).toBe(false);
-    expect(plan().model?.links).toEqual([]);
   });
 });
 
