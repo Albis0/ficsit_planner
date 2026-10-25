@@ -148,7 +148,7 @@ async function run(size) {
             },
           ],
           active: 'f1',
-          settings: { autoSplitters: true },
+          settings: {},
         }),
       );
       await check('factory pipes with splitters');

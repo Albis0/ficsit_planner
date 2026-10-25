@@ -28,8 +28,6 @@ export interface Settings {
   areaLabels: 'auto' | 'always' | 'never';
   /** The Auto floor's belts: curves, or straight runs with square turns like the hand-built floor's. */
   autoBelts: 'curve' | 'square';
-  /** The Auto floor shows the splitters, mergers and pipe junctions a belt needs where it feeds several machines or is fed by several. */
-  autoSplitters: boolean;
   beltMotion: boolean;
   /** Foundation grid lines on the floor. */
   gridLines: boolean;
@@ -94,7 +92,6 @@ export const DEFAULT_SETTINGS: Settings = {
   beltLabels: 'auto',
   areaLabels: 'auto',
   autoBelts: 'curve',
-  autoSplitters: false,
   beltMotion: true,
   gridLines: true,
   addWith: 'right',

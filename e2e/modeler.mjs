@@ -1699,7 +1699,7 @@ const clash = (a, b) => a && b && a.x < b.x + b.width && b.x < a.x + a.width && 
       mode: 'factory',
       plans: [{ id: 'f1', name: 'Factory 1', targets: [{ item: 'Desc_Motor_C', rate: 10 }] }],
       active: 'f1',
-      settings: { autoSplitters: true },
+      settings: {},
     }),
   );
   await page.click('.deck-toggle');
@@ -1717,7 +1717,7 @@ const clash = (a, b) => a && b && a.x < b.x + b.width && b.x < a.x + a.width && 
   await wait(700);
   ok('a machine panel says how to share a belt between its machines', (await page.locator('.inspector-balancer').count()) === 1);
   await open(factory([['Desc_Motor_C', 10]]));
-  ok('off by default: no splitter cards', (await page.locator('.logistic-node').count()) === 0);
+  ok('on without any setting: splitter cards are there', (await page.locator('.logistic-node').count()) > 0);
 
   // The old address says there is a new one, and takes the plans along in a link. Both addresses are served from this build.
   section = 'moved';

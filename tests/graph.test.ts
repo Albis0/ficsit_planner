@@ -365,3 +365,37 @@ test('with products on lines of their own, every line gets an area, a line of on
       .sort(),
   ).toEqual(['Cable', 'Concrete', 'Reinforced Iron Plate']);
 });
+
+test('splitters and mergers form balanced trees, each branch under one of them as big as the next within one belt', () => {
+  const r = solve(highs, {
+    targets: ['Desc_ModularFrameHeavy_C', 'Desc_Computer_C', 'Desc_Motor_C', 'Desc_IronPlateReinforced_C', 'Desc_Cable_C'].map((item) => ({
+      item,
+      rate: 30,
+    })),
+    supplies: [],
+    enabledRecipes: new Set(data.recipes.filter((x) => x.kind === 'standard').map((x) => x.id)),
+    resourceCaps: {},
+    objective: 'resources',
+  });
+  const { nodes, edges } = buildGraph(r, 9, { dir: 'LR', splitters: true, splitLines: 'each' });
+  const logistic = new Set(nodes.filter((n) => n.type === 'logistic').map((n) => n.id));
+  expect(logistic.size).toBeGreaterThan(0);
+  // How many belts a branch ends in, however many splitters (or mergers) lie between.
+  const leaves = (id: string, next: (n: string) => string[]): number =>
+    logistic.has(id) ? next(id).reduce((sum, to) => sum + leaves(to, next), 0) : 1;
+  const down = (id: string) => edges.filter((e) => e.source === id).map((e) => e.target);
+  const up = (id: string) => edges.filter((e) => e.target === id).map((e) => e.source);
+  let deep = 0;
+  for (const id of logistic) {
+    const kind = (nodes.find((n) => n.id === id)!.data as { kind: string }).kind;
+    const ends = kind === 'merger' ? up(id) : down(id);
+    expect(ends.length).toBeLessThanOrEqual(3);
+    const sizes = ends.map((to) => leaves(to, kind === 'merger' ? up : down));
+    expect(Math.max(...sizes) - Math.min(...sizes)).toBeLessThanOrEqual(1);
+    // A tree's splitter has belts or splitters under it, never a mix: that would be a chain.
+    const under = ends.filter((to) => logistic.has(to)).length;
+    expect(under === 0 || under === ends.length).toBe(true);
+    if (under > 0) deep++;
+  }
+  expect(deep).toBeGreaterThan(0);
+});

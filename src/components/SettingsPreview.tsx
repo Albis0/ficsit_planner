@@ -15,7 +15,6 @@ export type Spot =
   | 'text'
   | 'spacing'
   | 'belts'
-  | 'splitters'
   | 'lines'
   | 'labels'
   | 'motion'
@@ -137,13 +136,10 @@ export function Preview({ settings: s, spot }: { settings: Settings; spot?: Spot
       add('a', out, g.cy, g.xO, g.yA, plate, 1, 20);
       add('b', out, g.cy, g.xO, g.yB, plate, 1, 20);
     }
-  } else if (s.autoSplitters) {
+  } else {
     add('in', g.ew, g.cy, g.xS, g.cy, ingot, 2, 240);
     add('a', g.xS + g.sw, g.cy, g.xM, g.yA, ingot, 1, 120);
     add('b', g.xS + g.sw, g.cy, g.xM, g.yB, ingot, 1, 120);
-  } else {
-    add('a', g.ew, g.cy, g.xM, g.yA, ingot, 1, 120);
-    add('b', g.ew, g.cy, g.xM, g.yB, ingot, 1, 120);
   }
   if (!lines) {
     add('plates', out, g.yA, g.xO, g.cy, 'Desc_IronPlate_C', 1, 80);
@@ -218,8 +214,8 @@ export function Preview({ settings: s, spot }: { settings: Settings; spot?: Spot
             {!compact &&
               lines &&
               (each ? [g.yA, g.yB] : [g.cy]).map((y) => <Fragment key={y}>{endpoint('supply', ingot, each ? 30 : 60, 0, '', y)}</Fragment>)}
-            {s.autoSplitters && !lines && (
-              <div className="preview-spot" data-for="splitters" style={{ left: geo.xS, top: geo.cy - 48, width: geo.sw, height: 96 }}>
+            {!lines && (
+              <div className="preview-spot" style={{ left: geo.xS, top: geo.cy - 48, width: geo.sw, height: 96 }}>
                 <div className="logistic-node">
                   <Icon id={LOGISTICS.splitter.icon} size={44} />
                   <span className="logistic-rate">

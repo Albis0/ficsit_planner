@@ -393,9 +393,6 @@ export const en = {
   spacing: 'Spacing',
   spacingHint: 'Room between machines.',
   autoBelts: 'Belt shape',
-  autoSplitters: 'Splitters and mergers',
-  autoSplittersHint:
-    'The Auto floor draws the splitter, merger or junction a belt needs where it feeds several machines or comes from several, as on the Manual floor.',
   autoBeltsHint: 'The Auto floor’s belts: curved, or in straight runs with square turns like the Manual floor’s.',
   beltCurve: 'Curved',
   beltSquare: 'Square',

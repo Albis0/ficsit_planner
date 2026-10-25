@@ -490,7 +490,7 @@ const FAN = 3;
 
 /**
  * A belt that feeds several machines gets a splitter, and several belts into one machine a merger (a junction for
- * pipes), chained three at a time like on the Manual floor, so the floor shows what would be built.
+ * pipes), as a balanced tree of up to three at a time like on the Manual floor, so the floor shows what would be built.
  */
 function addLogistics(
   nodes: Node[],
@@ -542,43 +542,57 @@ function addLogistics(
     for (const e of gone) edges.splice(edges.indexOf(e), 1);
   };
 
-  // Splitters: one output going to several places.
+  const total = (list: Edge[]) => list.reduce((sum, e) => sum + rateOf(e), 0);
+  /** How many branches a splitter or merger over n belts has: up to FAN, and the branches as even in size as can be. */
+  const branches = (list: Edge[]): Edge[][] => {
+    const k = list.length <= FAN ? list.length : Math.min(FAN, Math.ceil(list.length / FAN));
+    const base = Math.floor(list.length / k);
+    const extra = list.length % k;
+    const parts: Edge[][] = [];
+    for (let j = 0, at = 0; j < k; j++) {
+      const size = base + (j < extra ? 1 : 0);
+      parts.push(list.slice(at, at + size));
+      at += size;
+    }
+    return parts;
+  };
+  // Splitters: one output going to several places. A balanced tree, as on the Manual floor: no belt waits on a chain of them.
+  const split = (feed: string, list: Edge[], item: string, kind: LogisticNodeData['kind']) => {
+    const id = logistic(kind, item, total(list), false);
+    edges.push(make(feed, id, item, total(list)));
+    for (const part of branches(list)) {
+      if (part.length === 1) edges.push(make(id, part[0].target, item, rateOf(part[0])));
+      else split(id, part, item, kind);
+    }
+  };
   for (const list of group((e) => `${e.source}|${itemOf(e)}`)) {
     const item = itemOf(list[0]);
-    const kind = pipe(item) ? 'junction' : 'splitter';
     drop(list);
-    let feed = list[0].source;
-    let left = [...list].sort((a, b) => rateOf(b) - rateOf(a));
-    while (left.length) {
-      const last = left.length <= FAN;
-      const take = last ? left : left.slice(0, FAN - 1);
-      const through = left.reduce((s, e) => s + rateOf(e), 0);
-      const id = logistic(kind, item, through, false);
-      edges.push(make(feed, id, item, through));
-      for (const e of take) edges.push(make(id, e.target, item, rateOf(e)));
-      left = left.slice(take.length);
-      feed = id;
-    }
+    split(
+      list[0].source,
+      [...list].sort((a, b) => rateOf(b) - rateOf(a)),
+      item,
+      pipe(item) ? 'junction' : 'splitter',
+    );
   }
-  // Mergers: several belts into one input.
+  // Mergers: several belts into one input, the same tree the other way round.
+  const merge = (into: string, list: Edge[], item: string, kind: LogisticNodeData['kind']) => {
+    const id = logistic(kind, item, total(list), true);
+    edges.push(make(id, into, item, total(list)));
+    for (const part of branches(list)) {
+      if (part.length === 1) edges.push(make(part[0].source, id, item, rateOf(part[0])));
+      else merge(id, part, item, kind);
+    }
+  };
   for (const list of group((e) => `${e.target}|${itemOf(e)}`)) {
     const item = itemOf(list[0]);
-    const kind = pipe(item) ? 'junction' : 'merger';
     drop(list);
-    const into = list[0].target;
-    let left = [...list].sort((a, b) => rateOf(b) - rateOf(a));
-    let feed = into;
-    // The first merger is the one next to the machine; each further one feeds the one before it.
-    while (left.length) {
-      const last = left.length <= FAN;
-      const take = last ? left : left.slice(0, FAN - 1);
-      const through = left.reduce((s, e) => s + rateOf(e), 0);
-      const id = logistic(kind, item, through, true);
-      edges.push(make(id, feed, item, through));
-      for (const e of take) edges.push(make(e.source, id, item, rateOf(e)));
-      left = left.slice(take.length);
-      feed = id;
-    }
+    merge(
+      list[0].target,
+      [...list].sort((a, b) => rateOf(b) - rateOf(a)),
+      item,
+      pipe(item) ? 'junction' : 'merger',
+    );
   }
 }
 

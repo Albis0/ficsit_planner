@@ -1106,7 +1106,6 @@ export function GraphView({
   const splitLines = useStore((s) => s.settings.splitLines);
   const spacing = useStore((s) => s.settings.spacing);
   const squareBelts = useStore((s) => s.settings.autoBelts === 'square');
-  const splitters = useStore((s) => s.settings.autoSplitters);
   // Uncontrolled flow: nodes stay draggable, and each new solve lays out fresh. It is built again when the machines
   // on it change; for the same machines (a number changed) the canvas swaps in the new cards and belts where it stands.
   // biome-ignore lint/correctness/useExhaustiveDependencies: skipKey() changes when the milestones bought do
@@ -1121,17 +1120,19 @@ export function GraphView({
       consumers,
       splitLines,
       squareBelts,
-      splitters,
+      splitters: true,
     });
+    // Their sizes are known: a card far off the screen, not drawn on a big floor, still counts as measured, so Fit to screen can see the whole of it.
     return {
       ...g,
+      nodes: g.nodes.map((n) => ({ ...n, measured: { width: n.width, height: n.height } })),
       sig:
         g.nodes
           .map((n) => n.id)
           .sort()
           .join('|') + g.dir,
     };
-  }, [result, tier, chosen, scale, text, spacing, consumers, splitLines, squareBelts, splitters, skipKey()]);
+  }, [result, tier, chosen, scale, text, spacing, consumers, splitLines, squareBelts, skipKey()]);
   const built = useRef({ sig, key: ++solveCount });
   if (built.current.sig !== sig) built.current = { sig, key: ++solveCount };
   const key = built.current.key;

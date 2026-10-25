@@ -476,7 +476,6 @@
 /* The row being pointed at: a thin ring on every spot it changes. */
 .settings-preview[data-focus='size'] [data-for~='size'],
 .settings-preview[data-focus='text'] [data-for~='text'],
-.settings-preview[data-focus='splitters'] [data-for~='splitters'],
 .settings-preview[data-focus='labels'] [data-for~='labels'],
 .settings-preview[data-focus='accent'] [data-for~='accent'],
 .settings-preview[data-focus='standard'] [data-for~='standard'],

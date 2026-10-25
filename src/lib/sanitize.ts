@@ -250,7 +250,6 @@ export function cleanSettings(saved: unknown): Settings {
     beltLabels: oneOf(s.beltLabels, ['auto', 'always', 'never'] as const, d.beltLabels),
     areaLabels: oneOf(s.areaLabels, ['auto', 'always', 'never'] as const, d.areaLabels),
     autoBelts: oneOf(s.autoBelts, ['curve', 'square'] as const, d.autoBelts),
-    autoSplitters: s.autoSplitters === true,
     beltMotion: typeof s.beltMotion === 'boolean' ? s.beltMotion : d.beltMotion,
     gridLines: typeof s.gridLines === 'boolean' ? s.gridLines : d.gridLines,
     addWith: oneOf(s.addWith, ['right', 'double'] as const, d.addWith),
