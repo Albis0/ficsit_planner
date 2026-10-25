@@ -142,7 +142,10 @@ async function pickView(idx) {
 /** Cards drawn on top of each other. */
 const overlaps = () =>
   page.evaluate(() => {
-    const boxes = [...document.querySelectorAll('.react-flow__node')].map((n) => ({ id: n.dataset.id, r: n.getBoundingClientRect() }));
+    const boxes = [...document.querySelectorAll('.react-flow__node:not(.react-flow__node-area)')].map((n) => ({
+      id: n.dataset.id,
+      r: n.getBoundingClientRect(),
+    }));
     const hits = [];
     for (let i = 0; i < boxes.length; i++)
       for (let j = i + 1; j < boxes.length; j++) {
@@ -1055,14 +1058,17 @@ const clash = (a, b) => a && b && a.x < b.x + b.width && b.x < a.x + a.width && 
     await wait(500);
     gs = await areasSaved();
     ok('Auto: the name is saved', gs[0].label === 'Motors');
-    ok('Auto: and shows on the floor', (await page.locator('.area-name').first().innerText()) === 'Motors');
+    ok(
+      'Auto: and shows on the floor',
+      (await page.locator('.react-flow__node-area:not(.auto-area) .area-name').first().innerText()) === 'Motors',
+    );
     // The panel covers the strip while it is open: click bare floor to put it away.
     const bare = await emptySpot('left');
     await page.mouse.click(bare.x, bare.y);
     await wait(400);
     // A card may lie over part of the strip: take a point of it that is bare.
     const hold = await page.evaluate(() => {
-      const r = document.querySelector('.area-grip').getBoundingClientRect();
+      const r = document.querySelector('.react-flow__node-area:not(.auto-area) .area-grip').getBoundingClientRect();
       for (let x = r.left + 6; x < r.right - 6; x += 8)
         if (document.elementFromPoint(x, r.top + r.height / 2)?.closest('.area-grip')) return { x, y: r.top + r.height / 2 };
       return null;
@@ -1078,12 +1084,18 @@ const clash = (a, b) => a && b && a.x < b.x + b.width && b.x < a.x + a.width && 
     ok('Auto: the cards stay where they were laid out', (await page.locator('.react-flow__node-machine').count()) > 0);
     await page.reload();
     await wait(1500);
-    ok('Auto: after a reload the area is still there', (await page.locator('.area-node').count()) === 1);
-    await page.locator('.area-grip').click();
+    ok(
+      'Auto: after a reload the area is still there',
+      (await page.locator('.react-flow__node-area:not(.auto-area) .area-node').count()) === 1,
+    );
+    await page.locator('.react-flow__node-area:not(.auto-area) .area-grip').click();
     await wait(400);
     await page.locator('.inspector-actions .danger').click();
     await wait(500);
-    ok('Auto: Remove area takes it off', (await areasSaved()).length === 0 && (await page.locator('.area-node').count()) === 0);
+    ok(
+      'Auto: Remove area takes it off',
+      (await areasSaved()).length === 0 && (await page.locator('.react-flow__node-area:not(.auto-area) .area-node').count()) === 0,
+    );
   }
 
   // ── A11c: an output card offers its product to the pool ──

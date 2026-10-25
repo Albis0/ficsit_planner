@@ -1269,3 +1269,18 @@
   border-radius: 3px;
   background: #fff;
 }
+
+/* An area the Auto floor made: only there to show what belongs together, so nothing on it takes the pointer. */
+.react-flow__node.auto-area .area-edge,
+.react-flow__node.auto-area .area-grip {
+  pointer-events: none;
+}
+
+.react-flow__node.auto-area .area-node {
+  border-style: dashed;
+}
+
+.react-flow__node.auto-area .area-grip {
+  height: 36px;
+  padding: 4px 12px;
+}

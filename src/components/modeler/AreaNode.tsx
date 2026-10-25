@@ -12,6 +12,9 @@ export interface AreaData extends Record<string, unknown> {
   node: GroupNode;
 }
 
+/** An area the Auto floor made for itself: it cannot be picked, moved or changed. */
+export const isAuto = (id: string) => id.startsWith('auto:');
+
 /** The flow nodes for a model's areas: behind everything, and picked from the panel rather than by a box drawn over the floor. */
 export function areaNodes(nodes: MNode[], inspect: string | undefined, was?: Node[]): Node[] {
   const before = new Map(was?.map((n) => [n.id, n]));
@@ -26,9 +29,11 @@ export function areaNodes(nodes: MNode[], inspect: string | undefined, was?: Nod
       height: n.h,
       zIndex: -1,
       dragHandle: '.area-grip, .area-edge',
+      draggable: !isAuto(n.id),
       selectable: false,
       data: { node: n } satisfies AreaData,
       selected: inspect === n.id,
+      className: isAuto(n.id) ? 'auto-area' : undefined,
     }));
 }
 

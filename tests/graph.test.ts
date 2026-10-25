@@ -1,6 +1,7 @@
 import { beforeAll, expect, test } from 'bun:test';
 import loadHighs, { type Highs } from 'highs';
 import { data } from '../src/lib/data';
+import { autoAreas } from '../src/lib/autoAreas';
 import { buildGraph, forgetPlacements } from '../src/lib/graph';
 import { solve } from '../src/lib/solver';
 
@@ -278,4 +279,33 @@ test('a layout made before is reused and comes out exactly as a fresh one', () =
   // A different number is laid out as if nothing was remembered.
   const other = JSON.stringify(buildGraph(plan(33), 9, opts));
   expect(other).toBe(fresh(33));
+});
+
+test('the Auto floor makes an area for each product built from two others, with what works only towards it', () => {
+  const r = solve(highs, {
+    targets: [{ item: 'Desc_Motor_C', rate: 10 }],
+    supplies: [],
+    enabledRecipes: new Set(data.recipes.filter((x) => x.kind === 'standard').map((x) => x.id)),
+    resourceCaps: {},
+    objective: 'resources',
+  });
+  const { nodes, edges } = buildGraph(r, 9);
+  const areas = autoAreas(nodes, edges);
+  expect(areas.map((a) => a.label).sort()).toEqual(['Rotor', 'Stator']);
+  const byId = new Map(nodes.map((n) => [n.id, n]));
+  for (const a of areas) {
+    const inside = nodes.filter(
+      (n) =>
+        n.type === 'machine' &&
+        n.position.x >= a.x &&
+        n.position.x + (n.width ?? 0) <= a.x + a.w &&
+        n.position.y >= a.y &&
+        n.position.y + (n.height ?? 0) <= a.y + a.h,
+    );
+    expect(inside.length).toBeGreaterThanOrEqual(3);
+    expect(byId.size).toBeGreaterThan(inside.length);
+  }
+  // Two areas never overlap.
+  const [p, q] = areas;
+  expect(p.x + p.w <= q.x || q.x + q.w <= p.x || p.y + p.h <= q.y || q.y + q.h <= p.y).toBe(true);
 });

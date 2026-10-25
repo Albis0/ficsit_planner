@@ -58,6 +58,7 @@ import { beltStroke } from './floor/BeltStroke';
 import { longestRunMid, SQUARE_TURN, squarePath } from './floor/squarePath';
 import { Glyph } from './Glyph';
 import { Icon } from './Icon';
+import { autoAreas } from '../lib/autoAreas';
 import { AreaNode, areaNodes } from './modeler/AreaNode';
 import { useAreaHost } from './modeler/hosts';
 import { EditCard } from './modeler/PartNode';
@@ -867,6 +868,8 @@ const NO_AREAS = emptyModel();
 let camera: { sig: string; viewport?: Viewport } = { sig: '' };
 
 function Canvas({ nodes, edges, sig, dir, areas }: { nodes: Node[]; edges: Edge[]; sig: string; dir: Direction; areas?: Model }) {
+  // The areas the floor makes for itself sit under the player's own.
+  const own = useMemo(() => (areas ? autoAreas(nodes, edges) : []), [areas, nodes, edges]);
   const inspect = useStore((s) => s.inspect);
   const set = useStore((s) => s.set);
   const gridLines = useStore((s) => s.settings.gridLines);
@@ -897,15 +900,15 @@ function Canvas({ nodes, edges, sig, dir, areas }: { nodes: Node[]; edges: Edge[
   // Areas come and go without the floor being laid out again: they are swapped in among the cards the flow already holds.
   useEffect(() => {
     if (!areas) return;
-    flow.setNodes((cur) => [...areaNodes(areas.nodes, inspect, cur), ...cur.filter((n) => n.type !== 'area')]);
-  }, [areas, inspect, flow]);
+    flow.setNodes((cur) => [...areaNodes([...own, ...areas.nodes], inspect, cur), ...cur.filter((n) => n.type !== 'area')]);
+  }, [areas, own, inspect, flow]);
   // A new solve for the same machines: the flow was made with the first cards, so the new ones are put in here.
   const placed = useRef({ nodes, edges });
   // biome-ignore lint/correctness/useExhaustiveDependencies: areas and inspect have their own effect above
   useEffect(() => {
     if (placed.current.nodes === nodes && placed.current.edges === edges) return;
     placed.current = { nodes, edges };
-    flow.setNodes(areas ? [...areaNodes(areas.nodes, inspect, flow.getNodes()), ...nodes] : nodes);
+    flow.setNodes(areas ? [...areaNodes([...own, ...areas.nodes], inspect, flow.getNodes()), ...nodes] : nodes);
     flow.setEdges(edges);
   }, [nodes, edges, flow]);
   const opening = useRef<number>(undefined);
@@ -995,7 +998,7 @@ function Canvas({ nodes, edges, sig, dir, areas }: { nodes: Node[]; edges: Edge[
         <EditCard.Provider value={editArea}>
           <ReactFlow
             ref={root}
-            defaultNodes={areas ? [...areaNodes(areas.nodes, inspect), ...nodes] : nodes}
+            defaultNodes={areas ? [...areaNodes([...own, ...areas.nodes], inspect), ...nodes] : nodes}
             defaultEdges={edges}
             nodeTypes={nodeTypes}
             edgeTypes={edgeTypes}

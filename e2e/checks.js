@@ -211,7 +211,10 @@ export function inspectPage(opts) {
   }
 
   // 7. Machine and item cards on the floor lying on top of each other, or a belt label on a card.
-  const nodes = [...document.querySelectorAll('.react-flow__node')].filter(shown).map((el) => ({ el, r: el.getBoundingClientRect() }));
+  // An area lies behind the cards on purpose.
+  const nodes = [...document.querySelectorAll('.react-flow__node:not(.react-flow__node-area)')]
+    .filter(shown)
+    .map((el) => ({ el, r: el.getBoundingClientRect() }));
   for (let i = 0; i < nodes.length; i++)
     for (let j = i + 1; j < nodes.length; j++) {
       const a = nodes[i].r;
