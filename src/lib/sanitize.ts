@@ -103,10 +103,41 @@ function transportOf(x: unknown): Record<string, Route> | undefined {
   return Object.keys(out).length ? out : undefined;
 }
 
+const freshId = () => Math.random().toString(36).slice(2, 10);
+
+/**
+ * Tabs saved before a factory was Auto or Manual for good could hold both: a worked-out factory and a hand-built floor
+ * beside it. Each of those becomes two tabs, the Auto one first. The floor that was on screen keeps the tab's id, so
+ * what other tabs and power plants took from it still comes from the same place.
+ */
+export function splitFloors(saved: unknown[], fresh: () => string = freshId): unknown[] {
+  return saved.flatMap((x) => {
+    const p = obj(x);
+    const shown = p.floor === 'manual';
+    const built = list(obj(p.model).nodes).length > 0;
+    // A hand-built floor with nothing on it is the floor it was; any other tab with no cards is an Auto one.
+    if (!built) {
+      if (shown) return [p];
+      const { floor: _f, model: _m, ...auto } = p;
+      return [auto];
+    }
+    // Nothing worked out beside it: a Manual factory.
+    if (list(p.targets).length === 0 && list(p.supplies).length === 0) return [{ ...p, floor: 'manual' }];
+    const { floor: _f, model: _m, ...auto } = structuredClone(p);
+    const { areas: _a, built: _b, ...manual } = structuredClone(p);
+    const name = text(p.name, 'Factory', 70);
+    return [
+      { ...auto, name, ...(shown ? { id: fresh() } : {}) },
+      { ...manual, name: `${name} (Manual)`, floor: 'manual', ...(shown ? {} : { id: fresh() }) },
+    ];
+  });
+}
+
 /** A factory tab, cleaned against the current game data. */
 export function cleanPlan(saved: unknown, fallback: Plan): Plan {
   const p = obj(saved);
-  const model = cleanModel(p.model);
+  // Only a Manual factory has a floor of its own.
+  const model = p.floor === 'manual' ? cleanModel(p.model) : undefined;
   // The Auto floor's areas: only areas, no belts.
   const drawn = cleanModel({ nodes: list(obj(p.areas).nodes).filter((n) => obj(n).k === 'group') });
   const areas = drawn?.nodes.length ? { ...drawn, links: [] } : undefined;

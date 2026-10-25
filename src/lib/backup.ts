@@ -13,11 +13,13 @@ import {
 import { clearBackups } from './autobackup';
 import { forgetSave } from './save/store-idb';
 import { planStorage } from './safeStorage';
-import { cleanNumber, cleanPlan, cleanPowerPlan, cleanSettings, gridToPower } from './sanitize';
+import { cleanNumber, cleanPlan, cleanPowerPlan, cleanSettings, gridToPower, splitFloors } from './sanitize';
 import { DEFAULT_SETTINGS, sameSettings } from './settings';
 import { cleanSkipped } from './unlocks';
 
 export const KIND = 'ficsit-planner';
+/** What a file made by buildExport says it is; before 3 a factory could hold an Auto and a Manual floor at once. */
+export const FILE_VERSION = 3;
 
 /** Everything this app keeps in the browser: the saved session, the answers to its questions, an unsent report, the saved copies, the game save. */
 export async function wipeLocal() {
@@ -35,7 +37,7 @@ export function buildExport() {
   const s = useStore.getState();
   return {
     kind: KIND,
-    version: 2,
+    version: FILE_VERSION,
     exported: new Date().toISOString(),
     plans: s.plans,
     power: s.power,
@@ -115,6 +117,7 @@ export function importData(parsed: unknown): ImportResult {
   try {
     const file = parsed as {
       kind?: unknown;
+      version?: unknown;
       plans?: unknown;
       power?: unknown;
       grid?: unknown;
@@ -128,7 +131,9 @@ export function importData(parsed: unknown): ImportResult {
     const s = useStore.getState();
     // Tabs get fresh ids so they can't clash with yours; the plants' lists of factories follow them.
     const ids = new Map<string, string>();
-    const cleaned: Plan[] = file.plans.map((p: unknown) => {
+    // A file from before a factory was Auto or Manual for good has its two floors split into two tabs first, so both get new ids.
+    const old = typeof file.version !== 'number' || file.version < FILE_VERSION;
+    const cleaned: Plan[] = (old ? splitFloors(file.plans) : file.plans).map((p: unknown) => {
       const plan = cleanPlan(p, newPlan('Factory'));
       const id = uid();
       ids.set(plan.id, id);

@@ -8,7 +8,7 @@ import type { Aim } from './lib/solution';
 import { generatorById, recipeById } from './lib/data';
 import { PLANT_NAMES, type Plant, type SizeBy, sizable } from './lib/power';
 import { POOL, suppliesOf } from './lib/pool';
-import { cleanChoice, cleanNumber, cleanPlan, cleanPowerPlan, cleanSettings, gridToPower } from './lib/sanitize';
+import { cleanChoice, cleanNumber, cleanPlan, cleanPowerPlan, cleanSettings, gridToPower, splitFloors } from './lib/sanitize';
 import { DEFAULT_SETTINGS, type Settings } from './lib/settings';
 import type { RecipeMod, Target } from './lib/solver';
 import { cleanMapFilter, DEFAULT_MAP_FILTER, type MapFilter } from './lib/world';
@@ -47,9 +47,9 @@ export interface Plan {
   extraction: ExtractionSettings;
   /** How each input arrives and each output leaves ("in:<item>", "out:<item>"); belts or pipes when not set. */
   transport?: Record<string, Route>;
-  /** Built by hand on the floor instead of worked out from the targets. */
+  /** What kind of factory this is, for good: built by hand on a floor of its own, or (unset) worked out from the targets. */
   floor?: 'manual';
-  /** The hand-built factory; kept when switching back to Auto, so Manual comes back as it was. */
+  /** The hand-built floor of a Manual factory. */
   model?: Model;
   /** The coloured areas drawn on the Auto floor, kept as a model with nothing but areas in it. */
   areas?: Model;
@@ -882,7 +882,7 @@ export const useStore = create<State>()(
     {
       name: 'ficsit-planner',
       storage: jsonPlanStorage,
-      version: 3,
+      version: 4,
       partialize: persisted,
       migrate: migrateState,
       merge: mergeState,
@@ -945,6 +945,8 @@ export function migrateState(persisted: unknown, version: number): Persisted {
       active: plan.id,
     };
   }
+  // Before version 4 a tab could hold an Auto factory and a Manual floor at once; now each is a tab of its own.
+  if (version < 4 && Array.isArray(old.plans)) return { ...old, plans: splitFloors(old.plans) } as Persisted;
   return old as Persisted;
 }
 

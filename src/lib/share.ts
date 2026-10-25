@@ -1,6 +1,6 @@
 import { useEffect } from 'react';
 import { activePowerPlan, defaultEnabled, type Plan, type PowerPlan, poweredBy, useStore } from '../store';
-import { importData, KIND } from './backup';
+import { FILE_VERSION, importData, KIND } from './backup';
 
 /*
   A shared link carries a factory (or a power plant) in the part of the address after '#', which the
@@ -82,7 +82,7 @@ export async function shareLink(): Promise<string> {
   const { plans, power } = sharedTabs();
   const body = {
     kind: KIND,
-    v: 1,
+    v: 2,
     from: useStore.getState().mode === 'power' ? 'power' : 'factory',
     plans: plans.map(pack),
     power: power.map((pp) => ({ ...pp, chain: pack(pp.chain) })),
@@ -102,7 +102,7 @@ export async function moveLink(): Promise<string | undefined> {
   const s = useStore.getState();
   const body = {
     kind: KIND,
-    v: 1,
+    v: 2,
     from: 'factory',
     plans: s.plans.map(pack),
     power: s.power.filter((pp) => pp.plants.length > 0).map((pp) => ({ ...pp, chain: pack(pp.chain) })),
@@ -137,6 +137,7 @@ export async function openShared(hash: string, max?: number): Promise<boolean> {
     const body = (await decode(hash.slice(SHARE_HASH.length), max)) as {
       kind?: unknown;
       from?: unknown;
+      v?: unknown;
       plans?: unknown;
       power?: unknown;
       settings?: unknown;
@@ -146,7 +147,15 @@ export async function openShared(hash: string, max?: number): Promise<boolean> {
       ? body.power.map((pp) => (pp && typeof pp === 'object' ? { ...pp, chain: unpack((pp as { chain?: unknown }).chain) } : pp))
       : [];
     // Settings come along only in a link made to move everything; they are cleaned like a backup's, and yours stay if you changed them.
-    const r = importData({ kind: KIND, plans: body.plans.map(unpack), power, ...(body.settings ? { settings: body.settings } : {}) });
+    // Links made before a factory was Auto or Manual for good say v 1.
+    const version = typeof body.v === 'number' && body.v >= 2 ? FILE_VERSION : 2;
+    const r = importData({
+      kind: KIND,
+      version,
+      plans: body.plans.map(unpack),
+      power,
+      ...(body.settings ? { settings: body.settings } : {}),
+    });
     if (!r.ok || (r.count === 0 && r.power === 0)) return false;
     const s = useStore.getState();
     // A plant's link opens on the plant; a factory's on the factory.
