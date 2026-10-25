@@ -1,11 +1,14 @@
 import { useEffect, useRef } from 'react';
 import { useT } from '../../lib/i18n';
+import { Glyph, type GlyphName } from '../Glyph';
 
 export interface CardMenuItem {
   label: string;
   /** Its keyboard shortcut, shown on the right. */
   keys?: string;
   danger?: boolean;
+  /** A small drawing before the label. */
+  icon?: GlyphName;
   /** A line under the label that says what picking it does. */
   note?: string;
   /** Marks a pick that sends something to the AWESOME Sink. */
@@ -71,9 +74,12 @@ export function CardMenu({
             it.onPick();
           }}
         >
-          <span>
-            {it.label}
-            {it.note && <small className="menu-note">{it.note}</small>}
+          <span className="menu-main">
+            {it.icon && <Glyph name={it.icon} size={20} />}
+            <span>
+              {it.label}
+              {it.note && <small className="menu-note">{it.note}</small>}
+            </span>
           </span>
           {it.keys && <kbd>{it.keys}</kbd>}
         </button>

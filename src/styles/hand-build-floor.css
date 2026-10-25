@@ -233,6 +233,17 @@
   color: var(--sink);
 }
 
+.card-menu .menu-main {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.card-menu .menu-main svg {
+  flex: none;
+  color: var(--ficsit);
+}
+
 .card-menu .menu-note {
   display: block;
   margin-top: 2px;

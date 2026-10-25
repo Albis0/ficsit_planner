@@ -327,7 +327,8 @@ interface State {
   removePlant: (id: string) => void;
   setFixed: (item: string, rate: number | undefined) => void;
   updatePlan: (patch: Partial<Plan> | ((p: Plan) => Partial<Plan>)) => void;
-  addPlan: (name: string) => void;
+  /** A new tab: worked out from its targets, or (manual) an empty floor to build on by hand. */
+  addPlan: (name: string, manual?: boolean) => void;
   /** A new factory tab built by hand from a game save factory's floor, linked to that factory. */
   /** Links a factory tab to a factory in the game save, or unlinks it; a save factory is linked to one tab at most. */
   /**
@@ -646,8 +647,11 @@ export const useStore = create<State>()(
             typeof patch === 'function' ? patch : () => patch,
             typeof patch === 'function' ? undefined : `plan:${Object.keys(patch).join()}`,
           ),
-        addPlan: (name) => {
-          const p = newPlan(name, get().unlocked, get().standardOff);
+        addPlan: (name, manual) => {
+          const p: Plan = {
+            ...newPlan(name, get().unlocked, get().standardOff),
+            ...(manual ? { floor: 'manual', model: emptyModel() } : {}),
+          };
           set({ plans: [...get().plans, p], active: p.id, inspect: undefined });
         },
         buildFactory: (item, name, recipe) => {

@@ -399,14 +399,6 @@
   color: var(--ficsit);
 }
 
-.ov-tag {
-  margin-left: 10px;
-  font: 600 13px var(--font-display);
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-  color: var(--faint);
-}
-
 .ov-empty,
 .ov-none,
 .ov-note {

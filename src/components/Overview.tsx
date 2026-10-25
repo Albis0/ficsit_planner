@@ -5,6 +5,7 @@ import { type FactoryRow, type PlantRow, useOverview } from '../lib/overview';
 import type { PoolParty } from '../lib/pool';
 import { defaultEnabled, useStore } from '../store';
 import { Icon } from './Icon';
+import { KindIcon } from './KindIcon';
 import { RecipeBrowser } from './RecipeBrowser';
 import { SaveFactoryList } from './SaveFactories';
 import { RateChips } from './Summary';
@@ -214,10 +215,10 @@ function Factories() {
               {o.factories.map((f) => (
                 <tr key={f.id}>
                   <td className="ov-name">
+                    <KindIcon manual={f.manual} />
                     <button type="button" onClick={() => open(f.id, false)}>
                       {f.name}
                     </button>
-                    {f.manual && <small className="ov-tag">{t('ovHandBuilt')}</small>}
                   </td>
                   {f.empty ? (
                     <td colSpan={4} className="ov-empty">

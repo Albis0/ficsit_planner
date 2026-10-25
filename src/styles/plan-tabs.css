@@ -361,3 +361,27 @@
 .resizing {
   cursor: row-resize;
 }
+
+/* Auto or Manual, in front of a factory's name. */
+.kind-icon {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  color: var(--faint);
+}
+
+.kind-icon.manual {
+  color: var(--ficsit);
+}
+
+.ov-name .kind-icon {
+  margin-right: 10px;
+  vertical-align: middle;
+}
+
+/* The name needs the room on a phone; the list shows the kind there. */
+@media (max-width: 600px) {
+  .plan-current .kind-icon {
+    display: none;
+  }
+}
