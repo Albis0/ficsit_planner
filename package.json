@@ -12,6 +12,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
+    "dev:lan": "vite --host",
     "build": "tsc -p . && vite build",
     "extract": "bun scripts/extract.mjs",
     "extract:codex": "bun scripts/extract-codex.mjs",

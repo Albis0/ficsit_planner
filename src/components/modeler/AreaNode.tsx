@@ -27,7 +27,8 @@ export function areaNodes(nodes: MNode[], inspect: string | undefined, was?: Nod
       position: { x: n.x, y: n.y },
       width: n.w,
       height: n.h,
-      zIndex: -1,
+      // The Auto floor's own areas lie over the belts, so a belt never crosses the name; they only tint what is under them.
+      zIndex: isAuto(n.id) ? 0 : -1,
       dragHandle: '.area-grip, .area-edge',
       draggable: !isAuto(n.id),
       selectable: false,

@@ -1284,3 +1284,9 @@
   height: 36px;
   padding: 4px 12px;
 }
+
+.react-flow__node.auto-area .area-name {
+  text-shadow:
+    0 0 3px #000,
+    0 0 6px #000;
+}
