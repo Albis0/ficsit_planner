@@ -1088,7 +1088,14 @@ const clash = (a, b) => a && b && a.x < b.x + b.width && b.x < a.x + a.width && 
       'Auto: after a reload the area is still there',
       (await page.locator('.react-flow__node-area:not(.auto-area) .area-node').count()) === 1,
     );
-    await page.locator('.react-flow__node-area:not(.auto-area) .area-grip').click();
+    // A belt's label may lie over the middle of the strip: click a point of it that is bare.
+    const spot = await page.evaluate(() => {
+      const r = document.querySelector('.react-flow__node-area:not(.auto-area) .area-grip').getBoundingClientRect();
+      for (let x = r.left + 6; x < r.right - 6; x += 8)
+        if (document.elementFromPoint(x, r.top + r.height / 2)?.closest('.area-grip')) return { x, y: r.top + r.height / 2 };
+      return null;
+    });
+    await page.mouse.click(spot.x, spot.y);
     await wait(400);
     await page.locator('.inspector-actions .danger').click();
     await wait(500);

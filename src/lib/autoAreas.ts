@@ -13,10 +13,11 @@ const GAP = 6;
 const COLORS = ['#fa9549', '#4fa8e6', '#7ac36a', '#c47be0', '#e6c84f', '#e66a6a', '#4fd1c5'];
 
 /**
- * The Auto floor's own areas: every machine that takes two things made by other machines (a Rotor takes rods and screws)
- * with all the machines that work only towards it. A machine that feeds two such products belongs to neither.
+ * The product chains of a floor: every machine that takes two things made by other machines (a Rotor takes rods and
+ * screws) with all the machines that work only towards it, by the machine they work towards. A machine that feeds two
+ * such products belongs to neither. The splitters and mergers whose belts all lead into one chain stand in it too.
  */
-export function autoAreas(nodes: Node[], edges: Edge[]): GroupNode[] {
+export function chains(nodes: Node[], edges: Edge[]): Map<string, string[]> {
   const machines = new Map<string, Node>();
   for (const n of nodes) {
     if (n.type !== 'machine') continue;
@@ -66,10 +67,32 @@ export function autoAreas(nodes: Node[], edges: Edge[]): GroupNode[] {
     const o = ownerOf(id);
     if (o) members.set(o, [...(members.get(o) ?? []), id]);
   }
+  for (const [root, ids] of members) if (ids.length < 2) members.delete(root);
+  // A splitter or merger goes with the chain all its belts lead into, and with a chain only.
+  const chainOf = new Map([...members].flatMap(([root, ids]) => ids.map((id) => [id, root] as const)));
+  for (let again = true; again; ) {
+    again = false;
+    for (const id of logistic) {
+      if (chainOf.has(id)) continue;
+      const to = (outL.get(id) ?? []).map((t) => chainOf.get(t));
+      if (to.length === 0 || to.some((c) => c === undefined || c !== to[0])) continue;
+      chainOf.set(id, to[0]!);
+      members.get(to[0]!)!.push(id);
+      again = true;
+    }
+  }
+  return members;
+}
+
+/** The Auto floor's own areas: a box round each product chain's machines, named for the product. */
+export function autoAreas(nodes: Node[], edges: Edge[]): GroupNode[] {
+  const members = chains(nodes, edges);
+  const byId = new Map(nodes.map((n) => [n.id, n]));
+  const machines = new Map(nodes.filter((n) => n.type === 'machine').map((n) => [n.id, n]));
   const areas: GroupNode[] = [];
   for (const [root, ids] of members) {
     if (ids.length < 2) continue;
-    const boxes = ids.map((id) => machines.get(id)!);
+    const boxes = ids.map((id) => byId.get(id)!);
     const x0 = Math.min(...boxes.map((n) => n.position.x));
     const y0 = Math.min(...boxes.map((n) => n.position.y));
     const x1 = Math.max(...boxes.map((n) => n.position.x + (n.width ?? 0)));

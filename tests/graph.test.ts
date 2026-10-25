@@ -309,3 +309,41 @@ test('the Auto floor makes an area for each product built from two others, with 
   const [p, q] = areas;
   expect(p.x + p.w <= q.x || q.x + q.w <= p.x || p.y + p.h <= q.y || q.y + q.h <= p.y).toBe(true);
 });
+
+test('Auto floor keeps each product chain together, so four chains of a larger factory each get an area of their own', () => {
+  const r = solve(highs, {
+    targets: [
+      { item: 'Desc_Computer_C', rate: 5 },
+      { item: 'Desc_Motor_C', rate: 10 },
+    ],
+    supplies: [],
+    enabledRecipes: new Set(data.recipes.filter((x) => x.kind === 'standard').map((x) => x.id)),
+    resourceCaps: {},
+    objective: 'resources',
+  });
+  for (const dir of ['LR', 'TB'] as const) {
+    forgetPlacements();
+    const { nodes, edges } = buildGraph(r, 9, { dir, splitters: true });
+    const areas = autoAreas(nodes, edges);
+    expect(areas.length).toBe(4);
+    for (const a of areas) {
+      // No machine of another chain stands in an area.
+      const strangers = nodes.filter((n) => {
+        if (n.type !== 'machine') return false;
+        const x = Math.min(a.x + a.w, n.position.x + (n.width ?? 0)) - Math.max(a.x, n.position.x);
+        const y = Math.min(a.y + a.h, n.position.y + (n.height ?? 0)) - Math.max(a.y, n.position.y);
+        return (
+          x > 0 &&
+          y > 0 &&
+          !(
+            n.position.x >= a.x &&
+            n.position.y >= a.y &&
+            n.position.x + (n.width ?? 0) <= a.x + a.w &&
+            n.position.y + (n.height ?? 0) <= a.y + a.h
+          )
+        );
+      });
+      expect(strangers.length).toBe(0);
+    }
+  }
+});

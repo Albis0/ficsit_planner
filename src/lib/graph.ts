@@ -4,6 +4,7 @@ import dagre from '@dagrejs/dagre';
 import { Position, type Edge, type Node, type NodeHandle } from '@xyflow/react';
 import { groupClocks } from './clocks';
 import { data, transportFor, type Transport } from './data';
+import { chains } from './autoAreas';
 import { plantIdOf } from './power';
 import type { RecipeUse, SolveResult } from './solver';
 import { matchFlows, type Split, type SplitGroup, splitByDestination } from './split';
@@ -661,12 +662,34 @@ interface Placement {
   crossings: number;
 }
 
-function place(nodes: Node[], edges: Edge[], dir: Direction, ranker: Ranker, opts: GraphOptions): Placement {
-  const g = new dagre.graphlib.Graph({ multigraph: true });
+function place(nodes: Node[], edges: Edge[], dir: Direction, ranker: Ranker, opts: GraphOptions, chain?: Map<string, string[]>): Placement {
+  try {
+    return placeIn(nodes, edges, dir, ranker, opts, chain);
+  } catch (e) {
+    // dagre cannot always find where a belt leaves a cluster; the chains are then left to the layers like any other machines.
+    if (!chain) throw e;
+    return placeIn(nodes, edges, dir, ranker, opts);
+  }
+}
+
+function placeIn(
+  nodes: Node[],
+  edges: Edge[],
+  dir: Direction,
+  ranker: Ranker,
+  opts: GraphOptions,
+  chain?: Map<string, string[]>,
+): Placement {
+  const g = new dagre.graphlib.Graph({ multigraph: true, compound: !!chain });
   const gap = (opts.scale ?? 1) * (opts.spacing ?? 1);
   const label = scaled(LABEL, opts.text ?? 1);
   g.setGraph({ rankdir: dir, ranker, nodesep: SPACING[dir].nodesep * gap, ranksep: SPACING[dir].ranksep * gap, marginx: 30, marginy: 30 });
   for (const n of nodes) g.setNode(n.id, { width: n.width, height: n.height });
+  // A product chain is a cluster of its own, so its machines stand together and not spread over the layers.
+  for (const [root, ids] of chain ?? []) {
+    g.setNode(`chain:${root}`, {});
+    for (const id of ids) g.setParent(id, `chain:${root}`);
+  }
   for (const e of edges) g.setEdge(e.source, e.target, { ...label, labelpos: 'c' }, e.id);
   dagre.layout(g);
   const pos = new Map<string, Point>();
@@ -798,6 +821,7 @@ function choose(nodes: Node[], edges: Edge[], opts: GraphOptions): Placement {
 /** The fewest crossing placement in each direction the layout may take. */
 function bestPerDirection(nodes: Node[], edges: Edge[], opts: GraphOptions): Placement[] {
   const { dir, box } = opts;
+  const chain = opts.consumers ? undefined : chains(nodes, edges);
   const dirs: Direction[] = dir ? [dir] : box ? ['LR', 'TB'] : ['LR'];
   // What these are made from: the nodes (ids and sizes), the belts between them and the options that shape the layout.
   // The screen's size isn't part of it, as it only decides between the directions afterwards. Changing a number leaves all of this as it was.
@@ -808,10 +832,13 @@ function bestPerDirection(nodes: Node[], edges: Edge[], opts: GraphOptions): Pla
     opts.text ?? 1,
     nodes.map((n) => `${n.id}:${n.width}x${n.height}`).join(','),
     edges.map((e) => `${e.id}>${e.source}>${e.target}`).join(','),
+    [...(chain ?? [])].map(([root, ids]) => `${root}=${ids.join('+')}`).join(','),
   ].join('|');
   const hit = placements.get(key);
   if (hit) return hit;
-  const made = dirs.map((d) => RANKERS.map((r) => place(nodes, edges, d, r, opts)).reduce((a, b) => (b.crossings < a.crossings ? b : a)));
+  const made = dirs.map((d) =>
+    RANKERS.map((r) => place(nodes, edges, d, r, opts, chain)).reduce((a, b) => (b.crossings < a.crossings ? b : a)),
+  );
   placements.set(key, made);
   if (placements.size > MAX_PLACEMENTS) placements.delete(placements.keys().next().value as string);
   return made;
