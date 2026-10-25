@@ -181,3 +181,21 @@ describe('a factory is Auto or Manual for good', () => {
     expect(useStore.getState().plans[1]).toBe(manual);
   });
 });
+
+describe('a Manual factory is never taken for an empty one', () => {
+  test('the Codex builds a factory in a new tab when the one on screen is Manual, even with no outputs yet', () => {
+    const m = { ...newPlan('Manual'), id: 'm', floor: 'manual' as const, model: floor() };
+    useStore.setState({ mode: 'factory', plans: [{ ...m, targets: [] }], active: 'm' });
+    useStore.getState().buildFactory(aim.item, 'Plates');
+    const plans = useStore.getState().plans;
+    expect(plans).toHaveLength(2);
+    expect(plans[0].model?.nodes).toHaveLength(1);
+  });
+
+  test('opening a copy beside a lone Manual factory keeps it', () => {
+    const m = { ...newPlan('Manual'), id: 'm', floor: 'manual' as const, model: floor(), targets: [] };
+    useStore.setState({ mode: 'factory', plans: [m], power: [newPowerPlan('Plant 1')], active: 'm' });
+    importData({ kind: KIND, version: 3, plans: [{ ...newPlan('Other'), targets: [aim] }] });
+    expect(useStore.getState().plans.map((p) => p.name)).toEqual(['Manual', 'Other']);
+  });
+});

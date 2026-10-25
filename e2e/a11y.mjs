@@ -8,6 +8,7 @@
 // (a rule id, with why it was left on purpose).
 import fs from 'node:fs';
 import path from 'node:path';
+import { manualModel } from './manual.mjs';
 import { chromium } from 'playwright-core';
 import { preview } from 'vite';
 
@@ -23,8 +24,8 @@ const SIZES = {
 const sizes = arg('sizes', 'laptop,phone').split(',');
 const saved = (state) =>
   JSON.stringify({
-    state: { onboarded: true, tier: 9, lang: 'en', ...state, settings: { newFloor: 'kind', ...state.settings } },
-    version: 3,
+    state: { onboarded: true, tier: 9, lang: 'en', ...state, settings: state.settings },
+    version: 4,
   });
 const plan = (more = {}) => ({
   id: 'f1',
@@ -80,15 +81,20 @@ for (const size of sizes) {
 
   await step('factory (Auto)', () => open(saved({ mode: 'factory', plans: [plan()], active: 'f1' })));
   await step('factory (Manual)', async () => {
-    await open(saved({ mode: 'factory', plans: [plan()], active: 'f1' }));
-    await page.locator('.floor-kind button >> nth=1').click();
+    const targets = [['Desc_Motor_C', 10]];
+    await open(
+      saved({
+        mode: 'factory',
+        plans: [{ ...plan(), floor: 'manual', model: manualModel(targets) }],
+        active: 'f1',
+      }),
+    );
     await page.waitForFunction(() => !document.querySelector('.busy'), null, { timeout: 30000 });
     await page.waitForTimeout(1200);
   });
-  await step('new Manual floor question', async () => {
-    await open(saved({ mode: 'factory', plans: [plan()], active: 'f1', settings: { newFloor: 'ask' } }));
-    await page.locator('.floor-kind button >> nth=1').click();
-    await page.waitForSelector('.floor-ask');
+  await step('new factory menu', async () => {
+    await open(saved({ mode: 'factory', plans: [plan()], active: 'f1' }));
+    await page.click(size === 'phone' ? '.plan-current' : '.plan-add');
     await page.waitForTimeout(400);
   });
   await step('factory list', () => open(saved({ mode: 'factory', plans: [plan()], active: 'f1', view: 'table' })));

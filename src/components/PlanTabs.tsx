@@ -525,20 +525,23 @@ export function PlanTabs() {
       {rowMenu.menu}
       {kinds &&
         createPortal(
-          <CardMenu
-            at={{ x: kinds.x / zoom, y: kinds.y / zoom }}
-            items={[
-              { label: t('newAutoPlan'), icon: 'gear', note: t('newAutoPlanNote'), onPick: () => tabs.add(false) },
-              { label: t('newManualPlan'), icon: 'floor', note: t('newManualPlanNote'), onPick: () => tabs.add(true) },
-            ]}
-            onClose={closeKinds}
-            fixed
-          />,
+          // A landmark of its own, since the menu is drawn outside the top bar (which would hold a fixed menu to its own box).
+          <div role="region" aria-label={t('newPlan')} className="plan-list-frame">
+            <CardMenu
+              at={{ x: kinds.x / zoom, y: kinds.y / zoom }}
+              items={[
+                { label: t('newAutoPlan'), icon: 'gear', note: t('newAutoPlanNote'), onPick: () => tabs.add(false) },
+                { label: t('newManualPlan'), icon: 'floor', note: t('newManualPlanNote'), onPick: () => tabs.add(true) },
+              ]}
+              onClose={closeKinds}
+              fixed
+            />
+          </div>,
           document.querySelector('.app') ?? document.body,
         )}
       {open &&
         createPortal(
-          <div ref={list} className="plan-list-frame">
+          <div ref={list} className="plan-list-frame" role="region" aria-label={t('ovFactories')}>
             <PlanList at={open} onClose={() => setOpen(undefined)} />
           </div>,
           document.querySelector('.app') ?? document.body,

@@ -9,19 +9,38 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { chromium } from 'playwright-core';
 import { preview } from 'vite';
+import { manualModel } from './manual.mjs';
 
 const OUT = path.resolve('e2e/out/modeler');
 fs.rmSync(OUT, { recursive: true, force: true });
 fs.mkdirSync(OUT, { recursive: true });
 
-const still = { beltMotion: false, motion: 'reduce', newFloor: 'kind' };
+const still = { beltMotion: false, motion: 'reduce' };
 const saved = (state) =>
-  JSON.stringify({ state: { onboarded: true, tier: 9, lang: 'en', ...state, settings: { ...still, ...state.settings } }, version: 3 });
+  JSON.stringify({ state: { onboarded: true, tier: 9, lang: 'en', ...state, settings: { ...still, ...state.settings } }, version: 4 });
 const factory = (targets, extra = {}) =>
   saved({
     mode: 'factory',
     plans: [{ id: 'f1', name: 'Factory 1', targets: targets.map(([item, rate]) => ({ item, rate })), ...extra }],
     active: 'f1',
+  });
+// A Manual factory with the floor of the factory worked out for these targets on it.
+// plan and state: more to put on the tab and in the saved session.
+const manual = (targets, { plan = {}, state = {}, separate = [] } = {}) =>
+  saved({
+    mode: 'factory',
+    plans: [
+      {
+        id: 'f1',
+        name: 'Factory 1',
+        targets: targets.map(([item, rate]) => ({ item, rate })),
+        floor: 'manual',
+        model: manualModel(targets, separate),
+        ...plan,
+      },
+    ],
+    active: 'f1',
+    ...state,
   });
 const blank = saved({ mode: 'factory', plans: [{ id: 'f1', name: 'Factory 1', targets: [] }], active: 'f1' });
 
@@ -232,47 +251,8 @@ const clash = (a, b) => a && b && a.x < b.x + b.width && b.x < a.x + a.width && 
     `${squared.length} belts`,
   );
 
-  // ── A1b: a new Manual floor asks one card per kind or per building ──
-  section = 'A1b';
-  const motor = (settings) =>
-    saved({
-      mode: 'factory',
-      plans: [{ id: 'f1', name: 'Factory 1', targets: [{ item: 'Desc_Motor_C', rate: 10 }] }],
-      active: 'f1',
-      settings,
-    });
-  const manualOn = () =>
-    page.waitForFunction(() => document.querySelectorAll('.floor-kind button')[1]?.getAttribute('aria-checked') === 'true', null, {
-      timeout: 90000,
-    });
-  await open(motor({ newFloor: 'ask' }));
-  await page.click('.floor-kind button >> nth=1');
-  await page.waitForSelector('.floor-ask');
-  ok('Manual asks which way when several machines make a line', (await page.locator('.floor-ask-way').count()) === 2);
-  await page.keyboard.press('Escape');
-  await wait(400);
-  ok('closing the question leaves the floor on Auto', (await page.locator('.floor-ask').count()) === 0 && (await model()) == null);
-  await page.click('.floor-kind button >> nth=1');
-  await page.waitForSelector('.floor-ask');
-  await page.locator('.floor-ask-way').nth(1).click();
-  await page.locator('.floor-ask .toggle').click();
-  await page.locator('.floor-ask .primary-button').click();
-  await manualOn();
-  await settle();
-  const each = await model();
-  const cards = each.nodes.filter((n) => n.k === 'machine');
-  ok('each building is a card of its own', cards.length > 10 && cards.every((n) => !n.auto && (n.n ?? 1) === 1), `${cards.length} cards`);
-  ok(
-    'with splitters and mergers between',
-    each.nodes.some((n) => n.k === 'logistic'),
-  );
-  ok(
-    "Don't ask again keeps the choice in Settings",
-    (await page.evaluate(() => JSON.parse(localStorage.getItem('ficsit-planner')).state.settings.newFloor)) === 'building',
-  );
-
-  // ── A1: Auto to Manual ──
-  section = 'A1';
+  // ── A1a: ticking a machine built on the Auto floor ──
+  section = 'A1a';
   await open(factory([['Desc_Motor_C', 10]]));
   await page.click('.deck-toggle');
   await wait(600);
@@ -285,10 +265,13 @@ const clash = (a, b) => a && b && a.x < b.x + b.width && b.x < a.x + a.width && 
   await wait(600);
   ok('a single click opens the panel, with the built box ticked', (await page.locator('.inspector .built-check.on').count()) === 1);
   await page.keyboard.press('Escape');
-  const autoRaw = await page.$$eval('.readout.wide input', (l) => l.map((i) => i.value));
-  const autoMachines = await page.locator('.readout-value').nth(1).innerText();
-  await page.click('.floor-kind button >> nth=1');
+
+  // ── A1: a Manual factory laid out ──
+  section = 'A1';
+  await open(manual([['Desc_Motor_C', 10]]));
+  await page.click('.deck-toggle');
   await settle();
+  await fit();
   await wait(800);
   await shot('a1-manual');
   let m = await model();
@@ -306,17 +289,9 @@ const clash = (a, b) => a && b && a.x < b.x + b.width && b.x < a.x + a.width && 
     'splitters and mergers',
     m.nodes.some((n) => n.k === 'logistic'),
   );
-  const manualRaw = await page.$$eval('.readout.wide input', (l) => l.map((i) => i.value));
-  ok('same raw input as Auto', JSON.stringify(manualRaw) === JSON.stringify(autoRaw), `${autoRaw} / ${manualRaw}`);
-  ok('same machine count', (await page.locator('.readout-value').nth(1).innerText()) === autoMachines);
-  ok(
-    'the machine ticked built in Auto is ticked on the Manual floor too',
-    m.nodes.some((n) => n.k === 'machine' && n.done),
-  );
   const states = await page.$$eval('.react-flow__node .machine-node .run-state', (l) => l.map((x) => x.textContent));
   ok('every machine at full speed', states.length > 0 && states.every((s) => s === 'Full speed'), [...new Set(states)].join(', '));
   ok('no cards on top of each other', (await overlaps()).length === 0, (await overlaps()).join(' '));
-  ok('opens with the whole floor in view', await allInView());
   ok('the toolbar clear of the totals tab', (await onTab()).length === 0, (await onTab()).join(', '));
   // The cards feeding a machine stand in the order of its inputs, so their belts don't cross: iron ore above coal.
   const steel = m.nodes.find((n) => n.recipe === 'Recipe_IngotSteel_C');
@@ -526,10 +501,10 @@ const clash = (a, b) => a && b && a.x < b.x + b.width && b.x < a.x + a.width && 
 
   // ── A5: belt panel, undo ──
   section = 'A5';
-  await open(factory([['Desc_IronPlate_C', 60]]));
+  await open(manual([['Desc_IronPlate_C', 60]]));
   await page.click('.deck-toggle');
-  await page.click('.floor-kind button >> nth=1');
   await settle();
+  await fit();
   m = await model();
   const plateBelt = m.links.find((l) => {
     const a = m.nodes.find((n) => n.id === l.a);
@@ -616,13 +591,12 @@ const clash = (a, b) => a && b && a.x < b.x + b.width && b.x < a.x + a.width && 
 
   // A wrong item: iron ingots into a miner can't be; iron ingots into something taking ore can't either.
   await open(
-    factory([
+    manual([
       ['Desc_IronPlate_C', 30],
       ['Desc_Wire_C', 30],
     ]),
   );
   await page.click('.deck-toggle');
-  await page.click('.floor-kind button >> nth=1');
   await settle();
   m = await model();
   const ironSmelter = m.nodes.find((n) => n.k === 'machine' && n.recipe === 'Recipe_IngotIron_C');
@@ -669,7 +643,7 @@ const clash = (a, b) => a && b && a.x < b.x + b.width && b.x < a.x + a.width && 
   await settle();
   ok('numbers back', (await card(ironSmelter.id).locator('.run-state').count()) === 1);
 
-  // ── A8: the other views, Auto and back, rebuild ──
+  // ── A8: the other views ──
   section = 'A8';
   m = await model();
   const camBefore = await viewport();
@@ -688,26 +662,6 @@ const clash = (a, b) => a && b && a.x < b.x + b.width && b.x < a.x + a.width && 
   await pickView(0);
   await wait(600);
   ok('back on the floor, the camera where it was', (await viewport()) === camBefore);
-  await page.click('.floor-kind button >> nth=0');
-  await settle();
-  await page.click('.floor-kind button >> nth=1');
-  await settle();
-  ok('Auto and back keeps the floor', JSON.stringify(await model()) === JSON.stringify(m));
-  page.once('dialog', (d) => d.accept());
-  await page.locator('.tool-button[aria-label="Rebuild"]').click();
-  await settle();
-  const rebuilt = await model();
-  ok('rebuild asks, then starts again', rebuilt.links.some((l) => l.a === ironSmelter.id) || rebuilt.nodes.length > 0);
-  ok('rebuilt: no open output left', !rebuilt.stall && (await page.locator('.open-ends').count()) === 0);
-  const plan = await page.evaluate(() => JSON.parse(localStorage.getItem('ficsit-planner')).state.plans[0]);
-  const outs = rebuilt.nodes.filter((n) => n.k === 'out' && n.tag !== 'spare').map((n) => n.item);
-  ok(
-    'the products in the panel are the floor’s outputs, and the factory’s targets',
-    (await page.locator('.side .floor-io').count()) >= outs.length &&
-      plan.targets.every((x) => outs.includes(x.item)) &&
-      outs.every((i) => plan.targets.some((x) => x.item === i)),
-    `${outs.join(',')} / ${plan.targets.map((x) => x.item).join(',')}`,
-  );
 
   // ── A9: share ──
   section = 'A9';
@@ -729,7 +683,7 @@ const clash = (a, b) => a && b && a.x < b.x + b.width && b.x < a.x + a.width && 
       const s = JSON.parse(localStorage.getItem('ficsit-planner') ?? '{}').state;
       return s?.plans?.find((p) => p.model)?.model?.nodes.length ?? 0;
     });
-    ok('the shared link brings the manual floor', shared === rebuilt.nodes.length, `${shared} of ${rebuilt.nodes.length}`);
+    ok('the shared link brings the manual floor', shared === m.nodes.length, `${shared} of ${m.nodes.length}`);
     // A link on the clipboard pasted into the page opens as a new factory, whatever is open.
     await p2.goto(URL);
     await p2.waitForFunction(() => !document.querySelector('.boot'), null, { timeout: 30000 });
@@ -762,11 +716,11 @@ const clash = (a, b) => a && b && a.x < b.x + b.width && b.x < a.x + a.width && 
 
   // ── A10: the same output another way ──
   section = 'A10';
-  await open(factory([['Desc_Motor_C', 10]]));
-  await page.click('.floor-kind button >> nth=1');
+  await open(manual([['Desc_Motor_C', 10]]));
   await settle();
+  await fit();
   m = await model();
-  // Converted machines size themselves, at the clock the Auto card runs them at.
+  // Machines size themselves, at the clock the Auto card runs them at.
   let slow;
   for (const n of m.nodes)
     if (
@@ -822,15 +776,7 @@ const clash = (a, b) => a && b && a.x < b.x + b.width && b.x < a.x + a.width && 
   // ── A11: areas, drawn with the right button held down ──
   section = 'A11';
   {
-    await open(
-      saved({
-        mode: 'factory',
-        plans: [{ id: 'f1', name: 'Factory 1', targets: [{ item: 'Desc_Motor_C', rate: 10 }] }],
-        active: 'f1',
-        settings: { areaLabels: 'always' },
-      }),
-    );
-    await page.click('.floor-kind button >> nth=1');
+    await open(manual([['Desc_Motor_C', 10]], { state: { settings: { ...still, areaLabels: 'always' } } }));
     await settle();
     await fit();
     const groups = async () => (await model()).nodes.filter((n) => n.k === 'group');
@@ -1108,9 +1054,9 @@ const clash = (a, b) => a && b && a.x < b.x + b.width && b.x < a.x + a.width && 
   // ── A11c: an output card offers its product to the pool ──
   section = 'A11c';
   {
-    await open(factory([['Desc_Motor_C', 10]]));
-    await page.click('.floor-kind button >> nth=1');
+    await open(manual([['Desc_Motor_C', 10]]));
     await settle();
+    await fit();
     await wait(600);
     const pooledNow = async () => {
       await wait(400);
@@ -1127,9 +1073,9 @@ const clash = (a, b) => a && b && a.x < b.x + b.width && b.x < a.x + a.width && 
     ok('Manual: and the button says so', (await button.getAttribute('aria-pressed')) === 'true');
     await button.click();
     ok('Manual: a second click takes it back', (await pooledNow()).length === 0);
-    await page.click('.floor-kind button >> nth=0');
+    await open(factory([['Desc_Motor_C', 10]]));
     await wait(600);
-    ok('Auto: the same plan still has its button on the output card', (await page.locator('.endpoint-pool').count()) >= 1);
+    ok('Auto: the output card has its button too', (await page.locator('.endpoint-pool').count()) >= 1);
   }
 
   // ── A11d: the All page lists the standard recipes too ──
@@ -1502,11 +1448,11 @@ const clash = (a, b) => a && b && a.x < b.x + b.width && b.x < a.x + a.width && 
 
   // A machine that takes back what it gives off (a Blender feeding itself acid) comes across with its belt round to its own input.
   section = 'loop';
-  await open(factory([['Desc_UraniumCell_C', 12]]));
+  await open(manual([['Desc_UraniumCell_C', 12]]));
   await page.click('.deck-toggle');
   await wait(600);
-  await page.click('.floor-kind button >> nth=1');
   await settle();
+  await fit();
   await wait(800);
   m = await model();
   const blender = m.nodes.find((n) => n.recipe === 'Recipe_UraniumCell_C');
@@ -1524,11 +1470,11 @@ const clash = (a, b) => a && b && a.x < b.x + b.width && b.x < a.x + a.width && 
 
   // The "All" tab: every factory and plant on one page; a hand-built factory counts for what its floor works out to.
   section = 'all';
-  await open(factory([['Desc_Motor_C', 10]]));
+  await open(manual([['Desc_Motor_C', 10]]));
   await page.click('.deck-toggle');
   await wait(600);
-  await page.click('.floor-kind button >> nth=1');
   await settle();
+  await fit();
   await wait(800);
   const floorPower = (await page.locator('.readout.power .readout-value').first().innerText()).replace(/\s+/g, ' ');
   await page.click('.plan-current');
@@ -1537,7 +1483,19 @@ const clash = (a, b) => a && b && a.x < b.x + b.width && b.x < a.x + a.width && 
   ok('a power plant with nothing in it is not in the factory menu', (await page.locator('.plan-row.power').count()) === 0);
   await page.keyboard.press('Escape');
   await page.click('.plan-add');
+  await wait(300);
+  ok('the + offers an Auto and a Manual factory', (await page.locator('.card-menu button').count()) === 2);
+  await page.keyboard.press('Escape');
+  await wait(200);
+  ok(
+    'Escape closes it and adds nothing',
+    (await page.locator('.card-menu').count()) === 0 && (await page.locator('.plan-current').innerText()).includes('Factory 1'),
+  );
+  await page.click('.plan-add');
+  await wait(300);
+  await page.locator('.card-menu button', { hasText: 'Auto factory' }).click();
   await wait(500);
+  ok('Auto factory adds an Auto tab', (await page.locator('.plan-current .kind-icon.auto').count()) === 1);
   await page.click('.plan-current');
   await wait(300);
   ok('the All row shows with two factories', (await page.locator('.plan-row.all').count()) === 1);
@@ -1549,14 +1507,104 @@ const clash = (a, b) => a && b && a.x < b.x + b.width && b.x < a.x + a.width && 
   );
   const rowsText = await page.$$eval('.ov-table:not(.plants):not(.pool) tbody tr', (l) => l.map((r) => r.textContent.replace(/\s+/g, ' ')));
   ok('a row per factory, the empty one says so', rowsText.length === 2 && /Nothing planned/.test(rowsText[1]), rowsText.join(' | '));
-  ok('the hand-built factory is marked', (await page.locator('.ov-tag').count()) === 1);
+  ok(
+    'each factory shows its kind: the Manual one a grid, the Auto one a gear',
+    (await page.locator('.ov-name .kind-icon.manual').count()) === 1 && (await page.locator('.ov-name .kind-icon.auto').count()) === 1,
+  );
   const rowPower = rowsText[0].match(/([\d.,]+)\s*MW/)?.[1];
   ok('its power is what the Manual floor showed', !!rowPower && floorPower.startsWith(rowPower), `${floorPower} / ${rowPower}`);
   ok('the page is clean of floor controls', (await page.locator('.floor-bar, .copy-factory').count()) === 0);
   await shot('all-page');
   await page.locator('.ov-name button').first().click();
   await wait(600);
-  ok('a row opens its factory', (await page.locator('.overview').count()) === 0 && (await page.locator('.floor-kind').count()) === 1);
+  ok(
+    'a row opens its factory',
+    (await page.locator('.overview').count()) === 0 &&
+      (await page.locator('.react-flow').count()) === 1 &&
+      (await page.locator('.floor-kind').count()) === 0,
+  );
+
+  // Auto and Manual factories are apart: an old tab holding both is two tabs, and neither changes the other.
+  section = 'apart';
+  {
+    const motorModel = manualModel([['Desc_Motor_C', 10]]);
+    const savedPlans = () => page.evaluate(() => JSON.parse(localStorage.getItem('ficsit-planner')).state.plans);
+    // A session saved before version 4: one tab, the Manual floor on screen, the Auto targets beside it.
+    await open(
+      JSON.stringify({
+        state: {
+          onboarded: true,
+          tier: 9,
+          lang: 'en',
+          mode: 'factory',
+          settings: still,
+          plans: [{ id: 'f1', name: 'Motors', targets: [{ item: 'Desc_Motor_C', rate: 10 }], floor: 'manual', model: motorModel }],
+          active: 'f1',
+        },
+        version: 3,
+      }),
+    );
+    await settle();
+    await wait(500);
+    const tabs = await savedPlans();
+    ok(
+      'an old tab with both floors becomes two tabs',
+      tabs.length === 2 && tabs[0].name === 'Motors' && tabs[1].name === 'Motors (Manual)',
+    );
+    ok(
+      'the Auto one has no floor, the Manual one keeps its floor',
+      !tabs[0].model && !tabs[0].floor && tabs[1].floor === 'manual' && tabs[1].model.nodes.length === motorModel.nodes.length,
+    );
+    ok(
+      'the floor that was open is still open',
+      (await page.locator('.plan-current').innerText()).includes('Motors (Manual)') &&
+        (await page.locator('.react-flow__node-part').count()) > 0,
+    );
+    await page.click('.plan-current');
+    await wait(300);
+    ok(
+      'the list tells them apart: a gear for Auto, a grid for Manual',
+      (await page.locator('.plan-row[data-group="f"] .kind-icon.auto').count()) === 1 &&
+        (await page.locator('.plan-row[data-group="f"] .kind-icon.manual').count()) === 1,
+    );
+    await page.locator('.plan-row[data-group="f"]').first().locator('.plan-row-name').click();
+    await settle();
+    ok(
+      'the Auto tab shows no switch to Manual',
+      (await page.locator('.floor-kind').count()) === 0 && (await page.locator('.react-flow__node-machine').count()) > 0,
+    );
+    const manualBefore = JSON.stringify((await savedPlans())[1]);
+    const rate = page.locator('.side .targets .item-card input').first();
+    await rate.fill('20');
+    await rate.press('Enter');
+    await wait(900);
+    const after = await savedPlans();
+    ok('a target changed on the Auto tab', after[0].targets[0].rate === 20);
+    ok('and the Manual tab beside it is exactly as it was', JSON.stringify(after[1]) === manualBefore);
+
+    // A Manual factory from the + menu: an empty floor of its own, with a grid in front of its name.
+    await page.click('.plan-add');
+    await wait(300);
+    await page.locator('.card-menu button', { hasText: 'Manual factory' }).click();
+    await wait(800);
+    const added = await savedPlans();
+    ok(
+      'Manual factory from the + adds a Manual tab with an empty floor',
+      added.length === 3 && added[2].floor === 'manual' && added[2].model.nodes.length === 0,
+    );
+    ok('its name has the grid in front', (await page.locator('.plan-current .kind-icon.manual').count()) === 1);
+    await shot('apart-new-manual');
+
+    // "Build by hand" is for a factory with nothing in it, and only there.
+    await open(blank);
+    ok('an empty Auto factory offers Build by hand', (await page.locator('.build-by-hand').count()) === 1);
+    await page.locator('.build-by-hand').click();
+    await wait(800);
+    const made = (await savedPlans())[0];
+    ok('it turns that tab Manual', made.floor === 'manual' && made.model.nodes.length === 0);
+    await open(factory([['Desc_Motor_C', 10]]));
+    ok('a factory with something in it offers no such button', (await page.locator('.build-by-hand').count()) === 0);
+  }
 
   // The pool: what factories leave over, for another factory to take; red when more is taken than there is.
   section = 'pool';
@@ -1772,15 +1820,15 @@ const clash = (a, b) => a && b && a.x < b.x + b.width && b.x < a.x + a.width && 
     ['Desc_MotorLightweight_C', 2],
     ['Desc_SpaceElevatorPart_9_C', 2],
   ]) {
-    await open(factory([[item, rate]]));
+    await open(manual([[item, rate]]));
     await page.click('.deck-toggle');
-    await page.click('.floor-kind button >> nth=1');
     await settle();
+    await fit();
     await wait(600);
     const mm = await model();
     const tag = item.replace(/^Desc_|_C$/g, '');
     await shot(`big-${tag}-open`);
-    ok(`${tag}: converted, the whole floor in view`, await allInView());
+    ok(`${tag}: the whole floor in view`, await allInView());
     ok(
       `${tag}: opens on cards`,
       (await page.$$eval(
@@ -2113,19 +2161,12 @@ const clash = (a, b) => a && b && a.x < b.x + b.width && b.x < a.x + a.width && 
   // ── Q: 0.13.5 ──
   section = 'Q';
   const plate = 'Desc_IronPlateReinforced_C';
-  await open(
-    saved({
-      mode: 'factory',
-      plans: [{ id: 'f1', name: 'Factory 1', targets: [{ item: plate, rate: 30 }] }],
-      active: 'f1',
-      settings: { beltLabels: 'always' },
-    }),
-  );
-  await page.click('.floor-kind button >> nth=1');
+  await open(manual([[plate, 30]], { state: { settings: { ...still, beltLabels: 'always' } } }));
   await settle();
+  await fit();
   let m = await model();
   ok(
-    'converted belts are left to the load: no Mk picked',
+    'belts are left to the load: no Mk picked',
     m.links.every((l) => l.mk === undefined),
   );
   ok(
@@ -2159,16 +2200,19 @@ const clash = (a, b) => a && b && a.x < b.x + b.width && b.x < a.x + a.width && 
   ok('a miner held back shows the clock it runs at, not a share', !/Runs at/.test(minerNote), minerNote.replace(/\s+/g, ' '));
   await shot('q-five');
 
-  // Numbers off: Rebuild stays, and still starts the floor again.
+  // Numbers off takes them away; on again, they are back as they were.
   await page.locator('.tool-button[aria-label="Numbers"]').click();
   await settle();
-  ok('numbers off: Rebuild still there', await page.locator('.tool-button[aria-label="Rebuild"]').isVisible());
-  page.once('dialog', (d) => d.accept());
-  await page.locator('.tool-button[aria-label="Rebuild"]').click();
+  ok(
+    'numbers off: no Rebuild button any more, and no run states',
+    (await page.locator('.tool-button[aria-label="Rebuild"]').count()) === 0 &&
+      (await page.locator('.react-flow__node .machine-node .run-state').count()) === 0,
+  );
+  await page.locator('.tool-button[aria-label="Numbers"]').click();
   await settle();
   const again = await model();
   const out5 = again.nodes.find((n) => n.k === 'out' && n.item === plate);
-  ok('numbers off: Rebuild builds for what the floor puts out', again.calc === 'basic' && out5?.lim === 5, JSON.stringify(out5));
+  ok('numbers back: the floor puts out what it did', again.calc === 'basic' && out5?.lim === 5, JSON.stringify(out5));
 
   // A double click ticks a card built without opening its panel; one click opens it.
   await fit();
@@ -2281,56 +2325,20 @@ const clash = (a, b) => a && b && a.x < b.x + b.width && b.x < a.x + a.width && 
   await settle();
   ok('one undo turns it back', (await model()).dir === undefined);
 
-  // Converting a factory the Auto floor shows top to bottom keeps it that way.
-  await open(
-    saved({
-      mode: 'factory',
-      plans: [{ id: 'f1', name: 'Factory 1', targets: [{ item: 'Desc_Motor_C', rate: 10 }] }],
-      active: 'f1',
-      graphDir: 'TB',
-    }),
-  );
-  await page.click('.floor-kind button >> nth=1');
-  await settle();
-  m = await model();
-  ok('converted from a floor running down, it runs down', m.dir === 'TB' && (await overlaps()).length === 0);
-  const motorKinks = await kinked(m.links);
-  ok('and its belts have no kinks', motorKinks.length === 0, motorKinks.slice(0, 5).join(', '));
-  await shot('q-motor-down');
-
   // ── R: 0.13.7 ──
   section = 'R';
-  await open(
-    saved({
-      mode: 'factory',
-      plans: [{ id: 'f1', name: 'Factory 1', targets: [{ item: plate, rate: 30 }] }],
-      active: 'f1',
-    }),
-  );
-  await page.click('.floor-kind button >> nth=1');
+  await open(manual([[plate, 30]]));
   await settle();
+  await fit();
   const targetsNow = () => page.evaluate(() => JSON.parse(localStorage.getItem('ficsit-planner')).state.plans[0].targets);
   m = await model();
   const outCard = m.nodes.find((n) => n.k === 'out' && n.item === plate);
 
-  // One list of targets: set in Auto, the floor's output follows; set on the floor, Auto follows.
-  await page.click('.floor-kind button >> nth=0');
-  await settle();
-  await page.locator('.side .targets .item-card input').first().fill('15');
-  await page.locator('.side .targets .item-card input').first().press('Enter');
-  await wait(300);
-  await page.click('.floor-kind button >> nth=1');
-  await settle();
-  ok('a target set in Auto is the Manual output’s amount', (await model()).nodes.find((n) => n.id === outCard.id)?.lim === 15);
+  // A Manual factory's targets are its floor's output cards: an amount set on the floor is its target.
   await page.locator('.side .floor-io input').first().fill('7');
   await page.locator('.side .floor-io input').first().press('Enter');
   await settle();
-  ok('an amount set on the floor is the target in Auto', JSON.stringify(await targetsNow()) === JSON.stringify([{ item: plate, rate: 7 }]));
-  await page.click('.floor-kind button >> nth=0');
-  await settle();
-  ok('and Auto shows it', (await page.locator('.side .targets .item-card input').first().inputValue()) === '7');
-  await page.click('.floor-kind button >> nth=1');
-  await settle();
+  ok('an amount set on the floor is the target', JSON.stringify(await targetsNow()) === JSON.stringify([{ item: plate, rate: 7 }]));
   await fit();
 
   // An output has no panel; its × takes it off, and the target with it. Undo brings both back.
@@ -2484,11 +2492,10 @@ const clash = (a, b) => a && b && a.x < b.x + b.width && b.x < a.x + a.width && 
   await wait(600);
   const ctrls = await page.locator('.floor-controls').boundingBox();
   const fbar = await page.locator('.floor-bar').boundingBox();
-  const kindsBox = await page.locator('.floor-kind').boundingBox();
-  const viewsBox = await page.locator('.floor-bar .segmented:not(.floor-kind)').boundingBox();
+  const viewsBox = await page.locator('.floor-bar .segmented').boundingBox();
   ok(
     'a panel open: the bottom buttons clear of each other',
-    !clash(ctrls, kindsBox) && !clash(ctrls, viewsBox) && !clash(ctrls, await page.locator('aside.inspector').boundingBox()),
+    !clash(ctrls, viewsBox) && !clash(ctrls, await page.locator('aside.inspector').boundingBox()),
     JSON.stringify({ ctrls, fbar }),
   );
   await shot('r-panel-bottom');
@@ -2496,15 +2503,9 @@ const clash = (a, b) => a && b && a.x < b.x + b.width && b.x < a.x + a.width && 
 
   // ── S: 0.13.8 ──
   section = 'S';
-  await open(
-    saved({
-      mode: 'factory',
-      plans: [{ id: 'f1', name: 'Factory 1', targets: [{ item: 'Desc_Motor_C', rate: 10 }] }],
-      active: 'f1',
-    }),
-  );
-  await page.click('.floor-kind button >> nth=1');
+  await open(manual([['Desc_Motor_C', 10]]));
   await settle();
+  await fit();
   // Turned one way and straight back before the first is laid out: the second click waits its turn and does nothing.
   await page.locator('.floor-dir button[aria-checked="false"]').click();
   await page.locator('.floor-dir button[aria-checked="true"]').click({ force: true });
@@ -2562,11 +2563,11 @@ const clash = (a, b) => a && b && a.x < b.x + b.width && b.x < a.x + a.width && 
     'Desc_SpaceElevatorPart_5_C',
     'Desc_CircuitBoard_C',
   ];
-  await open(factory(eight.map((i) => [i, 20])));
+  await open(manual(eight.map((i) => [i, 20])));
   await page.click('.deck-toggle');
   await wait(600);
-  await page.click('.floor-kind button >> nth=1');
   await settle();
+  await fit();
   await wait(1500);
   const names = await page.locator('.floor-io .item-card-name').allInnerTexts();
   const comes = await page.$$eval('.panel-body.manual section:nth-of-type(2) .floor-io-name', (l) =>
@@ -2582,7 +2583,8 @@ const clash = (a, b) => a && b && a.x < b.x + b.width && b.x < a.x + a.width && 
   );
 
   // The list and the transport view end above the buttons along the bottom, and the transport view has no hint to click a machine.
-  await page.locator('.floor-kind button >> nth=0').click();
+  await open(factory(eight.map((i) => [i, 20])));
+  await page.click('.deck-toggle');
   await settle();
   await wait(800);
   for (const [name, idx] of [
@@ -2704,11 +2706,11 @@ const clash = (a, b) => a && b && a.x < b.x + b.width && b.x < a.x + a.width && 
   ok('saved without it', (await skippedNow()).length === 0);
 
   // Manual: the card says what it waits for, and the flag goes away when the milestone is bought.
-  await open(plastic());
+  await open(manual([['Desc_Plastic_C', 30]], { state: { tier: 5 } }));
   await page.click('.deck-toggle').catch(() => {});
   await wait(500);
-  await page.click('.floor-kind button >> nth=1');
   await settle();
+  await fit();
   await wait(1500);
   ok('Manual: nothing flagged at first', (await page.locator('.card-flag').count()) === 0);
   await window_();
@@ -2860,28 +2862,23 @@ const clash = (a, b) => a && b && a.x < b.x + b.width && b.x < a.x + a.width && 
   ok('open ends button', (await page.locator('.open-ends').innerText()).includes('⚠'));
   await shot('c-built');
 
-  await open(factory([['Desc_Motor_C', 10]]));
-  await page.click('.floor-kind button >> nth=1');
+  await open(manual([['Desc_Motor_C', 10]]));
   await settle();
+  await fit();
   await wait(600);
   await shot('c-motor');
-  ok('converted on a phone, the whole floor in view', await allInView());
+  ok('on a phone, the whole floor in view', await allInView());
   const bar = await page.locator('.floor-bar').boundingBox();
   const controls = await page.locator('.floor-controls').boundingBox();
-  const kinds = await page.locator('.floor-kind').boundingBox();
   ok(
     'buttons along the bottom clear of each other',
-    !clash(controls, kinds) && !clash(controls, await page.locator('.floor-bar .segmented:not(.floor-kind)').boundingBox()),
+    !clash(controls, await page.locator('.floor-bar .segmented').boundingBox()),
     JSON.stringify({ bar, controls }),
   );
   const toolbar = await page.locator('.model-toolbar').boundingBox();
   ok('the toolbar clear of the totals tab', (await onTab()).length === 0, (await onTab()).join(', '));
   ok('toolbar fits across', toolbar.width <= 412, `${toolbar.width}`);
-  // Converted on a phone the floor runs down, as the Auto floor did there; the switch is along the bottom.
-  ok(
-    'converted on a phone, it runs down, the switch to turn it there',
-    (await model()).dir === 'TB' && (await page.locator('.floor-dir').isVisible()),
-  );
+  ok('on a phone the switch to turn the floor is along the bottom', await page.locator('.floor-dir').isVisible());
   // No hover tips on a phone, even where a tap lands on a button with one.
   await page.locator('.tool-button[aria-label="Numbers"]').tap();
   await page.locator('.tool-button[aria-label="Numbers"]').tap();

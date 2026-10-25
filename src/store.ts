@@ -657,7 +657,7 @@ export const useStore = create<State>()(
         buildFactory: (item, name, recipe) => {
           const { plans, active } = get();
           const cur = plans.find((p) => p.id === active);
-          const blank = cur && cur.targets.length === 0 && cur.supplies.length === 0 ? cur : undefined;
+          const blank = cur && !cur.floor && cur.targets.length === 0 && cur.supplies.length === 0 ? cur : undefined;
           let enabled = [...defaultEnabled().filter((id) => !get().standardOff.includes(id)), ...get().unlocked];
           if (recipe) {
             const rivals = new Set(data.recipes.filter((r) => r.id !== recipe && r.outputs[0]?.item === item).map((r) => r.id));

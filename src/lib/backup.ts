@@ -97,7 +97,7 @@ export type ImportResult =
 const untouchedPower = (list: PowerPlan[]) => list.length === 1 && list[0].plants.length === 0 && !!list[0].autoName;
 
 /** A factory nobody has started: nothing to make and nothing on hand. */
-const blankPlans = (list: Plan[]) => list.length === 1 && list[0].targets.length === 0 && list[0].supplies.length === 0;
+const blankPlans = (list: Plan[]) => list.length === 1 && !list[0].floor && list[0].targets.length === 0 && list[0].supplies.length === 0;
 
 /**
  * Adds a file's factories and power plants as new tabs (they never replace yours, except an empty

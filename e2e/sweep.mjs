@@ -14,6 +14,7 @@ import path from 'node:path';
 import { chromium, firefox, webkit } from 'playwright-core';
 import { preview } from 'vite';
 import { inspectPage } from './checks.js';
+import { manualModel } from './manual.mjs';
 
 const arg = (k, d) => process.argv.find((a) => a.startsWith(`--${k}=`))?.split('=')[1] ?? d;
 const QUICK = process.argv.includes('--quick');
@@ -40,8 +41,23 @@ const sample = (list, n) => (QUICK ? list.filter((_, i) => i % Math.ceil(list.le
 // Saved state the app reads on start: straight into a factory, a plant or a setting, with no first-run question.
 const saved = (state) =>
   JSON.stringify({
-    state: { onboarded: true, tier: 9, lang: 'en', ...state, settings: { newFloor: 'kind', ...state.settings } },
-    version: 3,
+    state: { onboarded: true, tier: 9, lang: 'en', ...state, settings: state.settings },
+    version: 4,
+  });
+// A Manual factory with the floor of the factory worked out for a product (10 a minute) on it.
+const manual = (item) =>
+  saved({
+    mode: 'factory',
+    plans: [
+      {
+        id: 'f1',
+        name: 'Factory 1',
+        targets: [{ item, rate: 10 }],
+        floor: 'manual',
+        model: manualModel([[item, 10]]),
+      },
+    ],
+    active: 'f1',
   });
 const factory = (targets, extra = {}) =>
   saved({
@@ -172,13 +188,10 @@ async function run(size) {
         await page.waitForTimeout(500);
         await check(`inspector ${item}`);
       });
-    // The hand-built floor, made from the Auto one, and a machine on it picked.
+    // A hand-built floor, made for the same product, and a machine on it picked.
     for (const item of sample(products, 4).slice(0, QUICK ? 4 : 40))
       await step(`manual ${item}`, async () => {
-        await open(factory([item]));
-        const button = page.locator('.floor-kind button >> nth=1');
-        if (!(await button.count())) return;
-        await button.click();
+        await open(manual(item));
         await page.waitForFunction(() => !document.querySelector('.busy'), null, { timeout: 30000 });
         await page.waitForTimeout(1200);
         await check(`manual ${item}`);

@@ -898,9 +898,9 @@ export const en = {
     'What every factory and power plant leaves over, added up per item. A tab can take from it instead of from one tab, and the card names who leaves it over. It can run short: if more is taken than is left, the factories or plants taking it say so.',
   helpText_ownLine:
     'Makes a product on a line of its own, apart from the other targets, with its own machines and its own heading on the Auto floor.',
-  helpManual: 'Auto and Manual floors',
+  helpManual: 'Auto and Manual factories',
   helpText_manual:
-    'Auto works the machines out from your targets. Manual is a floor you build yourself: place machines, lay belts, set counts, and the numbers follow. Rebuild as Manual turns an Auto floor into one you can edit.',
+    'An Auto factory works the machines out from the products you set. A Manual factory is a floor you build yourself: place machines, lay belts, set counts, and the numbers follow. Pick the kind from the + beside the tab; a gear in front of a name is an Auto factory, a grid a Manual one. The two never change each other.',
   helpUndo: 'Undo and redo',
   helpText_undo:
     'The two arrows in the floor’s corner, or Ctrl+Z and Ctrl+Y, step back and forward through what you changed on the Auto floor and in the power planner: targets, recipes, what’s on hand, limits and clocks. Each tab keeps its own list until the page is reloaded. The Manual floor has its own undo.',

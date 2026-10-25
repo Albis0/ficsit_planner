@@ -15,6 +15,7 @@ import path from 'node:path';
 import { chromium } from 'playwright-core';
 import sharp from 'sharp';
 import { preview } from 'vite';
+import { manualModel } from './manual.mjs';
 
 const arg = (k, d) => process.argv.find((a) => a.startsWith(`--${k}=`))?.split('=')[1] ?? d;
 const UPDATE = process.argv.includes('--update');
@@ -36,15 +37,30 @@ const SIZES = {
 };
 
 // Belts stand still and nothing animates, so two runs of the same screen give the same picture.
-const still = { beltMotion: false, motion: 'reduce', newFloor: 'kind' };
+const still = { beltMotion: false, motion: 'reduce' };
 const saved = (state) =>
-  JSON.stringify({ state: { onboarded: true, tier: 9, lang: 'en', ...state, settings: { ...still, ...state.settings } }, version: 3 });
+  JSON.stringify({ state: { onboarded: true, tier: 9, lang: 'en', ...state, settings: { ...still, ...state.settings } }, version: 4 });
 const factory = (targets, extra = {}) =>
   saved({
     mode: 'factory',
     plans: [{ id: 'f1', name: 'Factory 1', targets: targets.map(([item, rate]) => ({ item, rate })) }],
     active: 'f1',
     ...extra,
+  });
+// A Manual factory with the floor of the factory worked out for these targets on it.
+const manual = (targets) =>
+  saved({
+    mode: 'factory',
+    plans: [
+      {
+        id: 'f1',
+        name: 'Factory 1',
+        targets: targets.map(([item, rate]) => ({ item, rate })),
+        floor: 'manual',
+        model: manualModel(targets),
+      },
+    ],
+    active: 'f1',
   });
 const plant = (generator, fuel, sizeBy = 'want') =>
   saved({
@@ -102,30 +118,34 @@ const SCREENS = [
     },
   },
   {
-    name: 'manual-question',
-    state: factory([['Desc_Motor_C', 10]], { settings: { newFloor: 'ask' } }),
-    act: async (page) => {
-      await page.click('.floor-kind button >> nth=1');
-      await page.waitForSelector('.floor-ask');
+    name: 'new-factory-menu',
+    state: factory([['Desc_Motor_C', 10]]),
+    act: async (page, phone) => {
+      // A phone has no + beside the tab: it adds from the list under the tab.
+      await page.click(phone ? '.plan-current' : '.plan-add');
       await page.waitForTimeout(500);
     },
   },
   {
     name: 'manual-motor',
-    state: factory([['Desc_Motor_C', 10]]),
+    state: manual([['Desc_Motor_C', 10]]),
     act: async (page) => {
-      await page.click('.floor-kind button >> nth=1');
       await page.waitForFunction(() => !document.querySelector('.busy'), null, { timeout: 30000 });
       await page.waitForTimeout(1200);
+      // A floor opened from the saved session shows where its first cards are; the picture is of the whole of it.
+      await page.click('.floor-controls .floor-button >> nth=-1');
+      await page.waitForTimeout(700);
     },
   },
   {
     name: 'manual-inspector',
-    state: factory([['Desc_Motor_C', 10]]),
+    state: manual([['Desc_Motor_C', 10]]),
     act: async (page) => {
-      await page.click('.floor-kind button >> nth=1');
       await page.waitForFunction(() => !document.querySelector('.busy'), null, { timeout: 30000 });
       await page.waitForTimeout(1200);
+      // A floor opened from the saved session shows where its first cards are; the picture is of the whole of it.
+      await page.click('.floor-controls .floor-button >> nth=-1');
+      await page.waitForTimeout(700);
       await page.locator('.react-flow__node-part:has(.machine-node)').first().dispatchEvent('click');
     },
   },
@@ -189,11 +209,13 @@ const SCREENS = [
   },
   {
     name: 'manual-chooser',
-    state: factory([['Desc_Motor_C', 10]]),
+    state: manual([['Desc_Motor_C', 10]]),
     act: async (page) => {
-      await page.click('.floor-kind button >> nth=1');
       await page.waitForFunction(() => !document.querySelector('.busy'), null, { timeout: 30000 });
       await page.waitForTimeout(1200);
+      // A floor opened from the saved session shows where its first cards are; the picture is of the whole of it.
+      await page.click('.floor-controls .floor-button >> nth=-1');
+      await page.waitForTimeout(700);
       // A right click on a laptop; a finger held on a phone.
       await page.locator('.react-flow__pane').click({ button: 'right', position: { x: 30, y: 200 } });
       await page.waitForTimeout(300);
