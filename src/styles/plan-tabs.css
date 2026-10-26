@@ -366,19 +366,20 @@
 .kind-tag {
   flex: none;
   box-sizing: border-box;
-  width: 5.8em;
-  padding: 2px 0;
-  background: var(--line-2);
-  color: var(--paper);
-  font: 700 11px / 1.2 var(--font-body);
-  letter-spacing: 0.08em;
+  width: 5.9em;
+  padding: 1px 0;
+  border: 1px solid var(--line-2);
+  border-radius: 2px;
+  color: var(--faint);
+  font: 600 10px / 1.3 var(--font-body);
+  letter-spacing: 0.06em;
   text-align: center;
   text-transform: uppercase;
 }
 
 .kind-tag.manual {
-  background: var(--ficsit);
-  color: var(--ficsit-ink);
+  border-color: var(--ficsit);
+  color: var(--ficsit);
 }
 
 .ov-name .kind-tag {
