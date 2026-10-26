@@ -1495,7 +1495,7 @@ const clash = (a, b) => a && b && a.x < b.x + b.width && b.x < a.x + a.width && 
   await wait(300);
   await page.locator('.card-menu button', { hasText: 'Auto factory' }).click();
   await wait(500);
-  ok('Auto factory adds an Auto tab', (await page.locator('.plan-current .kind-icon.auto').count()) === 1);
+  ok('Auto factory adds an Auto tab', (await page.locator('.plan-current .kind-tag.auto').count()) === 1);
   await page.click('.plan-current');
   await wait(300);
   ok('the All row shows with two factories', (await page.locator('.plan-row.all').count()) === 1);
@@ -1509,7 +1509,7 @@ const clash = (a, b) => a && b && a.x < b.x + b.width && b.x < a.x + a.width && 
   ok('a row per factory, the empty one says so', rowsText.length === 2 && /Nothing planned/.test(rowsText[1]), rowsText.join(' | '));
   ok(
     'each factory shows its kind: the Manual one a grid, the Auto one a gear',
-    (await page.locator('.ov-name .kind-icon.manual').count()) === 1 && (await page.locator('.ov-name .kind-icon.auto').count()) === 1,
+    (await page.locator('.ov-name .kind-tag.manual').count()) === 1 && (await page.locator('.ov-name .kind-tag.auto').count()) === 1,
   );
   const rowPower = rowsText[0].match(/([\d.,]+)\s*MW/)?.[1];
   ok('its power is what the Manual floor showed', !!rowPower && floorPower.startsWith(rowPower), `${floorPower} / ${rowPower}`);
@@ -1564,8 +1564,8 @@ const clash = (a, b) => a && b && a.x < b.x + b.width && b.x < a.x + a.width && 
     await wait(300);
     ok(
       'the list tells them apart: a gear for Auto, a grid for Manual',
-      (await page.locator('.plan-row[data-group="f"] .kind-icon.auto').count()) === 1 &&
-        (await page.locator('.plan-row[data-group="f"] .kind-icon.manual').count()) === 1,
+      (await page.locator('.plan-row[data-group="f"] .kind-tag.auto').count()) === 1 &&
+        (await page.locator('.plan-row[data-group="f"] .kind-tag.manual').count()) === 1,
     );
     await page.locator('.plan-row[data-group="f"]').first().locator('.plan-row-name').click();
     await settle();
@@ -1582,7 +1582,7 @@ const clash = (a, b) => a && b && a.x < b.x + b.width && b.x < a.x + a.width && 
     ok('a target changed on the Auto tab', after[0].targets[0].rate === 20);
     ok('and the Manual tab beside it is exactly as it was', JSON.stringify(after[1]) === manualBefore);
 
-    // A Manual factory from the + menu: an empty floor of its own, with a grid in front of its name.
+    // A Manual factory from the + menu: an empty floor of its own, with a Manual tag in front of its name.
     await page.click('.plan-add');
     await wait(300);
     await page.locator('.card-menu button', { hasText: 'Manual factory' }).click();
@@ -1592,7 +1592,7 @@ const clash = (a, b) => a && b && a.x < b.x + b.width && b.x < a.x + a.width && 
       'Manual factory from the + adds a Manual tab with an empty floor',
       added.length === 3 && added[2].floor === 'manual' && added[2].model.nodes.length === 0,
     );
-    ok('its name has the grid in front', (await page.locator('.plan-current .kind-icon.manual').count()) === 1);
+    ok('its name has the grid in front', (await page.locator('.plan-current .kind-tag.manual').count()) === 1);
     await shot('apart-new-manual');
 
     // "Build by hand" is for a factory with nothing in it, and only there.

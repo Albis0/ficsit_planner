@@ -530,8 +530,8 @@ export function PlanTabs() {
             <CardMenu
               at={{ x: kinds.x / zoom, y: kinds.y / zoom }}
               items={[
-                { label: t('newAutoPlan'), icon: 'auto', note: t('newAutoPlanNote'), onPick: () => tabs.add(false) },
-                { label: t('newManualPlan'), icon: 'hand', note: t('newManualPlanNote'), onPick: () => tabs.add(true) },
+                { label: t('newAutoPlan'), lead: <KindIcon manual={false} />, note: t('newAutoPlanNote'), onPick: () => tabs.add(false) },
+                { label: t('newManualPlan'), lead: <KindIcon manual />, note: t('newManualPlanNote'), onPick: () => tabs.add(true) },
               ]}
               onClose={closeKinds}
               fixed

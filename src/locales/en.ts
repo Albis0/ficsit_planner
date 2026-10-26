@@ -164,6 +164,8 @@ export const en = {
   direction: 'Direction',
   leftToRight: 'Left to right',
   topToBottom: 'Top to bottom',
+  kindAuto: 'Auto',
+  kindManual: 'Manual',
   newAutoPlan: 'Auto factory',
   newAutoPlanNote: 'Pick the products, it plans the rest',
   newManualPlan: 'Manual factory',

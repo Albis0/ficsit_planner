@@ -362,26 +362,33 @@
   cursor: row-resize;
 }
 
-/* Auto or Manual, in front of a factory's name. */
-.kind-icon {
+/* Auto or Manual, in front of a factory's name. Both tags are the same size. */
+.kind-tag {
   flex: none;
-  display: inline-flex;
-  align-items: center;
-  color: var(--faint);
+  box-sizing: border-box;
+  width: 5.8em;
+  padding: 2px 0;
+  background: var(--line-2);
+  color: var(--paper);
+  font: 700 11px / 1.2 var(--font-body);
+  letter-spacing: 0.08em;
+  text-align: center;
+  text-transform: uppercase;
 }
 
-.kind-icon.manual {
-  color: var(--ficsit);
+.kind-tag.manual {
+  background: var(--ficsit);
+  color: var(--ficsit-ink);
 }
 
-.ov-name .kind-icon {
+.ov-name .kind-tag {
   margin-right: 10px;
   vertical-align: middle;
 }
 
 /* The name needs the room on a phone; the list shows the kind there. */
 @media (max-width: 600px) {
-  .plan-current .kind-icon {
+  .plan-current .kind-tag {
     display: none;
   }
 }

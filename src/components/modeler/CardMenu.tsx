@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react';
+import { type ReactNode, useEffect, useRef } from 'react';
 import { useT } from '../../lib/i18n';
 import { Glyph, type GlyphName } from '../Glyph';
 
@@ -9,6 +9,8 @@ export interface CardMenuItem {
   danger?: boolean;
   /** A small drawing before the label. */
   icon?: GlyphName;
+  /** Something other than a glyph in front of the label. */
+  lead?: ReactNode;
   /** A line under the label that says what picking it does. */
   note?: string;
   /** Marks a pick that sends something to the AWESOME Sink. */
@@ -75,6 +77,7 @@ export function CardMenu({
           }}
         >
           <span className="menu-main">
+            {it.lead}
             {it.icon && <Glyph name={it.icon} size={20} />}
             <span>
               {it.label}
