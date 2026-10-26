@@ -222,7 +222,6 @@
 .card-menu button:focus-visible {
   background: var(--raised);
   outline: none;
-  box-shadow: inset 3px 0 var(--ficsit);
 }
 
 .card-menu button.danger {
@@ -241,7 +240,7 @@
 
 .card-menu .menu-main svg {
   flex: none;
-  color: var(--ficsit);
+  color: var(--faint);
 }
 
 .card-menu .menu-note {
