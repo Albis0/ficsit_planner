@@ -11,6 +11,32 @@ export type UpdateNote = [UpdateKind, string];
 /** `ask` puts a question with a rating and a note under the version in Settings › Updates. */
 export const UPDATES: { version: string; date: string; title?: string; notes: UpdateNote[]; ask?: string }[] = [
   {
+    version: '0.14.2',
+    date: '2026-10-26',
+    title: 'Auto and Manual apart',
+    notes: [
+      ['added', 'A new factory is Auto or Manual: the + button opens a small menu with the two, and the factory list has both buttons.'],
+      ['added', 'Every factory has a small tag in front of its name, AUTO or MANUAL, on its tab, in the list and on the All page.'],
+      ['added', 'Auto floor: a product built from two others gets an area of its own, and so does a product on a line of its own.'],
+      [
+        'changed',
+        'Auto and Manual no longer connect. The Auto|Manual switch, Rebuild and the copy of an Auto factory onto a Manual floor are gone. “Build by hand” stays on an empty Auto factory and turns it into a Manual one.',
+      ],
+      [
+        'changed',
+        'A factory that held both floors is split when you open the app: “Name” keeps the Auto floor and “Name (Manual)” gets the Manual floor. Old backup files and share links split the same way.',
+      ],
+      [
+        'changed',
+        'Auto floor: splitters and mergers are always drawn, as balanced trees like on the Manual floor, so the setting “Splitters and mergers” is gone. Each product chain stands together, and no belt crosses an area’s name.',
+      ],
+      [
+        'fixed',
+        'Codex “Build this factory” and importing a backup no longer overwrite a Manual factory that has cards but no output cards.',
+      ],
+    ],
+  },
+  {
     version: '0.14.1',
     date: '2026-10-22',
     notes: [

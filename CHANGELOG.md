@@ -2,6 +2,25 @@
 
 All notable changes to FICSIT Planner. Dates are when the version was finished.
 
+## 0.14.2 — 2026-10-26
+
+### Added
+
+- A new factory is asked for as Auto or Manual: the + button opens a small menu with the two. The list under the tabs has the same two buttons.
+- Every factory carries a small tag in front of its name, AUTO (grey) or MANUAL (orange), on its tab, in the factory list and on the All page.
+- Auto floor: a product built from two others gets an area of its own, with the machines that work only towards it, and a product on a line of its own gets one too.
+
+### Changed
+
+- Auto and Manual are now two kinds of factory that stay apart. The Auto|Manual switch, Rebuild, the question about a new Manual floor and the copying of an Auto factory onto a Manual floor are gone. “Build by hand” stays on an empty Auto factory and turns it into a Manual one.
+- Factories that held both floors are split when you open the app: “Name” keeps the Auto floor and “Name (Manual)” gets the Manual floor. Old backup files and share links are split the same way when you import or open them.
+- Auto floor: the splitters and mergers are always drawn, as balanced trees like on the Manual floor, so the setting “Splitters and mergers” is gone. Fit to screen also works on floors with cards off screen.
+- Auto floor: each product chain stands together as a cluster, and the areas round the chains no longer run into each other. The areas lie over the belts, so no belt crosses an area's name.
+
+### Fixed
+
+- Codex “Build this factory” and importing a backup no longer overwrite a Manual factory that has cards but no output cards.
+
 ## 0.14.1 — 2026-10-22
 
 ### Added
