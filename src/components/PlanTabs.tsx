@@ -531,7 +531,7 @@ export function PlanTabs() {
               at={{ x: kinds.x / zoom, y: kinds.y / zoom }}
               items={[
                 { label: t('newAutoPlan'), icon: 'auto', note: t('newAutoPlanNote'), onPick: () => tabs.add(false) },
-                { label: t('newManualPlan'), icon: 'hammer', note: t('newManualPlanNote'), onPick: () => tabs.add(true) },
+                { label: t('newManualPlan'), icon: 'hand', note: t('newManualPlanNote'), onPick: () => tabs.add(true) },
               ]}
               onClose={closeKinds}
               fixed
