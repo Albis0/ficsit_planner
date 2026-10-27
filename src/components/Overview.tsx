@@ -6,7 +6,7 @@ import type { PoolParty } from '../lib/pool';
 import { defaultEnabled, useStore } from '../store';
 import { Icon } from './Icon';
 import { KindIcon } from './KindIcon';
-import { MaterialsDialog } from './MaterialsDialog';
+import { MaterialsPanel } from './MaterialsPanel';
 import { RecipeBrowser } from './RecipeBrowser';
 import { SaveFactoryList } from './SaveFactories';
 import { RateChips } from './Summary';
@@ -144,7 +144,7 @@ function Factories() {
         </div>
       </div>
 
-      <div className="ov-scroll">
+      <div className={`ov-scroll ${materials ? 'with-side' : ''}`}>
         {o.pool.length > 0 && (
           <section className="ov-section">
             <h2 className="ov-title">{t('ovPool')}</h2>
@@ -204,7 +204,7 @@ function Factories() {
         <section className="ov-section">
           <div className="ov-head">
             <h2 className="ov-title">{t('ovFactories')}</h2>
-            <button type="button" className="text-button" onClick={() => setMaterials(true)}>
+            <button type="button" className="text-button" onClick={() => setMaterials((on) => !on)}>
               {t('materials')}
             </button>
           </div>
@@ -294,7 +294,7 @@ function Factories() {
           </section>
         )}
       </div>
-      {materials && <MaterialsDialog onClose={() => setMaterials(false)} />}
+      {materials && <MaterialsPanel onClose={() => setMaterials(false)} />}
     </>
   );
 }

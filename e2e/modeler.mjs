@@ -1518,16 +1518,16 @@ const clash = (a, b) => a && b && a.x < b.x + b.width && b.x < a.x + a.width && 
   // The Materials window: the parts the factories need and which factory needs how much.
   await page.getByRole('button', { name: 'Materials' }).click();
   await wait(800);
-  const matRows = await page.$$eval('.materials .ov-table tbody tr', (l) => l.map((r) => r.textContent.replace(/\s+/g, ' ')));
+  const matRows = await page.$$eval('.materials .mat-row', (l) => l.map((r) => r.textContent.replace(/\s+/g, ' ')));
   ok(
-    'the Materials window lists parts and names the factory that needs them',
+    'the Materials panel lists parts and names the factory that needs them',
     matRows.length > 3 && (await page.locator('.materials .ov-who').count()) >= matRows.length,
     matRows.slice(0, 2).join(' | '),
   );
   await shot('materials');
   await page.keyboard.press('Escape');
   await wait(400);
-  ok('Escape closes the Materials window', (await page.locator('.materials').count()) === 0);
+  ok('Escape closes the Materials panel', (await page.locator('.materials').count()) === 0);
   await page.locator('.ov-name button').first().click();
   await wait(600);
   ok(
