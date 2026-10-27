@@ -66,16 +66,17 @@ export function lanePaths(path: string, lanes: number, pitch = LANE_PITCH, wide 
 
 /** How many short pieces each rounded turn is cut into when a belt is walked. */
 const TURN_PIECES = 6;
+const CURVE_PIECES = 16;
 
-/** A path of straight pieces and rounded turns ("M x,y L x,y Q x,y x,y …") as points, the turns cut into short pieces: no measuring through the DOM. */
+/** A path of straight pieces and rounded turns ("M x,y L x,y Q x,y x,y C …") as points, the turns cut into short pieces: no measuring through the DOM. */
 function flatten(path: string): [number, number][] {
-  const tokens = path.match(/[MLQ]|-?\d+(?:\.\d+)?(?:e-?\d+)?/g) ?? [];
+  const tokens = path.match(/[MLQC]|-?\d+(?:\.\d+)?(?:e-?\d+)?/g) ?? [];
   const pts: [number, number][] = [];
   let cmd = '';
   let i = 0;
   const num = () => Number(tokens[i++]);
   while (i < tokens.length) {
-    if (/[MLQ]/.test(tokens[i])) cmd = tokens[i++];
+    if (/[MLQC]/.test(tokens[i])) cmd = tokens[i++];
     if (cmd === 'Q' && pts.length) {
       const [cx, cy, x, y] = [num(), num(), num(), num()];
       const [x0, y0] = pts[pts.length - 1];
@@ -83,6 +84,17 @@ function flatten(path: string): [number, number][] {
         const t = k / TURN_PIECES;
         const u = 1 - t;
         pts.push([u * u * x0 + 2 * u * t * cx + t * t * x, u * u * y0 + 2 * u * t * cy + t * t * y]);
+      }
+    } else if (cmd === 'C' && pts.length) {
+      const [c1x, c1y, c2x, c2y, x, y] = [num(), num(), num(), num(), num(), num()];
+      const [x0, y0] = pts[pts.length - 1];
+      for (let k = 1; k <= CURVE_PIECES; k++) {
+        const t = k / CURVE_PIECES;
+        const u = 1 - t;
+        pts.push([
+          u * u * u * x0 + 3 * u * u * t * c1x + 3 * u * t * t * c2x + t * t * t * x,
+          u * u * u * y0 + 3 * u * u * t * c1y + 3 * u * t * t * c2y + t * t * t * y,
+        ]);
       }
     } else pts.push([num(), num()]);
   }

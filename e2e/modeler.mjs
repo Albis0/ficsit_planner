@@ -252,17 +252,25 @@ const clash = (a, b) => a && b && a.x < b.x + b.width && b.x < a.x + a.width && 
   );
 
   // A belt into an output card ends on the card's own end, level with it, not at the card's top.
-  await open(factory([['Desc_IronRod_C', 10], ['Desc_IronPlate_C', 10]]));
+  await open(
+    factory([
+      ['Desc_IronRod_C', 10],
+      ['Desc_IronPlate_C', 10],
+    ]),
+  );
   await wait(1500);
   const ends = await page.evaluate(() =>
     [...document.querySelectorAll('.react-flow__edge')]
       .filter((e) => e.dataset.id?.includes('>target:'))
       .map((e) => {
         const id = e.dataset.id.split('>')[1];
-        const node = document.querySelector('[data-id="' + id + '"]');
+        const node = document.querySelector(`[data-id="${id}"]`);
         const [x, y] = node.style.transform.match(/-?[\d.]+/g).map(Number);
         const d = e.querySelector('path').getAttribute('d');
-        const [lx, ly] = d.match(/-?[\d.]+/g).slice(-2).map(Number);
+        const [lx, ly] = d
+          .match(/-?[\d.]+/g)
+          .slice(-2)
+          .map(Number);
         return { dx: Math.abs(lx - x), dy: ly - y, h: node.offsetHeight };
       }),
   );
@@ -271,6 +279,31 @@ const clash = (a, b) => a && b && a.x < b.x + b.width && b.x < a.x + a.width && 
     ends.length === 2 && ends.every((e) => e.dx < 12 && e.dy > 10 && e.dy < e.h - 10),
     JSON.stringify(ends),
   );
+
+  // The chevrons of a curved belt lie along it: inside the box the belt's own path spans.
+  await open(factory([['Desc_Motor_C', 10]]));
+  await wait(1500);
+  const strays = await page.evaluate(() => {
+    const box = (d) => {
+      const n = d.match(/-?[\d.]+/g).map(Number);
+      const xs = n.filter((_, i) => i % 2 === 0);
+      const ys = n.filter((_, i) => i % 2 === 1);
+      return [Math.min(...xs), Math.max(...xs), Math.min(...ys), Math.max(...ys)];
+    };
+    let arrows = 0;
+    let off = 0;
+    for (const e of document.querySelectorAll('.react-flow__edge')) {
+      const a = e.querySelector('.belt-arrows');
+      const rails = e.querySelector('.belt-rails');
+      if (!a || !rails || !a.getAttribute('d')) continue;
+      arrows++;
+      const [x0, x1, y0, y1] = box(rails.getAttribute('d'));
+      const [ax0, ax1, ay0, ay1] = box(a.getAttribute('d'));
+      if (ax0 < x0 - 8 || ax1 > x1 + 8 || ay0 < y0 - 8 || ay1 > y1 + 8) off++;
+    }
+    return { arrows, off };
+  });
+  ok('chevrons stay on their belts', strays.arrows > 0 && strays.off === 0, JSON.stringify(strays));
 
   // ── A1a: ticking a machine built on the Auto floor ──
   section = 'A1a';
