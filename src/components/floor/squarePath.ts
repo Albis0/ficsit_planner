@@ -15,7 +15,17 @@ export function squarePath(from: Pt, bends: Pt[], to: Pt, down = false, free = f
   const mid = bends.map(turn);
   // The player's own stops are exactly where they put them: not squared up to the ends.
   const squared = !(free && mid.length);
-  if (squared && mid.length >= 2) {
+  if (!squared) {
+    // Between stops the belt still runs square: across first, then up or down; into the card it comes along the last run.
+    const all = [a0, ...mid, b0];
+    const out = [a0];
+    for (let i = 1; i < all.length; i++) {
+      const [p, q] = [all[i - 1], all[i]];
+      if (Math.abs(p.x - q.x) > 0.5 && Math.abs(p.y - q.y) > 0.5) out.push(i === all.length - 1 ? { x: p.x, y: q.y } : { x: q.x, y: p.y });
+      out.push(q);
+    }
+    mid.splice(0, mid.length, ...out.slice(1, -1));
+  } else if (mid.length >= 2) {
     mid[0].y = a0.y;
     mid[mid.length - 1].y = b0.y;
   } else if (mid.length === 0 && Math.abs(a0.y - b0.y) > 0.5) {

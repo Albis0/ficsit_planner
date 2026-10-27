@@ -944,7 +944,7 @@ describe('a belt routed by hand', () => {
     ],
   };
 
-  test('its stops are saved, and stay when a card moves or the floor is tidied up', async () => {
+  test('its stops are saved, and stay when a card moves or Tidy up leaves the cards be', async () => {
     expect(cleanModel(own)?.links[0]).toMatchObject({
       own: true,
       pts: [
@@ -960,12 +960,16 @@ describe('a belt routed by hand', () => {
       [300, 80],
     ]);
     expect(moved.links[0].lbl).toBeUndefined();
-    const tidy = await arrangeModel(own);
-    expect(tidy.links[0].own).toBe(true);
-    expect(tidy.links[0].pts).toEqual([
-      [200, 80],
-      [300, 80],
-    ]);
+    // Tidy up with the cards where they stay keeps the route; once it moves a card the stops would only tangle it.
+    const settled = await arrangeModel(own);
+    const again = await arrangeModel(settled);
+    expect(again.links[0]).toEqual(settled.links[0]);
+    const kept = applyArrangement(own, { pos: new Map(own.nodes.map((n) => [n.id, { x: n.x, y: n.y }])), routes: new Map() });
+    expect(kept.links[0].own).toBe(true);
+    expect(kept.links[0].pts).toEqual(own.links[0].pts);
+    const shifted = applyArrangement(own, { pos: new Map([['2', { x: 700, y: 120 }]]), routes: new Map() });
+    expect(shifted.links[0].own).toBeUndefined();
+    expect(shifted.links[0].pts).toBeUndefined();
   });
 
   test('going back to Automatic drops the stops, and the stops are not part of what is calculated', () => {

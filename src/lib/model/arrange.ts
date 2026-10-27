@@ -361,6 +361,14 @@ export type Arrangement = Pick<Laid, 'pos' | 'routes'>;
 
 export function applyArrangement(m: Model, a: Arrangement): Model {
   if (a.pos.size === 0) return m;
+  const shifted = new Set(
+    m.nodes
+      .filter((n) => {
+        const p = a.pos.get(n.id);
+        return p && (p.x !== n.x || p.y !== n.y);
+      })
+      .map((n) => n.id),
+  );
   return {
     ...m,
     nodes: m.nodes.map((n) => {
@@ -370,9 +378,9 @@ export function applyArrangement(m: Model, a: Arrangement): Model {
     links: m.links.map((l): MLink => {
       const r = a.routes.get(l.id);
       if (!r && !a.pos.has(l.a) && !a.pos.has(l.b)) return l;
-      // A route the player laid stays; only the ends it joins follow the cards.
-      if (l.own) return r ? { ...l, ap: r.ap, bp: r.bp } : l;
-      const { pts: _, lbl: __, ...rest } = l;
+      // A route the player laid stays while its cards stay; once Tidy up moves one, stops left behind would only tangle it.
+      if (l.own && ![l.a, l.b].some((id) => shifted.has(id))) return r ? { ...l, ap: r.ap, bp: r.bp } : l;
+      const { pts: _, lbl: __, own: ___, ...rest } = l;
       if (!r) return rest;
       return { ...rest, ap: r.ap, bp: r.bp, ...(r.pts.length ? { pts: r.pts } : {}), ...(r.lbl ? { lbl: r.lbl } : {}) };
     }),

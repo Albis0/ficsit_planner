@@ -135,7 +135,12 @@ export function BeltLink({ sourceX, sourceY, targetX, targetY, sourcePosition, t
         <g className="stops nopan">
           {ends.slice(1).map(([x, y], i) => {
             const [px, py] = ends[i];
-            const mid: [number, number] = [(px + x) / 2, (py + y) / 2];
+            // The "+" sits where the run between two stops turns, so a stop added there leaves the belt as it is.
+            const flip = ([a, b]: [number, number]): [number, number] => (down ? [b, a] : [a, b]);
+            const [fx, fy] = flip([x, y]);
+            const [fpx, fpy] = flip([px, py]);
+            const turns = Math.abs(fx - fpx) > 0.5 && Math.abs(fy - fpy) > 0.5;
+            const mid = flip(turns ? (i === ends.length - 2 ? [fpx, fy] : [fx, fpy]) : [(fpx + fx) / 2, (fpy + fy) / 2]);
             return (
               // biome-ignore lint/a11y/noStaticElementInteractions: a drag handle, pointer only
               <circle
