@@ -8,12 +8,14 @@ export type Pt = { x: number; y: number };
  * the cards draw them, so the first and last bends line up with them; with no bends it steps across half way. On a
  * floor running down the same holds turned a quarter: it leaves and reaches its ends going down.
  */
-export function squarePath(from: Pt, bends: Pt[], to: Pt, down = false): { path: string; runs: [Pt, Pt][] } {
+export function squarePath(from: Pt, bends: Pt[], to: Pt, down = false, free = false): { path: string; runs: [Pt, Pt][] } {
   // Worked out as if left to right, then turned back.
   const turn = (p: Pt) => (down ? { x: p.y, y: p.x } : { ...p });
   const [a0, b0] = [turn(from), turn(to)];
   const mid = bends.map(turn);
-  if (mid.length >= 2) {
+  // The player's own stops are exactly where they put them: not squared up to the ends.
+  const squared = !(free && mid.length);
+  if (squared && mid.length >= 2) {
     mid[0].y = a0.y;
     mid[mid.length - 1].y = b0.y;
   } else if (mid.length === 0 && Math.abs(a0.y - b0.y) > 0.5) {

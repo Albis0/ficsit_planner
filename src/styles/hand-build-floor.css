@@ -1294,3 +1294,33 @@
     0 0 3px #000,
     0 0 6px #000;
 }
+
+/* Stop points of a belt the player routes by hand: dots to drag, small "+" between them to add one. */
+.stops circle {
+  pointer-events: all;
+  touch-action: none;
+}
+
+.stops .stop {
+  fill: var(--ficsit);
+  stroke: var(--ficsit-ink);
+  stroke-width: 2px;
+  cursor: grab;
+}
+
+.stops .stop:active {
+  cursor: grabbing;
+}
+
+.stops .stop-add {
+  fill: var(--floor);
+  stroke: var(--ficsit);
+  stroke-width: 2px;
+  opacity: 0.8;
+  cursor: copy;
+}
+
+.stops .stop-add:hover {
+  opacity: 1;
+  fill: var(--ficsit);
+}

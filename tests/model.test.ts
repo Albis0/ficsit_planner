@@ -10,7 +10,7 @@ import { applyArrangement, arrangeModel, arrangement } from '../src/lib/model/ar
 import { openCards, openEnds, ruleFlags } from '../src/lib/model/checks';
 import { choicesFor, choiceWords, placeChoice, wantAt } from '../src/lib/model/choices';
 import { cardSize, endSpot, freeSpot } from '../src/lib/model/layout';
-import { addNode, canConnect, connect, evenSpeed, fullSpeed, minerFor, moveNodes, removeNodes } from '../src/lib/model/ops';
+import { addNode, canConnect, connect, evenSpeed, fullSpeed, minerFor, moveNodes, removeNodes, updateLink } from '../src/lib/model/ops';
 import { mediumOf } from '../src/lib/model/ports';
 import { cleanModel } from '../src/lib/model/sanitize';
 import { type MLink, type MNode, type Model, MODEL_VERSION } from '../src/lib/model/types';
@@ -915,6 +915,64 @@ describe('belt label spots', () => {
     const moved = moveNodes(m, new Map([['2', { x: 600, y: 0 }]]));
     expect(moved.links[0].lbl).toBeUndefined();
     expect(moved.links[0].pts).toBeUndefined();
+  });
+});
+
+describe('a belt routed by hand', () => {
+  const own: Model = {
+    v: MODEL_VERSION,
+    calc: 'basic',
+    seq: 3,
+    nodes: [
+      { id: '1', k: 'in', item: 'Desc_OreIron_C', x: 0, y: 0 },
+      { id: '2', k: 'out', x: 500, y: 0 },
+    ],
+    links: [
+      {
+        id: '3',
+        a: '1',
+        ap: 0,
+        b: '2',
+        bp: 0,
+        own: true,
+        pts: [
+          [200, 80],
+          [300, 80],
+        ],
+        lbl: [250, 80],
+      },
+    ],
+  };
+
+  test('its stops are saved, and stay when a card moves or the floor is tidied up', async () => {
+    expect(cleanModel(own)?.links[0]).toMatchObject({
+      own: true,
+      pts: [
+        [200, 80],
+        [300, 80],
+      ],
+    });
+    expect(cleanModel({ ...own, links: [{ ...own.links[0], own: 'yes' }] })?.links[0].own).toBeUndefined();
+    const moved = moveNodes(own, new Map([['2', { x: 600, y: 40 }]]));
+    expect(moved.links[0].own).toBe(true);
+    expect(moved.links[0].pts).toEqual([
+      [200, 80],
+      [300, 80],
+    ]);
+    expect(moved.links[0].lbl).toBeUndefined();
+    const tidy = await arrangeModel(own);
+    expect(tidy.links[0].own).toBe(true);
+    expect(tidy.links[0].pts).toEqual([
+      [200, 80],
+      [300, 80],
+    ]);
+  });
+
+  test('going back to Automatic drops the stops, and the stops are not part of what is calculated', () => {
+    const auto = updateLink(own, '3', { own: undefined, pts: undefined });
+    expect(auto.links[0].own).toBeUndefined();
+    expect(auto.links[0].pts).toBeUndefined();
+    expect(calcKey(own, 9)).toBe(calcKey(updateLink(own, '3', { pts: [[1, 1]] }), 9));
   });
 });
 

@@ -4,13 +4,15 @@ import {
   getBezierPath,
   getSmoothStepPath,
   getStraightPath,
+  useReactFlow,
   useStore as useFlowStore,
 } from '@xyflow/react';
-import { createContext, useContext } from 'react';
+import { createContext, type PointerEvent as ReactPointer, useContext, useState } from 'react';
 import { data } from '../../lib/data';
 import { useT } from '../../lib/i18n';
 import type { LinkCalc } from '../../lib/model/calc/result';
 import type { Transport } from '../../lib/data';
+import { snapHalf } from '../../lib/model/layout';
 import type { MLink } from '../../lib/model/types';
 import { useStore } from '../../store';
 import { beltStroke } from '../floor/BeltStroke';
@@ -31,6 +33,11 @@ export interface BeltData extends Record<string, unknown> {
 /** Opens a belt in the panel, from its label. */
 export const PickLink = createContext<(id: string) => void>(() => {});
 
+/** Sets the stop points of a belt the player routes by hand. */
+export const LayStops = createContext<(id: string, pts: [number, number][]) => void>(() => {});
+
+type Stops = [number, number][];
+
 /** Belts shorter than their label, in floor units, show none unless picked; a laid-out floor keeps room for it. */
 const SHORT = 180;
 
@@ -44,23 +51,32 @@ export function BeltLink({ sourceX, sourceY, targetX, targetY, sourcePosition, t
   const { t, name, num } = useT();
   const far = useFlowStore(farSelector);
   const still = useFlowStore(stillSelector);
+  // The dots keep a size a finger or a pointer can hit when the floor is zoomed out.
+  const zoom = useFlowStore((s) => s.transform[2]);
   const labels = useStore((s) => s.settings.beltLabels);
   const oneColor = useStore((s) => s.settings.beltColors === 'one');
   const { link, item, transport, calc, down } = d as BeltData;
   const pick = useContext(PickLink);
+  const lay = useContext(LayStops);
+  const flow = useReactFlow();
+  // While a stop is dragged the belt follows the pointer; the model is written once it's let go.
+  const [live, setLive] = useState<Stops>();
+  const stops = live ?? link.pts ?? [];
+  const own = !!link.own;
   const geo = { sourceX, sourceY, targetX, targetY, sourcePosition, targetPosition };
   let path: string;
   let lx: number;
   let ly: number;
-  if (link.line === 'straight') [path, lx, ly] = getStraightPath(geo);
-  else if (link.line === 'curve') [path, lx, ly] = getBezierPath(geo);
-  else if ((down ? sourceY < targetY : sourceX < targetX) || link.pts?.length) {
+  if (!own && link.line === 'straight') [path, lx, ly] = getStraightPath(geo);
+  else if (!own && link.line === 'curve') [path, lx, ly] = getBezierPath(geo);
+  else if ((down ? sourceY < targetY : sourceX < targetX) || stops.length) {
     // Straight runs with square turns, through the bends the floor was laid out with; the label on its longest run.
     const square = squarePath(
       { x: sourceX, y: sourceY },
-      (link.pts ?? []).map(([x, y]) => ({ x, y })),
+      stops.map(([x, y]) => ({ x, y })),
       { x: targetX, y: targetY },
       down,
+      own,
     );
     path = square.path;
     [lx, ly] = longestRunMid(square.runs);
@@ -80,7 +96,33 @@ export function BeltLink({ sourceX, sourceY, targetX, targetY, sourcePosition, t
   });
   // A belt too short for its label (a machine into the splitter beside it) goes without one; the splitter says it.
   const short = !link.lbl && Math.hypot(targetX - sourceX, targetY - sourceY) < SHORT;
-  const shown = item && (selected || labels === 'always' || (labels === 'auto' && !far && !short));
+  const shown = item && !(own && selected) && (selected || labels === 'always' || (labels === 'auto' && !far && !short));
+  // Dragging a stop (or a "+" between two, which first becomes one) moves it with the pointer, snapped to the floor's half squares.
+  const grab = (e: ReactPointer, base: Stops, i: number) => {
+    e.stopPropagation();
+    e.preventDefault();
+    let cur = base;
+    const move = (ev: PointerEvent) => {
+      const p = flow.screenToFlowPosition({ x: ev.clientX, y: ev.clientY });
+      cur = base.map((q, j) => (j === i ? [snapHalf(p.x), snapHalf(p.y)] : q));
+      setLive(cur);
+    };
+    const drop = () => {
+      window.removeEventListener('pointermove', move);
+      window.removeEventListener('pointerup', drop);
+      window.removeEventListener('pointercancel', drop);
+      setLive(undefined);
+      lay(link.id, cur);
+      // Let go over bare floor, the click that follows would take the belt off the selection and its dots with it.
+      const swallow = (ev: Event) => ev.stopPropagation();
+      window.addEventListener('click', swallow, { capture: true, once: true });
+      setTimeout(() => window.removeEventListener('click', swallow, { capture: true }), 100);
+    };
+    window.addEventListener('pointermove', move);
+    window.addEventListener('pointerup', drop);
+    window.addEventListener('pointercancel', drop);
+  };
+  const ends: [number, number][] = [[sourceX, sourceY], ...stops, [targetX, targetY]];
   const bad = calc?.status === 'jam' || calc?.status === 'unbounded';
   // Full at the Mk, not at a limit the player set lower.
   const full = calc?.status === 'capped' && !(link.lim !== undefined && link.lim < transport.rate * lanes);
@@ -89,6 +131,50 @@ export function BeltLink({ sourceX, sourceY, targetX, targetY, sourcePosition, t
       {/* A wide invisible line over the belt, so it's easy to click. */}
       <path d={path} className="belt-hit" />
       {body}
+      {own && selected && (
+        <g className="stops nopan">
+          {ends.slice(1).map(([x, y], i) => {
+            const [px, py] = ends[i];
+            const mid: [number, number] = [(px + x) / 2, (py + y) / 2];
+            return (
+              // biome-ignore lint/a11y/noStaticElementInteractions: a drag handle, pointer only
+              <circle
+                // biome-ignore lint/suspicious/noArrayIndexKey: the stops have no ids; a drag keeps the index
+                key={`add${i}`}
+                className="stop-add"
+                cx={mid[0]}
+                cy={mid[1]}
+                r={Math.min(14, 5 / zoom)}
+                aria-label={t('routeAdd')}
+                onPointerDown={(e) => grab(e, [...stops.slice(0, i), mid, ...stops.slice(i)], i)}
+                onClick={(e) => e.stopPropagation()}
+                onDoubleClick={(e) => e.stopPropagation()}
+              />
+            );
+          })}
+          {stops.map(([x, y], i) => (
+            // biome-ignore lint/a11y/noStaticElementInteractions: a drag handle, pointer only
+            <circle
+              // biome-ignore lint/suspicious/noArrayIndexKey: the stops have no ids; a drag keeps the index
+              key={`stop${i}`}
+              className="stop"
+              cx={x}
+              cy={y}
+              r={Math.min(22, 8 / zoom)}
+              aria-label={t('routeStop')}
+              onPointerDown={(e) => grab(e, stops, i)}
+              onClick={(e) => e.stopPropagation()}
+              onDoubleClick={(e) => {
+                e.stopPropagation();
+                lay(
+                  link.id,
+                  stops.filter((_, j) => j !== i),
+                );
+              }}
+            />
+          ))}
+        </g>
+      )}
       {shown && (
         <EdgeLabelRenderer>
           <div className="edge-anchor" style={{ transform: `translate(-50%, -50%) translate(${lx}px, ${ly}px)` }}>

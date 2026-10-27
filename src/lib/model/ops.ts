@@ -59,8 +59,9 @@ export function moveNodes(m: Model, to: Map<string, { x: number; y: number }>): 
     }),
     links: m.links.map((l) => {
       if ((!l.pts && !l.lbl) || (!moved.has(l.a) && !moved.has(l.b))) return l;
+      // The player's own stops stay where they put them.
       const { pts: _, lbl: __, ...rest } = l;
-      return rest;
+      return l.own ? { ...rest, ...(l.pts ? { pts: l.pts } : {}) } : rest;
     }),
   };
 }
@@ -154,7 +155,7 @@ export function copyNodes(m: Model, ids: Iterable<string>): Clip | undefined {
   const links = m.links
     .filter((l) => keep.has(l.a) && keep.has(l.b))
     .map((l) => {
-      const { pts: _, lbl: __, ...rest } = l;
+      const { pts: _, lbl: __, own: ___, ...rest } = l;
       return rest;
     });
   return { nodes, links };

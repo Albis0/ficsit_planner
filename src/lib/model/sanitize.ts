@@ -261,6 +261,7 @@ export function cleanModel(saved: unknown): Model | undefined {
       ...(finite(l.lanes) && Math.round(l.lanes) > 1 ? { lanes: Math.round(Math.min(99, l.lanes)) } : {}),
       ...(lim !== undefined ? { lim } : {}),
       ...(pts ? { pts } : {}),
+      ...(l.own === true ? { own: true as const } : {}),
       ...(lbl ? { lbl } : {}),
       ...(line && line !== 'step' ? { line } : {}),
     });

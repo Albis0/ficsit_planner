@@ -573,6 +573,17 @@ function LinkPanel({ host, link, calc }: { host: ModelHost; link: MLink; calc?: 
           onClear={() => change({ lim: undefined }, 'lim')}
         />
       </div>
+      <div className="inspector-row">
+        <span className="inspector-label">{t('routeLabel')}</span>
+        <div className="segmented" role="radiogroup">
+          <button type="button" role="radio" aria-checked={!link.own} onClick={() => change({ own: undefined, pts: undefined })}>
+            {t('routeAuto')}
+          </button>
+          <button type="button" role="radio" aria-checked={!!link.own} onClick={() => change({ own: true })}>
+            {t('routeOwn')}
+          </button>
+        </div>
+      </div>
       <div className="inspector-actions">
         <button
           type="button"

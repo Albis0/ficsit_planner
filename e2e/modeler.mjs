@@ -2591,6 +2591,89 @@ const clash = (a, b) => a && b && a.x < b.x + b.width && b.x < a.x + a.width && 
     midway && !(await model()).nodes.some((n) => n.id === motorOut.id),
     `laying out when taken off: ${midway}`,
   );
+
+  // ── U: belts routed by hand ──
+  section = 'U';
+  await open(manual([['Desc_Motor_C', 10]]));
+  await settle();
+  await fit();
+  m = await model();
+  const routed = m.links.find((l) => m.nodes.find((n) => n.id === l.a)?.k === 'machine');
+  // Clicked where the belt really runs: with stops of its own its middle may be bare floor.
+  const pickRoute = async () => {
+    const at = await page.evaluate((id) => {
+      const p = document.querySelector(`.react-flow__edge[data-id="${id}"] .belt-hit`);
+      const pt = p.getPointAtLength(p.getTotalLength() / 2);
+      const m = p.getScreenCTM();
+      return { x: m.a * pt.x + m.c * pt.y + m.e, y: m.b * pt.x + m.d * pt.y + m.f };
+    }, routed.id);
+    await page.mouse.click(at.x, at.y);
+  };
+  const mine = async () => (await model()).links.find((l) => l.id === routed.id);
+  const dragBy = async (b, dx, dy) => {
+    await page.mouse.move(b.x + b.width / 2, b.y + b.height / 2);
+    await page.mouse.down();
+    await page.mouse.move(b.x + b.width / 2 + dx, b.y + b.height / 2 + dy, { steps: 6 });
+    await page.mouse.up();
+    await settle();
+  };
+  // A way to go from a spot to bare floor, away from every card and bar over it.
+  const bare = (b) =>
+    page.evaluate(
+      ([x, y]) => {
+        const free = (px, py) => document.elementFromPoint(px, py)?.classList.contains('react-flow__pane');
+        for (const r of [30, 50, 70, 90, 120]) {
+          for (let a = 0; a < 360; a += 30) {
+            const dx = Math.round(r * Math.cos((a * Math.PI) / 180));
+            const dy = Math.round(r * Math.sin((a * Math.PI) / 180));
+            if (free(x + dx, y + dy)) return [dx, dy];
+          }
+        }
+        return [0, 0];
+      },
+      [b.x + b.width / 2, b.y + b.height / 2],
+    );
+  const dragFree = async (b) => dragBy(b, ...(await bare(b)));
+  await pickRoute();
+  await wait();
+  ok('a belt left alone has no stops to drag', (await page.locator('.stops .stop').count()) === 0 && !(await mine()).own);
+  await page.locator('aside.inspector .segmented button:text-is("My own")').click();
+  await settle();
+  ok('My own marks the belt as routed by hand', (await mine()).own === true);
+  const routeBefore = (await mine()).pts ?? [];
+  await dragFree(await page.locator('.stops .stop-add').first().boundingBox());
+  const routeAdded = (await mine()).pts ?? [];
+  ok('dragging the + adds a stop where it is let go', routeAdded.length === routeBefore.length + 1, JSON.stringify(routeAdded));
+  await dragFree(await page.locator('.stops .stop').first().boundingBox());
+  const routeMoved = (await mine()).pts ?? [];
+  ok(
+    'dragging a stop moves it, on the half squares',
+    JSON.stringify(routeMoved) !== JSON.stringify(routeAdded) && routeMoved.flat().every((v) => v % 20 === 0),
+    JSON.stringify(routeMoved),
+  );
+  await shot('u-own-route');
+  // They stay when the floor is tidied up and when a card moves.
+  await page.keyboard.press('Escape');
+  await page.locator('.tool-button[aria-label="Tidy up"]').click();
+  await settle();
+  ok('Tidy up keeps them', JSON.stringify((await mine()).pts) === JSON.stringify(routeMoved) && (await mine()).own === true);
+  await dragBy(await card(routed.a).boundingBox(), 0, 30);
+  ok('moving a card keeps them', JSON.stringify((await mine()).pts) === JSON.stringify(routeMoved));
+  // A double click on a stop takes it off.
+  await pickRoute();
+  await wait();
+  const stopDot = await page.locator('.stops .stop').first().boundingBox();
+  await page.mouse.dblclick(stopDot.x + stopDot.width / 2, stopDot.y + stopDot.height / 2);
+  await settle();
+  ok('double click on a stop takes it off', ((await mine()).pts ?? []).length === routeMoved.length - 1);
+  // Back to Automatic: the stops go.
+  await pickRoute();
+  await wait();
+  await page.locator('aside.inspector .segmented button:text-is("Automatic")').click();
+  await settle();
+  const routeBack = await mine();
+  ok('Automatic takes the stops away', !routeBack.own && routeBack.pts === undefined);
+  ok('and the belt shows no dots', (await page.locator('.stops').count()) === 0);
   await ctx.close();
 }
 

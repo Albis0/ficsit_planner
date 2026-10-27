@@ -370,6 +370,8 @@ export function applyArrangement(m: Model, a: Arrangement): Model {
     links: m.links.map((l): MLink => {
       const r = a.routes.get(l.id);
       if (!r && !a.pos.has(l.a) && !a.pos.has(l.b)) return l;
+      // A route the player laid stays; only the ends it joins follow the cards.
+      if (l.own) return r ? { ...l, ap: r.ap, bp: r.bp } : l;
       const { pts: _, lbl: __, ...rest } = l;
       if (!r) return rest;
       return { ...rest, ap: r.ap, bp: r.bp, ...(r.pts.length ? { pts: r.pts } : {}), ...(r.lbl ? { lbl: r.lbl } : {}) };

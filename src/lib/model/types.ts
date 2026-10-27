@@ -157,6 +157,8 @@ export interface MLink {
   lim?: number;
   /** Bends, in floor coordinates. */
   pts?: [number, number][];
+  /** The player laid the route: `pts` are their stops, kept when cards move and when the floor is tidied up. */
+  own?: true;
   /** Where its label sits, kept free for it when the floor was laid out. */
   lbl?: [number, number];
   /** Unset: straight runs with square turns. */

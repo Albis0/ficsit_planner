@@ -24,6 +24,6 @@ export function calcModel(highs: Highs, model: Model, tier: number): CalcResult 
  */
 export function calcKey(model: Model, tier: number): string {
   const nodes = model.nodes.filter((n) => n.k !== 'note' && n.k !== 'group').map(({ x: _x, y: _y, done: _d, label: _l, ...rest }) => rest);
-  const links = model.links.map(({ pts: _p, lbl: _l, line: _s, ...rest }) => rest);
+  const links = model.links.map(({ pts: _p, lbl: _l, line: _s, own: _o, ...rest }) => rest);
   return JSON.stringify([model.calc, model.stall ?? false, tier, skipKey(), nodes, links]);
 }
