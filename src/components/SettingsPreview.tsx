@@ -174,8 +174,8 @@ export function Preview({ settings: s, spot }: { settings: Settings; spot?: Spot
 
   const endpoint = (kind: 'supply' | 'target', item: string, rate: number, left: number, spots: string, mid = g.cy) => (
     <div className="preview-spot" data-for={`size text ${spots}`} style={{ left, top: mid - g.eh / 2, width: g.ew, height: g.eh }}>
-      <div className={`endpoint-node ${kind}`}>
-        <Slot id={item} size={60} tone={kind === 'target' ? 'target' : 'default'} />
+      <div className={`endpoint-node ${kind === 'target' ? 'goal' : kind}`}>
+        <Slot id={item} size={60} tone={kind === 'target' ? 'goal' : 'default'} />
         <span className="endpoint-text">
           <span className="endpoint-kind">{kind === 'supply' ? t('onHand') : t('output')}</span>
           <span className="endpoint-name">{name(data.items[item])}</span>

@@ -6,7 +6,7 @@ interface Props {
   id: string;
   rate?: number;
   size?: number;
-  tone?: 'default' | 'muted' | 'alert' | 'target';
+  tone?: 'default' | 'muted' | 'alert' | 'goal';
   onClick?: () => void;
 }
 

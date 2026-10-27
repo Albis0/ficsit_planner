@@ -250,7 +250,7 @@
   transition: opacity 120ms;
 }
 
-.endpoint-node.target {
+.endpoint-node.goal {
   --accent: var(--ficsit);
   border-color: var(--ficsit);
   background: color-mix(in srgb, var(--ficsit) 12%, var(--panel));
@@ -328,7 +328,7 @@
   text-overflow: ellipsis;
 }
 
-.endpoint-node.target .endpoint-kind {
+.endpoint-node.goal .endpoint-kind {
   color: var(--ficsit);
 }
 

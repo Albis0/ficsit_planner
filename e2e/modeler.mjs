@@ -251,6 +251,27 @@ const clash = (a, b) => a && b && a.x < b.x + b.width && b.x < a.x + a.width && 
     `${squared.length} belts`,
   );
 
+  // A belt into an output card ends on the card's own end, level with it, not at the card's top.
+  await open(factory([['Desc_IronRod_C', 10], ['Desc_IronPlate_C', 10]]));
+  await wait(1500);
+  const ends = await page.evaluate(() =>
+    [...document.querySelectorAll('.react-flow__edge')]
+      .filter((e) => e.dataset.id?.includes('>target:'))
+      .map((e) => {
+        const id = e.dataset.id.split('>')[1];
+        const node = document.querySelector('[data-id="' + id + '"]');
+        const [x, y] = node.style.transform.match(/-?[\d.]+/g).map(Number);
+        const d = e.querySelector('path').getAttribute('d');
+        const [lx, ly] = d.match(/-?[\d.]+/g).slice(-2).map(Number);
+        return { dx: Math.abs(lx - x), dy: ly - y, h: node.offsetHeight };
+      }),
+  );
+  ok(
+    'Auto: belts into output cards end at the card end, not its top',
+    ends.length === 2 && ends.every((e) => e.dx < 12 && e.dy > 10 && e.dy < e.h - 10),
+    JSON.stringify(ends),
+  );
+
   // ── A1a: ticking a machine built on the Auto floor ──
   section = 'A1a';
   await open(factory([['Desc_Motor_C', 10]]));
@@ -1062,7 +1083,7 @@ const clash = (a, b) => a && b && a.x < b.x + b.width && b.x < a.x + a.width && 
       await wait(400);
       return page.evaluate(() => JSON.parse(localStorage.getItem('ficsit-planner')).state.plans[0].pooled ?? []);
     };
-    const button = page.locator('.endpoint-node.manual.target .endpoint-pool');
+    const button = page.locator('.endpoint-node.manual.goal .endpoint-pool');
     ok(
       'Manual: an output card has a To the pool button',
       (await button.count()) === 1 && (await button.innerText()).includes('To the pool'),

@@ -348,11 +348,11 @@ function EndpointNode({ id, data: d }: NodeProps) {
   const feeds = kind === 'raw' || kind === 'supply' || kind === 'missing';
   return (
     <div
-      className={`endpoint-node ${kind} ${near ? 'near' : ''}`}
+      className={`endpoint-node ${kind === 'target' ? 'goal' : kind} ${near ? 'near' : ''}`}
       style={it.form !== 'solid' ? { ['--fluid-color' as string]: pipeColor(it) ?? 'var(--fluid)' } : undefined}
     >
       {!feeds && <PortHandle type="target" lanes={ports?.in} />}
-      <Slot id={item} size={60} tone={kind === 'target' ? 'target' : 'default'} />
+      <Slot id={item} size={60} tone={kind === 'target' ? 'goal' : 'default'} />
       <span className="endpoint-text">
         <span className="endpoint-kind">{label}</span>
         <span className={`endpoint-name ${name(it).length > 21 ? 'long' : ''}`} title={name(it)}>

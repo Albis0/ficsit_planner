@@ -69,7 +69,7 @@ const TURN_PIECES = 6;
 
 /** A path of straight pieces and rounded turns ("M x,y L x,y Q x,y x,y …") as points, the turns cut into short pieces: no measuring through the DOM. */
 function flatten(path: string): [number, number][] {
-  const tokens = path.match(/[MLQ]|-?d+(?:.d+)?(?:e-?d+)?/g) ?? [];
+  const tokens = path.match(/[MLQ]|-?\d+(?:\.\d+)?(?:e-?\d+)?/g) ?? [];
   const pts: [number, number][] = [];
   let cmd = '';
   let i = 0;
