@@ -50,6 +50,8 @@ export interface Settings {
   summary: 'compact' | 'full';
   /** A line whose output goes to several places, on the graph: a card per place, or one card that says how to split it. */
   splitLines: 'each' | 'one';
+  /** A line short of whole machines: as many at 100% as fit and one slower, or every machine at the same lower clock. */
+  clocks: 'full' | 'even';
   /** The save's own multipliers for part costs, power draw and the Space Elevator. */
   game: GameRules;
 }
@@ -101,6 +103,7 @@ export const DEFAULT_SETTINGS: Settings = {
   showLocked: false,
   summary: 'compact',
   splitLines: 'each',
+  clocks: 'full',
   game: DEFAULT_GAME,
 };
 

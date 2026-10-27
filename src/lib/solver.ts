@@ -59,6 +59,8 @@ export interface SolveInput {
    * resource nodes anywhere. Water stays free either way.
    */
   equalWeights?: boolean;
+  /** Underclocked lines run whole machines at 100% and one slower, instead of every machine at the same lower clock. */
+  full?: boolean;
 }
 
 export interface PowerInput {
@@ -101,6 +103,8 @@ export interface RecipeUse {
   clock: number;
   /** Clock of each placed machine; overclocked lines mix 100% machines with shard-boosted ones. */
   clocks: number[];
+  /** The clocks were spread as whole machines at 100% and one slower (see SolveInput.full). */
+  full?: true;
   power: number;
   shards: number;
   sloops: number;
@@ -203,10 +207,15 @@ function placedPower(recipe: Recipe, clocks: number[], sloopsTotal: number): num
 /**
  * Clocks for the placed machines. Underclocked lines run evenly. Overclocked lines keep every
  * machine at 100% and push only as many as needed past it, 50% per shard, so they use the fewest
- * shards: 5 machines' worth on 4 machines is two at 150% and two at 100%, i.e. 2 shards, not 4.
+ * shards: 5 machines' worth on 4 machines is two at 150% and two at 100%, i.e. 2 shards, not 4. With `full`
+ * a line that is short of whole machines does the same: 6 machines at 100% and one at 65% rather than 7 at 95%.
  */
-function machineClocks(built: number, units: number): number[] {
-  if (units <= built + EPS) return Array(built).fill(units / built);
+function machineClocks(built: number, units: number, full = false): number[] {
+  if (units <= built + EPS) {
+    if (!full) return Array(built).fill(units / built);
+    const whole = Math.min(built, Math.floor(units + EPS));
+    return Array.from({ length: built }, (_, i) => (i < whole ? 1 : units - whole));
+  }
   let extra = units - built;
   return Array.from({ length: built }, () => {
     const add = Math.min(1.5, extra);
@@ -215,7 +224,7 @@ function machineClocks(built: number, units: number): number[] {
   });
 }
 
-export function describeUse(recipe: Recipe, mod: RecipeMod, count: number, asSet = false): RecipeUse {
+export function describeUse(recipe: Recipe, mod: RecipeMod, count: number, asSet = false, full = false): RecipeUse {
   const built = Math.max(1, Math.ceil(count - EPS));
   const clock = (mod.clock * count) / built;
   const amp = amplification(recipe, mod);
@@ -225,9 +234,11 @@ export function describeUse(recipe: Recipe, mod: RecipeMod, count: number, asSet
   // 150% is 2 at 150% and 1 at 100%. Worked out, the clocks spread for the fewest power shards.
   const whole = Math.floor(count + EPS);
   const part = count - whole;
+  // A clock the player set on the line is kept on every machine.
+  const spread = full && !asSet && Math.abs(mod.clock - 1) < EPS;
   const clocks = asSet
     ? [...Array.from({ length: whole }, () => mod.clock), ...(part > EPS ? [mod.clock * part] : [])]
-    : machineClocks(built, mod.clock * count);
+    : machineClocks(built, mod.clock * count, spread);
   const shards = clocks.reduce((s, c) => s + shardsFor(c), 0);
   return {
     inputs: recipe.inputs.map((s) => ({ item: s.item, rate: s.rate * mod.clock * count })),
@@ -238,6 +249,7 @@ export function describeUse(recipe: Recipe, mod: RecipeMod, count: number, asSet
     built,
     clock,
     clocks,
+    ...(spread ? { full: true as const } : {}),
     power: placedPower(recipe, clocks, sloops),
     shards,
     sloops,
@@ -356,7 +368,8 @@ function buildModel(input: SolveInput, draw?: Map<string, number>): Model {
   for (const r of recipes) {
     // Tie-breaker keeps the plan from building machines it doesn't need.
     const p = machinePower(r, modOf(r));
-    const cost = input.objective === 'power' ? p : input.objective === 'buildings' ? 1 + 1e-4 * p : 1e-4 * p + 1e-4;
+    const cost =
+      input.objective === 'power' ? p : input.objective === 'buildings' ? 1 + 1e-4 * p + LINE_COST * r.inputs.length : 1e-4 * p + 1e-4;
     costs.push(`${fmt(cost)} ${rv.get(r.id)}`);
   }
 
@@ -539,7 +552,7 @@ function solveWith(solver: Highs, input: SolveInput, draw?: Map<string, number>)
   const used: RecipeUse[] = [];
   for (const r of recipes) {
     const count = val(rv.get(r.id)!);
-    if (count > EPS) used.push(describeUse(r, modOf(r), count));
+    if (count > EPS) used.push(describeUse(r, modOf(r), count, false, input.full));
   }
 
   const net = new Map<string, number>();
@@ -603,6 +616,9 @@ function solveWith(solver: Highs, input: SolveInput, draw?: Map<string, number>)
     grid,
   };
 }
+
+/** A machine's input lines weigh this much each in a fewest-buildings plan: of two recipes that need as many machines, the one with fewer belts coming in wins. */
+const LINE_COST = 0.01;
 
 /** Each kind of raw resource a fewest-buildings plan draws on counts as this many buildings. */
 const KIND_COST = 2;

@@ -93,6 +93,7 @@ function useSolutions() {
   const tier = useTier();
   const aim = useStore(aimOf);
   const game = useStore((s) => s.settings.game);
+  const full = useStore((s) => s.settings.clocks) === 'full';
   // The floor, the table and the Codex read the same recipes the worker solves with.
   applyGame(game);
   const plan = useStore((s) => s.plans.find((p) => p.id === s.active) ?? s.plans[0]);
@@ -109,8 +110,8 @@ function useSolutions() {
   const exports = useExports(plan.id);
   // biome-ignore lint/correctness/useExhaustiveDependencies: skipKey() changes when the milestones bought do
   const factoryIn = useMemo(
-    () => factoryInput({ targets, supplies, enabled, caps, mods, fixed, extraction, separate, weights }, tier, exports, aim, game),
-    [targets, supplies, enabled, caps, mods, fixed, extraction, separate, weights, tier, exports, aim, game, skipKey()],
+    () => factoryInput({ targets, supplies, enabled, caps, mods, fixed, extraction, separate, weights }, tier, exports, aim, game, full),
+    [targets, supplies, enabled, caps, mods, fixed, extraction, separate, weights, tier, exports, aim, game, full, skipKey()],
   );
   // Sized to what you have with nothing listed yet: nothing to solve, the floor asks for the list.
   // biome-ignore lint/correctness/useExhaustiveDependencies: skipKey() changes when the milestones bought do
@@ -532,9 +533,9 @@ export default function App() {
             {shown && (
               <div className="floor-bar">
                 <ViewMenu powerMode={powerMode} />
-                {!s.inspect && !manual && (powerMode || s.view !== 'transport') && (
+                {!s.inspect && powerMode && (
                   <span className="floor-hint-slot">
-                    <span className="floor-hint">{powerMode ? t('inspectPowerHint') : t('inspectHint')}</span>
+                    <span className="floor-hint">{t('inspectPowerHint')}</span>
                   </span>
                 )}
               </div>

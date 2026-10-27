@@ -167,6 +167,10 @@
   color: var(--dim);
 }
 
+.rate-name {
+  font: 600 14px var(--font-body);
+}
+
 .rate-chips.muted .rate-chip {
   color: var(--dim);
 }

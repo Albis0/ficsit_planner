@@ -105,13 +105,21 @@ function Factories() {
             <span className="readout-value">
               {num(totals.used)} <small>MW</small>
             </span>
-            <span className={`readout-sub ${grid && totals.spare < -0.5 ? 'bad' : ''}`}>
+            <span
+              className={`readout-sub ${grid && totals.spare < -0.5 ? 'bad' : ''}`}
+              title={
+                grid
+                  ? t('ovMadeSplit', { made: num(totals.made), used: num(totals.used), own: num(totals.own), spare: num(totals.spare) })
+                  : undefined
+              }
+            >
               {!grid
                 ? t('ovNoPlants')
                 : totals.spare < -0.5
                   ? t('ovMadeShort', { made: num(totals.made), short: num(-totals.spare) })
                   : t('ovMadeSpare', { made: num(totals.made), spare: num(Math.max(0, totals.spare)) })}
             </span>
+            {grid && totals.own > 0.5 && <span className="readout-sub">{t('ovMadeOwn', { own: num(totals.own) })}</span>}
           </div>
           <div className="readout">
             <span className="readout-label">{t('machines')}</span>

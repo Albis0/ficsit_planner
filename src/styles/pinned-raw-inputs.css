@@ -70,7 +70,10 @@
   font: 700 15px var(--font-display);
 }
 
-.scaled .text-button {
+.raw-pin-actions {
+  display: flex;
+  align-items: center;
+  gap: 4px 12px;
   flex: none;
 }
 

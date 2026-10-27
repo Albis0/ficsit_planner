@@ -54,7 +54,13 @@ export function ItemPage({ id, index }: { id: string; index: CodexIndex }) {
   const line = insight?.line;
   // Sink points for every raw resource the whole line takes: which parts are worth making just to sink.
   if (it.sink && line && line.rawTotal > 0 && line.missing.length === 0)
-    stats.push([t('statPointsPerRaw'), num(Math.round(((it.sink * line.rate) / line.rawTotal) * 10) / 10)]);
+    stats.push([
+      t('statPointsPerRaw'),
+      <span key="ppr">
+        {num(Math.round(((it.sink * line.rate) / line.rawTotal) * 10) / 10)}{' '}
+        <small className="stat-note">{t('statPointsPerRawNote')}</small>
+      </span>,
+    ]);
   const phases = index.data.phases.flatMap((p) =>
     p.cost.filter((c) => c.item === id).map((c) => ({ phase: p, amount: elevatorAmount(c.amount, game) })),
   );

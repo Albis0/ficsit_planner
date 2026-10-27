@@ -117,7 +117,7 @@ export function splitByDestination(use: RecipeUse, flows: Flow[], tier: number):
   if (parts.length < 2) return undefined;
 
   const groups = parts.map((p) => {
-    const part = describeUse(use.recipe, use.mod, (use.count * p.rate) / total);
+    const part = describeUse(use.recipe, use.mod, (use.count * p.rate) / total, false, use.full);
     return { to: p.to, nodes: p.nodes, rate: p.rate, use: part, groups: buildGroups(part, tier) };
   });
   const extra = groups.reduce((s, g) => s + g.use.built, 0) - use.built;

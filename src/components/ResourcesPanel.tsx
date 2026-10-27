@@ -89,6 +89,11 @@ export function ResourcesPanel({ result }: { result?: SolveResult }) {
             </button>
           </div>
         </div>
+        <p className="hint">
+          {aim === 'custom'
+            ? t('customCostHint')
+            : t(aim === 'equal' ? 'costNoteEqual' : aim === 'buildings' ? 'costNoteBuildings' : 'costNoteRarity')}
+        </p>
         <div className="resource-cards">
           {(showAll ? sorted : shown).map((item) => {
             const world = data.worldLimits[item.id];

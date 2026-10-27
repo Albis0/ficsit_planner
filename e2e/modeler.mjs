@@ -623,7 +623,7 @@ const clash = (a, b) => a && b && a.x < b.x + b.width && b.x < a.x + a.width && 
     (await card(ironSmelter.id).innerText()).includes('Full speed') && (await card(ironSmelter.id).locator('.port-spare').count()) === 1,
     (await card(ironSmelter.id).innerText()).replace(/\s+/g, ' '),
   );
-  ok('the totals count it as left over', /Surplus\s*45/.test(await page.locator('.floor').innerText()));
+  ok('the totals count it as left over', /Surplus\s*Iron Ingot\s*45/.test(await page.locator('.floor').innerText()));
   await shot('a7-left-over');
   await chooseOpenOutput('Machine stops');
   await settle();
@@ -2618,8 +2618,7 @@ const clash = (a, b) => a && b && a.x < b.x + b.width && b.x < a.x + a.width && 
       );
     });
     ok(`the ${name} view ends above the buttons along the bottom`, room >= 0, `${room}px`);
-    if (name === 'transport') ok('the transport view has no hint to click a machine', (await page.locator('.floor-hint').count()) === 0);
-    else ok('the list view keeps its hint', (await page.locator('.floor-hint').count()) === 1);
+    ok(`the ${name} view has no hint to click a machine`, (await page.locator('.floor-hint').count()) === 0);
   }
 
   // Leaving the map in the middle of a zoom must not trip Leaflet over the panes it has taken down.

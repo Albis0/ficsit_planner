@@ -296,6 +296,7 @@ export function cleanSettings(saved: unknown): Settings {
     showLocked: typeof s.showLocked === 'boolean' ? s.showLocked : d.showLocked,
     summary: oneOf(s.summary, ['compact', 'full'] as const, d.summary),
     splitLines: oneOf(s.splitLines, ['each', 'one'] as const, d.splitLines),
+    clocks: oneOf(s.clocks, ['full', 'even'] as const, d.clocks),
     game: gameOf(s.game),
   };
 }
