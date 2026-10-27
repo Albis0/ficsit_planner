@@ -80,7 +80,7 @@ Coded with AI. What changed lately is under **Settings › Updates** in the app,
 - **Firefox (desktop):** has no install option. Use it as a normal website.
 
 After the first visit everything is cached, including the solver and all icons. The planner then works without a
-network. Updates install on their own the next time you open it, and your factories stay saved in the browser.
+network. When an update has downloaded, the app asks you to reload, and your factories stay saved in the browser.
 
 To make the cards or the interface bigger or smaller, open **Settings** (top right). The browser's zoom (Ctrl + /
 Ctrl −, or pinch on a touch screen) works too. On a desktop, drag the panel's edge to resize it (double-click the

@@ -1,4 +1,4 @@
-import { data, recipeById, whyMissing } from '../lib/data';
+import { data, recipeById, wasteOf, whyMissing } from '../lib/data';
 import { milestoneById } from '../lib/unlocks';
 import { useT } from '../lib/i18n';
 import type { Target } from '../lib/solver';
@@ -34,7 +34,7 @@ export function MissingList({ missing }: { missing: Target[] }) {
               <b>{name(data.items[m.item])}</b> {why.kind === 'tier' && t('missingTier', { tier: why.tier, current: tier })}
               {milestone && t('missingMilestone', { name: milestone.name })}
               {why.kind === 'off' && t('missingOff', { recipe: recipe ? recipeLabel(name(recipe), recipe.kind) : '?' })}
-              {why.kind === 'none' && t('missingNone')}
+              {why.kind === 'none' && (wasteOf(m.item) ? t('missingWaste', { name: name(wasteOf(m.item)) }) : t('missingNone'))}
             </span>
             <span className="missing-fixes">
               {why.kind === 'tier' && (

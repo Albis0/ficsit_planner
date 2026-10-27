@@ -1,4 +1,4 @@
-import type { ReactNode } from 'react';
+import { type ReactNode, useState } from 'react';
 import { data } from '../lib/data';
 import { useT } from '../lib/i18n';
 import { type FactoryRow, type PlantRow, useOverview } from '../lib/overview';
@@ -6,6 +6,7 @@ import type { PoolParty } from '../lib/pool';
 import { defaultEnabled, useStore } from '../store';
 import { Icon } from './Icon';
 import { KindIcon } from './KindIcon';
+import { MaterialsDialog } from './MaterialsDialog';
 import { RecipeBrowser } from './RecipeBrowser';
 import { SaveFactoryList } from './SaveFactories';
 import { RateChips } from './Summary';
@@ -80,6 +81,7 @@ function Factories() {
   const { t, num, name } = useT();
   const set = useStore((s) => s.set);
   const o = useOverview();
+  const [materials, setMaterials] = useState(false);
   const { totals } = o;
   // The pool: what's left over added up, less what factories take from it; below zero, it's short.
   const left = o.pool.filter((l) => l.left > 0.01).map((l) => ({ item: l.item, rate: l.left }));
@@ -200,7 +202,12 @@ function Factories() {
         )}
 
         <section className="ov-section">
-          <h2 className="ov-title">{t('ovFactories')}</h2>
+          <div className="ov-head">
+            <h2 className="ov-title">{t('ovFactories')}</h2>
+            <button type="button" className="text-button" onClick={() => setMaterials(true)}>
+              {t('materials')}
+            </button>
+          </div>
           <table className="ov-table">
             <thead>
               <tr>
@@ -287,6 +294,7 @@ function Factories() {
           </section>
         )}
       </div>
+      {materials && <MaterialsDialog onClose={() => setMaterials(false)} />}
     </>
   );
 }

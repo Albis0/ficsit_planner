@@ -24,6 +24,8 @@ const EPS = 1e-6;
 export function buildGroups(use: RecipeUse, tier: number): BuildGroups | undefined {
   const total = use.clocks.reduce((a, c) => a + c, 0);
   if (use.clocks.length < 2 || total <= 0) return undefined;
+  // Not Math.max(...use.clocks): millions of machines are too many arguments for a call.
+  const peak = use.clocks.reduce((m, c) => Math.max(m, c), 0);
   const flows = [...use.inputs, ...use.outputs]
     .map((f) => {
       const item = data.items[f.item];
@@ -32,7 +34,7 @@ export function buildGroups(use: RecipeUse, tier: number): BuildGroups | undefin
         : undefined;
     })
     .filter((f) => f !== undefined)
-    .filter((f) => Math.max(...use.clocks) * (f.rate / total) <= f.cap.rate + EPS);
+    .filter((f) => peak * (f.rate / total) <= f.cap.rate + EPS);
   let worst: (typeof flows)[number] | undefined;
   for (const f of flows) if (f.rate > f.cap.rate + EPS && (!worst || f.rate / f.cap.rate > worst.rate / worst.cap.rate)) worst = f;
   if (!worst) return undefined;

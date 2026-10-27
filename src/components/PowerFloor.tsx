@@ -155,7 +155,7 @@ export function PlantInspector({ result }: { result: SolveResult }) {
   const g = generatorOf(plant);
   const mw = result.grid?.plants[plant.id] ?? 0;
   const clock = draft ?? plant.clock;
-  const shards = Math.max(0, ...use.clocks.map(shardsFor));
+  const shards = use.clocks.reduce((m, c) => Math.max(m, shardsFor(c)), 0);
   const commitClock = (c: number) => {
     clearTimeout(settle.current);
     setDraft(undefined);

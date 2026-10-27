@@ -140,14 +140,20 @@ export function importData(parsed: unknown): ImportResult {
       return { ...plan, id };
     });
     // Taken from a factory in the same file: follows its new id. From one that didn't come along: just on hand.
+    // A factory that took from itself (a hand-edited file) is just on hand: no tab feeds itself.
+    const follow = <T extends { from?: string }>(x: T, own: string): T => {
+      if (!x.from || x.from === POOL) return x;
+      const { from: _, ...rest } = x;
+      return ids.get(x.from) === own ? (rest as T) : { ...x, from: ids.get(x.from)! };
+    };
     const added = dropSource(cleaned, (from) => !ids.has(from)).map((p) => ({
       ...p,
-      supplies: p.supplies.map((x) => (x.from && x.from !== POOL ? { ...x, from: ids.get(x.from)! } : x)),
+      supplies: p.supplies.map((x) => follow(x, p.id)),
       ...(p.model
         ? {
             model: {
               ...p.model,
-              nodes: p.model.nodes.map((n) => (n.k === 'in' && n.from && n.from !== POOL ? { ...n, from: ids.get(n.from)! } : n)),
+              nodes: p.model.nodes.map((n) => (n.k === 'in' ? follow(n, p.id) : n)),
             },
           }
         : {}),

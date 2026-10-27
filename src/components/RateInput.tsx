@@ -12,6 +12,8 @@ interface Props {
   step?: boolean;
   /** The most it takes; typing past it shows and commits this instead. */
   max?: number;
+  /** Commits when the field is left or Enter is pressed, not on every key: for a value that snaps to something else (a machine clock). */
+  deferred?: boolean;
 }
 
 /** A typed amount: "12,5", "12.5" or a fraction like "100/3". NaN when it isn't one. */
@@ -58,7 +60,7 @@ function fitText(el: HTMLInputElement) {
 }
 
 /** Numeric field that accepts "12,5", "12.5" and fractions ("100/3"), and only commits valid numbers. */
-export function RateInput({ value, onChange, label, placeholder, onClear, step, max }: Props) {
+export function RateInput({ value, onChange, label, placeholder, onClear, step, max, deferred }: Props) {
   const { t } = useT();
   const [text, setText] = useState(Number.isNaN(value) ? '' : String(value));
   const ref = useRef<HTMLInputElement>(null);
@@ -102,6 +104,16 @@ export function RateInput({ value, onChange, label, placeholder, onClear, step, 
     onChange(next);
   };
 
+  // A typed amount that is a number to commit; a past-the-max one is cut to the max. Anything else is not committed.
+  const commit = (v: string) => {
+    const n = parseAmount(v);
+    if (max !== undefined && n > max) {
+      setText(String(max));
+      return onChange(max);
+    }
+    if (Number.isFinite(n) && n >= 0) onChange(n);
+  };
+
   const input = (
     <input
       ref={ref}
@@ -114,14 +126,18 @@ export function RateInput({ value, onChange, label, placeholder, onClear, step, 
         const v = e.target.value;
         setText(v);
         if (v.trim() === '' && onClear) return onClear();
-        const n = parseAmount(v);
-        if (max !== undefined && n > max) {
-          setText(String(max));
-          return onChange(max);
-        }
-        if (Number.isFinite(n) && n >= 0) onChange(n);
+        if (!deferred) commit(v);
+      }}
+      onBlur={() => {
+        if (!deferred) return;
+        commit(text);
+        // Something that isn't an amount goes back to the one the field had.
+        const n = parseAmount(text);
+        if (!(Number.isFinite(n) && n >= 0)) setText(Number.isNaN(value) ? '' : String(value));
       }}
       onKeyDown={(e) => {
+        // Leaving the field is what commits it, once.
+        if (deferred && e.key === 'Enter') return e.currentTarget.blur();
         if (!step || (e.key !== 'ArrowUp' && e.key !== 'ArrowDown')) return;
         e.preventDefault();
         nudge(e.key === 'ArrowUp' ? up(current()) : down(current()));

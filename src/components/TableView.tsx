@@ -8,31 +8,12 @@ import { recipeLabel } from '../lib/text';
 import type { RecipeUse, SolveResult } from '../lib/solver';
 import { useStore, useTier } from '../store';
 import { groupClocks } from '../lib/clocks';
+import { buildBill } from '../lib/materials';
 import { buildGroups, groupsLabel, isPipe } from '../lib/groups';
 import { matchFlows, splitByDestination, splitExtras } from '../lib/split';
 import { Icon } from './Icon';
 import { Slot } from './Slot';
 import { useSplitText } from './SplitText';
-
-/** Buildings to place and the parts they cost, summed across the whole plan. */
-function buildBill(result: SolveResult, extraction: ExtractionUse[], extra?: Map<string, number>) {
-  const buildings = new Map<string, number>();
-  const add = (id: string, n: number) => buildings.set(id, (buildings.get(id) ?? 0) + n);
-  for (const u of result.recipes) add(u.recipe.machine, u.built);
-  // With a card per destination on the floor, the machines those cards add are built too.
-  for (const [id, n] of extra ?? []) add(id, n);
-  for (const e of extraction) add(e.extractor.id, e.built);
-
-  const parts = new Map<string, number>();
-  for (const [id, n] of buildings) {
-    const cost = buildingById(id)?.cost ?? [];
-    for (const c of cost) parts.set(c.item, (parts.get(c.item) ?? 0) + c.amount * n);
-  }
-  return {
-    buildings: [...buildings].sort((a, b) => b[1] - a[1]),
-    parts: [...parts].filter(([id]) => data.items[id]).sort((a, b) => b[1] - a[1]),
-  };
-}
 
 export function TableView({ result, extraction }: { result: SolveResult; extraction: ExtractionUse[] }) {
   const { t, name, num } = useT();

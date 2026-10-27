@@ -45,7 +45,9 @@ export function Summary({ result, extraction }: { result: SolveResult; extractio
   const closed = useStore((s) => s.summaryClosed);
   const set = useStore((s) => s.set);
   const fixed = usePlan().fixed;
-  const pinned = Object.keys(fixed).length > 0;
+  // A hand-built floor works out what it takes from its own cards: there are no pins to set on it.
+  const hand = 'manual' in result;
+  const pinned = !hand && Object.keys(fixed).length > 0;
   // With a card per destination on the floor, the totals count those cards' machines.
   const tier = useTier();
   // A hand-built floor's nodes are already the machines on the floor.
@@ -121,7 +123,7 @@ export function Summary({ result, extraction }: { result: SolveResult; extractio
           {/* Many raw inputs take a line of their own under the other readouts, never one tall column. */}
           <div className="readout wide" data-many={result.raw.length > 4 || undefined}>
             <span className="readout-label">{t('rawInput')}</span>
-            <RawInputs raw={result.raw} />
+            {hand ? <RateChips list={result.raw} /> : <RawInputs raw={result.raw} />}
           </div>
           {result.surplus.length > 0 && (
             <div className="readout fill">

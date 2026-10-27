@@ -24,6 +24,18 @@ const copy = (patch: object = {}) =>
   );
 
 describe('loading a copy', () => {
+  test('a factory that took from itself ends up with it just on hand', async () => {
+    useStore.setState({ plans: [newPlan('Mine')], power: [newPowerPlan('Plant 1')], settings: DEFAULT_SETTINGS });
+    const loop = { ...newPlan('Loop'), id: 'a', supplies: [{ item: 'Desc_IronPlate_C', rate: 5, from: 'a' }] };
+    const other = { ...newPlan('Other'), id: 'b', supplies: [{ item: 'Desc_IronPlate_C', rate: 5, from: 'a' }] };
+    expect(await importFile(copy({ version: 3, plans: [loop, other], grid: undefined }))).toMatchObject({ ok: true, count: 2 });
+    const plans = useStore.getState().plans;
+    const mine = plans.find((p) => p.name === 'Loop')!;
+    const fed = plans.find((p) => p.name === 'Other')!;
+    expect(mine.supplies[0].from).toBeUndefined();
+    expect(fed.supplies[0].from).toBe(mine.id);
+  });
+
   test('an old copy’s grid becomes a plant feeding the same factories; settings only fill what is untouched', async () => {
     const empty = newPowerPlan('Plant 1');
     const mine = { ...newPlan('Mine'), targets: [{ item: 'Desc_IronPlate_C', rate: 10 }] };

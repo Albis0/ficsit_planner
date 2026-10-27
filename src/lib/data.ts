@@ -312,6 +312,9 @@ export type MissingReason =
   | { kind: 'off'; recipe: string }
   | { kind: 'none' };
 
+/** The power plant that leaves this item behind as waste, when it's the only way to get it. */
+export const wasteOf = (item: string): Generator | undefined => data.generators.find((g) => g.fuels.some((f) => f.byproduct === item));
+
 export function whyMissing(id: string, tier: number, enabled: Set<string>): MissingReason {
   const producers = producersOf.get(id) ?? [];
   const off = producers.filter((r) => recipeUnlocked(r, tier) && !enabled.has(r.id));

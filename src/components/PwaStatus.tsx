@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useRegisterSW } from 'virtual:pwa-register/react';
+import { reopen } from '../lib/closedTab';
 import { useT } from '../lib/i18n';
 import { promptInstall, useInstallMode } from '../lib/install';
 import { useStore } from '../store';
@@ -124,7 +125,9 @@ export function ClosedTab() {
       <button
         type="button"
         className="text-button"
-        onClick={() => useStore.setState({ ...closed.before, closed: undefined, inspect: undefined, renaming: undefined })}
+        onClick={() =>
+          useStore.setState({ ...reopen(closed.before, useStore.getState()), closed: undefined, inspect: undefined, renaming: undefined })
+        }
       >
         {t('undo')}
       </button>

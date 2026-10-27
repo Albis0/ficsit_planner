@@ -235,7 +235,10 @@ export default function App() {
   // then, so a card moved meanwhile isn't lost.
   const arrange = async (m: Model) => {
     if (laying) return;
+    const forPlan = plan.id;
     const laid = await lay(() => arrangement(m));
+    // Another tab came up while it was worked out: this layout is not for that floor.
+    if (useStore.getState().active !== forPlan) return;
     host.edit((now) => {
       const { dir: _, ...rest } = now;
       return applyArrangement(dirOf(m) === 'TB' ? { ...rest, dir: 'TB' } : rest, laid);

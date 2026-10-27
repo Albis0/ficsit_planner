@@ -329,6 +329,18 @@
   margin-top: 28px;
 }
 
+.ov-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  margin: 0 0 8px;
+}
+
+.ov-head .ov-title {
+  margin: 0;
+}
+
 .ov-title {
   margin: 0 0 8px;
   font: 700 15px var(--font-display);

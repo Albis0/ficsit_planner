@@ -47,7 +47,7 @@ export function Inspector({ result }: { result: SolveResult }) {
   const machine = data.machines[recipe.machine];
   const mod = plan.mods[recipe.id] ?? NO_MOD;
   // Slots show the busiest machine; the label gives the real total across the line.
-  const shards = Math.max(0, ...use.clocks.map(shardsFor));
+  const shards = use.clocks.reduce((m, c) => Math.max(m, shardsFor(c)), 0);
   const amp = amplification(recipe, mod);
   const change = (patch: Partial<typeof mod>) => setMod(recipe.id, { ...mod, ...patch });
 
@@ -122,6 +122,7 @@ export function Inspector({ result }: { result: SolveResult }) {
           <RateInput
             value={Math.round(clock * 10000) / 100}
             label={t('clockSpeed')}
+            deferred
             onChange={(n) => setClock(Math.min(MAX_CLOCK, n / 100))}
           />
           <span className="unit">%</span>

@@ -520,8 +520,12 @@ export const useStore = create<State>()(
           const id = activePowerPlan(get()).id;
           const cur = get().power.find((p) => p.id === id);
           const snap = step(powerScope(id), cur);
-          // Which factories a plant feeds is set from the factory tabs too, so it stays as it is.
-          if (snap) set({ power: get().power.map((p) => (p.id === id ? { ...snap, factories: p.factories } : p)), inspect: undefined });
+          // Which factories a plant feeds is set from the factory tabs too, so it stays as it is, and the tab keeps its name.
+          if (snap)
+            set({
+              power: get().power.map((p) => (p.id === id ? { ...snap, factories: p.factories, name: p.name, autoName: p.autoName } : p)),
+              inspect: undefined,
+            });
           return;
         }
         const id = get().active;

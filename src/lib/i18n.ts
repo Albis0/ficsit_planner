@@ -17,7 +17,9 @@ export function useT() {
     const nf = new Intl.NumberFormat(locale, { maximumFractionDigits: decimals });
     const whole = new Intl.NumberFormat(locale, { maximumFractionDigits: 0 });
     // From a thousand up the digits after the point say nothing: 38,206 MW, not 38,206.43.
-    const num = (n: number) => (Math.abs(n) >= 1000 ? whole.format(n) : nf.format(Math.abs(n) < 5e-5 ? 0 : n));
+    // Too small to show at this many decimals is zero, never "-0".
+    const tiny = 0.5 * 10 ** -decimals;
+    const num = (n: number) => (Math.abs(n) >= 1000 ? whole.format(n) : nf.format(Math.abs(n) < tiny ? 0 : n));
     return { t, name, num, lang };
   }, [lang, decimals]);
 }

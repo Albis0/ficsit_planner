@@ -851,6 +851,8 @@ function DataSection() {
   const report = (r: ImportResult) => {
     setProgress(r.ok ? r.progress : undefined);
     if (!r.ok) return setNote({ ok: false, text: t('importFailed') });
+    // The settings came in already saved: the draft takes them, or Save would put the old ones back.
+    if (r.settings === 'loaded') set(useStore.getState().settings);
     const added = r.count === 0 ? t('importedNone') : r.count === 1 ? t('importedOne') : t('imported', { count: r.count });
     const plants = r.power === 0 ? '' : r.power === 1 ? t('importedPlant') : t('importedPlants', { count: r.power });
     const settings = r.settings === 'loaded' ? t('importedSettings') : r.settings === 'kept' ? t('importSettingsKept') : '';

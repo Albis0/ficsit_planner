@@ -23,6 +23,13 @@ describe('build groups', () => {
     expect(groupsLabel(g!.sizes)).toBe('6 + 4');
   });
 
+  test('a line of a million machines does not run out of room in the call', () => {
+    const r = plan({ targets: [{ item: 'Desc_IronPlate_C', rate: 300 }] });
+    const plates = use(r, 'Recipe_IronPlate_C');
+    const many = { ...plates, clocks: Array.from({ length: 1_000_000 }, () => 1) };
+    expect(() => buildGroups(many, 2)).not.toThrow();
+  });
+
   test('a line whose belts all fit needs no split', () => {
     const r = plan({ targets: [{ item: 'Desc_IronPlate_C', rate: 60 }] });
     expect(buildGroups(use(r, 'Recipe_IronPlate_C'), 9)).toBeUndefined();
