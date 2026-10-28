@@ -239,8 +239,12 @@ test('belts side by side go into a card through an end as wide as they are, not 
     const d = e.data as { lanes: number; wide?: { from: boolean; to: boolean } };
     expect(d.wide).toEqual({ from: true, to: true });
     const need = Math.min(d.lanes, 6) * 10;
-    const out = nodes.find((n) => n.id === e.source)!.handles!.find((h) => h.type === 'source')!;
-    const into = nodes.find((n) => n.id === e.target)!.handles!.find((h) => h.type === 'target')!;
+    const out = nodes
+      .find((n) => n.id === e.source)!
+      .handles!.find((h) => h.type === 'source' && (!e.sourceHandle || h.id === e.sourceHandle))!;
+    const into = nodes
+      .find((n) => n.id === e.target)!
+      .handles!.find((h) => h.type === 'target' && (!e.targetHandle || h.id === e.targetHandle))!;
     expect(out.height).toBeGreaterThanOrEqual(need);
     expect(into.height).toBeGreaterThanOrEqual(need);
   }
@@ -398,4 +402,122 @@ test('splitters and mergers form balanced trees, each branch under one of them a
     if (under > 0) deep++;
   }
   expect(deep).toBeGreaterThan(0);
+});
+
+// ---- One end per item on a machine card ----
+
+type Ends = { in: { id: string; item?: string; at: number; len: number }[]; out: { id: string; item?: string; at: number; len: number }[] };
+const factory = (item: string, rate: number) =>
+  solve(highs, { targets: [{ item, rate }], supplies: [], enabledRecipes: standard(), resourceCaps: {}, objective: 'resources' });
+const endsOf = (n: { data: unknown }) => (n.data as { ends?: Ends }).ends;
+const machines = (nodes: ReturnType<typeof buildGraph>['nodes']) => nodes.filter((n) => n.type === 'machine');
+
+test('a machine with two inputs has an end for each, and each belt goes into the end of its own item', () => {
+  const r = factory('Desc_Motor_C', 10);
+  for (const splitters of [false, true]) {
+    const { nodes, edges } = buildGraph(r, 9, { dir: 'LR', splitters });
+    const motor = machines(nodes).find(
+      (n) => (n.data as { use: { recipe: { outputs: { item: string }[] } } }).use.recipe.outputs[0].item === 'Desc_Motor_C',
+    )!;
+    const ends = endsOf(motor)!;
+    expect(ends.in.map((e) => e.id)).toEqual(['i0', 'i1']);
+    expect(new Set(ends.in.map((e) => e.item)).size).toBe(2);
+    const into = edges.filter((e) => e.target === motor.id);
+    expect(into.length).toBeGreaterThanOrEqual(2);
+    for (const e of into) {
+      const end = ends.in.find((x) => x.id === e.targetHandle);
+      expect(end?.item).toBe((e.data as { item: string }).item);
+    }
+  }
+});
+
+test('every belt on a machine card ends on the end of its item, through splitters and mergers, either way round', () => {
+  let viaMerger = 0;
+  let viaSplitter = 0;
+  for (const dir of ['LR', 'TB'] as const) {
+    for (const [item, rate] of [
+      ['Desc_Motor_C', 10],
+      ['Desc_Computer_C', 30],
+      ['Desc_Plastic_C', 60],
+      ['Desc_ModularFrameHeavy_C', 12],
+    ] as const) {
+      const { nodes, edges } = buildGraph(factory(item, rate), 9, { dir, splitters: true, splitLines: 'each' });
+      const byId = new Map(nodes.map((n) => [n.id, n]));
+      for (const e of edges) {
+        if (e.type !== 'flow') continue;
+        const belt = (e.data as { item: string }).item;
+        const [from, to] = [byId.get(e.source)!, byId.get(e.target)!];
+        if (to.type === 'machine') {
+          expect(endsOf(to)!.in.find((x) => x.id === e.targetHandle)?.item).toBe(belt);
+          if (from.type === 'logistic') viaMerger++;
+        }
+        if (from.type === 'machine') {
+          expect(endsOf(from)!.out.find((x) => x.id === e.sourceHandle)?.item).toBe(belt);
+          if (to.type === 'logistic') viaSplitter++;
+        }
+      }
+    }
+  }
+  expect(viaMerger).toBeGreaterThan(0);
+  expect(viaSplitter).toBeGreaterThan(0);
+});
+
+test('a refinery that makes a byproduct has an out end for it as well, and the byproduct leaves from there', () => {
+  const { nodes, edges } = buildGraph(factory('Desc_Plastic_C', 60), 9, { dir: 'LR' });
+  const refinery = machines(nodes).find((n) => endsOf(n)!.out.length === 2)!;
+  expect(refinery).toBeTruthy();
+  const ends = endsOf(refinery)!;
+  expect(ends.out.map((e) => e.item).sort()).toEqual(['Desc_HeavyOilResidue_C', 'Desc_Plastic_C']);
+  const residue = edges.find((e) => e.source === refinery.id && (e.data as { item: string }).item === 'Desc_HeavyOilResidue_C')!;
+  expect(ends.out.find((x) => x.id === residue.sourceHandle)?.item).toBe('Desc_HeavyOilResidue_C');
+  const plastic = edges.find((e) => e.source === refinery.id && (e.data as { item: string }).item === 'Desc_Plastic_C')!;
+  expect(plastic.sourceHandle).not.toBe(residue.sourceHandle);
+});
+
+test('the ends a machine card declares are the ends its belts name, and no two of them overlap', () => {
+  for (const dir of ['LR', 'TB'] as const) {
+    for (const [item, rate] of [
+      ['Desc_Motor_C', 10],
+      ['Desc_ModularFrameHeavy_C', 60],
+      ['Desc_Computer_C', 150],
+    ] as const) {
+      const { nodes, edges } = buildGraph(factory(item, rate), 3, { dir, splitters: true });
+      for (const n of machines(nodes)) {
+        const ends = endsOf(n)!;
+        const declared = (n.handles ?? []).map((h) => h.id).sort();
+        expect(declared).toEqual([...ends.in, ...ends.out].map((e) => e.id).sort());
+        const used = [
+          ...edges.filter((e) => e.source === n.id).map((e) => e.sourceHandle),
+          ...edges.filter((e) => e.target === n.id).map((e) => e.targetHandle),
+        ];
+        expect(used.every((h) => !!h && declared.includes(h))).toBe(true);
+        const side = dir === 'LR' ? n.height! : n.width!;
+        for (const list of [ends.in, ends.out]) {
+          const spans = list.map((e) => [e.at * side - e.len / 2, e.at * side + e.len / 2]).sort((a, b) => a[0] - b[0]);
+          expect(spans.every(([a, b]) => a >= -1e-6 && b <= side + 1e-6)).toBe(true);
+          for (let i = 1; i < spans.length; i++) expect(spans[i][0]).toBeGreaterThan(spans[i - 1][1] + 1e-6);
+        }
+      }
+    }
+  }
+});
+
+test('belts that would cross at a machine are put on its ends the other way round', () => {
+  // Wherever two belts reach a card from different sides of it, the one from above takes the upper end.
+  const { nodes, edges } = buildGraph(factory('Desc_ModularFrameHeavy_C', 12), 9, { dir: 'LR' });
+  const at = new Map(nodes.map((n) => [n.id, n.position.y + (n.height ?? 0) / 2]));
+  let checked = 0;
+  for (const n of machines(nodes)) {
+    const into = edges.filter((e) => e.target === n.id).sort((a, b) => at.get(a.source)! - at.get(b.source)!);
+    const slots = into.map((e) => Number(e.targetHandle!.slice(1)));
+    if (new Set(into.map((e) => (e.data as { item: string }).item)).size < 2) continue;
+    checked++;
+    // Per item the first belt's order never goes against the end order by more than ties.
+    const first = new Map<string, number>();
+    for (const [i, e] of into.entries())
+      if (!first.has((e.data as { item: string }).item)) first.set((e.data as { item: string }).item, slots[i]);
+    const order = [...first.values()];
+    expect(order).toEqual([...order].sort((a, b) => a - b));
+  }
+  expect(checked).toBeGreaterThan(0);
 });

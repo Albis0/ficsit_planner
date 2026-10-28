@@ -318,7 +318,46 @@ const clash = (a, b) => a && b && a.x < b.x + b.width && b.x < a.x + a.width && 
   await page.locator('.react-flow__node-machine .machine-node').first().click();
   await wait(600);
   ok('a single click opens the panel, with the built box ticked', (await page.locator('.inspector .built-check.on').count()) === 1);
+  // A line whose machines run at different clocks (100% and one slower) has its clock slider locked at 100.
+  const line = (await page.locator('aside.inspector .inspector-stats dd').first().textContent()) ?? '';
+  const slider = page.locator('aside.inspector .clock-control input[type=range]');
+  const mixed = line.includes(',');
+  const locked = await slider.isDisabled();
+  ok(
+    'the clock slider is locked at 100 exactly when the line has more than one clock group',
+    locked === mixed &&
+      (!locked ||
+        ((await slider.inputValue()) === '100' && (await page.locator('aside.inspector').textContent()).includes('At 100%, one slower'))),
+    `machines "${line}", locked ${locked}`,
+  );
+  await shot('a1a-clock');
   await page.keyboard.press('Escape');
+
+  // ── A1b: an Auto machine has an end for each item it takes ──
+  section = 'A1b';
+  await open(factory([['Desc_Stator_C', 5]]));
+  await page.click('.deck-toggle');
+  await wait(600);
+  const motor = card('recipe:Recipe_Stator_C');
+  const ins = motor.locator('.react-flow__handle.port.in');
+  const icons = await ins.evaluateAll((hs) => hs.map((h) => h.querySelector('img')?.getAttribute('src') ?? ''));
+  ok(
+    'the Stator assembler has two input ends',
+    (await ins.count()) === 2 && (await motor.locator('.react-flow__handle.port.out').count()) === 1,
+  );
+  ok('with a different item icon on each', icons.length === 2 && icons.every(Boolean) && icons[0] !== icons[1], icons.join(' | '));
+  const reached = await page.evaluate(() => {
+    // Each of the two ends has a belt arriving at it: a belt's last point lies on the end's outer edge.
+    const hs = [...document.querySelectorAll('.react-flow__node[data-id="recipe:Recipe_Stator_C"] .react-flow__handle.port.in')];
+    const paths = [...document.querySelectorAll('.react-flow__edge')].filter((e) =>
+      e.getAttribute('data-id')?.includes('>recipe:Recipe_Stator_C>'),
+    );
+    return { ends: hs.length, belts: paths.length };
+  });
+  ok('and a belt for each item arriving', reached.belts >= 2, JSON.stringify(reached));
+  await page.locator('.floor-controls .floor-button >> nth=-1').click();
+  await wait(600);
+  await shot('a1b-machine-ends');
 
   // ── A1: a Manual factory laid out ──
   section = 'A1';

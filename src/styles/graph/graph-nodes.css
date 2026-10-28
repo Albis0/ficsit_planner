@@ -30,16 +30,25 @@
   --t: var(--card-text, 1);
   zoom: var(--card-scale, 1);
   position: relative;
-  width: calc(310px * (0.6 + 0.4 * var(--t)));
+  /* Ends that need more room make the card wider (WIDE_STEP in the layout). */
+  width: calc((310px + var(--wide-extra, 0) * 40px) * (0.6 + 0.4 * var(--t)));
   /* Extra clock groups each add a line (RUN_LINE in the layout). */
   height: calc((130px + var(--run-extra, 0) * 32px) * (0.3 + 0.7 * var(--t)));
   display: flex;
   flex-direction: column;
   background: var(--raised);
   border: 1px solid var(--line-2);
-  /* The top right corner is cut. A square at the top left lies outside the cut shape, so the built tick on that corner
-     isn't cut with it. */
-  clip-path: polygon(-24px -24px, 12px -24px, 12px 0, calc(100% - 20px) 0, 100% 20px, 100% 100%, 0 100%, 0 12px, -24px 12px);
+  /* The top right corner is cut. The shape reaches 28px past the other sides, so the ends standing out of the card and
+     the built tick on its corner aren't cut with it. */
+  clip-path: polygon(
+    -28px -28px,
+    calc(100% - 20px) -28px,
+    calc(100% - 20px) 0,
+    100% 20px,
+    calc(100% + 28px) 20px,
+    calc(100% + 28px) calc(100% + 28px),
+    -28px calc(100% + 28px)
+  );
   transition: opacity 120ms;
 }
 

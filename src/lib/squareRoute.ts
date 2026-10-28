@@ -5,6 +5,9 @@ export interface SquareBelt {
   id: string;
   source: string;
   target: string;
+  /** The ends of a machine card the belt is on, when it is on one: belts on different ends do not share a lane. */
+  sourceHandle?: string | null;
+  targetHandle?: string | null;
   from: Point;
   to: Point;
   via: Point[];
@@ -59,8 +62,8 @@ export function squareBends(belts: SquareBelt[], dir: Direction): Map<string, Po
   }
   // Lanes in a gap, belts of different lines only; the ones nearest the middle are given out first.
   const clash = (a: Run, b: Run) =>
-    a.belt.source !== b.belt.source &&
-    a.belt.target !== b.belt.target &&
+    (a.belt.source !== b.belt.source || a.belt.sourceHandle !== b.belt.sourceHandle) &&
+    (a.belt.target !== b.belt.target || a.belt.targetHandle !== b.belt.targetHandle) &&
     Math.abs(a.u - b.u) < LANE - 0.5 &&
     Math.min(a.hi, b.hi) - Math.max(a.lo, b.lo) > 2;
   const placed: Run[] = [];

@@ -22,8 +22,27 @@ export interface MachineNodeData extends Record<string, unknown> {
   split?: Split;
   /** A card of its own for one of those groups: `use` is then just this group's machines. */
   part?: SplitGroup;
-  /** How many belts side by side meet each end of the card. */
-  ports?: { in?: number; out?: number };
+  /** An end for each item the card takes and gives, in the order that keeps its belts from crossing; set once the cards have their places. */
+  ends?: CardEnds;
+  /** Lines and columns the card grew by, to give every end room for the belts side by side on it. */
+  room?: { rows: number; cols: number };
+}
+
+/** One end of a machine card: a square on its edge holding the item's icon, with the belts for that item going into it. */
+export interface CardEnd {
+  /** The handle's id: i0, i1… for what the card takes, o0, o1… for what it gives. */
+  id: string;
+  /** The item it takes or gives; none for a generator's power line. */
+  item?: string;
+  /** Where its middle is along its side, as a share of the side. */
+  at: number;
+  /** How long it is along the side, in floor units: as wide as the belts side by side that meet it. */
+  len: number;
+}
+
+export interface CardEnds {
+  in: CardEnd[];
+  out: CardEnd[];
 }
 
 /** Who draws from the grid: a factory, the fuel chain itself, what the player typed in, or the output sent on. */
@@ -120,6 +139,155 @@ export const portSpots = (n: number): number[] => (n <= 1 ? [0.5] : Array.from({
 const slotsFor = (used: number, total: number): number[] =>
   total <= 1 ? [0] : used === 1 ? [Math.floor(total / 2)] : used === 2 && total === 3 ? [0, 2] : Array.from({ length: used }, (_, i) => i);
 
+/** A card's end is a square this big, kept this far from the next one, and stands this far out from the card's side (card scale 1). */
+export const END = 26;
+const END_GAP = 8;
+const END_REACH = 27;
+/** The generator's power line among its ends. */
+const POWER = 'power';
+/** A card that must be wider to hold its ends grows by this much at a time, as it grows by a line for more clock groups. */
+const WIDE_STEP = 40;
+
+/** What a machine card gives ends for: the items it takes and gives, in the recipe's order. */
+const keysOf = (d: MachineNodeData) => ({
+  in: d.use.recipe.inputs.map((s) => s.item),
+  out: [...d.use.recipe.outputs.map((s) => s.item), ...(d.use.recipe.kind === 'power' ? [POWER] : [])],
+});
+/** Which end of its machine a belt (or a generator's power line) is on. */
+const keyOf = (e: Edge) => (e.type === 'power' ? POWER : (e.data as FlowEdgeData).item);
+
+/** Most belts side by side any belt of an item has at a card's side. */
+function lanesAt(edges: Edge[]): Map<string, number> {
+  const m = new Map<string, number>();
+  for (const e of edges) {
+    if (e.type !== 'flow') continue;
+    const lanes = Math.min((e.data as FlowEdgeData).lanes, MAX_LANES);
+    for (const k of [`${e.source}|o|${keyOf(e)}`, `${e.target}|i|${keyOf(e)}`]) m.set(k, Math.max(m.get(k) ?? 1, lanes));
+  }
+  return m;
+}
+
+/** How long an end is: the belts side by side that meet it, never less than its square. */
+const endLen = (lanes: number | undefined, scale: number) => Math.max(END * scale, (lanes ?? 1) * LANE_PITCH);
+
+/** The ends of one card, in the order given, spread along a side of `side` floor units with the same room between them. */
+function cardEnds(id: string, order: { in: string[]; out: string[] }, lanes: Map<string, number>, side: number, scale: number): CardEnds {
+  const row = (p: 'i' | 'o', keys: string[]): CardEnd[] => {
+    const len = keys.map((key) => endLen(key === POWER ? 1 : lanes.get(`${id}|${p}|${key}`), scale));
+    const gap = (side - len.reduce((a, b) => a + b, 0)) / (keys.length + 1);
+    let from = gap;
+    return keys.map((key, i) => {
+      const at = (from + len[i] / 2) / side;
+      from += len[i] + gap;
+      return { id: `${p}${i}`, ...(key === POWER ? {} : { item: key }), at, len: len[i] };
+    });
+  };
+  return { in: row('i', order.in), out: row('o', order.out) };
+}
+
+/**
+ * Makes a machine card big enough for its ends: every end as long as the belts side by side on it, with room between.
+ * It grows by lines (down a floor running right) or columns (across a floor running down), only when it has to.
+ */
+function growCards(nodes: Node[], edges: Edge[], box: (size: Box) => Box, scale: number, dir?: Direction) {
+  const lanes = lanesAt(edges);
+  for (const n of nodes) {
+    if (n.type !== 'machine') continue;
+    const d = n.data as MachineNodeData;
+    const keys = keysOf(d);
+    const room = (p: 'i' | 'o', list: string[]) =>
+      list.reduce(
+        (sum, key) => sum + endLen(key === POWER ? 1 : lanes.get(`${n.id}|${p}|${key}`), scale),
+        END_GAP * scale * (list.length + 1),
+      );
+    const need = Math.max(room('i', keys.in), room('o', keys.out));
+    const base = cardExtra(d.use, d.split ?? d.part);
+    let [rows, cols] = [0, 0];
+    while (dir !== 'TB' && box({ ...SIZE.machine, height: SIZE.machine.height + RUN_LINE * (base + rows) }).height < need) rows++;
+    while (dir !== 'LR' && box({ ...SIZE.machine, width: SIZE.machine.width + WIDE_STEP * cols }).width < need) cols++;
+    if (!rows && !cols) continue;
+    const b = box({ width: SIZE.machine.width + WIDE_STEP * cols, height: SIZE.machine.height + RUN_LINE * (base + rows) });
+    n.width = b.width;
+    n.height = b.height;
+    n.data = { ...d, room: { rows, cols } };
+  }
+}
+
+/** Where a belt meets a node: the middle of its side, or of the end of the card it is on. */
+function meet(p: Point, s: { w: number; h: number }, dir: Direction, side: 'in' | 'out', end?: CardEnd): Point {
+  const at = end?.at ?? 0.5;
+  return dir === 'LR'
+    ? { x: p.x + (side === 'out' ? s.w : 0), y: p.y + s.h * at }
+    : { x: p.x + s.w * at, y: p.y + (side === 'out' ? s.h : 0) };
+}
+
+/**
+ * For each machine card, the items on its ends in the order that keeps its belts from crossing: as the other ends of
+ * the belts stand across the flow (an item with no belt comes last, in the recipe's order).
+ */
+function orderEnds(nodes: Node[], edges: Edge[], pos: Map<string, Point>, dir: Direction): Map<string, { in: string[]; out: string[] }> {
+  const size = new Map(nodes.map((n) => [n.id, n]));
+  const across = (id: string) => {
+    const n = size.get(id)!;
+    const p = pos.get(id)!;
+    return dir === 'TB' ? p.x + (n.width ?? 0) / 2 : p.y + (n.height ?? 0) / 2;
+  };
+  const by = (end: 'source' | 'target') => {
+    const m = new Map<string, Edge[]>();
+    for (const e of edges) m.set(e[end], [...(m.get(e[end]) ?? []), e]);
+    return m;
+  };
+  const [from, into] = [by('source'), by('target')];
+  const sorted = (keys: string[], belts: Edge[], far: 'source' | 'target') => {
+    const where = (key: string) => {
+      const x = belts.filter((e) => keyOf(e) === key).map((e) => across(e[far]));
+      return x.length ? x.reduce((a, b) => a + b, 0) / x.length : Number.POSITIVE_INFINITY;
+    };
+    return keys
+      .map((key, i) => ({ key, i, at: where(key) }))
+      .sort((a, b) => (a.at === b.at ? a.i - b.i : a.at - b.at))
+      .map((x) => x.key);
+  };
+  const order = new Map<string, { in: string[]; out: string[] }>();
+  for (const n of nodes) {
+    if (n.type !== 'machine') continue;
+    const keys = keysOf(n.data as MachineNodeData);
+    order.set(n.id, { in: sorted(keys.in, into.get(n.id) ?? [], 'source'), out: sorted(keys.out, from.get(n.id) ?? [], 'target') });
+  }
+  return order;
+}
+
+/** The end each belt of a machine card is on, by the belt's id. */
+function endsOfBelts(
+  edges: Edge[],
+  order: Map<string, { in: string[]; out: string[] }>,
+): Map<string, { source?: string; target?: string }> {
+  const handles = new Map<string, { source?: string; target?: string }>();
+  for (const e of edges) {
+    const s = order.get(e.source)?.out.indexOf(keyOf(e)) ?? -1;
+    const t = order.get(e.target)?.in.indexOf(keyOf(e)) ?? -1;
+    if (s >= 0 || t >= 0) handles.set(e.id, { ...(s >= 0 ? { source: `o${s}` } : {}), ...(t >= 0 ? { target: `i${t}` } : {}) });
+  }
+  return handles;
+}
+
+/** The cards' ends worked out for a placement. */
+function endsFor(
+  nodes: Node[],
+  edges: Edge[],
+  order: Map<string, { in: string[]; out: string[] }>,
+  dir: Direction,
+  scale: number,
+): Map<string, CardEnds> {
+  const lanes = lanesAt(edges);
+  const ends = new Map<string, CardEnds>();
+  for (const n of nodes) {
+    const o = order.get(n.id);
+    if (o) ends.set(n.id, cardEnds(n.id, o, lanes, (dir === 'TB' ? n.width : n.height) ?? 0, scale));
+  }
+  return ends;
+}
+
 /**
  * Handle positions spelled out up front. Without them React Flow assumes top/bottom handles for any
  * node it hasn't measured yet, and a belt can end up entering the output from above.
@@ -130,8 +298,34 @@ function handlesFor(
   dir: Direction,
   ends?: { ins: number; outs: number },
   wide?: { in?: number; out?: number },
+  card?: CardEnds,
+  scale = 1,
 ): NodeHandle[] {
   const list: NodeHandle[] = [];
+  if (card) {
+    // A machine card: a square for each item, standing just outside the side, as on the Manual floor.
+    const down = dir === 'TB';
+    const [reach, square] = [END_REACH * scale, END * scale];
+    for (const [type, row] of [
+      ['target', card.in],
+      ['source', card.out],
+    ] as const) {
+      for (const e of row) {
+        const along = e.at * (down ? size.width : size.height) - e.len / 2;
+        const out = type === 'target' ? -reach : (down ? size.height : size.width) + reach - square;
+        list.push({
+          id: e.id,
+          type,
+          position: down ? (type === 'target' ? Position.Top : Position.Bottom) : type === 'target' ? Position.Left : Position.Right,
+          x: down ? along : out,
+          y: down ? out : along,
+          width: down ? e.len : square,
+          height: down ? square : e.len,
+        });
+      }
+    }
+    return list;
+  }
   if (ends) {
     // A splitter or merger: its ends spread along the side, each with an id the belts name.
     const down = dir === 'TB';
@@ -425,13 +619,23 @@ function buildGraphOne(result: SolveResult, tier: number, opts: GraphOptions = {
   if (opts.splitters) addLogistics(nodes, edges, sides, box, tier);
   if (result.grid) addGrid(result, nodes, edges, sides, opts.consumers ?? [], box);
 
+  growCards(nodes, edges, box, k, opts.dir);
   const dir = layout(nodes, edges, opts);
   if (opts.splitters) assignPorts(nodes, edges, dir);
   widenEnds(nodes, edges);
   for (const n of nodes) {
     const d = n.type === 'logistic' ? (n.data as LogisticNodeData) : undefined;
-    const ports = n.type === 'machine' || n.type === 'endpoint' ? (n.data as MachineNodeData).ports : undefined;
-    n.handles = handlesFor({ width: n.width!, height: n.height! }, sides.get(n.id)!, dir, d && { ins: d.ins, outs: d.outs }, ports);
+    const ports = n.type === 'endpoint' ? (n.data as EndpointNodeData).ports : undefined;
+    const card = n.type === 'machine' ? (n.data as MachineNodeData).ends : undefined;
+    n.handles = handlesFor(
+      { width: n.width!, height: n.height! },
+      sides.get(n.id)!,
+      dir,
+      d && { ins: d.ins, outs: d.outs },
+      ports,
+      card,
+      k,
+    );
   }
   return { nodes, edges, dir };
 }
@@ -444,6 +648,8 @@ function widenEnds(nodes: Node[], edges: Edge[]) {
   const ports = new Map<string, { in?: number; out?: number }>();
   const type = new Map(nodes.map((n) => [n.id, n.type]));
   const card = (id: string) => type.get(id) === 'machine' || type.get(id) === 'endpoint';
+  // A machine's ends are sized from their belts when the card is made; a leftover or input card has one end a side.
+  const own = (id: string) => type.get(id) === 'endpoint';
   for (const e of edges) {
     if (e.type !== 'flow') continue;
     const d = e.data as FlowEdgeData;
@@ -451,8 +657,8 @@ function widenEnds(nodes: Node[], edges: Edge[]) {
     if (lanes < 2) continue;
     const wide = { from: card(e.source), to: card(e.target) };
     e.data = { ...d, wide };
-    if (wide.from) ports.set(e.source, { ...ports.get(e.source), out: Math.max(ports.get(e.source)?.out ?? 0, lanes) });
-    if (wide.to) ports.set(e.target, { ...ports.get(e.target), in: Math.max(ports.get(e.target)?.in ?? 0, lanes) });
+    if (wide.from && own(e.source)) ports.set(e.source, { ...ports.get(e.source), out: Math.max(ports.get(e.source)?.out ?? 0, lanes) });
+    if (wide.to && own(e.target)) ports.set(e.target, { ...ports.get(e.target), in: Math.max(ports.get(e.target)?.in ?? 0, lanes) });
   }
   for (const n of nodes) {
     const p = ports.get(n.id);
@@ -674,6 +880,10 @@ interface Placement {
   width: number;
   height: number;
   crossings: number;
+  /** The items on each machine card's ends, in order. */
+  order: Map<string, { in: string[]; out: string[] }>;
+  /** The end each belt of a machine card is on. */
+  handles: Map<string, { source?: string; target?: string }>;
 }
 
 function place(nodes: Node[], edges: Edge[], dir: Direction, ranker: Ranker, opts: GraphOptions, chain?: Map<string, string[]>): Placement {
@@ -718,29 +928,44 @@ function placeIn(
     routes.set(e.id, { points: r.points.slice(1, -1), label: { x: r.x, y: r.y } });
   }
   const { width = 0, height = 0 } = g.graph();
-  return { dir, pos, routes, width, height, crossings: crossings(nodes, edges, pos, dir) };
+  const order = orderEnds(nodes, edges, pos, dir);
+  const handles = endsOfBelts(edges, order);
+  const ends = endsFor(nodes, edges, order, dir, opts.scale ?? 1);
+  return { dir, pos, routes, width, height, crossings: crossings(nodes, edges, pos, dir, ends, handles), order, handles };
 }
 
 /** Gives every belt its square route: dagre's bends made straight runs, belts of different lines kept in lanes of their own. */
 function squareUp(nodes: Node[], edges: Edge[], dir: Direction, text: number) {
   const size = new Map(nodes.map((n) => [n.id, { w: n.width ?? 0, h: n.height ?? 0 }]));
   const pos = new Map(nodes.map((n) => [n.id, n.position]));
-  const out = (id: string): Point => {
-    const [p, s] = [pos.get(id)!, size.get(id)!];
-    return dir === 'LR' ? { x: p.x + s.w, y: p.y + s.h / 2 } : { x: p.x + s.w / 2, y: p.y + s.h };
-  };
-  const into = (id: string): Point => {
-    const [p, s] = [pos.get(id)!, size.get(id)!];
-    return dir === 'LR' ? { x: p.x, y: p.y + s.h / 2 } : { x: p.x + s.w / 2, y: p.y };
-  };
+  const ends = new Map(nodes.map((n) => [n.id, (n.data as MachineNodeData).ends]));
+  // Where a belt leaves or reaches a node: the end of the card it is on, or the middle of the side.
+  const out = (e: Edge): Point =>
+    meet(
+      pos.get(e.source)!,
+      size.get(e.source)!,
+      dir,
+      'out',
+      ends.get(e.source)?.out.find((x) => x.id === e.sourceHandle),
+    );
+  const into = (e: Edge): Point =>
+    meet(
+      pos.get(e.target)!,
+      size.get(e.target)!,
+      dir,
+      'in',
+      ends.get(e.target)?.in.find((x) => x.id === e.targetHandle),
+    );
   const flow = edges.filter((e) => e.type === 'flow' && (e.data as FlowEdgeData).route && !(e.data as FlowEdgeData).route!.loop);
   const bends = squareBends(
     flow.map((e) => ({
       id: e.id,
       source: e.source,
       target: e.target,
-      from: out(e.source),
-      to: into(e.target),
+      sourceHandle: e.sourceHandle,
+      targetHandle: e.targetHandle,
+      from: out(e),
+      to: into(e),
       via: (e.data as FlowEdgeData).route!.points,
     })),
     dir,
@@ -760,7 +985,7 @@ const LABEL_BOX = { width: 150, height: 44 };
  * Puts each square belt's label on its longest run, then slides it along the belt (and onto its other runs) while it would
  * cover a card or another belt's label. Where nothing is clear, the spot that covers least wins.
  */
-function placeLabels(nodes: Node[], flow: Edge[], dir: Direction, out: (id: string) => Point, into: (id: string) => Point, text: number) {
+function placeLabels(nodes: Node[], flow: Edge[], dir: Direction, out: (e: Edge) => Point, into: (e: Edge) => Point, text: number) {
   const box = { w: LABEL_BOX.width * text, h: LABEL_BOX.height * text };
   const cards: Rect[] = nodes.map((n) => ({ x: n.position.x - 4, y: n.position.y - 4, w: (n.width ?? 0) + 8, h: (n.height ?? 0) + 8 }));
   const taken: Rect[] = [];
@@ -768,7 +993,7 @@ function placeLabels(nodes: Node[], flow: Edge[], dir: Direction, out: (id: stri
   for (const e of flow) {
     const route = (e.data as FlowEdgeData).route!;
     if (!route.square) continue;
-    const { runs } = squarePath(out(e.source), route.square, into(e.target), dir === 'TB');
+    const { runs } = squarePath(out(e), route.square, into(e), dir === 'TB');
     const long = runs
       .filter(([a, b]) => Math.hypot(b.x - a.x, b.y - a.y) > 30)
       .sort(([a, b], [c, d]) => Math.hypot(d.x - c.x, d.y - c.y) - Math.hypot(b.x - a.x, b.y - a.y));
@@ -790,26 +1015,45 @@ function placeLabels(nodes: Node[], flow: Edge[], dir: Direction, out: (id: stri
 }
 
 /** Belts that cross, counting each belt as a straight line from its output handle to its input handle. */
-function crossings(nodes: Node[], edges: Edge[], pos: Map<string, Point>, dir: Direction): number {
+function crossings(
+  nodes: Node[],
+  edges: Edge[],
+  pos: Map<string, Point>,
+  dir: Direction,
+  ends: Map<string, CardEnds>,
+  handles: Map<string, { source?: string; target?: string }>,
+): number {
   const size = new Map(nodes.map((n) => [n.id, { w: n.width ?? 0, h: n.height ?? 0 }]));
-  const out = (id: string) => {
-    const p = pos.get(id)!;
-    const s = size.get(id)!;
-    return dir === 'LR' ? { x: p.x + s.w, y: p.y + s.h / 2 } : { x: p.x + s.w / 2, y: p.y + s.h };
-  };
-  const into = (id: string) => {
-    const p = pos.get(id)!;
-    const s = size.get(id)!;
-    return dir === 'LR' ? { x: p.x, y: p.y + s.h / 2 } : { x: p.x + s.w / 2, y: p.y };
-  };
-  const lines = edges.map((e) => ({ e, a: out(e.source), b: into(e.target) }));
+  const lines = edges.map((e) => {
+    const h = handles.get(e.id);
+    return {
+      e,
+      h,
+      a: meet(
+        pos.get(e.source)!,
+        size.get(e.source)!,
+        dir,
+        'out',
+        ends.get(e.source)?.out.find((x) => x.id === h?.source),
+      ),
+      b: meet(
+        pos.get(e.target)!,
+        size.get(e.target)!,
+        dir,
+        'in',
+        ends.get(e.target)?.in.find((x) => x.id === h?.target),
+      ),
+    };
+  });
   const side = (p: Point, q: Point, r: Point) => Math.sign((q.x - p.x) * (r.y - p.y) - (q.y - p.y) * (r.x - p.x));
   let n = 0;
   for (let i = 0; i < lines.length; i++) {
     for (let j = i + 1; j < lines.length; j++) {
       const l = lines[i];
       const m = lines[j];
-      if (l.e.source === m.e.source || l.e.target === m.e.target) continue;
+      // Belts on the same end of a card meet there, they do not cross.
+      if (l.e.source === m.e.source && l.h?.source === m.h?.source) continue;
+      if (l.e.target === m.e.target && l.h?.target === m.h?.target) continue;
       if (side(l.a, l.b, m.a) * side(l.a, l.b, m.b) < 0 && side(m.a, m.b, l.a) * side(m.a, m.b, l.b) < 0) n++;
     }
   }
@@ -870,7 +1114,16 @@ export function forgetPlacements() {
 function layout(nodes: Node[], edges: Edge[], opts: GraphOptions): Direction {
   const pick = choose(nodes, edges, opts);
   for (const n of nodes) n.position = { ...pick.pos.get(n.id)! };
+  // Every machine card's ends, and the belts on them, before the belts are routed to them.
+  const byId = new Map(nodes.map((n) => [n.id, n]));
+  for (const [id, ends] of endsFor(nodes, edges, pick.order, pick.dir, opts.scale ?? 1)) {
+    const n = byId.get(id)!;
+    n.data = { ...n.data, ends };
+  }
   for (const e of edges) {
+    const h = pick.handles.get(e.id);
+    if (h?.source) e.sourceHandle = h.source;
+    if (h?.target) e.targetHandle = h.target;
     const r = pick.routes.get(e.id)!;
     (e.data as FlowEdgeData | PowerEdgeData).route = {
       points: r.points.map((p) => ({ ...p })),
@@ -885,7 +1138,7 @@ function layout(nodes: Node[], edges: Edge[], opts: GraphOptions): Direction {
 }
 
 /** How far a returning belt's first and last runs stand off the cards, and how far under the lowest card it runs, in floor units. */
-const LOOP = { stub: 30, under: 46, lane: 62 };
+const LOOP = { stub: 42, under: 46, lane: 62 };
 
 /**
  * Belts that run back against the flow (water out of a later machine into an earlier one) go round under the cards:
@@ -902,11 +1155,17 @@ function loopBack(nodes: Node[], edges: Edge[], dir: Direction, text: number) {
       return [n.id, { u, v, du, dv }] as const;
     }),
   );
+  const ends = new Map(nodes.map((n) => [n.id, (n.data as MachineNodeData).ends]));
   const loops = edges
     .filter((e) => e.type === 'flow' && (e.data as FlowEdgeData).route)
     .map((e) => {
       const [s, t] = [box.get(e.source)!, box.get(e.target)!];
-      return { e, from: [s.u + s.du, s.v + s.dv / 2] as const, to: [t.u, t.v + t.dv / 2] as const };
+      // The ends of a machine card the belt is on, not the middle of its side.
+      const [a, b] = [
+        ends.get(e.source)?.out.find((x) => x.id === e.sourceHandle),
+        ends.get(e.target)?.in.find((x) => x.id === e.targetHandle),
+      ];
+      return { e, from: [s.u + s.du, s.v + s.dv * (a?.at ?? 0.5)] as const, to: [t.u, t.v + t.dv * (b?.at ?? 0.5)] as const };
     })
     .filter((l) => l.to[0] <= l.from[0])
     .sort((a, b) => a.from[0] - a.to[0] - (b.from[0] - b.to[0]));

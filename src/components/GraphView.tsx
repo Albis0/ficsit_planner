@@ -29,6 +29,7 @@ import { emptyModel, type Model } from '../lib/model/types';
 import type { ExtractionUse } from '../lib/extraction';
 import {
   buildGraph,
+  type CardEnds,
   type Consumer,
   type Direction,
   type EndpointNodeData,
@@ -190,19 +191,58 @@ function PortHandle({ type, lanes }: { type: 'source' | 'target'; lanes?: number
   return <Handle type={type} position={type === 'target' ? inSide(dir) : outSide(dir)} style={style} />;
 }
 
+/**
+ * The ends of a machine card: a square on its edge for each item it takes or gives (the generator's power line has a
+ * bolt), standing just outside, and the belts for that item go into it. Several belts side by side make the square a bar.
+ */
+function CardPorts({ ends }: { ends?: CardEnds }) {
+  const { name } = useT();
+  const dir = useContext(Flow);
+  const scale = useStore((s) => s.settings.cardScale);
+  const down = dir === 'TB';
+  const one = (side: 'in' | 'out', e: CardEnds['in'][number]) => {
+    const item = e.item ? data.items[e.item] : undefined;
+    // The card is drawn at its scale; the bar's length is in floor units.
+    const length = e.len / scale;
+    return (
+      <Handle
+        key={e.id}
+        id={e.id}
+        type={side === 'in' ? 'target' : 'source'}
+        position={side === 'in' ? inSide(dir) : outSide(dir)}
+        className={`port ${side} ${down ? 'down' : ''} ${item && item.form !== 'solid' ? 'pipe' : ''}`}
+        style={down ? { left: `${e.at * 100}%`, width: length } : { top: `${e.at * 100}%`, height: length }}
+        title={item ? name(item) : undefined}
+      >
+        {item ? <Icon id={item.id} size={18} /> : <Glyph name="bolt" size={16} />}
+      </Handle>
+    );
+  };
+  return (
+    <>
+      {ends?.in.map((e) => one('in', e))}
+      {ends?.out.map((e) => one('out', e))}
+    </>
+  );
+}
+
 /** A row of generators: the strip names the fuel and what they put on the grid, the building below. */
 function GeneratorNode({ id, data: d, selected }: NodeProps) {
   const { name, num } = useT();
-  const { use, generation = 0, ports } = d as MachineNodeData;
+  const { use, generation = 0, ends, room } = d as MachineNodeData;
   const near = useNear(id);
   const gen = generatorById.get(use.recipe.machine);
   const fuel = use.recipe.inputs.find((i) => data.items[i.item]?.energy)?.item;
   return (
     <div
       className={`machine-node power gen-${gen?.kind ?? 'fuel'} ${near ? 'near' : ''} ${selected ? 'selected' : ''}`}
-      style={{ ['--run-extra' as string]: runExtra(use), ...(use.shards > 0 ? { ['--mod-bar' as string]: 'var(--shard)' } : {}) }}
+      style={{
+        ['--run-extra' as string]: runExtra(use) + (room?.rows ?? 0),
+        ['--wide-extra' as string]: room?.cols ?? 0,
+        ...(use.shards > 0 ? { ['--mod-bar' as string]: 'var(--shard)' } : {}),
+      }}
     >
-      <PortHandle type="target" lanes={ports?.in} />
+      <CardPorts ends={ends} />
       <div className="machine-strip">
         <Icon id={fuel ?? use.recipe.machine} size={30} className="strip-icon" />
         <span className="machine-product">{fuel ? name(data.items[fuel]) : name(gen)}</span>
@@ -223,7 +263,6 @@ function GeneratorNode({ id, data: d, selected }: NodeProps) {
           </span>
         </span>
       </div>
-      <PortHandle type="source" lanes={ports?.out} />
     </div>
   );
 }
@@ -231,7 +270,7 @@ function GeneratorNode({ id, data: d, selected }: NodeProps) {
 function MachineNode(props: NodeProps) {
   const { id, data: d, selected } = props;
   const { name, num } = useT();
-  const { use, split, part, ports } = d as MachineNodeData;
+  const { use, split, part, ends, room } = d as MachineNodeData;
   const { recipe } = use;
   const near = useNear(id);
   const done = useContext(Built).built.has(recipe.id);
@@ -240,9 +279,13 @@ function MachineNode(props: NodeProps) {
   return (
     <div
       className={`machine-node ${recipe.kind} ${near ? 'near' : ''} ${selected ? 'selected' : ''} ${done ? 'done' : ''}`}
-      style={{ ['--run-extra' as string]: cardExtra(use, split ?? part), ...(bar ? { ['--mod-bar' as string]: bar } : {}) }}
+      style={{
+        ['--run-extra' as string]: cardExtra(use, split ?? part) + (room?.rows ?? 0),
+        ['--wide-extra' as string]: room?.cols ?? 0,
+        ...(bar ? { ['--mod-bar' as string]: bar } : {}),
+      }}
     >
-      <PortHandle type="target" lanes={ports?.in} />
+      <CardPorts ends={ends} />
       {/* The in-game build menu look: a coloured strip naming what it makes, the building and its draw below. */}
       <div className="machine-strip">
         <Icon id={recipe.outputs[0].item} size={30} className="strip-icon" />
@@ -269,7 +312,6 @@ function MachineNode(props: NodeProps) {
           {part && <SplitTo part={part} />}
         </span>
       </div>
-      <PortHandle type="source" lanes={ports?.out} />
     </div>
   );
 }
