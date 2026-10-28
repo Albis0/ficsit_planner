@@ -14,6 +14,7 @@ interface Props {
   max?: number;
   /** Commits when the field is left or Enter is pressed, not on every key: for a value that snaps to something else (a machine clock). */
   deferred?: boolean;
+  disabled?: boolean;
 }
 
 /** A typed amount: "12,5", "12.5" or a fraction like "100/3". NaN when it isn't one. */
@@ -60,7 +61,7 @@ function fitText(el: HTMLInputElement) {
 }
 
 /** Numeric field that accepts "12,5", "12.5" and fractions ("100/3"), and only commits valid numbers. */
-export function RateInput({ value, onChange, label, placeholder, onClear, step, max, deferred }: Props) {
+export function RateInput({ value, onChange, label, placeholder, onClear, step, max, deferred, disabled }: Props) {
   const { t } = useT();
   const [text, setText] = useState(Number.isNaN(value) ? '' : String(value));
   const ref = useRef<HTMLInputElement>(null);
@@ -121,6 +122,7 @@ export function RateInput({ value, onChange, label, placeholder, onClear, step, 
       inputMode="decimal"
       aria-label={label}
       placeholder={placeholder}
+      disabled={disabled}
       value={text}
       onChange={(e) => {
         const v = e.target.value;

@@ -102,6 +102,11 @@
   cursor: pointer;
 }
 
+.clock-control input:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
 .clock-control input[type='range']::-webkit-slider-thumb {
   appearance: none;
   width: 14px;
