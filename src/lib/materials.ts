@@ -1,9 +1,10 @@
 import { useMemo } from 'react';
-import { useStore } from '../store';
+import { useStore, useTier } from '../store';
 import { buildingById, data } from './data';
 import type { ExtractionUse } from './extraction';
 import { type FactoryEntry, useFactoryEntries } from './solution';
 import type { RecipeUse, SolveResult } from './solver';
+import { matchFlows, splitByDestination } from './split';
 
 /** Buildings to place and the parts they cost, summed across the whole plan. */
 export function buildBill(result: SolveResult, extraction: ExtractionUse[], extra?: Map<string, number>) {
@@ -39,6 +40,8 @@ export interface Source {
   extraction?: ExtractionUse[];
   /** Machines ticked as built in the game: they are left out of what is still to get. */
   done?: (u: RecipeUse) => boolean;
+  /** Machines a line adds when the floor builds a card for each place it feeds, as the floor and the table count them. */
+  extra?: (u: RecipeUse) => number;
 }
 
 /** What it takes to build all the factories, per part and per building, and who needs how much of each. Largest first. */
@@ -54,7 +57,12 @@ export function allMaterials(sources: Source[], builtToo: boolean): { parts: Bil
   for (const s of sources) {
     if (!s.result) continue;
     const left = builtToo || !s.done ? s.result : { ...s.result, recipes: s.result.recipes.filter((u) => !s.done?.(u)) };
-    const bill = buildBill(left, s.extraction ?? []);
+    const extra = new Map<string, number>();
+    for (const u of left.recipes) {
+      const n = s.extra?.(u) ?? 0;
+      if (n > 0) extra.set(u.recipe.machine, (extra.get(u.recipe.machine) ?? 0) + n);
+    }
+    const bill = buildBill(left, s.extraction ?? [], extra);
     for (const [id, n] of bill.buildings) put(buildings, id, s, n);
     for (const [id, n] of bill.parts) put(parts, id, s, n);
   }
@@ -72,9 +80,18 @@ const doneOf =
   (u: RecipeUse): boolean =>
     u.node ? !!plan?.model?.nodes.find((n) => n.id === u.node)?.done : !!plan?.built?.includes(u.recipe.id);
 
+/** A card per destination on an Auto floor: the machines each line adds for it. A Manual floor is already what's built. */
+function extraOf(result: SolveResult | undefined, each: boolean, tier: number) {
+  if (!result || !each || 'manual' in result) return undefined;
+  const flows = matchFlows(result);
+  return (u: RecipeUse) => splitByDestination(u, flows, tier)?.extra ?? 0;
+}
+
 /** Every factory's materials for the window on the "All" page. */
 export function useMaterials(builtToo: boolean) {
   const plans = useStore((s) => s.plans);
+  const each = useStore((s) => s.settings.splitLines) === 'each';
+  const tier = useTier();
   const entries = useFactoryEntries(true);
   return useMemo(() => {
     const sources: Source[] = entries.map((e: FactoryEntry) => ({
@@ -83,7 +100,8 @@ export function useMaterials(builtToo: boolean) {
       result: e.result,
       extraction: e.extraction,
       done: doneOf(plans.find((p) => p.id === e.id)),
+      extra: extraOf(e.result, each, tier),
     }));
     return allMaterials(sources, builtToo);
-  }, [entries, plans, builtToo]);
+  }, [entries, plans, builtToo, each, tier]);
 }

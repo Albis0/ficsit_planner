@@ -130,9 +130,10 @@ export function RateInput({ value, onChange, label, placeholder, onClear, step, 
       }}
       onBlur={() => {
         if (!deferred) return;
-        commit(text);
-        // Something that isn't an amount goes back to the one the field had.
         const n = parseAmount(text);
+        // Left as shown (a rounded clock), nothing is sent: sending it back would snap the line to another machine count.
+        if (n !== value) commit(text);
+        // Something that isn't an amount goes back to the one the field had.
         if (!(Number.isFinite(n) && n >= 0)) setText(Number.isNaN(value) ? '' : String(value));
       }}
       onKeyDown={(e) => {

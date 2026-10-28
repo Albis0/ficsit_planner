@@ -258,12 +258,13 @@ export default function App() {
   const newUpdates = s.onboarded && s.seenUpdates !== LATEST_UPDATE;
   const [menuOpen, setMenuOpen] = useState(false);
   const [calcOpen, setCalcOpen] = useState(false);
-  // C opens and closes the calculator, unless it would be typed into a field or a dialog is open.
+  // C opens and closes the calculator, unless it would be typed into a field or a dialog is open. Inside the
+  // calculator's field C clears, as its own C key does.
   useEffect(() => {
     const key = (e: KeyboardEvent) => {
       if (e.key.toLowerCase() !== 'c' || e.ctrlKey || e.metaKey || e.altKey || e.repeat) return;
       const el = e.target as HTMLElement;
-      const field = el.closest?.('input, textarea, select, [contenteditable]') && !el.closest('.calc');
+      const field = el.closest?.('input, textarea, select, [contenteditable]');
       if (field || document.querySelector('dialog[open]')) return;
       e.preventDefault();
       setCalcOpen((o) => !o);

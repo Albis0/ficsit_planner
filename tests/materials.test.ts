@@ -64,6 +64,13 @@ describe('materials of all the factories', () => {
     expect(all.buildings.reduce((s, l) => s + l.total, 0)).toBeGreaterThan(left.buildings.reduce((s, l) => s + l.total, 0));
   });
 
+  test('machines a card per destination adds are counted, as on the floor', () => {
+    const plain = allMaterials([sources[0]], true);
+    const split = allMaterials([{ ...sources[0], extra: () => 1 }], true);
+    const count = (b: typeof plain) => b.buildings.reduce((s, l) => s + l.total, 0);
+    expect(count(split)).toBe(count(plain) + motors.result.recipes.length);
+  });
+
   test('a factory that is still being worked out adds nothing', () => {
     const { parts } = allMaterials([{ id: 'c', name: 'Soon' }, sources[1]], true);
     expect(parts.every((l) => l.by.every((b) => b.id === 'b'))).toBe(true);

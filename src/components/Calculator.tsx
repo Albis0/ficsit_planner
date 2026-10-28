@@ -20,7 +20,11 @@ export function Calculator({ onClose }: { onClose: () => void }) {
   const first = useRef(loadCalc()).current;
   const [done, setDone] = useState<Done[]>(first.done);
   const [small, setSmall] = useState(first.small);
-  const [at, setAt] = useState(first.at ?? { x: Math.max(8, window.innerWidth - WIDE - 16), y: 76 });
+  // A place kept from a wider window (a desktop, then a phone) is pulled back onto the screen.
+  const [at, setAt] = useState(() => {
+    const p = first.at ?? { x: window.innerWidth - WIDE - 16, y: 76 };
+    return { x: Math.max(0, Math.min(p.x, window.innerWidth - WIDE)), y: Math.max(0, Math.min(p.y, window.innerHeight - 40)) };
+  });
   const [text, setText] = useState('');
   const [history, setHistory] = useState(false);
   const field = useRef<HTMLInputElement>(null);
@@ -103,6 +107,10 @@ export function Calculator({ onClose }: { onClose: () => void }) {
             onChange={(e) => setText(e.target.value)}
             onKeyDown={(e) => {
               if (e.key === 'Enter') enter();
+              else if (e.key.toLowerCase() === 'c' && !e.ctrlKey && !e.metaKey && !e.altKey) {
+                e.preventDefault();
+                setText('');
+              }
             }}
           />
           <div className="calc-keys">

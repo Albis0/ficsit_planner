@@ -2754,6 +2754,13 @@ const clash = (a, b) => a && b && a.x < b.x + b.width && b.x < a.x + a.width && 
   await keyOf(')').click();
   await page.locator('.calc-keys .equals').click();
   ok('and the next press closes it', (await page.locator('.calc-field').inputValue()) === '14');
+  await page.locator('.calc-field').focus();
+  await page.keyboard.press('c');
+  await wait(100);
+  ok(
+    'C typed in its field clears it, as its C key does',
+    (await calc.count()) === 1 && (await page.locator('.calc-field').inputValue()) === '',
+  );
   ok('the zero key takes one square', (await keyOf('0').boundingBox()).width < 60);
   await page.locator('.calc-bar button[aria-label="Shrink the calculator"]').click();
   await wait(200);
@@ -2777,6 +2784,20 @@ const clash = (a, b) => a && b && a.x < b.x + b.width && b.x < a.x + a.width && 
   await page.keyboard.press('c');
   await wait(200);
   ok('C closes it', (await page.locator('.calc').count()) === 0);
+  // Moved far right on a wide screen, then opened in a narrow window: it comes back onto the screen.
+  await page.evaluate(() => {
+    const s = JSON.parse(localStorage.getItem('ficsit-calc') ?? '{}');
+    localStorage.setItem('ficsit-calc', JSON.stringify({ ...s, at: { x: 5000, y: 3000 } }));
+  });
+  await page.keyboard.press('c');
+  await wait(200);
+  const away = await calc.boundingBox();
+  const view = page.viewportSize();
+  ok(
+    'a place off the screen is pulled back onto it',
+    away.x + away.width <= view.width && away.y + 28 <= view.height,
+    JSON.stringify(away),
+  );
   ok('the button has no words', !(await page.locator('.topbar .calc-button').innerText()).trim());
   await ctx.close();
 }
