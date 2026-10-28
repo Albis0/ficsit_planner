@@ -2652,11 +2652,8 @@ const clash = (a, b) => a && b && a.x < b.x + b.width && b.x < a.x + a.width && 
     JSON.stringify(routeMoved),
   );
   await shot('u-own-route');
-  // They stay when the floor is tidied up and when a card moves.
+  // They stay when a card moves.
   await page.keyboard.press('Escape');
-  await page.locator('.tool-button[aria-label="Tidy up"]').click();
-  await settle();
-  ok('Tidy up keeps them', JSON.stringify((await mine()).pts) === JSON.stringify(routeMoved) && (await mine()).own === true);
   await dragBy(await card(routed.a).boundingBox(), 0, 30);
   ok('moving a card keeps them', JSON.stringify((await mine()).pts) === JSON.stringify(routeMoved));
   // A double click on a stop takes it off.
@@ -2674,6 +2671,17 @@ const clash = (a, b) => a && b && a.x < b.x + b.width && b.x < a.x + a.width && 
   const routeBack = await mine();
   ok('Automatic takes the stops away', !routeBack.own && routeBack.pts === undefined);
   ok('and the belt shows no dots', (await page.locator('.stops').count()) === 0);
+  // Tidy up lays it all out afresh: a belt routed by hand goes back to Automatic.
+  await pickRoute();
+  await wait();
+  await page.locator('aside.inspector .segmented button:text-is("My own")').click();
+  await settle();
+  await dragFree(await page.locator('.stops .stop-add').first().boundingBox());
+  ok('a belt routed by hand again', (await mine()).own === true && ((await mine()).pts ?? []).length > 0);
+  await page.keyboard.press('Escape');
+  await page.locator('.tool-button[aria-label="Tidy up"]').click();
+  await settle();
+  ok('Tidy up gives it back to Automatic', !(await mine()).own);
   await ctx.close();
 }
 
