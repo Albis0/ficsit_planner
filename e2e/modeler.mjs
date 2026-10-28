@@ -2600,13 +2600,15 @@ const clash = (a, b) => a && b && a.x < b.x + b.width && b.x < a.x + a.width && 
   m = await model();
   const routed = m.links.find((l) => m.nodes.find((n) => n.id === l.a)?.k === 'machine');
   // Clicked where the belt really runs: with stops of its own its middle may be bare floor.
-  const pickRoute = async () => {
-    const at = await page.evaluate((id) => {
+  const onBelt = () =>
+    page.evaluate((id) => {
       const p = document.querySelector(`.react-flow__edge[data-id="${id}"] .belt-hit`);
       const pt = p.getPointAtLength(p.getTotalLength() / 2);
       const m = p.getScreenCTM();
       return { x: m.a * pt.x + m.c * pt.y + m.e, y: m.b * pt.x + m.d * pt.y + m.f };
     }, routed.id);
+  const pickRoute = async () => {
+    const at = await onBelt();
     await page.mouse.click(at.x, at.y);
   };
   const mine = async () => (await model()).links.find((l) => l.id === routed.id);
@@ -2671,6 +2673,18 @@ const clash = (a, b) => a && b && a.x < b.x + b.width && b.x < a.x + a.width && 
   const routeBack = await mine();
   ok('Automatic takes the stops away', !routeBack.own && routeBack.pts === undefined);
   ok('and the belt shows no dots', (await page.locator('.stops').count()) === 0);
+  // The middle button on a belt left to Automatic is My own, as from the panel, with no stop put where it was pressed.
+  await page.keyboard.press('Escape');
+  const press = await onBelt();
+  await page.mouse.move(press.x, press.y);
+  await page.mouse.down({ button: 'middle' });
+  await page.mouse.up({ button: 'middle' });
+  await settle();
+  const pulled = await mine();
+  ok('the middle button on a belt makes it My own', pulled.own === true && (pulled.pts ?? []).length === 0, JSON.stringify(pulled.pts));
+  ok('and opens the belt', (await page.locator('aside.inspector .segmented button[aria-checked="true"]:text-is("My own")').count()) === 1);
+  await page.locator('aside.inspector .segmented button:text-is("Automatic")').click();
+  await settle();
   // Tidy up lays it all out afresh: a belt routed by hand goes back to Automatic.
   await pickRoute();
   await wait();

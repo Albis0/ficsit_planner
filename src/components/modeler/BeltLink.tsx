@@ -7,7 +7,7 @@ import {
   useReactFlow,
   useStore as useFlowStore,
 } from '@xyflow/react';
-import { createContext, type PointerEvent as ReactPointer, useContext, useState } from 'react';
+import { createContext, type MouseEvent as ReactMouse, type PointerEvent as ReactPointer, useContext, useState } from 'react';
 import { data } from '../../lib/data';
 import { useT } from '../../lib/i18n';
 import type { LinkCalc } from '../../lib/model/calc/result';
@@ -123,11 +123,24 @@ export function BeltLink({ sourceX, sourceY, targetX, targetY, sourcePosition, t
     window.addEventListener('pointercancel', drop);
   };
   const ends: [number, number][] = [[sourceX, sourceY], ...stops, [targetX, targetY]];
+  // The middle button on a belt (or its label) does what My own does in its panel, and opens it.
+  const middle = {
+    onMouseDownCapture: (e: ReactMouse) => {
+      if (e.button !== 1) return;
+      e.preventDefault();
+      e.stopPropagation();
+    },
+    onPointerDown: (e: ReactPointer) => {
+      if (e.button !== 1) return;
+      lay(link.id, link.pts ?? []);
+      if (!selected) pick(link.id);
+    },
+  };
   const bad = calc?.status === 'jam' || calc?.status === 'unbounded';
   // Full at the Mk, not at a limit the player set lower.
   const full = calc?.status === 'capped' && !(link.lim !== undefined && link.lim < transport.rate * lanes);
   return (
-    <>
+    <g {...middle}>
       {/* A wide invisible line over the belt, so it's easy to click. */}
       <path d={path} className="belt-hit" />
       {body}
@@ -220,6 +233,6 @@ export function BeltLink({ sourceX, sourceY, targetX, targetY, sourcePosition, t
           </div>
         </EdgeLabelRenderer>
       )}
-    </>
+    </g>
   );
 }

@@ -469,7 +469,7 @@ function Canvas({ host, calc, onArrange }: CanvasProps) {
   );
 
   const layStops = useCallback(
-    (id: string, pts: [number, number][]) => host.edit((m) => updateLink(m, id, { pts: pts.length ? pts : undefined })),
+    (id: string, pts: [number, number][]) => host.edit((m) => updateLink(m, id, { pts: pts.length ? pts : undefined, own: true })),
     [host],
   );
 
