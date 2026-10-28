@@ -365,7 +365,6 @@ interface State {
   setCap: (item: string, cap: number | undefined) => void;
   setWeight: (item: string, weight: number | undefined) => void;
   setMod: (recipe: string, mod: RecipeMod | undefined) => void;
-  /** Auto or Manual for a factory tab; a model to start Manual with, when there isn't one yet or it's rebuilt. */
   /** Turns a factory nothing has been put in yet into a Manual one; a factory with something in it stays as it is. */
   makeManual: (plan: string) => void;
   /**

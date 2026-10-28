@@ -65,8 +65,16 @@ describe('a tab with both floors becomes two tabs', () => {
     const [auto] = splitFloors([mixed({ model: emptyModel() })]) as Record<string, unknown>[];
     expect(auto.model).toBeUndefined();
     expect(auto.floor).toBeUndefined();
-    const [empty] = splitFloors([mixed({ model: emptyModel(), floor: 'manual' })]) as Record<string, unknown>[];
+    const [empty] = splitFloors([mixed({ model: emptyModel(), floor: 'manual', targets: [] })]) as Record<string, unknown>[];
     expect(empty).toMatchObject({ id: 'f1', floor: 'manual' });
+  });
+
+  test('an empty Manual floor left on screen over a worked-out factory keeps that factory as Auto', () => {
+    const list = splitFloors([mixed({ model: emptyModel(), floor: 'manual' })]) as Record<string, unknown>[];
+    expect(list).toHaveLength(1);
+    expect(list[0]).toMatchObject({ id: 'f1', name: 'Plates', targets: [aim] });
+    expect(list[0].floor).toBeUndefined();
+    expect(list[0].model).toBeUndefined();
   });
 
   test('an Auto factory with no floor comes through untouched', () => {

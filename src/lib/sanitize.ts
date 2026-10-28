@@ -115,14 +115,16 @@ export function splitFloors(saved: unknown[], fresh: () => string = freshId): un
     const p = obj(x);
     const shown = p.floor === 'manual';
     const built = list(obj(p.model).nodes).length > 0;
-    // A hand-built floor with nothing on it is the floor it was; any other tab with no cards is an Auto one.
+    const worked = list(p.targets).length > 0 || list(p.supplies).length > 0;
+    // A hand-built floor with nothing on it is the floor it was, unless a factory was worked out beside it: that one is
+    // kept as Auto, or it would sit hidden in a Manual tab and go with the floor's first edit.
     if (!built) {
-      if (shown) return [p];
+      if (shown && !worked) return [p];
       const { floor: _f, model: _m, ...auto } = p;
       return [auto];
     }
     // Nothing worked out beside it: a Manual factory.
-    if (list(p.targets).length === 0 && list(p.supplies).length === 0) return [{ ...p, floor: 'manual' }];
+    if (!worked) return [{ ...p, floor: 'manual' }];
     const { floor: _f, model: _m, ...auto } = structuredClone(p);
     const { areas: _a, built: _b, ...manual } = structuredClone(p);
     const name = text(p.name, 'Factory', 70);
