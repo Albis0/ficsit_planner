@@ -2,13 +2,16 @@
 
 All notable changes to FICSIT Planner. Dates are when the version was finished.
 
-## 0.14.2 — 2026-10-26
+## 0.14.2 — 2026-10-28
 
 ### Added
 
 - A new factory is asked for as Auto or Manual: the + button opens a small menu with the two. The list under the tabs has the same two buttons.
 - Every factory carries a small tag in front of its name, AUTO (grey) or MANUAL (orange), on its tab, in the factory list and on the All page.
 - Auto floor: a product built from two others gets an area of its own, with the machines that work only towards it, and a product on a line of its own gets one too.
+- All page: a Materials side panel lists the parts and buildings every factory needs to build, and which factory needs how much. Machines ticked as built are left out unless asked for.
+- Manual floor: belts and pipes can be routed by hand. A Route switch in the belt panel, stop points to drag, + to add one and a double click to remove one. They stay through Tidy up and moving cards; Tidy up gives them back to Automatic.
+- A calculator window: C or a small icon in the top bar opens it. It shrinks to a bar with the last result, has number pad keys and a history.
 
 ### Changed
 
@@ -16,10 +19,15 @@ All notable changes to FICSIT Planner. Dates are when the version was finished.
 - Factories that held both floors are split when you open the app: “Name” keeps the Auto floor and “Name (Manual)” gets the Manual floor. Old backup files and share links are split the same way when you import or open them.
 - Auto floor: the splitters and mergers are always drawn, as balanced trees like on the Manual floor, so the setting “Splitters and mergers” is gone. Fit to screen also works on floors with cards off screen.
 - Auto floor: each product chain stands together as a cluster, and the areas round the chains no longer run into each other. The areas lie over the belts, so no belt crosses an area's name.
+- Machines on a line run whole at 100% with one slower machine, unless Settings › Machines on a line says otherwise.
 
 ### Fixed
 
 - Codex “Build this factory” and importing a backup no longer overwrite a Manual factory that has cards but no output cards.
+- Machine panel: a typed clock speed is applied when the field is left, so 75 stays 75, and clicking in and out of the field no longer changes the machine count.
+- Undo after closing a tab puts the tab back without undoing what was done since.
+- A line of millions of machines no longer crashes. Small numbers never print as -0.
+- Materials counts the machines a card per destination adds.
 
 ## 0.14.1 — 2026-10-22
 

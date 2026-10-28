@@ -12,12 +12,25 @@ export type UpdateNote = [UpdateKind, string];
 export const UPDATES: { version: string; date: string; title?: string; notes: UpdateNote[]; ask?: string }[] = [
   {
     version: '0.14.2',
-    date: '2026-10-26',
+    date: '2026-10-28',
     title: 'Auto and Manual apart',
     notes: [
       ['added', 'A new factory is Auto or Manual: the + button opens a small menu with the two, and the factory list has both buttons.'],
       ['added', 'Every factory has a small tag in front of its name, AUTO or MANUAL, on its tab, in the list and on the All page.'],
       ['added', 'Auto floor: a product built from two others gets an area of its own, and so does a product on a line of its own.'],
+      [
+        'added',
+        'All page: a Materials panel lists the parts and buildings every factory needs to build, and which factory needs how much.',
+      ],
+      [
+        'added',
+        'Manual floor: belts and pipes can be routed by hand. Turn on Route in the belt panel, drag the stops, add one with + and remove one with a double click.',
+      ],
+      ['added', 'A calculator: press C or the small icon in the top bar. It shrinks to a bar with the last result and keeps a history.'],
+      [
+        'changed',
+        'Machines on a line run at 100% with one slower machine for the rest, instead of all at the same lower clock. Settings › Machines on a line switches back.',
+      ],
       [
         'changed',
         'Auto and Manual no longer connect. The Auto|Manual switch, Rebuild and the copy of an Auto factory onto a Manual floor are gone. “Build by hand” stays on an empty Auto factory and turns it into a Manual one.',
@@ -34,6 +47,12 @@ export const UPDATES: { version: string; date: string; title?: string; notes: Up
         'fixed',
         'Codex “Build this factory” and importing a backup no longer overwrite a Manual factory that has cards but no output cards.',
       ],
+      [
+        'fixed',
+        'Machine panel: a typed clock speed stays as typed, and clicking in and out of the field no longer changes the machine count.',
+      ],
+      ['fixed', 'Undo after closing a tab brings the tab back without undoing what you did since.'],
+      ['fixed', 'A line of millions of machines no longer crashes the app.'],
     ],
   },
   {
