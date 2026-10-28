@@ -1,0 +1,248 @@
+/* ---------- Calculator window ---------- */
+
+.calc {
+  position: fixed;
+  z-index: 50;
+  width: min(240px, calc(100vw - 16px));
+  border: 1px solid var(--line-2);
+  background: var(--bg);
+  box-shadow: 0 6px 24px rgba(0, 0, 0, 0.55);
+}
+
+.calc-bar {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  height: 28px;
+  padding: 0 2px 0 10px;
+  background: var(--ficsit);
+  color: var(--ficsit-ink);
+  cursor: grab;
+  touch-action: none;
+  user-select: none;
+}
+
+.calc-bar:active {
+  cursor: grabbing;
+}
+
+.calc-title {
+  margin-right: auto;
+  font: 700 14px var(--font-display);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.calc-last {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font: 700 16px var(--font-display);
+}
+
+.calc-tool {
+  display: grid;
+  place-items: center;
+  width: 26px;
+  height: 24px;
+  border: 0;
+  background: transparent;
+  color: inherit;
+}
+
+.calc-tool:hover {
+  background: rgba(0, 0, 0, 0.18);
+}
+
+.calc-body {
+  display: grid;
+  gap: 6px;
+  padding: 8px;
+}
+
+.calc-sum {
+  min-width: 0;
+  overflow: hidden;
+  color: var(--dim);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.calc-field {
+  width: 100%;
+  padding: 6px 8px;
+  border: 1px solid var(--line-2);
+  background: var(--bg);
+  color: var(--paper);
+  font: 600 20px var(--font-display);
+  text-align: right;
+}
+
+.calc-field:focus {
+  outline: none;
+  border-color: var(--ficsit);
+}
+
+.calc-keys {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 4px;
+}
+
+.calc-keys button {
+  height: 34px;
+  border: 1px solid var(--line-2);
+  background: var(--bg);
+  color: var(--ficsit);
+  font: 700 17px var(--font-display);
+}
+
+.calc-keys button.num {
+  color: var(--paper);
+}
+
+.calc-keys button:hover:not(:disabled) {
+  border-color: var(--ficsit);
+}
+
+.calc-keys .equals {
+  grid-row: span 2;
+  height: auto;
+  background: var(--ficsit);
+  color: var(--ficsit-ink);
+}
+
+.calc-keys .equals:disabled {
+  opacity: 0.4;
+}
+
+.calc-button {
+  padding: 0 9px;
+}
+
+/* The history: a metal tab on the side of the window opens a screen of its own beside it. */
+.calc-side {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  display: flex;
+  align-items: flex-start;
+}
+
+.calc-side[data-side='left'] {
+  right: 100%;
+  flex-direction: row-reverse;
+}
+
+.calc-side[data-side='right'] {
+  left: 100%;
+}
+
+.calc-handle {
+  display: grid;
+  place-items: center;
+  width: 22px;
+  height: 60px;
+  margin-top: 44px;
+  padding: 0;
+  border: 1px solid #2c2c2c;
+  background: var(--metal);
+  box-shadow: 0 3px 6px rgb(0 0 0 / 0.35);
+  color: var(--painted);
+}
+
+.calc-side[data-side='left'] .calc-handle {
+  border-right: 0;
+  border-radius: 6px 0 0 6px;
+}
+
+.calc-side[data-side='right'] .calc-handle {
+  border-left: 0;
+  border-radius: 0 6px 6px 0;
+}
+
+.calc-handle:hover {
+  color: var(--ficsit);
+}
+
+.calc-history {
+  display: flex;
+  flex-direction: column;
+  align-self: stretch;
+  width: 190px;
+  border: 1px solid var(--line-2);
+  background: var(--bg);
+  box-shadow: 0 6px 24px rgba(0, 0, 0, 0.55);
+}
+
+.calc-history header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: 28px;
+  padding: 0 2px 0 10px;
+  background: var(--metal);
+  color: var(--painted);
+  font: 700 14px var(--font-display);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.calc-history ul {
+  flex: 1;
+  min-height: 0;
+  margin: 0;
+  padding: 4px 8px;
+  overflow-y: auto;
+  list-style: none;
+}
+
+.calc-history li + li {
+  border-top: 1px solid var(--line-2);
+}
+
+.calc-history li button {
+  display: grid;
+  gap: 0;
+  width: 100%;
+  padding: 4px 0;
+  border: 0;
+  background: none;
+  color: var(--paper);
+  font: 700 18px var(--font-display);
+  text-align: right;
+}
+
+.calc-history li button:hover {
+  color: var(--ficsit);
+}
+
+.calc-history .calc-sum {
+  font: 600 14px var(--font-display);
+}
+
+/* On a narrow screen the history hangs under the window instead: its tab in the middle, the screen the width of the window. */
+.calc-side[data-side='below'] {
+  top: 100%;
+  right: 0;
+  bottom: auto;
+  left: 0;
+  flex-direction: column;
+  align-items: center;
+}
+
+.calc-side[data-side='below'] .calc-handle {
+  width: 60px;
+  height: 20px;
+  margin-top: 0;
+  border: 1px solid #2c2c2c;
+  border-top: 0;
+  border-radius: 0 0 6px 6px;
+}
+
+.calc-side[data-side='below'] .calc-history {
+  align-self: stretch;
+  width: auto;
+  max-height: 200px;
+}

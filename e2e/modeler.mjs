@@ -2696,6 +2696,88 @@ const clash = (a, b) => a && b && a.x < b.x + b.width && b.x < a.x + a.width && 
   await page.locator('.tool-button[aria-label="Tidy up"]').click();
   await settle();
   ok('Tidy up gives it back to Automatic', !(await mine()).own);
+
+  // ── V: the calculator ──
+  section = 'V';
+  await page.keyboard.press('Escape');
+  await page.locator('body').click({ position: { x: 5, y: 5 } });
+  await page.keyboard.press('c');
+  await wait(300);
+  const calc = page.locator('.calc');
+  ok('C opens the calculator', await calc.isVisible());
+  ok('with the cursor in its field', await page.evaluate(() => document.activeElement?.classList.contains('calc-field')));
+  await page.keyboard.type('2+3*4');
+  ok('nothing is shown under the field before = is pressed', (await page.locator('.calc-live').count()) === 0);
+  await page.keyboard.press('NumpadEnter');
+  ok(
+    'Enter on the number pad works it out and keeps it',
+    (await page.locator('.calc-handle').count()) === 1 && (await page.locator('.calc-field').inputValue()) === '14',
+  );
+  await page.keyboard.press('Control+a');
+  await page.keyboard.type('7*6');
+  await page.keyboard.press('NumpadEnter');
+  ok('typing 7*6 and Enter on the number pad works', (await page.locator('.calc-field').inputValue()) === '42');
+  await page.locator('.calc-keys button:text-is("×")').click();
+  await page.locator('.calc-keys button:text-is("2")').click();
+  await page.locator('.calc-keys .equals').click();
+  ok('the keys work too', (await page.locator('.calc-field').inputValue()) === '84');
+  ok('the history is out of the way until its tab is pressed', (await page.locator('.calc-history').count()) === 0);
+  await page.locator('.calc-handle').click();
+  const rows = await page.locator('.calc-history li').count();
+  const panel = await page.locator('.calc-history').boundingBox();
+  const winBox = await calc.boundingBox();
+  ok(
+    'the tab opens a screen of its own beside the window, newest on top',
+    rows === 3 && panel.x + panel.width <= winBox.x + 1 && (await page.locator('.calc-history li b').first().innerText()) === '84',
+    JSON.stringify({ rows, panel, winBox }),
+  );
+  await page.locator('.calc-history li').last().locator('button').click();
+  ok('a line of the history brings its result back', (await page.locator('.calc-field').inputValue()) === '14');
+  const calcBefore = await calc.boundingBox();
+  const calcBar = await page.locator('.calc-bar').boundingBox();
+  ok('the title bar is thin', calcBar.height <= 30, `${calcBar.height}`);
+  await page.mouse.move(calcBar.x + 60, calcBar.y + calcBar.height / 2);
+  await page.mouse.down();
+  await page.mouse.move(calcBar.x - 140, calcBar.y + calcBar.height / 2 + 120, { steps: 6 });
+  await page.mouse.up();
+  await wait(300);
+  const calcAfter = await calc.boundingBox();
+  ok(
+    'the title bar drags it',
+    Math.abs(calcAfter.x - calcBefore.x + 200) < 4 && Math.abs(calcAfter.y - calcBefore.y - 120) < 6,
+    JSON.stringify([calcBefore, calcAfter]),
+  );
+  const keyOf = (k) => page.locator(`.calc-keys button:text-is("${k}")`).first();
+  await keyOf('C').click();
+  for (const k of ['2', '×', '(', '3', '+', '4']) await keyOf(k).click();
+  ok('the bracket key opens a bracket', (await page.locator('.calc-field').inputValue()) === '2×(3+4');
+  await keyOf(')').click();
+  await page.locator('.calc-keys .equals').click();
+  ok('and the next press closes it', (await page.locator('.calc-field').inputValue()) === '14');
+  ok('the zero key takes one square', (await keyOf('0').boundingBox()).width < 60);
+  await page.locator('.calc-bar button[aria-label="Shrink the calculator"]').click();
+  await wait(200);
+  const calcStrip = await calc.boundingBox();
+  ok(
+    'shrunk it is a thin bar as wide as before, with the last result',
+    !(await page.locator('.calc-body').count()) &&
+      calcStrip.width === calcAfter.width &&
+      calcStrip.height <= 30 &&
+      (await page.locator('.calc-last').innerText()).includes('14'),
+    JSON.stringify(calcStrip),
+  );
+  await page.reload();
+  await page.waitForFunction(() => !document.querySelector('.boot') && !document.querySelector('.busy'), null, { timeout: 30000 });
+  await page.locator('.topbar .calc-button').click();
+  await wait(300);
+  ok(
+    'its list, place and size are kept',
+    (await page.locator('.calc .calc-last').count()) === 1 && Math.abs((await calc.boundingBox()).x - calcAfter.x) < 4,
+  );
+  await page.keyboard.press('c');
+  await wait(200);
+  ok('C closes it', (await page.locator('.calc').count()) === 0);
+  ok('the button has no words', !(await page.locator('.topbar .calc-button').innerText()).trim());
   await ctx.close();
 }
 

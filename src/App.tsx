@@ -9,6 +9,7 @@ import { ViewMenu } from './components/ViewMenu';
 import { useTallPanel } from './lib/tallPanel';
 import { MapNav } from './components/MapNav';
 import { MissingList } from './components/MissingList';
+import { Calculator } from './components/Calculator';
 import { MobileMenu, MobileNav } from './components/MobileChrome';
 import { MovedNotice } from './components/MovedNotice';
 import { SaveFailedNotice } from './components/SaveFailedNotice';
@@ -256,6 +257,20 @@ export default function App() {
   // Someone who has used the app before sees a dot on the gear until they open the new notes.
   const newUpdates = s.onboarded && s.seenUpdates !== LATEST_UPDATE;
   const [menuOpen, setMenuOpen] = useState(false);
+  const [calcOpen, setCalcOpen] = useState(false);
+  // C opens and closes the calculator, unless it would be typed into a field or a dialog is open.
+  useEffect(() => {
+    const key = (e: KeyboardEvent) => {
+      if (e.key.toLowerCase() !== 'c' || e.ctrlKey || e.metaKey || e.altKey || e.repeat) return;
+      const el = e.target as HTMLElement;
+      const field = el.closest?.('input, textarea, select, [contenteditable]') && !el.closest('.calc');
+      if (field || document.querySelector('dialog[open]')) return;
+      e.preventDefault();
+      setCalcOpen((o) => !o);
+    };
+    window.addEventListener('keydown', key);
+    return () => window.removeEventListener('keydown', key);
+  }, []);
 
   // Power planner: the chain's own draw (machines plus the miners and pumps feeding them), and who the plant feeds.
   const chainDraw = powerMode && result ? result.power + extraction.reduce((sum, u) => sum + u.power, 0) : 0;
@@ -362,6 +377,16 @@ export default function App() {
           <button type="button" className="tier-button" title={t('unlockedTier')} onClick={() => setTierOpen(true)}>
             {t('tier')} <b>{s.tier}</b>
             {tierOff > 0 && <span className="tier-off"> · {t('tierOff', { n: tierOff })}</span>}
+          </button>
+          <button
+            type="button"
+            className="chrome-button calc-button"
+            title={`${t('calculator')} (C)`}
+            aria-label={t('calculator')}
+            aria-pressed={calcOpen}
+            onClick={() => setCalcOpen(!calcOpen)}
+          >
+            <Glyph name="calculator" size={22} weight={1.2} />
           </button>
           <button type="button" className="chrome-button settings" title={t('settings')} onClick={() => s.set({ dialog: 'settings' })}>
             <Glyph name="gear" size={20} />
@@ -544,7 +569,8 @@ export default function App() {
         )}
       </main>
       <MobileNav />
-      {menuOpen && <MobileMenu onClose={() => setMenuOpen(false)} onTier={() => setTierOpen(true)} />}
+      {menuOpen && <MobileMenu onClose={() => setMenuOpen(false)} onTier={() => setTierOpen(true)} onCalc={() => setCalcOpen(true)} />}
+      {calcOpen && <Calculator onClose={() => setCalcOpen(false)} />}
       {(!s.onboarded || tierOpen) && <TierDialog onClose={() => setTierOpen(false)} />}
       <Dialogs />
       <SaveFlow />

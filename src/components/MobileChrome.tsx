@@ -64,7 +64,7 @@ export function MobileNav() {
 }
 
 /** Phone sheet holding what the desktop top bar shows inline: tier, install, factory actions, settings, feedback. */
-export function MobileMenu({ onClose, onTier }: { onClose: () => void; onTier: () => void }) {
+export function MobileMenu({ onClose, onTier, onCalc }: { onClose: () => void; onTier: () => void; onCalc: () => void }) {
   const { t } = useT();
   const tier = useStore((s) => s.tier);
   const tierOff = useStore((s) => offAt(s.tier, s.skipped));
@@ -129,6 +129,17 @@ export function MobileMenu({ onClose, onTier }: { onClose: () => void; onTier: (
           <button type="button" className="ghost-button" onClick={() => open('report')}>
             <Glyph name="flag" size={18} />
             {t('feedback')}
+          </button>
+          <button
+            type="button"
+            className="ghost-button"
+            onClick={() => {
+              onClose();
+              onCalc();
+            }}
+          >
+            <Glyph name="calculator" size={18} />
+            {t('calculator')}
           </button>
         </div>
         <InstallButton className="primary-button" />
