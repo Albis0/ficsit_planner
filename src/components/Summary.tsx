@@ -215,7 +215,7 @@ function RawInputs({ raw, targets }: { raw: SolveResult['raw']; targets: SolveRe
           <button type="button" className="text-button" title={t('makeDefaultHint')} onClick={() => updatePlan(keepScaled(targets))}>
             {t('makeDefault')}
           </button>
-          <button type="button" className="text-button" onClick={() => updatePlan({ fixed: {} })}>
+          <button type="button" className="text-button" onClick={() => updatePlan({ fixed: {}, have: undefined })}>
             {t('unpinAll')}
           </button>
         </span>

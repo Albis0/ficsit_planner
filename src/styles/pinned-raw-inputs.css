@@ -94,3 +94,22 @@
 .readout-value.over {
   color: var(--alert) !important;
 }
+
+/* Products: the I want | I have switch sits on the title line, and a worked-out amount reads as such. */
+.section-title.has-mode {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.section-title.has-mode .segmented button {
+  padding: 4px 12px;
+  font-size: 15px;
+}
+
+.have-note {
+  margin: 0;
+  font: 600 14px var(--font-body);
+  color: #8fd18f;
+}

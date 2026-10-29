@@ -154,14 +154,20 @@ export function RateInput({ value, onChange, label, placeholder, onClear, step, 
     <span className="rate-field">
       {input}
       <span className="rate-step">
-        <button type="button" className="step-up" aria-label={`${t('increase')}: ${label}`} onClick={() => nudge(up(current()))}>
+        <button
+          type="button"
+          className="step-up"
+          aria-label={`${t('increase')}: ${label}`}
+          disabled={disabled}
+          onClick={() => nudge(up(current()))}
+        >
           <span aria-hidden />
         </button>
         <button
           type="button"
           className="step-down"
           aria-label={`${t('decrease')}: ${label}`}
-          disabled={current() <= 0}
+          disabled={disabled || current() <= 0}
           onClick={() => nudge(down(current()))}
         >
           <span aria-hidden />

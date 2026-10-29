@@ -342,6 +342,36 @@ const clash = (a, b) => a && b && a.x < b.x + b.width && b.x < a.x + a.width && 
   });
   ok('chevrons stay on their belts', strays.arrows > 0 && strays.off === 0, JSON.stringify(strays));
 
+  // ── A0b: I want | I have ──
+  section = 'A0b';
+  await open(factory([['Desc_Motor_C', 10]]));
+  const rateOf = (name) => page.locator('.panel-body.targets .item-card', { hasText: name }).first().locator('input').first();
+  await page.getByRole('radio', { name: 'I have' }).click();
+  await wait(1200);
+  ok(
+    'I have lists what the factory uses as on hand',
+    (await page.locator('.panel-body.targets .fold-name', { hasText: 'What I have' }).count()) === 1,
+  );
+  ok('and the product can no longer be typed', await rateOf('Motor').isDisabled());
+  const full = await rateOf('Motor').inputValue();
+  const coal = page.locator('.panel-body.targets .fold[data-open] .item-card', { hasText: 'Coal' }).locator('input').first();
+  await coal.fill(String(Number(await coal.inputValue()) / 2));
+  await coal.blur();
+  await wait(1500);
+  ok(
+    'half the coal makes less of the product',
+    Number(await rateOf('Motor').inputValue()) < Number(full),
+    `${full} then ${await rateOf('Motor').inputValue()}`,
+  );
+  await shot('a0b-have');
+  await page.getByRole('radio', { name: 'I want' }).click();
+  await wait(1200);
+  ok(
+    'back to I want the product is the amount that was typed, typable again',
+    (await rateOf('Motor').inputValue()) === '10' && !(await rateOf('Motor').isDisabled()),
+  );
+  ok('and nothing stays on hand', (await page.locator('.panel-body.targets .fold-name', { hasText: 'What I have' }).count()) === 0);
+
   // ── A1a: ticking a machine built on the Auto floor ──
   section = 'A1a';
   await open(factory([['Desc_Motor_C', 10]]));

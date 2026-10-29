@@ -61,6 +61,8 @@ export interface Plan {
   pooled?: string[];
   /** What a raw resource costs this plan when the cost is set by hand (Resources › Cost › Custom). */
   weights?: Record<string, number>;
+  /** The Products panel is on "I have": the pinned inputs are what is on hand and the products show the most they allow. */
+  have?: true;
 }
 
 /** A carrier chosen for one input or output, and how far it goes one way, in metres. */
@@ -144,7 +146,7 @@ export const toggleLine =
 
 /**
  * The targets as they were scaled to the pinned inputs become the real targets and the pins are let go, so the plan
- * keeps making what it showed; for `updatePlan`. A target's rate is rounded to three places.
+ * keeps making what it showed, and the "I have" mode ends with them; for `updatePlan`. A target's rate is rounded to three places.
  */
 export const keepScaled =
   (scaled: { item: string; rate: number }[]) =>
@@ -154,7 +156,25 @@ export const keepScaled =
       return hit ? { ...x, rate: Math.round(hit.rate * 1000) / 1000 } : x;
     }),
     fixed: {},
+    have: undefined,
   });
+
+/**
+ * "I have": the raw inputs the factory uses now (water is everywhere) become what is on hand, unless one is pinned
+ * already, and the products turn into the most they allow; for `updatePlan`.
+ */
+export const haveOn =
+  (raw: { item: string; rate: number }[]) =>
+  (p: Plan): Partial<Plan> => ({
+    have: true,
+    fixed: {
+      ...Object.fromEntries(raw.filter((x) => x.item !== 'Desc_Water_C').map((x) => [x.item, Math.round(x.rate * 100) / 100])),
+      ...p.fixed,
+    },
+  });
+
+/** Back to "I want": the pins go and the products are the amounts that were typed, as they always were; for `updatePlan`. */
+export const haveOff = (): Partial<Plan> => ({ fixed: {}, have: undefined });
 
 /** The plan's products offered to the pool with one put in or taken out; for `updatePlan`. */
 export const togglePooled =

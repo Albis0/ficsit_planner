@@ -176,6 +176,7 @@ export function cleanPlan(saved: unknown, fallback: Plan): Plan {
     ...(separate.length ? { separate } : {}),
     ...(pooled.length ? { pooled } : {}),
     ...(Object.keys(weights).length ? { weights } : {}),
+    ...(p.have === true ? { have: true as const } : {}),
   };
 }
 

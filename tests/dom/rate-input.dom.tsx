@@ -19,3 +19,13 @@ describe('a clock field that commits when left', () => {
     cleanup();
   });
 });
+
+describe('a worked-out amount', () => {
+  test('a disabled field takes no typing and its step buttons are off too', () => {
+    const view = render(<RateInput value={6.3} label="Motor" step disabled onChange={() => {}} />);
+    expect((view.getByLabelText('Motor') as HTMLInputElement).disabled).toBe(true);
+    expect((view.getByLabelText('Up one: Motor') as HTMLButtonElement).disabled).toBe(true);
+    expect((view.getByLabelText('Down one: Motor') as HTMLButtonElement).disabled).toBe(true);
+    cleanup();
+  });
+});
