@@ -60,7 +60,14 @@ export function inspectPage(opts) {
 
   // 1. The page wider than the window: the whole app slides sideways on a phone.
   const se = document.scrollingElement;
-  if (se.scrollWidth > W + 1) add('page-wider-than-window', null, `${se.scrollWidth}px on a ${W}px window`);
+  if (se.scrollWidth > W + 1) {
+    // Name what sticks out, so a rare overflow can be found from the report alone.
+    const past = visible
+      .filter((el) => el.getBoundingClientRect().right > W + 1)
+      .slice(0, 3)
+      .map((el) => `${describe(el)} to ${Math.round(el.getBoundingClientRect().right)}`);
+    add('page-wider-than-window', null, `${se.scrollWidth}px on a ${W}px window${past.length ? `, past it: ${past.join('; ')}` : ''}`);
+  }
 
   // Nearest ancestor that clips (hidden) or scrolls (auto/scroll).
   const clipper = (el) => {

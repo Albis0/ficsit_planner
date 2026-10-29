@@ -124,6 +124,8 @@ async function run(size) {
   const check = async (name) => {
     where = name;
     screens++;
+    // A panel still settling can stick out for a moment; a page that stays too wide is still reported.
+    await page.waitForFunction(() => document.scrollingElement.scrollWidth <= innerWidth + 1, null, { timeout: 1500 }).catch(() => {});
     const list = await page.evaluate(inspectPage, { touch });
     for (const f of list) found.push({ size, where: name, ...f });
   };
