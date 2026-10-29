@@ -100,6 +100,43 @@ const fit = async () => {
 };
 const settle = () => page.waitForFunction(() => !document.querySelector('.busy'), null, { timeout: 20000 }).then(() => wait(300));
 
+/**
+ * Every end a card draws stands on its card, and every belt or pipe starts and stops inside an end: what the floor draws,
+ * what the layout declared and where the belts run agree. Returns what is off.
+ */
+const endsAgree = () =>
+  page.evaluate(() => {
+    const ends = [...document.querySelectorAll('.react-flow__handle')].map((h) => ({
+      r: h.getBoundingClientRect(),
+      node: h.closest('.react-flow__node'),
+      port: h.classList.contains('port'),
+    }));
+    const apart = [];
+    for (const { r, node, port } of ends) {
+      const n = node?.getBoundingClientRect();
+      if (!n || !port) continue;
+      // The square laps over the card's side by a pixel or two, so a round pipe end is joined to it, not touching at a point.
+      const gap = Math.max(n.left - r.right, r.left - n.right, n.top - r.bottom, r.top - n.bottom);
+      const lap = Math.min(r.right - n.left, n.right - r.left, r.bottom - n.top, n.bottom - r.top);
+      if (gap > -1 || (lap > 30 && Math.max(r.width, r.height) < 40))
+        apart.push(`${node.dataset.id} ${Math.round(gap)}/${Math.round(lap)}`);
+    }
+    const loose = [];
+    let belts = 0;
+    for (const e of document.querySelectorAll('.react-flow__edge')) {
+      const p = e.querySelector('path');
+      const nums = (p?.getAttribute('d') ?? '').match(/-?[\d.]+(?:e-?\d+)?/g)?.map(Number) ?? [];
+      if (nums.length < 4) continue;
+      belts++;
+      const m = p.getScreenCTM();
+      const at = (x, y) => ({ x: m.a * x + m.c * y + m.e, y: m.b * x + m.d * y + m.f });
+      const [a, b] = [at(nums[0], nums[1]), at(nums.at(-2), nums.at(-1))];
+      const inside = (q) => ends.some(({ r }) => q.x >= r.left - 4 && q.x <= r.right + 4 && q.y >= r.top - 4 && q.y <= r.bottom + 4);
+      if (!inside(a) || !inside(b)) loose.push(e.getAttribute('data-id'));
+    }
+    return { ends: ends.filter((x) => x.port).length, belts, apart, loose };
+  });
+
 async function open(state) {
   await page.goto(URL);
   await page.evaluate((s) => {
@@ -358,6 +395,35 @@ const clash = (a, b) => a && b && a.x < b.x + b.width && b.x < a.x + a.width && 
   await page.locator('.floor-controls .floor-button >> nth=-1').click();
   await wait(600);
   await shot('a1b-machine-ends');
+
+  // ── A1c: ends, belts and pipes agree on the Auto floor (a pipe line, both ways round) and on the Manual floor ──
+  section = 'A1c';
+  await open(factory([['Desc_Plastic_C', 60]]));
+  await page.click('.deck-toggle');
+  await wait(600);
+  for (const [dir, label] of [
+    ['LR', 'left to right'],
+    ['TB', 'top to bottom'],
+  ]) {
+    await page.locator(`button[title="${dir === 'LR' ? 'Left to right' : 'Top to bottom'}"]`).click();
+    await wait(900);
+    const r = await endsAgree();
+    ok(
+      `Auto, ${label}: every end stands on its card and every belt and pipe starts and stops in an end`,
+      r.ends >= 3 && r.belts >= 3 && !r.apart.length && !r.loose.length,
+      JSON.stringify(r),
+    );
+    await shot(`a1c-auto-${dir.toLowerCase()}`);
+  }
+  await open(manual([['Desc_Plastic_C', 60]]));
+  await page.click('.deck-toggle');
+  await settle();
+  await wait(800);
+  {
+    const r = await endsAgree();
+    ok('Manual: the same, with a pipe and belts', r.ends >= 3 && r.belts >= 3 && !r.apart.length && !r.loose.length, JSON.stringify(r));
+    await shot('a1c-manual');
+  }
 
   // ── A1: a Manual factory laid out ──
   section = 'A1';
@@ -2681,6 +2747,15 @@ const clash = (a, b) => a && b && a.x < b.x + b.width && b.x < a.x + a.width && 
   await page.locator('aside.inspector .segmented button:text-is("My own")').click();
   await settle();
   ok('My own marks the belt as routed by hand', (await mine()).own === true);
+  ok(
+    'every + sits on the belt',
+    await page.evaluate(() => {
+      const edge = document.querySelector('.react-flow__edge.selected');
+      const hit = edge?.querySelector('path.belt-hit');
+      const adds = [...(edge?.querySelectorAll('.stops .stop-add') ?? [])];
+      return !!hit && adds.length > 0 && adds.every((c) => hit.isPointInStroke(new DOMPoint(c.cx.baseVal.value, c.cy.baseVal.value)));
+    }),
+  );
   const routeBefore = (await mine()).pts ?? [];
   await dragFree(await page.locator('.stops .stop-add').first().boundingBox());
   const routeAdded = (await mine()).pts ?? [];

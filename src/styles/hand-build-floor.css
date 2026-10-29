@@ -13,22 +13,22 @@
 }
 
 .react-flow__handle.port.in {
-  left: -14px;
+  left: -11px;
 }
 
 .react-flow__handle.port.out {
-  right: -14px;
+  right: -11px;
 }
 
 /* On a floor running down: inputs along a card's top, outputs along its bottom. */
 .react-flow__handle.port.down.in {
-  top: -14px;
+  top: -11px;
 }
 
 .react-flow__handle.port.down.out {
   top: auto;
   right: auto;
-  bottom: -14px;
+  bottom: -11px;
 }
 
 /* Belts side by side: a square for each, in a row along the edge. */

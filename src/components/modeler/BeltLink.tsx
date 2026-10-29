@@ -152,7 +152,8 @@ export function BeltLink({ sourceX, sourceY, targetX, targetY, sourcePosition, t
             const flip = ([a, b]: [number, number]): [number, number] => (down ? [b, a] : [a, b]);
             const [fx, fy] = flip([x, y]);
             const [fpx, fpy] = flip([px, py]);
-            const turns = Math.abs(fx - fpx) > 0.5 && Math.abs(fy - fpy) > 0.5;
+            // With no stops yet the belt steps across half way, so the middle is on it and a corner of the two ends isn't.
+            const turns = stops.length > 0 && Math.abs(fx - fpx) > 0.5 && Math.abs(fy - fpy) > 0.5;
             const mid = flip(turns ? (i === ends.length - 2 ? [fpx, fy] : [fx, fpy]) : [(fpx + fx) / 2, (fpy + fy) / 2]);
             return (
               // biome-ignore lint/a11y/noStaticElementInteractions: a drag handle, pointer only

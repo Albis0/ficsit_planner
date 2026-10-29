@@ -139,10 +139,11 @@ export const portSpots = (n: number): number[] => (n <= 1 ? [0.5] : Array.from({
 const slotsFor = (used: number, total: number): number[] =>
   total <= 1 ? [0] : used === 1 ? [Math.floor(total / 2)] : used === 2 && total === 3 ? [0, 2] : Array.from({ length: used }, (_, i) => i);
 
-/** A card's end is a square this big, kept this far from the next one, and stands this far out from the card's side (card scale 1). */
+/** A card's end is a square this big, kept this far from the next one, and sits this far over the card's side so it is joined to it (card scale 1). */
 export const END = 26;
 const END_GAP = 8;
-const END_REACH = 27;
+const END_LAP = 2;
+const END_REACH = END - END_LAP;
 /** The generator's power line among its ends. */
 const POWER = 'power';
 /** A card that must be wider to hold its ends grows by this much at a time, as it grows by a line for more clock groups. */
