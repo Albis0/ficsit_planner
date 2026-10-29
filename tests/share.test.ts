@@ -1,4 +1,5 @@
 import { describe, expect, test } from 'bun:test';
+import { deflateRawSync } from 'node:zlib';
 import { data } from '../src/lib/data';
 import { DEFAULT_SETTINGS } from '../src/lib/settings';
 import { decode, encode, hasWork, moveLink, NEW_URL, openShared, pack, SHARE_HASH, sharedTabs, unpack } from '../src/lib/share';
@@ -34,6 +35,12 @@ describe('shared links', () => {
     expect(await decode(text)).toEqual(value);
     await expect(decode('z!!!not-a-link')).rejects.toThrow();
     await expect(decode(`z${'A'.repeat(70_000)}`)).rejects.toThrow();
+  });
+
+  test('a link that swells past the size limit when unpacked is refused', async () => {
+    const bomb = `z${Buffer.from(deflateRawSync(Buffer.alloc(5_000_000))).toString('base64url')}`;
+    expect(bomb.length).toBeLessThan(60_000);
+    await expect(decode(bomb)).rejects.toThrow('too big');
   });
 
   test('a factory is shared with the plants that power it, and opens as a new tab next to yours', async () => {

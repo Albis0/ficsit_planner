@@ -2,6 +2,23 @@
 
 All notable changes to FICSIT Planner. Dates are when the version was finished.
 
+## 0.14.3 — 2026-10-29
+
+### Added
+
+- Auto floor: every machine card has an end for each item it takes and gives, with the item's icon, as on the Manual floor. Each belt goes into its own item's end, the ends are ordered so belts don't cross, and a card grows when its ends need room.
+
+### Changed
+
+- Machine panel: on a line run as machines at 100% and one slower, the clock slider and field rest at 100% and say so, instead of showing an average that could not be set back.
+
+### Fixed
+
+- Card ends lap over the card's side on both floors, so a round pipe end is joined to its card instead of floating beside it.
+- Manual floor: the + of a belt routed by hand with no stops yet sits on the belt, not at an empty corner.
+- A shared link is checked for size while it unpacks, so a small link can no longer swell into memory and freeze the tab.
+- A game save whose chunks claim more than a compressed chunk can hold, or unpack to more than they claim, is refused as damaged before any memory is set aside for it.
+
 ## 0.14.2 — 2026-10-28
 
 ### Added

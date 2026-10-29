@@ -152,6 +152,24 @@ describe('the compressed body', () => {
     expect(body).toEqual(new Uint8Array([...a, ...z]));
   });
 
+  test('a chunk that claims more than a deflate stream can hold, or unpacks to more than it claims, is a damaged save', async () => {
+    const lie = (data: Uint8Array, claimed: number) => {
+      const packed = deflateSync(data);
+      return new Bytes()
+        .u32(0x9e2a83c1)
+        .u32(0x22222222)
+        .u64(131072)
+        .u8(3)
+        .u64(packed.length)
+        .u64(claimed)
+        .u64(packed.length)
+        .u64(claimed)
+        .raw(packed).bytes;
+    };
+    await expect(inflateBody(lie(new Uint8Array(10), 2 ** 40), 0)).rejects.toBeInstanceOf(SaveError);
+    await expect(inflateBody(lie(new Uint8Array(5_000_000), 100), 0)).rejects.toBeInstanceOf(SaveError);
+  });
+
   test('a chunk without its tag is a damaged save', async () => {
     const file = chunk(new Uint8Array(10));
     file[0] = 0;

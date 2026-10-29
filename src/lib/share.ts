@@ -1,6 +1,7 @@
 import { useEffect } from 'react';
 import { activePowerPlan, defaultEnabled, type Plan, type PowerPlan, poweredBy, useStore } from '../store';
 import { FILE_VERSION, importData, KIND } from './backup';
+import { readCapped } from './capped';
 
 /*
   A shared link carries a factory (or a power plant) in the part of the address after '#', which the
@@ -56,9 +57,12 @@ const fromBase64Url = (text: string) => {
   return Uint8Array.from(bin, (c) => c.charCodeAt(0));
 };
 
-async function through(bytes: Uint8Array, stream: CompressionStream | DecompressionStream): Promise<Uint8Array> {
-  const out = new Blob([bytes as BlobPart]).stream().pipeThrough(stream);
-  return new Uint8Array(await new Response(out).arrayBuffer());
+async function through(
+  bytes: Uint8Array,
+  stream: CompressionStream | DecompressionStream,
+  max = Number.POSITIVE_INFINITY,
+): Promise<Uint8Array> {
+  return readCapped(new Blob([bytes as BlobPart]).stream().pipeThrough(stream), max);
 }
 
 /** 'z' + deflated, or 'j' + plain where the browser can't compress. */
@@ -72,7 +76,9 @@ export async function encode(value: unknown): Promise<string> {
 export async function decode(text: string, max = MAX_LINK): Promise<unknown> {
   if (text.length > max) throw new Error('too long');
   const bytes = fromBase64Url(text.slice(1));
-  const raw = text[0] === 'z' ? await through(bytes, new DecompressionStream('deflate-raw')) : text[0] === 'j' ? bytes : undefined;
+  // The size is checked while unpacking, so a tiny link can't swell into memory first.
+  const raw =
+    text[0] === 'z' ? await through(bytes, new DecompressionStream('deflate-raw'), MAX_TEXT) : text[0] === 'j' ? bytes : undefined;
   if (!raw || raw.length > MAX_TEXT) throw new Error('unreadable');
   return JSON.parse(new TextDecoder().decode(raw));
 }

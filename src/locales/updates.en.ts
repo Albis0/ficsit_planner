@@ -11,6 +11,27 @@ export type UpdateNote = [UpdateKind, string];
 /** `ask` puts a question with a rating and a note under the version in Settings › Updates. */
 export const UPDATES: { version: string; date: string; title?: string; notes: UpdateNote[]; ask?: string }[] = [
   {
+    version: '0.14.3',
+    date: '2026-10-29',
+    notes: [
+      [
+        'added',
+        'Auto floor: every machine card has an end for each item it takes and gives, with the item’s icon, as on the Manual floor. Each belt goes into its own item’s end and the ends are ordered so belts don’t cross.',
+      ],
+      [
+        'changed',
+        'Machine panel: on a line run as machines at 100% and one slower, the clock slider and field rest at 100% and say so, instead of showing an average that could not be set back.',
+      ],
+      [
+        'fixed',
+        'Card ends sit over the card’s side on both floors, so a round pipe end is joined to its card instead of floating beside it.',
+      ],
+      ['fixed', 'Manual floor: the + on a belt routed by hand with no stops yet sits on the belt, not at an empty corner.'],
+      ['fixed', 'A shared link that unpacks to something huge is turned away instead of freezing the tab.'],
+      ['fixed', 'A damaged game save that claims a huge size is turned away with a clear message instead of using up the memory.'],
+    ],
+  },
+  {
     version: '0.14.2',
     date: '2026-10-28',
     title: 'Auto and Manual apart',
