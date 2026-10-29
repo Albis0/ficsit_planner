@@ -216,7 +216,7 @@ function Row({
 }: {
   label: string;
   hint?: string;
-  children: React.ReactNode;
+  children?: React.ReactNode;
   onReset?: (() => void) | null;
   spot?: Spot;
 }) {
@@ -919,9 +919,7 @@ function DataSection() {
       )}
       {copies.length > 0 && (
         <>
-          <Row label={t('autoBackups')} hint={t('autoBackupsHint')}>
-            <></>
-          </Row>
+          <Row label={t('autoBackups')} hint={t('autoBackupsHint')} />
           {copies.map((c) => (
             <Row
               key={c.at}

@@ -170,6 +170,28 @@ describe('the compressed body', () => {
     await expect(inflateBody(lie(new Uint8Array(5_000_000), 100), 0)).rejects.toBeInstanceOf(SaveError);
   });
 
+  test('chunks that each pass the ratio check but add up to a body no browser could hold are refused before a buffer is made', async () => {
+    const noise = new Uint8Array(1_000_000);
+    for (let i = 0; i < noise.length; i += 65536) crypto.getRandomValues(noise.subarray(i, i + 65536));
+    const packed = deflateSync(noise);
+    const head = new Bytes()
+      .u32(0x9e2a83c1)
+      .u32(0x22222222)
+      .u64(131072)
+      .u8(3)
+      .u64(packed.length)
+      .u64(1_000_000_000)
+      .u64(packed.length)
+      .u64(1_000_000_000).bytes;
+    // Bytes.raw spreads its argument, which a megabyte cannot survive.
+    const one = new Uint8Array(head.length + packed.length);
+    one.set(head);
+    one.set(packed, head.length);
+    const file = new Uint8Array(one.length * 3);
+    for (let i = 0; i < 3; i++) file.set(one, i * one.length);
+    await expect(inflateBody(file, 0)).rejects.toThrow('body is too big');
+  });
+
   test('a chunk without its tag is a damaged save', async () => {
     const file = chunk(new Uint8Array(10));
     file[0] = 0;

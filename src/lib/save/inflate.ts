@@ -7,6 +7,9 @@ const CHUNK_V2 = 0x22222222;
 // Deflate cannot shrink more than about 1032 to 1; a chunk claiming more than this is lying about its size.
 const MAX_RATIO = 1100;
 
+// The chunks together go into one buffer; no browser makes one bigger than this, and a real late-game save is far below it.
+const MAX_BODY = 2 ** 31;
+
 const inflate = (part: Uint8Array, max: number) =>
   readCapped(new Blob([part as Uint8Array<ArrayBuffer>]).stream().pipeThrough(new DecompressionStream('deflate')), max);
 
@@ -28,6 +31,7 @@ export async function inflateBody(bytes: Uint8Array, start: number, progress?: (
     if (packed < 0 || size < 0 || size > packed * MAX_RATIO + 1024) throw new SaveError('Damaged save: chunk size');
     chunks.push({ at: r.pos, packed, size });
     total += size;
+    if (total > MAX_BODY) throw new SaveError('Damaged save: body is too big');
     r.skip(packed);
   }
   const out = new Uint8Array(total);
