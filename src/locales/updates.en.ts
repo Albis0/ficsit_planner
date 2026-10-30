@@ -11,6 +11,16 @@ export type UpdateNote = [UpdateKind, string];
 /** `ask` puts a question with a rating and a note under the version in Settings › Updates. */
 export const UPDATES: { version: string; date: string; title?: string; notes: UpdateNote[]; ask?: string }[] = [
   {
+    version: '0.14.4',
+    date: '2026-10-30',
+    notes: [
+      [
+        'added',
+        'Auto: an I want | I have switch above the products. With I have, the raw inputs the factory uses become what you have, and the products show the most they allow. Change an amount, remove an input or add another, and the products follow. Going back to I want puts the amounts you typed back.',
+      ],
+    ],
+  },
+  {
     version: '0.14.3',
     date: '2026-10-29',
     notes: [

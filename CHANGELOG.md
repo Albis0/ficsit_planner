@@ -2,6 +2,16 @@
 
 All notable changes to FICSIT Planner. Dates are when the version was finished.
 
+## 0.14.4 — 2026-10-30
+
+### Added
+
+- Auto: an I want | I have switch above the products. With I have, the raw inputs the factory uses become what is on hand, and the products show the most they allow and can't be typed. Change an amount, remove a raw input with the ×, or add another with Add what you have, and the products follow. Going back to I want puts the amounts you typed back; Make default or Unpin all end the mode.
+
+### Changed
+
+- The step buttons of an amount field that can't be typed are off too.
+
 ## 0.14.3 — 2026-10-29
 
 ### Added
