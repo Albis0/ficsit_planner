@@ -306,7 +306,12 @@ function NodePanel({ host, node, calc }: { host: ModelHost; node: MNode; calc?: 
   const flagText = useFlagText();
   const c = calc?.nodes[node.id];
   const flag = ruleFlags(host.model, { tier, on: host.on, caps: host.caps }, calc).get(node.id);
-  const status = c && (node.k === 'machine' || node.k === 'gen' || node.k === 'extract') ? statusText(c.status, c.u) : undefined;
+  const status =
+    c && (node.k === 'machine' || node.k === 'gen' || node.k === 'extract')
+      ? c.unused
+        ? { text: t('runUnused', { n: num(c.unused) }), tone: 'warn' as const }
+        : statusText(c.status, c.u)
+      : undefined;
   const count = countOf(node, c);
   const change = (patch: Record<string, unknown>, key?: string) =>
     host.edit((m) => updateNode(m, node.id, patch), key && `${node.id}:${key}`);
@@ -454,6 +459,7 @@ function NodePanel({ host, node, calc }: { host: ModelHost; node: MNode; calc?: 
           {status.text}
         </p>
       )}
+      {c?.status === 'blocked' && <p className="run-state warn">{t('runBlockedWhy')}</p>}
       {flag && (
         <p className="run-state big warn card-flag-line" role="status">
           {flagText(flag, true)}

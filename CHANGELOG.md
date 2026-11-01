@@ -2,6 +2,13 @@
 
 All notable changes to FICSIT Planner. Dates are when the version was finished.
 
+## 0.14.5 — 2026-11-01
+
+### Fixed
+
+- Manual floor: a machine that can't run because what it makes can't all be taken in the amounts it makes now says Can't run and why, instead of just Idle.
+- Manual floor: a pump or miner whose ore isn't all used keeps its setting and says how much per minute is not used, instead of showing a lower clock and Runs at 90%.
+
 ## 0.14.4 — 2026-10-30
 
 ### Added

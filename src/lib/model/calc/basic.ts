@@ -272,6 +272,7 @@ export function read(net: Net, uOf: (c: CNode) => number, flowOf: (a: Arc, item:
         outs,
         status,
         ...(c.auto ? { n: raw > EPS ? raw : 0 } : {}),
+        ...(c.node.k === 'extract' && u < 1 - 1e-6 ? { unused: fullOut(c, 0) * (1 - u) } : {}),
         ...(spare?.some((x) => x > EPS) ? { spare } : {}),
       };
     } else {
@@ -280,5 +281,28 @@ export function read(net: Net, uOf: (c: CNode) => number, flowOf: (a: Arc, item:
       nodes[c.node.id] = { u: moving ? 1 : 0, ins, outs, status: block ?? (moving ? 'full' : 'idle') };
     }
   }
+  flagBlocked(net, nodes);
   return { mode, nodes, links, ...(unbounded ? { unbounded } : {}) };
+}
+
+/**
+ * A machine with a count that stands idle although a source upstream has more to give isn't short of supply: what it
+ * makes can't all be taken in the amounts it makes, so it would back up and stop. Machines sizing themselves follow
+ * what feeds them and are left as idle.
+ */
+function flagBlocked(net: Net, nodes: Record<string, NodeCalc>) {
+  const spare = (c: CNode) => {
+    const n = nodes[c.node.id];
+    if (c.node.k === 'extract') return n.status === 'partial';
+    return c.node.k === 'in' && (c.node.lim === undefined || n.outs[0] < c.node.lim - EPS);
+  };
+  const seen = new Set<CNode>(net.nodes.filter(spare));
+  const queue = [...seen];
+  for (const c of queue)
+    for (const a of c.outArcs)
+      if (a && !seen.has(a.to)) {
+        seen.add(a.to);
+        queue.push(a.to);
+      }
+  for (const c of seen) if (nodes[c.node.id].status === 'idle' && c.node.k === 'machine' && !c.auto) nodes[c.node.id].status = 'blocked';
 }

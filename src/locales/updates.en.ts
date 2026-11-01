@@ -11,6 +11,16 @@ export type UpdateNote = [UpdateKind, string];
 /** `ask` puts a question with a rating and a note under the version in Settings › Updates. */
 export const UPDATES: { version: string; date: string; title?: string; notes: UpdateNote[]; ask?: string }[] = [
   {
+    version: '0.14.5',
+    date: '2026-11-01',
+    notes: [
+      [
+        'fixed',
+        "Manual floor: a machine that can't run because what it makes can't all be taken in the amounts it makes now says Can't run and why, instead of just Idle. A pump or miner whose ore isn't all used keeps its setting and says how much per minute is not used, instead of showing a lower clock.",
+      ],
+    ],
+  },
+  {
     version: '0.14.4',
     date: '2026-10-30',
     notes: [

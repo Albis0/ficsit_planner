@@ -9,13 +9,14 @@ export const countOf = (n: MNode, calc?: NodeCalc): number =>
  * - full: at its limit
  * - partial: running, below its limit
  * - idle: nothing reaches it, or nothing takes what it makes
+ * - blocked: it could run, but what it makes can't all be taken in the amounts it makes
  * - deadlock: it waits on itself (a loop with nothing coming in from outside)
  * - noInput: an input end has no belt
  * - noOutput: an output end has no belt, so it fills up and stops
  * - jam: a belt brings it something it can't take
  * - unknown: its recipe or building is no longer in the game
  */
-export type NodeStatus = 'full' | 'partial' | 'idle' | 'deadlock' | 'noInput' | 'noOutput' | 'jam' | 'unknown';
+export type NodeStatus = 'full' | 'partial' | 'idle' | 'blocked' | 'deadlock' | 'noInput' | 'noOutput' | 'jam' | 'unknown';
 
 export interface NodeCalc {
   /** Share of its limit it runs at, 0 to 1 (machines, generators, extractors). */
@@ -28,6 +29,8 @@ export interface NodeCalc {
   n?: number;
   /** Its output left over where nothing is connected, when the model counts that instead of stopping. */
   spare?: number[];
+  /** Per minute a source (extractor) makes at its setting and nothing takes. */
+  unused?: number;
 }
 
 /**

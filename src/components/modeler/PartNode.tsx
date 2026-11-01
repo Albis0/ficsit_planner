@@ -134,6 +134,8 @@ export function useStatusText() {
         return { text: t('runPartial', { n: num(u * 100) }), tone: 'warn' };
       case 'idle':
         return { text: t('runIdle'), tone: 'warn' };
+      case 'blocked':
+        return { text: t('runBlocked'), tone: 'bad' };
       case 'noInput':
         return { text: t('runNoInput'), tone: 'bad' };
       case 'noOutput':
@@ -341,11 +343,10 @@ function Endpoint({ data: d, selected }: { data: PartData; selected: boolean }) 
     label = e ? minerLabel(name(e)) : '';
     if (e?.purity) label += ` · ${t(n.purity ?? 'normal')}`;
     // On a belt, or left over where the miner has none.
-    rate = (calc?.outs[0] ?? 0) + (calc?.spare?.[0] ?? 0);
+    rate = (calc?.outs[0] ?? 0) + (calc?.spare?.[0] ?? 0) + (calc?.unused ?? 0);
     const built = Math.max(1, Math.ceil((n.n ?? 1) - 1e-6));
-    // Held back by what takes its ore, a miner is as good as one clocked down to that: say the clock, as in the game.
-    const held = calc?.status === 'partial' ? calc.u : 1;
-    note = `${built}× ${num((((n.clock ?? 1) * (n.n ?? 1) * held) / built) * 100)}%`;
+    // It keeps its setting; what nothing takes is said next to it, not taken off it.
+    note = `${built}× ${num((((n.clock ?? 1) * (n.n ?? 1)) / built) * 100)}%`;
   } else if (n.k === 'in') {
     item = n.item;
     kind = n.tag === 'bring' ? 'missing' : 'supply';
@@ -391,7 +392,8 @@ function Endpoint({ data: d, selected }: { data: PartData; selected: boolean }) 
             </span>
           )}
           {note && <span className="endpoint-extract">{note}</span>}
-          {n.k === 'extract' && calc?.status !== 'partial' && <Status calc={calc} />}
+          {n.k === 'extract' &&
+            (calc?.unused ? <span className="run-state warn">{t('runUnused', { n: num(calc.unused) })}</span> : <Status calc={calc} />)}
         </span>
       </span>
       {/* An output that has an item can be offered to the pool, as on the Auto floor. */}

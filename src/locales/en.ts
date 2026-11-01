@@ -1097,6 +1097,10 @@ export const en = {
   runFull: 'Full speed',
   runPartial: 'Runs at {n}%',
   runIdle: 'Idle',
+  runBlocked: "Can't run",
+  runBlockedWhy:
+    "What it makes can't all be taken in the amounts it makes, so it would back up and stop. Change the machines after it so every output is used in the amounts it makes, or send the extra to a Sink.",
+  runUnused: '{n}/min not used',
   runNoInput: 'Input not connected',
   runNoOutput: 'Output not connected',
   runJam: 'Wrong item on a belt',
