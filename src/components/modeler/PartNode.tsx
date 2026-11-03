@@ -203,7 +203,7 @@ function End({
           ))
         : item && <Icon id={item.id} size={18} />}
       {spare !== undefined && spare > 1e-9 && (
-        <span className="port-spare">
+        <span className="port-spare" title={t('surplus')}>
           {num(spare)}
           <small>{t('perMin')}</small>
         </span>
@@ -248,7 +248,7 @@ function Ends({ node, wired, open, lanes }: PartData) {
           wired={wired.outs[i]}
           open={!!open?.outs[i]}
           lanes={lanes?.outs[i]}
-          spare={wired.outs[i] ? undefined : spare?.[i]}
+          spare={spare?.[i]}
         />
       ))}
     </>

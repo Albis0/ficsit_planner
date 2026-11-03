@@ -41,7 +41,8 @@ interface Lp {
   sources: string[];
 }
 
-function build(net: Net): Lp {
+/** With `relax`, what a far end can't take is surplus rather than something the machine has to stop for. */
+function build(net: Net, relax: boolean): Lp {
   const u = new Map<CNode, string>();
   const f = new Map<Arc, Map<string, string>>();
   const rows: string[] = [];
@@ -92,7 +93,11 @@ function build(net: Net): Lp {
           if (net.drain && fullOut(c, q) > 0) terminal.push([fullOut(c, q), name]);
           return;
         }
-        row([...flows([a], item).map((v) => `+ ${v}`), term(-fullOut(c, q), name)], '= 0');
+        // Relaxed: what the far end can't take is surplus, as on an open output; the belt still caps what the machine makes.
+        if (relax) {
+          row([...flows([a], item).map((v) => `+ ${v}`), term(-fullOut(c, q), name)], '<= 0');
+          if (Number.isFinite(a.cap) && fullOut(c, q) > 0) row([term(fullOut(c, q), name)], `<= ${fmt(a.cap)}`);
+        } else row([...flows([a], item).map((v) => `+ ${v}`), term(-fullOut(c, q), name)], '= 0');
       });
       return;
     }
@@ -193,23 +198,27 @@ const solveLp = (highs: Highs, text: string) => {
   return res;
 };
 
-export function basicCalc(highs: Highs, net: Net): CalcResult {
-  const lp = build(net);
+/** The solved columns, and how much reaches the outputs. `floor`: at least that much must, whatever else changes. */
+function solve(highs: Highs, net: Net, lp: Lp, floor?: number): { cols: Record<string, { Primal?: number }>; reached: number } {
   // Machines with a count to fill; one that sizes itself has none, and follows what feeds it.
   const uVars = [...lp.u].filter(([c]) => !c.auto).map(([, v]) => v);
   const allF = [...lp.f.values()].flatMap((m) => [...m.values()]);
+  // One term per variable: the LP format doesn't add up a variable named twice.
+  const made = new Map<string, number>();
+  for (const [k, v] of lp.terminal) made.set(v, (made.get(v) ?? 0) + k);
+  const sum = (weights: Map<string, number>) => [...weights].map(([v, k]) => `${k < 0 ? '-' : '+'} ${fmt(Math.abs(k))} ${v}`).join(' ');
+  const keepMade = floor === undefined || !made.size ? [] : [` made: ${sum(made)} >= ${fmt(Math.max(0, floor * (1 - 1e-7) - 1e-7))}`];
   let cols: Record<string, { Primal?: number }> = {};
   if (lp.u.size || allF.length) {
     // First: as many machines as busy as can be.
-    const first = solveLp(highs, lp.text(uVars.map((v) => `+ ${v}`).join(' '), 'Maximize', []));
+    const first = solveLp(highs, lp.text(uVars.map((v) => `+ ${v}`).join(' '), 'Maximize', keepMade));
     const busy = uVars.reduce((s, v) => s + Math.max(0, first.Columns[v]?.Primal ?? 0), 0);
     // A hair under the best, so rounding in a big model can't make holding it impossible.
-    const hold = uVars.length ? [` hold: ${uVars.map((v) => `+ ${v}`).join(' ')} >= ${fmt(Math.max(0, busy * (1 - 1e-7) - 1e-7))}`] : [];
-    // Then, keeping that: as much reaching the outputs as can, with as little looping as can be. One term per
-    // variable: the LP format doesn't add up a variable named twice.
-    const made = new Map<string, number>();
-    for (const [k, v] of lp.terminal) made.set(v, (made.get(v) ?? 0) + k);
-    const sum = (weights: Map<string, number>) => [...weights].map(([v, k]) => `${k < 0 ? '-' : '+'} ${fmt(Math.abs(k))} ${v}`).join(' ');
+    const hold = [
+      ...(uVars.length ? [` hold: ${uVars.map((v) => `+ ${v}`).join(' ')} >= ${fmt(Math.max(0, busy * (1 - 1e-7) - 1e-7))}`] : []),
+      ...keepMade,
+    ];
+    // Then, keeping that: as much reaching the outputs as can, with as little looping as can be.
     const loops = new Map(allF.map((v) => [v, -0.000001]));
     const second = solveLp(
       highs,
@@ -224,16 +233,36 @@ export function basicCalc(highs: Highs, net: Net): CalcResult {
       const total = lp.sources.reduce((t, v) => t + Math.max(0, cols[v]?.Primal ?? 0), 0);
       const keep = taken.size ? [` keep: ${sum(taken)} >= ${fmt(Math.max(0, total * (1 - 1e-9) - 1e-9))}`] : [];
       const obj = [...shares.map((x) => `+ ${x.least}`), sum(loops)].join(' ');
-      cols = solveLp(highs, lp.text(obj, 'Maximize', [...shares.flatMap((x) => x.rows), ...keep, ...hold])).Columns as typeof cols;
+      // With surplus allowed nothing else ties the splitters' sharing to what reaches the outputs, so hold that too.
+      const reachedNow = [...made].reduce((t, [v, k]) => t + k * Math.max(0, cols[v]?.Primal ?? 0), 0);
+      const holdMade =
+        floor !== undefined && made.size ? [` made2: ${sum(made)} >= ${fmt(Math.max(0, reachedNow * (1 - 1e-7) - 1e-7))}`] : [];
+      cols = solveLp(highs, lp.text(obj, 'Maximize', [...shares.flatMap((x) => x.rows), ...keep, ...hold, ...holdMade]))
+        .Columns as typeof cols;
     }
   }
-  const val = (name: string | undefined) => (name ? Math.max(0, cols[name]?.Primal ?? 0) : 0);
-  return read(
-    net,
-    (c) => val(lp.u.get(c)),
-    (a, item) => val(lp.f.get(a)?.get(item)),
-    'basic',
-  );
+  const reached = [...made].reduce((t, [v, k]) => t + k * Math.max(0, cols[v]?.Primal ?? 0), 0);
+  return { cols, reached };
+}
+
+export function basicCalc(highs: Highs, net: Net): CalcResult {
+  const result = (lp: Lp, cols: Record<string, { Primal?: number }>) => {
+    const val = (name: string | undefined) => (name ? Math.max(0, cols[name]?.Primal ?? 0) : 0);
+    return read(
+      net,
+      (c) => val(lp.u.get(c)),
+      (a, item) => val(lp.f.get(a)?.get(item)),
+      'basic',
+    );
+  };
+  const strictLp = build(net, false);
+  const strict = solve(highs, net, strictLp);
+  const out = result(strictLp, strict.cols);
+  // A machine stopped for want of a taker for all it makes, while its source has more to give: let what can't be taken
+  // be surplus instead, so the line runs. It never reaches the outputs less than it did without.
+  if (!net.drain || !Object.values(out.nodes).some((n) => n.status === 'blocked')) return out;
+  const relaxedLp = build(net, true);
+  return result(relaxedLp, solve(highs, net, relaxedLp, strict.reached).cols);
 }
 
 /** A calculator's numbers as a result: each part's ends and status, each belt's load. */
@@ -264,8 +293,13 @@ export function read(net: Net, uOf: (c: CNode) => number, flowOf: (a: Arc, item:
       const u = c.auto ? (raw > EPS ? 1 : 0) : Math.min(1, raw);
       const block = blocker(net, c);
       const status: NodeStatus = block ?? (u >= 1 - 1e-6 ? 'full' : u > 1e-6 ? 'partial' : 'idle');
-      // Nothing on an output end and the model drains it: what it makes there is left over.
-      const spare = net.drain ? c.outArcs.map((a, q) => (a ? 0 : fullOut(c, q) * Math.min(c.auto ? BIG : 1, raw))) : undefined;
+      // Made but not taken: nothing on an output end, or a far end that takes less than the machine makes.
+      const spare = net.drain
+        ? c.outArcs.map((_, q) => {
+            const left = fullOut(c, q) * Math.min(c.auto ? BIG : 1, raw) - outs[q];
+            return left > EPS ? left : 0;
+          })
+        : undefined;
       nodes[c.node.id] = {
         u,
         ins,

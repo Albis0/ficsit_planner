@@ -16,7 +16,7 @@ export const UPDATES: { version: string; date: string; title?: string; notes: Up
     notes: [
       [
         'fixed',
-        "Manual floor: a machine that can't run because what it makes can't all be taken in the amounts it makes now says Can't run and why, instead of just Idle. A pump or miner whose ore isn't all used keeps its setting and says how much per minute is not used, instead of showing a lower clock.",
+        "Manual floor: what a machine makes but the next machine can't take is now surplus instead of stopping the machine. The line keeps running, the amount shows at that output and in the Surplus box, and a pump or miner is used in full. With Output with no belt set to Machine stops, a machine that can't run says Can't run and why, and a pump or miner says how much per minute is not used.",
       ],
     ],
   },

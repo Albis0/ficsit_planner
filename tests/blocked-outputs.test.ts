@@ -31,14 +31,15 @@ const links = [
   ['x', 'r', 0, 'w', 0],
 ].map(([id, a, ap, b, bp]) => ({ id, a, ap, b, bp }));
 
-test('a machine whose outputs can not be taken says so, and the pump keeps what it is set to', async () => {
+test('output the far end can not take is surplus: the line runs and the pump is fully used', async () => {
   const highs = await loadHighs();
   const r = calcModel(highs, { ...emptyModel(), nodes, links } as unknown as Model, 9);
-  expect(r.nodes['9'].status).toBe('blocked');
-  // The machines that size themselves just follow it: nothing to flag on them.
-  expect(r.nodes.n.status).toBe('idle');
-  expect(r.nodes['4'].status).toBe('full');
-  expect(r.nodes['1'].status).toBe('partial');
-  expect(r.nodes['1'].outs[0]).toBeCloseTo(270, 3);
-  expect(r.nodes['1'].unused).toBeCloseTo(30, 3);
+  expect(r.nodes['9'].status).toBe('full');
+  expect(r.nodes['1'].status).toBe('full');
+  expect(r.nodes['1'].outs[0]).toBeCloseTo(300, 3);
+  expect(r.nodes['1'].unused).toBeUndefined();
+  // Plastic makes 20 and the canister line takes less; the rest shows on that end.
+  expect(r.nodes['9'].spare?.[0]).toBeGreaterThan(1);
+  // The canister, residual fuel and packager line runs on what it can take.
+  expect(r.nodes.w.ins[0]).toBeCloseTo(6.667, 2);
 });

@@ -256,6 +256,13 @@ function Flows({ node, calc, open }: { node: MNode; calc?: CalcResult; open?: Op
               </small>
             )}
             {t('perMin')}
+            {side === 'out' && !open?.outs[i] && (c?.spare?.[i] ?? 0) > 1e-9 && (
+              <small className="run-state">
+                {' '}
+                · {num(c?.spare?.[i] ?? 0)}
+                {t('perMin')} {t('surplus').toLowerCase()}
+              </small>
+            )}
           </dd>
         )}
       </div>
