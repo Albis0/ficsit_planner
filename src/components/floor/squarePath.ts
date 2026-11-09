@@ -16,15 +16,9 @@ export function squarePath(from: Pt, bends: Pt[], to: Pt, down = false, free = f
   // The player's own stops are exactly where they put them: not squared up to the ends.
   const squared = !(free && mid.length);
   if (!squared) {
-    // Between stops the belt still runs square: across first, then up or down; into the card it comes along the last run.
     const all = [a0, ...mid, b0];
-    const out = [a0];
-    for (let i = 1; i < all.length; i++) {
-      const [p, q] = [all[i - 1], all[i]];
-      if (Math.abs(p.x - q.x) > 0.5 && Math.abs(p.y - q.y) > 0.5) out.push(i === all.length - 1 ? { x: p.x, y: q.y } : { x: q.x, y: p.y });
-      out.push(q);
-    }
-    mid.splice(0, mid.length, ...out.slice(1, -1));
+    const out = stopTurns(all).flatMap((bend, i) => [...bend, all[i + 1]]);
+    mid.splice(0, mid.length, ...out.slice(0, -1));
   } else if (mid.length >= 2) {
     mid[0].y = a0.y;
     mid[mid.length - 1].y = b0.y;
@@ -46,6 +40,39 @@ export function squarePath(from: Pt, bends: Pt[], to: Pt, down = false, free = f
   const last = pts[pts.length - 1];
   d += ` L${last.x},${last.y}`;
   return { path: d, runs: pts.slice(1).map((p, i) => [pts[i], p]) };
+}
+
+/**
+ * Where a belt through the player's own stops turns between each two points, worked out left to right: across first,
+ * then up or down, and into the card along the last run. Where that would send it straight back the way it came (a stop
+ * pulled off a straight belt), it goes up or down first instead, or on the last run steps across half way.
+ */
+export function stopTurns(all: Pt[]): Pt[][] {
+  const turns: Pt[][] = [];
+  // It leaves the card going right.
+  let dir = { x: 1, y: 0 };
+  const back = (x: number, y: number) => x * dir.x + y * dir.y < 0;
+  for (let i = 1; i < all.length; i++) {
+    const [p, q] = [all[i - 1], all[i]];
+    const [dx, dy] = [q.x - p.x, q.y - p.y];
+    let bend: Pt[] = [];
+    if (Math.abs(dx) > 0.5 && Math.abs(dy) > 0.5) {
+      if (i < all.length - 1) bend = i > 1 && back(Math.sign(dx), 0) ? [{ x: p.x, y: q.y }] : [{ x: q.x, y: p.y }];
+      else if (back(0, Math.sign(dy))) {
+        const x = (p.x + q.x) / 2;
+        bend = [
+          { x, y: p.y },
+          { x, y: q.y },
+        ];
+      } else bend = [{ x: p.x, y: q.y }];
+    }
+    turns.push(bend);
+    const from = bend.at(-1) ?? p;
+    const [ex, ey] = [q.x - from.x, q.y - from.y];
+    if (Math.abs(ex) > 0.5 || Math.abs(ey) > 0.5)
+      dir = { x: Math.abs(ex) > 0.5 ? Math.sign(ex) : 0, y: Math.abs(ey) > 0.5 ? Math.sign(ey) : 0 };
+  }
+  return turns;
 }
 
 /** The middle of the longest straight run of a belt: where its label sits. */

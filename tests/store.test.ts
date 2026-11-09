@@ -238,6 +238,20 @@ describe('building from the Codex', () => {
     expect(s.plans[1].enabled).toContain('Recipe_Rotor_C');
   });
 
+  test("add to my factory puts the item among the open Auto factory's products and shows that factory", () => {
+    const a = { ...newPlan('Plates'), targets: [{ item: 'Desc_IronPlate_C', rate: 20 }] };
+    useStore.setState({ mode: 'codex', plans: [a], active: a.id });
+    current().addToFactory('Desc_Motor_C');
+    let s = current();
+    expect(s.plans).toHaveLength(1);
+    expect(s.plans[0].targets.map((t) => t.item)).toEqual(['Desc_IronPlate_C', 'Desc_Motor_C']);
+    expect(s.mode).toBe('factory');
+    // Twice is still once.
+    current().addToFactory('Desc_Motor_C');
+    s = current();
+    expect(s.plans[0].targets).toHaveLength(2);
+  });
+
   test('a fuel goes to the plant on screen while it has no generators, then to a new plant', () => {
     const empty = newPowerPlan('Plant 1');
     useStore.setState({ mode: 'codex', power: [empty], activePower: empty.id });

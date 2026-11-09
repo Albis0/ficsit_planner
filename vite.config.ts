@@ -86,7 +86,8 @@ export default defineConfig({
   ],
   define: { __APP_VERSION__: JSON.stringify(pkg.version) },
   clearScreen: false,
-  server: { port: 1420, strictPort: true },
+  // The game-file readers under tools/ rebuild while the dev server runs; watching their output folders crashes it.
+  server: { port: 1420, strictPort: true, watch: { ignored: ['**/tools/**', '**/reports/**'] } },
   build: { target: 'es2022', chunkSizeWarningLimit: 4000 },
   worker: { format: 'es' },
 });

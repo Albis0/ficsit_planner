@@ -64,6 +64,7 @@ const DYNAMIC_PREFIXES = [
   'layer_',
   'mapGroup_',
   'pageKind_',
+  'st_',
   'stat_',
   'statUnit_',
   'update_',

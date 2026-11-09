@@ -16,7 +16,7 @@ import { useStore } from '../store';
 import { GuidePage } from './CodexGuides';
 import { Glyph } from './Glyph';
 import { Icon } from './Icon';
-import { CATEGORY_ICON, categoryOf, countOf, Home, CategoryPage, remember } from './codex/browse';
+import { CATALOGS, CATEGORY_ICON, categoryOf, countOf, Home, CategoryPage, remember } from './codex/browse';
 import { ItemPage } from './codex/ItemPage';
 import { BuildingPage } from './codex/BuildingPage';
 import { CreaturePage, VehiclePage } from './codex/OtherPages';
@@ -89,17 +89,34 @@ export function CodexNav() {
           {index && hits.length === 0 && <li className="hint codex-none">{t('codexNoHits')}</li>}
         </ul>
       ) : (
-        <nav className="codex-cats" aria-label={t('codex')}>
-          {CATEGORIES.map((c) => (
-            <CodexLink key={c} page={{ kind: 'cat', id: c }} className={`codex-cat${current === c ? ' current' : ''}`}>
-              <Icon id={CATEGORY_ICON[c]} size={34} />
-              <span className="codex-cat-name">{t(`cat_${c}`)}</span>
-              {index && <span className="codex-cat-count">{countOf(c, index)}</span>}
-            </CodexLink>
+        <div className="codex-catalogs">
+          {CATALOGS.map(([group, cats]) => (
+            <section key={group} className="codex-catalog">
+              <div className="codex-catalog-head">{t(`codexGroup_${group}` as 'codexGroup_items')}</div>
+              <div className="codex-cats">
+                {cats.map((c) => (
+                  <CategoryRow key={c} cat={c} current={current === c} index={index} />
+                ))}
+              </div>
+            </section>
           ))}
-        </nav>
+          <div className="codex-cats">
+            <CategoryRow cat="guides" current={current === 'guides'} index={index} />
+          </div>
+        </div>
       )}
     </div>
+  );
+}
+
+function CategoryRow({ cat, current, index }: { cat: Category; current: boolean; index: CodexIndex | undefined }) {
+  const { t } = useT();
+  return (
+    <CodexLink page={{ kind: 'cat', id: cat }} className={`codex-cat${current ? ' current' : ''}`}>
+      <Icon id={CATEGORY_ICON[cat]} size={34} />
+      <span className="codex-cat-name">{t(`cat_${cat}`)}</span>
+      {index && <span className="codex-cat-count">{countOf(cat, index)}</span>}
+    </CodexLink>
   );
 }
 
@@ -116,7 +133,7 @@ export function CodexPage() {
   if (!index) return <div className="floor-message">{t('codexLoading')}</div>;
   return (
     <div className="codex-scroll" key={key}>
-      <article className="codex-page">
+      <article className={`codex-page${page.kind === 'cat' && (page.id === 'research' || page.id === 'milestones') ? ' wide' : ''}`}>
         <Crumbs page={page} index={index} />
         {page.kind === 'home' && <Home index={index} />}
         {page.kind === 'cat' && <CategoryPage cat={page.id} index={index} />}

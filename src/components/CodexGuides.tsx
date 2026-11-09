@@ -11,6 +11,7 @@ import { fuelRate, MAX_CLOCK } from '../lib/power';
 import { shardsFor } from '../lib/solver';
 import { CARRIERS, carrierTier, carries, haul, vehicleFacts } from '../lib/transport';
 import { recipeLabel } from '../lib/text';
+import { NumbersPage } from './codex/numbers';
 import { PhaseList, phaseOpens } from './codex/parts';
 import { CodexLink } from './codex/route';
 import { Delta, Flows, rawOrder, Readout } from './CodexLine';
@@ -37,6 +38,7 @@ export function GuidePage({ id }: { id: GuideId }) {
         </div>
       </header>
       {id === 'start' && <Start />}
+      {id === 'numbers' && <Numbers />}
       {id === 'elevator' && <Elevator />}
       {id === 'power' && <Power />}
       {id === 'oil' && <Oil />}
@@ -52,6 +54,11 @@ export function GuidePage({ id }: { id: GuideId }) {
       {id === 'crashsites' && <CrashSites />}
     </>
   );
+}
+
+function Numbers() {
+  const index = useCodex();
+  return index ? <NumbersPage index={index} /> : null;
 }
 
 function Text({ k }: { k: Parameters<ReturnType<typeof useT>['t']>[0] }) {

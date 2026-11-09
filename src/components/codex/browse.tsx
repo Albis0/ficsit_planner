@@ -4,7 +4,6 @@ import {
   type CodexIndex,
   type Entry,
   GUIDE_ICON,
-  type GuideId,
   GUIDES,
   nameOf,
   type Page,
@@ -21,6 +20,9 @@ import { searchKey } from '../../lib/text';
 import { versusStandard } from '../../lib/insights';
 import { Icon } from '../Icon';
 import { CodexLink } from './route';
+import { Health } from './Hearts';
+import { MamScreen } from './Mam';
+import { MilestoneScreen } from './Milestones';
 
 /** The category a page belongs to, for the index to mark. */
 export function categoryOf(page: Page, index: CodexIndex | undefined): Category | undefined {
@@ -193,7 +195,7 @@ export function categoryGroups(
             page: { kind: 'creature', id: c.id } as Page,
             name: c.name,
             icon: c.id,
-            note: c.health ? t('healthN', { n: num(c.health) }) : undefined,
+            note: c.health ? <Health hp={c.health} /> : undefined,
           })),
       })).filter((g) => g.entries.length);
     case 'guides':
@@ -271,14 +273,11 @@ export function entryOf(key: string, index: CodexIndex, t: ReturnType<typeof use
   return index.entries.find((e) => pageKey(e.page) === key);
 }
 
-/** Guides that start a new player off, shown on the Codex's front page. */
-export const FEATURED: GuideId[] = ['start', 'elevator', 'power', 'alternates', 'oil', 'nuclear'];
-
-/** The categories on the Codex's first page, in three groups. */
-const HOME_GROUPS: [string, Category[]][] = [
-  ['items', ['parts', 'resources', 'equipment', 'vehicles']],
-  ['build', ['buildings', 'alternates', 'milestones', 'research']],
-  ['world', ['shop', 'world', 'creatures', 'guides']],
+/** The categories in three catalogs: the Codex's first page lists them, and its side panel folds them open. */
+export const CATALOGS: [string, Category[]][] = [
+  ['items', ['parts', 'resources', 'equipment', 'creatures', 'world']],
+  ['buildings', ['buildings', 'vehicles']],
+  ['unlocks', ['milestones', 'research', 'alternates', 'shop']],
 ];
 
 export function Home({ index }: { index: CodexIndex }) {
@@ -291,45 +290,34 @@ export function Home({ index }: { index: CodexIndex }) {
   return (
     <>
       <h2 className="codex-title">{t('codex')}</h2>
-      {HOME_GROUPS.map(([group, cats]) => (
-        <section key={group} className="codex-section">
-          <h3 className="codex-h">{t(`codexGroup_${group}` as 'codexGroup_items')}</h3>
-          <div className="codex-cat-grid">
+      <div className="codex-index">
+        {CATALOGS.map(([group, cats]) => (
+          <section key={group}>
+            <h3 className="codex-index-head">{t(`codexGroup_${group}` as 'codexGroup_items')}</h3>
             {cats.map((c) => (
-              <CodexLink key={c} page={{ kind: 'cat', id: c }} className="codex-cat-card">
-                <Icon id={CATEGORY_ICON[c]} size={72} />
-                <span className="codex-cat-card-name">{t(`cat_${c}`)}</span>
-                <span className="codex-cat-card-count">{countOf(c, index)}</span>
+              <CodexLink key={c} page={{ kind: 'cat', id: c }} className="codex-index-row">
+                <span>{t(`cat_${c}`)}</span>
+                <span>{countOf(c, index)}</span>
               </CodexLink>
             ))}
-          </div>
+          </section>
+        ))}
+        <section>
+          <CodexLink page={{ kind: 'cat', id: 'guides' }} className="codex-index-row">
+            <span>{t('cat_guides')}</span>
+            <span>{countOf('guides', index)}</span>
+          </CodexLink>
         </section>
-      ))}
-      <section className="codex-section">
-        <h3 className="codex-h">{t('codexGuidesTitle')}</h3>
-        <div className="codex-guide-cards">
-          {FEATURED.map((id) => (
-            <CodexLink key={id} page={{ kind: 'guide', id }} className="codex-guide-card">
-              <span className="slot">
-                <Icon id={GUIDE_ICON[id]} size={44} />
-              </span>
-              <span className="codex-tile-text">
-                <span className="codex-tile-name">{t(`guide_${id}`)}</span>
-                <span className="codex-guide-card-line">{t(`guideLine_${id}`)}</span>
-              </span>
+      </div>
+      {recent.length > 0 && (
+        <div className="codex-recent">
+          <span>{t('codexRecent')}</span>
+          {recent.map((e) => (
+            <CodexLink key={pageKey(e.page)} page={e.page}>
+              {e.name}
             </CodexLink>
           ))}
         </div>
-      </section>
-      {recent.length > 0 && (
-        <section className="codex-section">
-          <h3 className="codex-h">{t('codexRecent')}</h3>
-          <div className="codex-tiles">
-            {recent.map((e) => (
-              <Tile key={pageKey(e.page)} entry={e} />
-            ))}
-          </div>
-        </section>
       )}
     </>
   );
@@ -348,7 +336,7 @@ export function CategoryPage({ cat, index }: { cat: Category; index: CodexIndex 
       <header className="codex-cat-head">
         <Icon id={CATEGORY_ICON[cat]} size={72} />
         <h2 className="codex-title">{t(`cat_${cat}`)}</h2>
-        {countOf(cat, index) > 20 && (
+        {countOf(cat, index) > 20 && cat !== 'research' && cat !== 'milestones' && (
           <input
             className="search codex-filter"
             type="search"
@@ -359,17 +347,21 @@ export function CategoryPage({ cat, index }: { cat: Category; index: CodexIndex 
           />
         )}
       </header>
-      {shown.map((g) => (
-        <section key={g.title || 'all'} className="codex-section">
-          {g.title && <h3 className="codex-h">{g.title}</h3>}
-          <div className={`codex-tiles${cat === 'guides' ? ' wide' : ''}`}>
-            {g.entries.map((e) => (
-              <Tile key={pageKey(e.page)} entry={e} />
-            ))}
-          </div>
-        </section>
-      ))}
-      {shown.length === 0 && <p className="hint">{t('codexNoHits')}</p>}
+      {cat === 'research' && <MamScreen index={index} />}
+      {cat === 'milestones' && <MilestoneScreen index={index} />}
+      {cat !== 'research' &&
+        cat !== 'milestones' &&
+        shown.map((g) => (
+          <section key={g.title || 'all'} className="codex-section">
+            {g.title && <h3 className="codex-h">{g.title}</h3>}
+            <div className={`codex-tiles${cat === 'guides' ? ' wide' : ''}`}>
+              {g.entries.map((e) => (
+                <Tile key={pageKey(e.page)} entry={e} />
+              ))}
+            </div>
+          </section>
+        ))}
+      {cat !== 'research' && cat !== 'milestones' && shown.length === 0 && <p className="hint">{t('codexNoHits')}</p>}
     </>
   );
 }

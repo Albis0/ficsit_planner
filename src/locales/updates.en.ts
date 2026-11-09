@@ -11,6 +11,29 @@ export type UpdateNote = [UpdateKind, string];
 /** `ask` puts a question with a rating and a note under the version in Settings › Updates. */
 export const UPDATES: { version: string; date: string; title?: string; notes: UpdateNote[]; ask?: string }[] = [
   {
+    version: '0.14.6',
+    date: '2026-11-09',
+    title: 'Codex',
+    notes: [
+      [
+        'added',
+        'Codex: MAM research is drawn as the game draws it, the trees in a menu and each research on its own grid with its picture and lines. Pick one to see what it costs and unlocks.',
+      ],
+      ['added', 'Codex: Milestones page like the HUB screen, with tiers, what each milestone gives and what it costs.'],
+      [
+        'added',
+        'Codex: Hear ADA on milestones and researches plays the game’s voice lines with her words in a bar like the game’s. Where the aliens speak through her, the badge and the words break up as they do in the game. Enter skips.',
+      ],
+      [
+        'added',
+        'Codex: damage, fire rate, magazine, range and reload on weapon, ammo and equipment pages, health as hearts on creatures, the space a machine needs, and a fuel table for the jetpack. The search finds pages by these words, and Numbers side by side lists them biggest first.',
+      ],
+      ['added', 'Codex: Add to my factory on an item page puts it, 10 a minute, among the products of the Auto factory you have open.'],
+      ['changed', 'Codex: the list on the left is grouped as Items, Buildings and vehicles, Unlocks.'],
+      ['fixed', 'Manual floor: a belt through your own stops no longer doubles back over itself when you pull a stop off a straight belt.'],
+    ],
+  },
+  {
     version: '0.14.5',
     date: '2026-11-01',
     notes: [

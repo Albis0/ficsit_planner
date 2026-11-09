@@ -249,19 +249,14 @@
     font-size: 30px;
   }
 
-  .codex-head {
-    grid-template-columns: 1fr;
-    padding: 16px;
+  .codex-crumbs {
+    margin-bottom: 0;
   }
 
-  .codex-actions {
-    grid-column: auto;
-    flex-flow: row wrap;
-  }
-
-  .codex-head-icon {
-    width: 96px;
-    height: 96px;
+  .codex-head-icon,
+  .codex-head-icon .icon {
+    width: 64px;
+    height: 64px;
   }
 
   .codex-recipes,

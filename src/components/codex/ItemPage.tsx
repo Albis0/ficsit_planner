@@ -10,18 +10,26 @@ import { useStore } from '../../store';
 import { ITEM_NOTES } from '../../locales/codex-notes.en';
 import { elevatorAmount } from '../../lib/game';
 import { ProductionLine, RecipeCompare } from '../CodexLine';
+import { Health } from './Hearts';
 import { Glyph } from '../Glyph';
 import { onMapAny, openMapOn } from '../MapNav';
 import { Icon } from '../Icon';
 import { CodexLink } from './route';
 import { Amount, Amounts, ColorChip, Head, Notes, RecipeCard, Section, UnlockLine, schematicWhere } from './parts';
 import { phaseOpens } from './parts';
+import { FuelTable, numberRows } from './numbers';
 
 export function ItemPage({ id, index }: { id: string; index: CodexIndex }) {
   const { t, num } = useT();
   const buildFactory = useStore((s) => s.buildFactory);
   const buildPlant = useStore((s) => s.buildPlant);
   const game = useStore((s) => s.settings.game);
+  const addToFactory = useStore((s) => s.addToFactory);
+  // An Auto factory that is already in use and doesn't make this yet; a blank tab or a Manual one is left to "Build this factory".
+  const canAdd = useStore((s) => {
+    const p = s.plans.find((x) => x.id === s.active);
+    return !!p && !p.floor && p.targets.length + p.supplies.length > 0 && !p.targets.some((x) => x.item === id);
+  });
   const it = index.data.items[id];
   if (!it) return <p className="hint">{t('codexMissing')}</p>;
   const planned = data.items[id];
@@ -48,6 +56,7 @@ export function ItemPage({ id, index }: { id: string; index: CodexIndex }) {
   const leftBy = index.data.creatures.filter((c) => c.drop === id);
   if (it.kind === 'resource' && data.worldLimits[id] !== undefined)
     stats.push([t('statWorld'), data.worldLimits[id] === null ? t('unlimited') : `${num(data.worldLimits[id]!)}${t('perMin')}`]);
+  stats.push(...numberRows(id, index, t, num));
   const tag = it.kind === 'part' ? (fluidUnit ? t(`form_${it.form}`) : t('kind_part')) : t(`kind_${it.kind}`);
   const canPlan = !!planned && !planned.raw && recipes.length > 0;
   const insight = index.data.insights.items[id];
@@ -83,6 +92,12 @@ export function ItemPage({ id, index }: { id: string; index: CodexIndex }) {
                   {t('buildFactory')}
                 </button>
               )}
+              {canPlan && canAdd && (
+                <button type="button" className="ghost-button" title={t('addToFactoryHint')} onClick={() => addToFactory(id)}>
+                  <Glyph name="plus" size={18} />
+                  {t('addToFactory')}
+                </button>
+              )}
               {burners.length > 0 && (
                 <button type="button" className="ghost-button" title={t('burnThisHint')} onClick={() => buildPlant(burners[0].id, id)}>
                   <Glyph name="bolt" size={18} />
@@ -100,6 +115,7 @@ export function ItemPage({ id, index }: { id: string; index: CodexIndex }) {
         }
       />
       {note && <Notes text={note} />}
+      <FuelTable id={id} index={index} />
       {phases.length > 0 && (
         <Section title={t('elevatorTitle')}>
           <div className="codex-uses">
@@ -280,7 +296,11 @@ export function ItemPage({ id, index }: { id: string; index: CodexIndex }) {
               <CodexLink key={c.id} page={{ kind: 'creature', id: c.id }} className="codex-use">
                 <Icon id={c.id} size={30} />
                 <span className="codex-use-name">{c.name}</span>
-                {c.health && <span className="codex-use-where">{t('healthN', { n: num(c.health) })}</span>}
+                {c.health && (
+                  <span className="codex-use-where">
+                    <Health hp={c.health} />
+                  </span>
+                )}
               </CodexLink>
             ))}
           </div>

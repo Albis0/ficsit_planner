@@ -2,6 +2,25 @@
 
 All notable changes to FICSIT Planner. Dates are when the version was finished.
 
+## 0.14.6 — 2026-11-09
+
+### Added
+
+- Codex: MAM research is drawn as the game draws it. The trees sit in a menu, each research on the game's own grid with its picture and the game's own lines between them; pick one to see what it costs and unlocks, and where it comes after another.
+- Codex: Milestones page like the HUB screen: a row of tiers, the milestones of the tier, then what each gives, what it costs and its picture.
+- Codex: Hear ADA on milestones and researches. It plays the game's voice lines with ADA's notification sound first, and her words appear in a bar like the game's. Enter or Skip stops it. Where the aliens speak through her, the badge and the words break up the way they do in the game.
+- Codex: damage, fire rate, magazine, range, reload and the like on weapon, ammo and equipment pages; health as hearts on creature pages; the space a machine needs on building pages; a fuel table for the jetpack. The search finds pages by these words too (damage, health, space).
+- Codex: Numbers side by side, a guide that lists damage, health, food, space and fuel for everything, biggest first.
+- Codex: Add to my factory on an item page puts the item, 10 a minute, among the products of the Auto factory you have open and goes to it. Build this factory is still there for a factory of its own.
+
+### Changed
+
+- Codex: the list on the left is grouped as Items, Buildings and vehicles, Unlocks.
+
+### Fixed
+
+- Manual floor: a belt through your own stops no longer doubles back over itself when you pull a stop off a straight belt; it bends through the stop.
+
 ## 0.14.5 — 2026-11-01
 
 ### Fixed

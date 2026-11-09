@@ -1,7 +1,7 @@
 {
   "name": "ficsit-planner",
   "private": true,
-  "version": "0.14.5",
+  "version": "0.14.6",
   "description": "Offline production planner for Satisfactory, as an installable web app",
   "license": "GPL-3.0-or-later",
   "homepage": "https://ficsitplanner.app",
@@ -27,6 +27,7 @@
     "icons": "dotnet run --project tools/icon-extractor -c Release -- \"C:/Program Files/Epic Games/Satisfactory\" src/data/icon-manifest.json public/icons 96",
     "icons:codex": "dotnet run --project tools/icon-extractor -c Release -- \"C:/Program Files/Epic Games/Satisfactory\" src/data/codex-icons.json public/icons 96",
     "icons:world": "dotnet run --project tools/icon-extractor -c Release -- \"C:/Program Files/Epic Games/Satisfactory\" src/data/world-icons.json public/icons 96",
+    "icons:mam": "dotnet run --project tools/icon-extractor -c Release -- \"C:/Program Files/Epic Games/Satisfactory\" src/data/mam-icons.json public/icons 96",
     "preview": "vite preview",
     "deploy": "bun scripts/deploy.mjs",
     "deploy:preview": "bun scripts/deploy.mjs --preview",

@@ -1,0 +1,964 @@
+{
+ "Desc_CartridgeStandard_C": [
+  [
+   "damage",
+   5,
+   ""
+  ],
+  [
+   "fireRate",
+   5,
+   "/s"
+  ],
+  [
+   "dps",
+   25,
+   "/s"
+  ],
+  [
+   "magazine",
+   15,
+   ""
+  ],
+  [
+   "range",
+   100,
+   "m"
+  ]
+ ],
+ "Desc_CartridgeSmartProjectile_C": [
+  [
+   "damage",
+   3,
+   ""
+  ],
+  [
+   "fireRate",
+   8.33,
+   "/s"
+  ],
+  [
+   "dps",
+   25,
+   "/s"
+  ],
+  [
+   "magazine",
+   20,
+   ""
+  ],
+  [
+   "range",
+   100,
+   "m"
+  ]
+ ],
+ "Desc_CartridgeChaos_C": [
+  [
+   "damage",
+   4,
+   ""
+  ],
+  [
+   "fireRate",
+   2.5,
+   "/s"
+  ],
+  [
+   "dps",
+   10,
+   "/s"
+  ],
+  [
+   "magazine",
+   75,
+   ""
+  ],
+  [
+   "range",
+   100,
+   "m"
+  ]
+ ],
+ "Desc_SpikedRebar_C": [
+  [
+   "damage",
+   13,
+   ""
+  ],
+  [
+   "range",
+   50,
+   "m"
+  ]
+ ],
+ "Desc_Rebar_Explosive_C": [
+  [
+   "damage",
+   5,
+   ""
+  ],
+  [
+   "blastDamage",
+   25,
+   ""
+  ],
+  [
+   "blastRadius",
+   4,
+   "m"
+  ],
+  [
+   "range",
+   50,
+   "m"
+  ]
+ ],
+ "Desc_Rebar_Stunshot_C": [
+  [
+   "damage",
+   3,
+   ""
+  ],
+  [
+   "range",
+   50,
+   "m"
+  ]
+ ],
+ "Desc_Rebar_Spreadshot_C": [
+  [
+   "damage",
+   2,
+   ""
+  ],
+  [
+   "pellets",
+   15,
+   ""
+  ],
+  [
+   "spread",
+   15,
+   "°"
+  ],
+  [
+   "range",
+   50,
+   "m"
+  ]
+ ],
+ "Desc_NobeliskExplosive_C": [
+  [
+   "damage",
+   50,
+   ""
+  ],
+  [
+   "blastRadius",
+   7.5,
+   "m"
+  ]
+ ],
+ "Desc_NobeliskCluster_C": [
+  [
+   "damage",
+   40,
+   ""
+  ],
+  [
+   "blastRadius",
+   5,
+   "m"
+  ]
+ ],
+ "Desc_NobeliskGas_C": [
+  [
+   "damage",
+   5,
+   ""
+  ],
+  [
+   "blastRadius",
+   7.5,
+   "m"
+  ]
+ ],
+ "Desc_NobeliskNuke_C": [
+  [
+   "damage",
+   200,
+   ""
+  ],
+  [
+   "blastRadius",
+   25,
+   "m"
+  ]
+ ],
+ "Desc_NobeliskShockwave_C": [
+  [
+   "damage",
+   5,
+   ""
+  ],
+  [
+   "blastRadius",
+   10,
+   "m"
+  ]
+ ],
+ "BP_EquipmentDescriptorRifle_C": [
+  [
+   "reload",
+   3.2,
+   "s"
+  ]
+ ],
+ "Desc_RebarGunProjectile_C": [
+  [
+   "reload",
+   1.8,
+   "s"
+  ]
+ ],
+ "BP_EquipmentDescriptorNobeliskDetonator_C": [
+  [
+   "reload",
+   1.5,
+   "s"
+  ],
+  [
+   "chargeTime",
+   1,
+   "s"
+  ]
+ ],
+ "BP_EquipmentDescriptorStunSpear_C": [
+  [
+   "damage",
+   9,
+   ""
+  ],
+  [
+   "reach",
+   4,
+   "m"
+  ]
+ ],
+ "BP_EquipmentDescriptorShockShank_C": [
+  [
+   "damage",
+   5,
+   ""
+  ],
+  [
+   "reach",
+   3.5,
+   "m"
+  ]
+ ],
+ "BP_EquipmentDescriptorObjectScanner_C": [
+  [
+   "scanRange",
+   250,
+   "m"
+  ]
+ ],
+ "BP_EquipmentDescriptorHoverPack_C": [
+  [
+   "hoverSpeed",
+   29.5,
+   "km/h"
+  ],
+  [
+   "hoverSprint",
+   1.9,
+   "×"
+  ],
+  [
+   "power",
+   100,
+   "MW"
+  ],
+  [
+   "connectRange",
+   62,
+   "m"
+  ]
+ ],
+ "BP_EquipmentDescriptorJumpingStilts_C": [
+  [
+   "sprintBoost",
+   1.5,
+   "×"
+  ],
+  [
+   "jumpBoost",
+   1.5,
+   "×"
+  ]
+ ],
+ "BP_EquipmentDescriptorHazmatSuit_C": [
+  [
+   "filter",
+   240,
+   "s"
+  ]
+ ],
+ "BP_EquipmentDescriptorGasmask_C": [
+  [
+   "filter",
+   240,
+   "s"
+  ]
+ ],
+ "BP_EqDescZipLine_C": [
+  [
+   "launch",
+   7,
+   "m/s"
+  ]
+ ],
+ "Desc_Berry_C": [
+  [
+   "heals",
+   10,
+   "HP"
+  ]
+ ],
+ "Desc_Nut_C": [
+  [
+   "heals",
+   5,
+   "HP"
+  ]
+ ],
+ "Desc_Medkit_C": [
+  [
+   "heals",
+   100,
+   "HP"
+  ]
+ ],
+ "Desc_Shroom_C": [
+  [
+   "heals",
+   20,
+   "HP"
+  ]
+ ],
+ "BP_EquipmentDescriptorJetPack_C": [
+  [
+   "burn:Desc_Biofuel_C",
+   2.9,
+   "s"
+  ],
+  [
+   "flight:Desc_Biofuel_C",
+   12,
+   "s",
+   "w"
+  ],
+  [
+   "burn:Desc_PackagedBiofuel_C",
+   12.5,
+   "s"
+  ],
+  [
+   "flight:Desc_PackagedBiofuel_C",
+   53,
+   "s",
+   "w"
+  ],
+  [
+   "burn:Desc_Fuel_C",
+   5,
+   "s"
+  ],
+  [
+   "flight:Desc_Fuel_C",
+   17,
+   "s",
+   "w"
+  ],
+  [
+   "burn:Desc_TurboFuel_C",
+   3.3,
+   "s"
+  ],
+  [
+   "flight:Desc_TurboFuel_C",
+   23,
+   "s",
+   "w"
+  ],
+  [
+   "burn:Desc_PackagedRocketFuel_C",
+   4,
+   "s"
+  ],
+  [
+   "flight:Desc_PackagedRocketFuel_C",
+   27.5,
+   "s",
+   "w"
+  ],
+  [
+   "burn:Desc_PackagedIonizedFuel_C",
+   7.1,
+   "s"
+  ],
+  [
+   "flight:Desc_PackagedIonizedFuel_C",
+   60,
+   "s",
+   "w"
+  ]
+ ],
+ "Desc_HogBasic_C": [
+  [
+   "damage",
+   10,
+   ""
+  ]
+ ],
+ "Desc_HogAlpha_C": [
+  [
+   "damage",
+   15,
+   ""
+  ]
+ ],
+ "Desc_HogCliff_C": [
+  [
+   "damage",
+   20,
+   ""
+  ]
+ ],
+ "Desc_HogNuclear_C": [
+  [
+   "damage",
+   25,
+   ""
+  ]
+ ],
+ "Desc_SpitterAquatic_Small_C": [
+  [
+   "damage",
+   12,
+   ""
+  ]
+ ],
+ "Desc_SpitterForest_Small_C": [
+  [
+   "damage",
+   14,
+   ""
+  ]
+ ],
+ "Desc_SpitterForest_Small_Red_C": [
+  [
+   "damage",
+   14,
+   ""
+  ]
+ ],
+ "Desc_SpitterDesert_Alpha_C": [
+  [
+   "damage",
+   16,
+   ""
+  ],
+  [
+   "blastRadius",
+   7.5,
+   "m"
+  ]
+ ],
+ "Desc_SpitterAquatic_Alpha_C": [
+  [
+   "damage",
+   20,
+   ""
+  ],
+  [
+   "blastRadius",
+   7.5,
+   "m"
+  ]
+ ],
+ "Desc_SpitterForest_Alpha_C": [
+  [
+   "damage",
+   24,
+   ""
+  ],
+  [
+   "blastRadius",
+   7.5,
+   "m"
+  ]
+ ],
+ "Desc_SpitterForest_Red_Alpha_C": [
+  [
+   "damage",
+   24,
+   ""
+  ],
+  [
+   "blastRadius",
+   7.5,
+   "m"
+  ]
+ ],
+ "Desc_StingerSmall_C": [
+  [
+   "damage",
+   5,
+   ""
+  ]
+ ],
+ "Desc_StingerAlpha_C": [
+  [
+   "damage",
+   15,
+   ""
+  ],
+  [
+   "blastDamage",
+   30,
+   ""
+  ],
+  [
+   "blastRadius",
+   5,
+   "m"
+  ]
+ ],
+ "Desc_StingerElite_C": [
+  [
+   "damage",
+   20,
+   ""
+  ],
+  [
+   "blastDamage",
+   40,
+   ""
+  ],
+  [
+   "blastRadius",
+   7.5,
+   "m"
+  ]
+ ],
+ "Build_ConstructorMk1_C": [
+  [
+   "footprint",
+   8,
+   "10"
+  ]
+ ],
+ "Build_SmelterMk1_C": [
+  [
+   "footprint",
+   5,
+   "10"
+  ]
+ ],
+ "Build_FoundryMk1_C": [
+  [
+   "footprint",
+   10,
+   "10"
+  ]
+ ],
+ "Build_OilRefinery_C": [
+  [
+   "footprint",
+   10,
+   "22"
+  ]
+ ],
+ "Build_Packager_C": [
+  [
+   "footprint",
+   8,
+   "8"
+  ]
+ ],
+ "Build_ManufacturerMk1_C": [
+  [
+   "footprint",
+   18,
+   "20"
+  ]
+ ],
+ "Build_AssemblerMk1_C": [
+  [
+   "footprint",
+   9,
+   "16"
+  ]
+ ],
+ "Build_Blender_C": [
+  [
+   "footprint",
+   18,
+   "16"
+  ]
+ ],
+ "Build_Converter_C": [
+  [
+   "footprint",
+   16,
+   "16"
+  ]
+ ],
+ "Build_QuantumEncoder_C": [
+  [
+   "footprint",
+   22,
+   "50"
+  ]
+ ],
+ "Build_MinerMk1_C": [
+  [
+   "footprint",
+   6,
+   "14"
+  ]
+ ],
+ "Build_OilPump_C": [
+  [
+   "footprint",
+   8,
+   "13"
+  ]
+ ],
+ "Build_MinerMk2_C": [
+  [
+   "footprint",
+   6,
+   "14"
+  ]
+ ],
+ "Build_MinerMk3_C": [
+  [
+   "footprint",
+   6,
+   "14"
+  ]
+ ],
+ "Build_WaterPump_C": [
+  [
+   "footprint",
+   20,
+   "18"
+  ]
+ ],
+ "Build_FrackingExtractor_C": [
+  [
+   "footprint",
+   5,
+   "5"
+  ]
+ ],
+ "Build_FrackingSmasher_C": [
+  [
+   "footprint",
+   15,
+   "15"
+  ]
+ ],
+ "Build_GeneratorBiomass_Automated_C": [
+  [
+   "footprint",
+   8,
+   "8"
+  ]
+ ],
+ "Build_GeneratorCoal_C": [
+  [
+   "footprint",
+   10,
+   "26"
+  ]
+ ],
+ "Build_GeneratorNuclear_C": [
+  [
+   "footprint",
+   36,
+   "42"
+  ]
+ ],
+ "Build_GeneratorGeoThermal_C": [
+  [
+   "footprint",
+   20,
+   "19"
+  ]
+ ],
+ "Build_AlienPowerBuilding_C": [
+  [
+   "footprint",
+   30,
+   "30"
+  ]
+ ],
+ "Build_PowerStorageMk1_C": [
+  [
+   "footprint",
+   6,
+   "6"
+  ]
+ ],
+ "Build_PowerSwitch_C": [
+  [
+   "footprint",
+   2,
+   "1"
+  ]
+ ],
+ "Build_PriorityPowerSwitch_C": [
+  [
+   "footprint",
+   2,
+   "1"
+  ]
+ ],
+ "Build_Valve_C": [
+  [
+   "footprint",
+   2,
+   "1.2"
+  ]
+ ],
+ "Build_PipelinePump_C": [
+  [
+   "footprint",
+   3.8,
+   "1.2"
+  ]
+ ],
+ "Build_PipeStorageTank_C": [
+  [
+   "footprint",
+   6,
+   "6"
+  ]
+ ],
+ "Build_IndustrialTank_C": [
+  [
+   "footprint",
+   14,
+   "14"
+  ]
+ ],
+ "Build_StorageContainerMk1_C": [
+  [
+   "footprint",
+   5,
+   "11"
+  ]
+ ],
+ "Build_StorageMedkit_C": [
+  [
+   "footprint",
+   1,
+   "1.6"
+  ]
+ ],
+ "Build_StorageHazard_C": [
+  [
+   "footprint",
+   1,
+   "1.6"
+  ]
+ ],
+ "Build_StorageContainerMk2_C": [
+  [
+   "footprint",
+   5,
+   "11"
+  ]
+ ],
+ "Build_StoragePlayer_C": [
+  [
+   "footprint",
+   1,
+   "1.6"
+  ]
+ ],
+ "Build_CentralStorage_C": [
+  [
+   "footprint",
+   5,
+   "9"
+  ]
+ ],
+ "Build_TrainStation_C": [
+  [
+   "footprint",
+   16,
+   "34"
+  ]
+ ],
+ "Build_TrainDockingStation_C": [
+  [
+   "footprint",
+   16,
+   "34"
+  ]
+ ],
+ "Build_TrainDockingStationLiquid_C": [
+  [
+   "footprint",
+   16,
+   "34"
+  ]
+ ],
+ "Build_TrainPlatformEmpty_C": [
+  [
+   "footprint",
+   16,
+   "34"
+  ]
+ ],
+ "Build_TrainPlatformEmpty_02_C": [
+  [
+   "footprint",
+   16,
+   "34"
+  ]
+ ],
+ "Build_FluidTruckStation_C": [
+  [
+   "footprint",
+   17,
+   "15"
+  ]
+ ],
+ "Build_TruckStation_C": [
+  [
+   "footprint",
+   17,
+   "15"
+  ]
+ ],
+ "Build_DroneStation_C": [
+  [
+   "footprint",
+   24,
+   "24"
+  ]
+ ],
+ "Build_JumpPadAdjustable_C": [
+  [
+   "footprint",
+   6,
+   "6"
+  ]
+ ],
+ "Build_Portal_C": [
+  [
+   "footprint",
+   8,
+   "8"
+  ]
+ ],
+ "Build_PortalSatellite_C": [
+  [
+   "footprint",
+   8,
+   "8"
+  ]
+ ],
+ "Build_TradingPost_C": [
+  [
+   "footprint",
+   14,
+   "26"
+  ]
+ ],
+ "Build_Mam_C": [
+  [
+   "footprint",
+   6,
+   "9"
+  ]
+ ],
+ "Build_ResourceSink_C": [
+  [
+   "footprint",
+   16,
+   "14"
+  ]
+ ],
+ "Build_ResourceSinkShop_C": [
+  [
+   "footprint",
+   4,
+   "6"
+  ]
+ ],
+ "Build_RadarTower_C": [
+  [
+   "footprint",
+   10,
+   "10"
+  ]
+ ],
+ "Build_WorkBench_C": [
+  [
+   "footprint",
+   4,
+   "6"
+  ]
+ ],
+ "Build_Workshop_C": [
+  [
+   "footprint",
+   6,
+   "10"
+  ]
+ ],
+ "Build_LookoutTower_C": [
+  [
+   "footprint",
+   8,
+   "8"
+  ]
+ ],
+ "Desc_Tractor_C": [
+  [
+   "fuelUse",
+   55,
+   "MW"
+  ]
+ ],
+ "Desc_Truck_C": [
+  [
+   "fuelUse",
+   75,
+   "MW"
+  ]
+ ],
+ "Desc_Explorer_C": [
+  [
+   "fuelUse",
+   90,
+   "MW"
+  ]
+ ],
+ "Desc_CyberWagon_C": [
+  [
+   "fuelUse",
+   150,
+   "MW",
+   "w"
+  ]
+ ]
+}

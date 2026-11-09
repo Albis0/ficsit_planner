@@ -211,55 +211,6 @@
   text-transform: uppercase;
 }
 
-/* Home: the categories as tall tiles, a row of four under each of three headings. */
-.codex-cat-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
-  gap: 12px;
-}
-
-.codex-cat-card {
-  position: relative;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: flex-end;
-  gap: 10px;
-  min-height: 150px;
-  padding: 16px 10px 14px;
-  background: var(--panel);
-  border: 1px solid var(--line);
-  text-align: center;
-  text-decoration: none;
-  transition: border-color 100ms;
-}
-
-.codex-cat-card .icon {
-  margin-top: auto;
-  filter: drop-shadow(0 3px 3px rgb(0 0 0 / 0.5));
-}
-
-.codex-cat-card:hover {
-  border-color: var(--codex);
-  background: var(--panel-2);
-}
-
-.codex-cat-card-name {
-  font: 700 19px / 1.15 var(--font-display);
-  letter-spacing: 0.02em;
-}
-
-.codex-cat-card-count {
-  position: absolute;
-  top: 8px;
-  right: 8px;
-  padding: 1px 8px;
-  border-radius: 10px;
-  background: rgb(0 0 0 / 0.4);
-  font: 700 14px / 1.4 var(--font-display);
-  color: var(--codex);
-}
-
 /* Category pages: a header, then the entries as tiles under group headings. */
 .codex-cat-head {
   display: flex;
@@ -994,38 +945,6 @@ a.codex-flow:hover {
   margin-bottom: 0;
 }
 
-/* The front page's guides: a card each, with a line on what it covers. */
-.codex-guide-cards {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-  gap: 8px;
-}
-
-.codex-guide-card {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  padding: 8px 12px 8px 8px;
-  background: var(--panel);
-  border: 1px solid var(--line);
-  text-decoration: none;
-}
-
-.codex-guide-card:hover {
-  border-color: var(--codex);
-}
-
-.codex-guide-card .slot {
-  flex: none;
-  width: 56px;
-  height: 56px;
-}
-
-.codex-guide-card-line {
-  font-size: 14px;
-  color: var(--dim);
-}
-
 /* Space Elevator phases. */
 .codex-phases {
   display: flex;
@@ -1100,27 +1019,1032 @@ a.codex-flow:hover {
   align-self: flex-start;
 }
 
-/* Phone: the tiles two to a row. */
-@media (max-width: 600px) {
-  .codex-cat-grid {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 8px;
-  }
-
-  .codex-cat-card {
-    min-height: 128px;
-    padding: 12px 6px 10px;
-  }
-
-  .codex-cat-card-name {
-    font-size: 16px;
-  }
-}
-
 .stat-note {
   display: block;
   line-height: 1.3;
   font-size: 12px;
   font-weight: 600;
   color: var(--dim);
+}
+
+/* The quiet Codex: one plain column, rules between rows, no boxes. Placed last so it wins over the older tile look above. */
+.codex-scroll {
+  background: var(--bg);
+}
+
+.codex-page {
+  max-width: 880px;
+  padding: 56px 32px 96px;
+  gap: 48px;
+}
+
+.codex-crumbs {
+  margin-bottom: -32px;
+  font: 500 16px var(--font-display);
+  letter-spacing: 0;
+  text-transform: none;
+}
+
+.codex-title {
+  font: 600 52px / 1.05 var(--font-body);
+  letter-spacing: 0;
+  text-transform: none;
+  color: var(--paper);
+}
+
+.codex-tag {
+  padding: 0;
+  background: none;
+  color: var(--faint);
+  font: 500 17px / 1.2 var(--font-body);
+  letter-spacing: 0;
+  text-transform: none;
+}
+
+.codex-h {
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--line-2);
+  font: 600 26px / 1.2 var(--font-body);
+  letter-spacing: 0;
+  text-transform: none;
+  color: var(--paper);
+}
+
+.codex-section {
+  gap: 16px;
+}
+
+/* A page's head: icon beside tag and name, then the numbers as rows. */
+.codex-head {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 4px 24px;
+  padding: 0;
+  background: none;
+  border: 0;
+}
+
+.codex-head-main {
+  display: contents;
+}
+
+.codex-head-icon {
+  grid-row: 1 / 3;
+  width: 80px;
+  height: 80px;
+  background: none;
+  border: 0;
+}
+
+.codex-head-icon .icon {
+  width: 80px;
+  height: 80px;
+}
+
+.codex-head .codex-tag {
+  grid-column: 2;
+  align-self: end;
+}
+
+.codex-head .codex-title {
+  grid-column: 2;
+  align-self: start;
+}
+
+.codex-stats {
+  grid-column: 1 / -1;
+  flex-direction: column;
+  flex-wrap: nowrap;
+  gap: 0;
+  margin: 36px 0 0;
+  border-top: 1px solid var(--line-2);
+}
+
+.codex-stat {
+  display: grid;
+  grid-template-columns: 240px minmax(0, 1fr);
+  align-items: baseline;
+  padding: 12px 0;
+  border-bottom: 1px solid var(--line);
+}
+
+.codex-stat dt {
+  font: 400 17px var(--font-body);
+  letter-spacing: 0;
+  text-transform: none;
+  color: var(--faint);
+}
+
+.codex-stat dd {
+  font: 600 22px / 1.2 var(--font-body);
+}
+
+.codex-actions {
+  grid-column: 1 / -1;
+}
+
+.codex-desc {
+  grid-column: 1 / -1;
+  margin-top: 28px;
+  padding: 0;
+  background: none;
+  border: 0;
+  max-width: 72ch;
+  font-style: normal;
+}
+
+.codex-table {
+  background: none;
+}
+
+.codex-table th {
+  font: 500 15px var(--font-body);
+  letter-spacing: 0;
+  text-transform: none;
+  border-bottom-color: var(--line-2);
+}
+
+.codex-table td {
+  padding: 11px 12px;
+}
+
+/* Home: three plain lists, each category a row with its count. */
+.codex-index {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0 48px;
+}
+
+.codex-index-head {
+  margin: 0;
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--line-2);
+  font: 500 16px var(--font-body);
+  color: var(--faint);
+}
+
+.codex-index-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  padding: 14px 0;
+  border-bottom: 1px solid var(--line);
+  font-size: 18px;
+  text-decoration: none;
+}
+
+.codex-index-row span:last-child {
+  color: var(--faint);
+  font-variant-numeric: tabular-nums;
+}
+
+.codex-index-row:hover span:first-child {
+  color: var(--ficsit);
+}
+
+.codex-recent {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 28px;
+  align-items: baseline;
+  font-size: 17px;
+}
+
+.codex-recent span {
+  color: var(--faint);
+}
+
+@container codex-page (max-width: 640px) {
+  .codex-index {
+    grid-template-columns: 1fr;
+    gap: 32px;
+  }
+
+  .codex-stat {
+    grid-template-columns: 150px minmax(0, 1fr);
+  }
+}
+
+/* Health: Minecraft hearts (ten HP a heart, ten to a row) with the number beside them. */
+.health {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.hearts {
+  --heart: 16px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 2px;
+  max-width: calc(10 * (var(--heart) + 2px));
+}
+
+.hearts svg {
+  width: var(--heart);
+  height: calc(var(--heart) * 8 / 9);
+}
+
+.codex-tile-note .hearts,
+.codex-use-where .hearts {
+  --heart: 11px;
+  gap: 1px;
+  max-width: calc(10 * (var(--heart) + 1px));
+}
+
+.health-n {
+  font-variant-numeric: tabular-nums;
+}
+
+.codex-stat .hearts {
+  --heart: 20px;
+}
+
+/* The side panel's three catalogs: a small label over each, every category open under it. */
+.codex-catalogs {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.codex-catalog-head {
+  margin: 0 0 4px;
+  padding: 0 10px 6px;
+  border-bottom: 1px solid var(--line, #3a3a3a);
+  color: var(--faint);
+  font: 600 12px / 1.2 var(--font-display);
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+/* The MAM, as the game draws it: a menu of trees, a dark board with its faint grid, light squares joined by thick grey lines,
+   and a grey panel with an orange edge for the research that is open. It takes the whole width of the floor. */
+.codex-page.wide {
+  max-width: none;
+  padding: 28px 24px 48px;
+  gap: 28px;
+}
+
+.mam {
+  position: relative;
+  display: grid;
+  grid-template-columns: 240px minmax(0, 1fr);
+  grid-template-areas: 'menu board';
+  align-items: stretch;
+  min-height: 560px;
+  border: 1px solid #2c2c2c;
+  background: #222;
+}
+
+.mam-menu {
+  grid-area: menu;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 10px 0;
+  border-right: 1px solid #3a3a3a;
+  background: #262626;
+}
+
+.mam-tab {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 16px;
+  border: 0;
+  border-left: 3px solid transparent;
+  background: none;
+  color: var(--dim);
+  font: 400 17px / 1.2 var(--font-body);
+  text-align: left;
+  cursor: pointer;
+}
+
+.mam-tab-name {
+  flex: 1;
+  min-width: 0;
+}
+
+.mam-tab-count {
+  color: var(--faint);
+  font-size: 14px;
+}
+
+.mam-tab:hover {
+  background: #2f2f2f;
+  color: var(--paper);
+}
+
+.mam-tab.current {
+  border-left-color: #e59344;
+  background: #e59344;
+  color: #fff;
+}
+
+.mam-tab.current .mam-tab-count {
+  color: #fff;
+}
+
+.mam-board {
+  grid-area: board;
+  overflow: auto;
+  max-height: calc(100vh - 190px);
+  min-height: 520px;
+  display: flex;
+  background: #1b1b1b;
+}
+
+.mam-grid {
+  position: relative;
+  flex: none;
+  margin: auto;
+  background-image:
+    linear-gradient(to right, rgba(255, 255, 255, 0.05) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(255, 255, 255, 0.05) 1px, transparent 1px);
+}
+
+.mam-lines {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.mam-lines polyline {
+  fill: none;
+  stroke: #5a5a5a;
+  stroke-width: 7;
+  stroke-linejoin: round;
+  stroke-linecap: round;
+}
+
+.mam-lines polyline.lit {
+  stroke: #e59344;
+}
+
+.mam-node {
+  position: absolute;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  border: 2px solid #f1f1f1;
+  border-radius: 3px;
+  background: #d9d9d9;
+  cursor: pointer;
+}
+
+.mam-node:hover {
+  background: #fff;
+}
+
+.mam-node.current {
+  border-color: #e59344;
+  background: #e59344;
+  outline: 2px solid #e59344;
+  outline-offset: 3px;
+}
+
+/* Floats over the board's right side, like the game's own tooltip. */
+.mam-detail {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  z-index: 2;
+  width: 320px;
+  max-width: calc(100% - 24px);
+  max-height: calc(100% - 24px);
+  padding: 18px 18px 20px;
+  border-left: 3px solid #e59344;
+  background: #383838;
+  box-shadow: 0 6px 24px rgb(0 0 0 / 0.5);
+  overflow: auto;
+}
+
+.mam-close {
+  position: absolute;
+  top: 4px;
+  right: 6px;
+  padding: 2px 8px;
+  border: 0;
+  background: none;
+  color: var(--dim);
+  font-size: 22px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.mam-close:hover {
+  color: var(--paper);
+}
+
+.mam-detail-name {
+  margin: 0;
+  color: #e59344;
+  font: 600 21px / 1.2 var(--font-body);
+  text-align: center;
+  text-transform: uppercase;
+}
+
+.mam-detail-sub {
+  margin: 4px 0 10px;
+  color: var(--faint);
+  font-size: 14px;
+  text-align: center;
+}
+
+.mam-detail-h {
+  margin: 14px 0 8px;
+  padding-bottom: 6px;
+  border-bottom: 1px solid #cfcfcf;
+  font: 400 15px / 1.2 var(--font-body);
+  text-align: center;
+}
+
+.mam-rewards {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 8px;
+}
+
+.mam-open {
+  display: block;
+  margin-top: 16px;
+  padding: 9px;
+  background: #4a4a4a;
+  color: var(--paper);
+  text-align: center;
+  text-decoration: none;
+}
+
+.mam-open:hover {
+  background: #555;
+}
+
+/* Narrow: the menu becomes a row of tabs over the board, the panel goes under it. */
+@container codex-page (max-width: 900px) {
+  .mam {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-areas: 'menu' 'detail' 'board';
+  }
+
+  .mam-menu {
+    flex-direction: row;
+    flex-wrap: wrap;
+    padding: 6px;
+    border-right: 0;
+    border-bottom: 1px solid #3a3a3a;
+  }
+
+  .mam-tab {
+    padding: 6px 10px;
+    border-left: 0;
+  }
+
+  .mam-tab-count,
+  .mam-tab .icon {
+    display: none;
+  }
+
+  .mam-detail {
+    position: static;
+    max-width: none;
+    width: auto;
+    margin: 0;
+    grid-area: detail;
+  }
+}
+
+/* The HUB's milestones, as the game draws them: a row of grey tier tabs, the tier's milestones as squares, a dark panel
+   of rewards and costs, and the milestone's picture on a faint grid board with its facts under it. */
+.hub {
+  display: flex;
+  flex-direction: column;
+  border: 1px solid #2c2c2c;
+  background: #222;
+}
+
+.hub-tiers {
+  display: flex;
+  gap: 2px;
+  padding: 8px 8px 0;
+  background: #2a2a2a;
+}
+
+.hub-tier {
+  flex: 1;
+  min-width: 0;
+  padding: 12px 6px;
+  border: 0;
+  background: #3a3a3a;
+  color: var(--dim);
+  font: 400 17px / 1.2 var(--font-body);
+  cursor: pointer;
+}
+
+.hub-tier:hover {
+  background: #444;
+  color: var(--paper);
+}
+
+.hub-tier.current {
+  background: #e59344;
+  color: #fff;
+}
+
+.hub-picks {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 2px;
+  padding: 8px;
+  background: #333;
+  border-bottom: 1px solid #1a1a1a;
+}
+
+.hub-pick {
+  display: flex;
+  flex: 1 1 150px;
+  max-width: 220px;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding: 14px 8px 12px;
+  border: 0;
+  border-bottom: 3px solid transparent;
+  background: #444;
+  color: var(--dim);
+  font: 400 15px / 1.25 var(--font-body);
+  text-align: center;
+  cursor: pointer;
+}
+
+.hub-pick:hover {
+  background: #4d4d4d;
+  color: var(--paper);
+}
+
+.hub-pick.current {
+  background: #e59344;
+  color: #fff;
+}
+
+.hub-body {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 340px;
+  min-height: 380px;
+}
+
+.hub-lists {
+  padding: 8px 14px 20px;
+  background: #1f1f1f;
+}
+
+.hub-h {
+  margin: 12px 0 14px;
+  padding: 4px 8px;
+  background: #333;
+  font: 400 15px / 1.2 var(--font-body);
+}
+
+.hub-rewards,
+.hub-costs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 20px 18px;
+}
+
+.hub-reward {
+  display: flex;
+  width: 104px;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  color: var(--paper);
+  text-align: center;
+  text-decoration: none;
+}
+
+.hub-slot {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 64px;
+  height: 64px;
+  background: #454545;
+}
+
+.hub-reward-name {
+  font-size: 14px;
+  line-height: 1.2;
+}
+
+.hub-reward-kind {
+  color: var(--faint);
+  font-size: 12px;
+  text-transform: uppercase;
+}
+
+.hub-reward:hover .hub-reward-name {
+  color: #e59344;
+}
+
+.hub-cost {
+  position: relative;
+  display: block;
+  line-height: 0;
+}
+
+.hub-count {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  padding: 1px 5px;
+  background: #4a4a4a;
+  color: #fff;
+  font: 600 14px / 1.3 var(--font-body);
+}
+
+.hub-extras {
+  margin: 14px 0 0;
+  padding-left: 18px;
+  color: var(--dim);
+  font-size: 14px;
+}
+
+.hub-side {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 8px;
+  background: #2a2a2a;
+}
+
+.hub-art {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 220px;
+  background-color: #1b1b1b;
+  background-image:
+    linear-gradient(to right, rgba(255, 255, 255, 0.05) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(255, 255, 255, 0.05) 1px, transparent 1px);
+  background-size: 28px 28px;
+}
+
+.hub-art .icon {
+  opacity: 0.8;
+}
+
+.hub-info {
+  flex: 1;
+  padding: 12px 14px 14px;
+  background: #1f1f1f;
+  color: var(--dim);
+  font-size: 14px;
+}
+
+.hub-info p {
+  margin: 6px 0 0;
+}
+
+.hub-name {
+  margin: 0;
+  color: #e59344;
+  font: 600 18px / 1.2 var(--font-body);
+  text-transform: uppercase;
+}
+
+@container codex-page (max-width: 900px) {
+  .hub-tiers {
+    flex-wrap: wrap;
+  }
+
+  .hub-tier {
+    flex: 1 1 56px;
+    padding: 8px 4px;
+  }
+
+  .hub-body {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+/* ADA's words the way the game shows them: her badge over a dark bar at the bottom of the screen, and the skip hint. */
+.ada-title {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.ada-title > h3 {
+  flex: 1;
+  min-width: 0;
+  margin: 0;
+}
+
+.ada-chip {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  gap: 6px;
+  min-height: 36px;
+  padding: 4px 12px;
+  border: 0;
+  border-radius: 999px;
+  background: #f3f3f3;
+  color: #4d9fb8;
+  cursor: pointer;
+}
+
+/* The logo with the speech bubble sitting in its D, the way the badge ends up on the bar (98 x 49 shrunk to 44 x 22). */
+.ada-mark {
+  position: relative;
+  display: block;
+  width: 44px;
+  height: 22px;
+}
+
+.ada-mark-in {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 98px;
+  height: 49px;
+  transform: translate(-50%, -50%) scale(0.449);
+}
+
+.ada-mark-in img {
+  display: block;
+  width: 98px;
+  height: 49px;
+}
+
+.ada-mark-in .ada-mark-bubble {
+  position: absolute;
+  top: calc(50% - 13px);
+  left: calc(50% - 14px);
+  width: 30px;
+  height: 30px;
+  transform: scale(0.72);
+}
+
+.ada-chip:hover,
+.ada-chip.playing {
+  background: #fff;
+}
+
+.ada-bar {
+  position: fixed;
+  left: 50%;
+  zoom: var(--u, 1);
+  bottom: calc(max(56px, 12vh) / var(--u, 1));
+  z-index: 5000;
+  box-sizing: border-box;
+  width: min(890px, calc((100vw - 32px) / var(--u, 1)));
+  min-height: 101px;
+  padding: 28px clamp(16px, 5vw, 50px) 26px;
+  color: #fff;
+  font-size: 15px;
+  line-height: 23px;
+  text-align: center;
+  transform: translateX(-50%);
+}
+
+.ada-panel {
+  position: absolute;
+  inset: 0;
+  background: rgb(16 16 16 / 0.93);
+  animation: ada-fade 0.2s 3.05s both;
+}
+
+.ada-bar p {
+  position: relative;
+  margin: 0;
+  animation: ada-fade 0.25s ease-out;
+}
+
+/* Measured frame by frame from the game (30 fps, 1920x1200). The badge is 133x44 on the bar's top edge; the intro runs 2.9 s and
+   the voice starts at 3.6 s. */
+.ada-badge {
+  position: absolute;
+  top: 0;
+  left: 50%;
+  width: 133px;
+  height: 44px;
+  margin: -22px 0 0 -66.5px;
+  animation: ada-badge-settle 0.3s 2.62s ease-in-out both;
+}
+
+/* Holds the badge's parts, so the aliens' glitch can act on all of them without touching their own animations. */
+.ada-fx {
+  position: absolute;
+  inset: 0;
+}
+
+/* The aliens' words: the script in Ada.tsx splits the colour channels (SVG filter) and flips to negative on the badge. The dark
+   rectangle behind the plate is what turns white at the corners when it flips, as in the game. */
+.ada-defs {
+  position: absolute;
+  pointer-events: none;
+}
+
+.ada-bg {
+  position: absolute;
+  inset: 0;
+  background: #101010;
+  opacity: 0;
+}
+
+.ada-fx.glitch .ada-bg {
+  opacity: 1;
+}
+
+/* The flash of tiled little logos, then a grey frame, before the badge breaks up. */
+.ada-mosaic {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  grid-template-rows: repeat(3, 1fr);
+  background: #101010;
+}
+
+.ada-mosaic.grey {
+  background: #808080;
+}
+
+.ada-mosaic > span {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+}
+
+.ada-mosaic img {
+  width: 92%;
+  height: auto;
+}
+
+.ada-noise {
+  opacity: 0.35;
+}
+
+.ada-plate {
+  position: absolute;
+  inset: 0;
+  border-radius: 22px;
+  background: #fff;
+  animation: ada-fade 0.4s 1.3s both;
+}
+
+.ada-logo {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 98px;
+  height: 49px;
+  transform: translate(-50%, -50%);
+}
+
+/* The speech bubble comes alone, wobbles, then shrinks into the D as the plate fades in around it. */
+.ada-bubble {
+  position: absolute;
+  top: calc(50% - 13px);
+  left: calc(50% - 14px);
+  width: 30px;
+  height: 30px;
+  animation: ada-bubble 1.7s both;
+  transform: scale(0.72);
+}
+
+/* A dark ring spreads out behind the bubble as it settles from its wobble. */
+.ada-halo {
+  position: absolute;
+  top: calc(50% - 21px);
+  left: calc(50% - 21px);
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  background: radial-gradient(circle closest-side, rgb(0 0 0 / 0.6) 80%, rgb(0 0 0 / 0));
+  opacity: 0;
+  animation: ada-halo 1.7s both;
+}
+
+@keyframes ada-halo {
+  0%,
+  35% {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+
+  38.8% {
+    opacity: 0.8;
+    transform: scale(1);
+  }
+
+  42% {
+    opacity: 0.5;
+    transform: scale(1.2);
+  }
+
+  50%,
+  100% {
+    opacity: 0;
+    transform: scale(1.4);
+  }
+}
+
+@keyframes ada-fade {
+  from {
+    opacity: 0;
+  }
+}
+
+/* While the plate is not there yet the badge is the bubble alone, in the middle of where the bar will be and 2.48 times as big. */
+@keyframes ada-badge-settle {
+  from {
+    transform: translateY(46px) scale(2.48);
+  }
+}
+
+@keyframes ada-bubble {
+  0% {
+    opacity: 0.75;
+    transform: scale(0.88);
+  }
+
+  14.7%,
+  17.6% {
+    opacity: 1;
+    transform: scale(1);
+  }
+
+  20% {
+    transform: scale(1) rotate(-35deg);
+  }
+
+  23.5% {
+    transform: scale(1) rotate(-52deg);
+  }
+
+  29.4% {
+    transform: scale(1) rotate(-60deg);
+  }
+
+  31.2% {
+    transform: scale(1) rotate(-20deg);
+  }
+
+  33.5% {
+    transform: scale(1) rotate(22deg);
+  }
+
+  36.5% {
+    transform: scale(1) rotate(26deg);
+  }
+
+  39.4% {
+    transform: scale(1) rotate(3deg);
+  }
+
+  42.4% {
+    transform: scale(1) rotate(-4deg);
+  }
+
+  45.9%,
+  76.5% {
+    transform: scale(1) rotate(0);
+  }
+
+  100% {
+    opacity: 1;
+    transform: scale(0.72);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ada-panel,
+  .ada-bar p,
+  .ada-badge,
+  .ada-plate,
+  .ada-halo,
+  .ada-bubble {
+    animation: none;
+  }
+}
+
+.ada-skip {
+  position: absolute;
+  right: -5px;
+  bottom: -12px;
+  height: 23px;
+  padding: 0 9px;
+  border: 0;
+  background: rgb(16 16 16 / 0.75);
+  color: #fff;
+  font: inherit;
+  font-size: 15px;
+  font-weight: 600;
+  line-height: 23px;
+  cursor: pointer;
 }

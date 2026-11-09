@@ -17,7 +17,7 @@ import type { MLink } from '../../lib/model/types';
 import { useStore } from '../../store';
 import { beltStroke } from '../floor/BeltStroke';
 import { PORT_CELL } from './PartNode';
-import { longestRunMid, SQUARE_TURN as TURN, squarePath } from '../floor/squarePath';
+import { longestRunMid, SQUARE_TURN as TURN, squarePath, stopTurns } from '../floor/squarePath';
 import { Icon } from '../Icon';
 
 export interface BeltData extends Record<string, unknown> {
@@ -123,6 +123,8 @@ export function BeltLink({ sourceX, sourceY, targetX, targetY, sourcePosition, t
     window.addEventListener('pointercancel', drop);
   };
   const ends: [number, number][] = [[sourceX, sourceY], ...stops, [targetX, targetY]];
+  // Where the belt turns between each two of them, worked out as if left to right like the belt itself.
+  const turns = stops.length ? stopTurns(ends.map(([x, y]) => (down ? { x: y, y: x } : { x, y }))) : [];
   // The middle button on a belt (or its label) does what My own does in its panel, and opens it.
   const middle = {
     onMouseDownCapture: (e: ReactMouse) => {
@@ -148,13 +150,10 @@ export function BeltLink({ sourceX, sourceY, targetX, targetY, sourcePosition, t
         <g className="stops nopan">
           {ends.slice(1).map(([x, y], i) => {
             const [px, py] = ends[i];
-            // The "+" sits where the run between two stops turns, so a stop added there leaves the belt as it is.
-            const flip = ([a, b]: [number, number]): [number, number] => (down ? [b, a] : [a, b]);
-            const [fx, fy] = flip([x, y]);
-            const [fpx, fpy] = flip([px, py]);
-            // With no stops yet the belt steps across half way, so the middle is on it and a corner of the two ends isn't.
-            const turns = stops.length > 0 && Math.abs(fx - fpx) > 0.5 && Math.abs(fy - fpy) > 0.5;
-            const mid = flip(turns ? (i === ends.length - 2 ? [fpx, fy] : [fx, fpy]) : [(fpx + fx) / 2, (fpy + fy) / 2]);
+            // The "+" sits where the run between two stops first turns, so a stop added there leaves the belt as it is;
+            // with no stops yet the belt steps across half way, so the middle is on it.
+            const bend = turns[i]?.[0];
+            const mid: [number, number] = bend ? (down ? [bend.y, bend.x] : [bend.x, bend.y]) : [(px + x) / 2, (py + y) / 2];
             return (
               // biome-ignore lint/a11y/noStaticElementInteractions: a drag handle, pointer only
               <circle

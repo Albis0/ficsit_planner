@@ -3,7 +3,8 @@
 //        dotnet run -- <game dir> tex <dir> <path>...  (textures at their own size, e.g. the map's four slices)
 //        dotnet run -- <game dir> list <text>          (every file path containing the text)
 //        dotnet run -- <game dir> exports <package>    (a package's exports as JSON)
-//        dotnet run -- <game dir> phases <out.json>    (the Space Elevator's phases and what each costs)
+//        dotnet run -- <game dir> bulk <paths.txt> <out.json>  (the exports of every package listed, as JSON by path)
+//        dotnet run -- <game dir> phases <out.json>   (the Space Elevator's phases and what each costs)
 using CUE4Parse.Compression;
 using CUE4Parse.FileProvider;
 using CUE4Parse.MappingsProvider.Usmap;
@@ -215,10 +216,38 @@ if (mode == "creatures")
 }
 
 // "raw <path> <out>": a file from the archives as it is (e.g. a string table CSV).
+// "bulk <paths.txt> <out.json>": the exports of every package named in the file (one path per line), as JSON by path.
+if (mode == "bulk")
+{
+    var all = new Dictionary<string, object>();
+    foreach (var path in File.ReadAllLines(args[2]).Select(l => l.Trim()).Where(l => l.Length > 0))
+    {
+        try { all[path] = JsonConvert.DeserializeObject(JsonConvert.SerializeObject(provider.LoadPackage(path).GetExports()))!; }
+        catch (Exception e) { Console.Error.WriteLine($"skipped {path}: {e.Message}"); }
+    }
+    File.WriteAllText(args[3], JsonConvert.SerializeObject(all));
+    Console.WriteLine($"{all.Count} written");
+    return;
+}
+
 if (mode == "raw")
 {
     File.WriteAllBytes(args[3], provider.SaveAsset(args[2]));
     Console.WriteLine("saved");
+    return;
+}
+
+// "rawmany <paths.txt> <out dir>": the raw files named in the list (one path per line), each saved under its own file name.
+if (mode == "rawmany")
+{
+    Directory.CreateDirectory(args[3]);
+    var n = 0;
+    foreach (var path in File.ReadAllLines(args[2]).Select(l => l.Trim()).Where(l => l.Length > 0))
+    {
+        try { File.WriteAllBytes(Path.Combine(args[3], Path.GetFileName(path)), provider.SaveAsset(path)); n++; }
+        catch (Exception e) { Console.Error.WriteLine($"skipped {path}: {e.Message}"); }
+    }
+    Console.WriteLine($"{n} saved");
     return;
 }
 

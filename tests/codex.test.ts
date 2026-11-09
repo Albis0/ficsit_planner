@@ -1,13 +1,17 @@
 import { expect, test } from 'bun:test';
 import fs from 'node:fs';
 import path from 'node:path';
-import { type CodexData, indexOf, pageKey, pageOf, parsePage, recipesFor, schematicIcon, search } from '../src/lib/codex';
+import { type CodexData, indexOf, type MamTree, pageKey, pageOf, parsePage, recipesFor, schematicIcon, search } from '../src/lib/codex';
 import { data, recipeById, SPECIAL_ITEMS } from '../src/lib/data';
 import { choicesFor } from '../src/lib/model/choices';
 import codexJson from '../src/data/codex.json';
 import creaturesJson from '../src/data/creatures.json';
+import statsJson from '../src/data/stats.json';
+import mamJson from '../src/data/mam.json';
+import adaJson from '../src/data/ada.json';
+import mamIcons from '../src/data/mam-icons.json';
 
-const codex = { ...codexJson, ...creaturesJson } as unknown as CodexData;
+const codex = { ...codexJson, ...creaturesJson, stats: statsJson } as unknown as CodexData;
 const index = indexOf(codex);
 const icons = new Set(fs.readdirSync(path.join(import.meta.dir, '..', 'public', 'icons')).map((f) => f.replace(/\.webp$/, '')));
 
@@ -86,4 +90,93 @@ test('gear kept apart in the build menu is what the Codex calls ammo, equipment 
     expect(c.tab).toBe(r.outputs.some((o) => SPECIAL_ITEMS.has(o.item)) ? 'special' : 'make');
   }
   expect(choicesFor(undefined, 9).find((c) => c.init.k === 'machine' && c.init.recipe === 'Recipe_Nobelisk_C')?.tab).toBe('special');
+});
+
+test('weapon, fuel and vehicle numbers sit on their pages and add up', () => {
+  const rows = (id: string) => Object.fromEntries((codex.stats[id] ?? []).map(([k, v]) => [k, v]));
+  const rifle = rows('Desc_CartridgeStandard_C');
+  expect(rifle.damage).toBe(5);
+  expect(rifle.fireRate).toBe(5);
+  expect(rifle.dps).toBe(rifle.damage * rifle.fireRate);
+  expect(rows('BP_EquipmentDescriptorRifle_C').reload).toBe(3.2);
+  // A fuel item burns for the inverse of its burn rate: the solid biofuel's 0.35 a second is 2.9 s.
+  const jet = rows('BP_EquipmentDescriptorJetPack_C');
+  expect(jet['burn:Desc_Biofuel_C']).toBe(2.9);
+  expect(jet['burn:Desc_PackagedIonizedFuel_C']).toBeGreaterThan(jet['burn:Desc_PackagedRocketFuel_C']);
+  expect(rows('Desc_Tractor_C').fuelUse).toBe(55);
+  expect(rows('Desc_Medkit_C').heals).toBe(100);
+  // A creature's hit: a hog charges for 10, tougher hogs for more.
+  expect(rows('Desc_HogBasic_C').damage).toBe(10);
+  expect(rows('Desc_HogNuclear_C').damage).toBeGreaterThan(rows('Desc_HogAlpha_C').damage);
+  // A building's space: the Constructor takes 8 by 10 metres, the Manufacturer 18 by 20 (belt pit included).
+  expect(rows('Build_ConstructorMk1_C').footprint).toBe(8);
+  expect(codex.stats.Build_ManufacturerMk1_C[0].slice(0, 3)).toEqual(['footprint', 18, '20']);
+  // Every number belongs to a page the Codex has, and every row has a label.
+  const labels = fs.readFileSync(path.join(import.meta.dir, '..', 'src', 'locales', 'en.ts'), 'utf8');
+  for (const [id, list] of Object.entries(codex.stats)) {
+    expect(codex.items[id] ?? codex.vehicles[id] ?? codex.buildings[id] ?? codex.creatures.find((c) => c.id === id)).toBeDefined();
+    for (const [key] of list) if (!key.includes(':')) expect(labels).toContain(`st_${key}:`);
+  }
+});
+
+test('a number finds the page that has it', () => {
+  const names = (q: string) => search(index, q).map((e) => e.name);
+  expect(names('health')).toContain('Fluffy-Tailed Hog');
+  expect(names('health')).toContain('Medicinal Inhaler');
+  expect(names('damage')).toContain('Rifle Ammo');
+  expect(names('jetpack')[0]).toBe('Jetpack');
+  expect(names('fuel use')).toContain('Explorer');
+  // A name still beats a number: "rifle" lists the Rifle before anything found only by its numbers.
+  expect(names('rifle')[0]).toBe('Rifle');
+});
+
+test('every MAM research sits on one tree cell and its lines end at a child', () => {
+  const mam = new Set(codexJson.schematics.filter((s) => s.type === 'mam').map((s) => s.id));
+  for (const [name, tree] of Object.entries(mamJson as unknown as Record<string, MamTree>)) {
+    const ids = new Set(tree.nodes.map((n) => n.id));
+    const cells = new Set(tree.nodes.map((n) => `${n.x},${n.y}`));
+    expect(cells.size, name).toBe(tree.nodes.length);
+    for (const n of tree.nodes) {
+      expect(mam.has(n.id), n.id).toBe(true);
+      expect(n.x < tree.cols && n.y < tree.rows, n.id).toBe(true);
+      for (const p of n.parents) expect(ids.has(p), `${n.id} < ${p}`).toBe(true);
+      for (const r of n.roads) {
+        expect(ids.has(r.to), `${n.id} > ${r.to}`).toBe(true);
+        expect(r.points.length).toBeGreaterThan(0);
+      }
+    }
+  }
+});
+
+test('every HUB milestone has its own game picture and a page', () => {
+  const milestones = codex.schematics.filter((s) => s.type === 'hub' || s.type === 'milestone');
+  expect(milestones.length).toBe(48);
+  for (const s of milestones) {
+    expect(s.id in mamIcons, s.id).toBe(true);
+    expect(index.schematic.has(s.id)).toBe(true);
+  }
+});
+
+test('every ADA line in the voice list is a file in public/ada, has subtitles in time order and belongs to a real schematic', () => {
+  const dir = path.join(import.meta.dir, '..', 'public', 'ada');
+  for (const [id, messages] of Object.entries(adaJson as unknown as Record<string, { a: string[]; c: [number, string, number][] }[]>)) {
+    expect(index.schematic.has(id), id).toBe(true);
+    for (const m of messages) {
+      for (const f of m.a) expect(fs.existsSync(path.join(dir, `${f}.ogg`)), f).toBe(true);
+      expect(m.c.length, id).toBeGreaterThan(0);
+      expect(m.c[0][0], id).toBe(0);
+      expect(
+        m.c.every((c, i) => c[1] && (i === 0 || c[0] >= m.c[i - 1][0])),
+        id,
+      ).toBe(true);
+    }
+  }
+  for (const f of ['logo', 'bubble']) expect(fs.existsSync(path.join(dir, `${f}.png`)), f).toBe(true);
+});
+
+test('every HUB milestone but the tutorial ones has an ADA voice', () => {
+  const ada = adaJson as Record<string, unknown>;
+  for (const s of index.data.schematics.filter((x) => x.type === 'hub' || x.type === 'milestone')) {
+    if (!s.id.startsWith('Schematic_Tutorial')) expect(ada[s.id], s.id).toBeDefined();
+  }
 });

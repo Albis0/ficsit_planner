@@ -1,7 +1,9 @@
 import { useEffect, useState } from 'react';
+import type { ReactNode } from 'react';
 import { type Cost, data, generatorById, producersOf, type Recipe, recipeById, recipeTier } from './data';
 import type { Creature, FindCounts } from './finds';
 import type { Insights } from './insights';
+import mamIcons from '../data/mam-icons.json';
 import { searchKey } from './text';
 
 /**
@@ -95,6 +97,26 @@ export interface CodexData {
   insights: Insights;
   /** The Space Elevator's phases, from the game's GamePhase assets. */
   phases: Phase[];
+  /** What a page's numbers are, by item or vehicle id (scripts/extract-stats.mjs): [key, value, unit, 'w' when from the wiki]. */
+  stats: Record<string, [string, number, string, 'w'?][]>;
+  /** The MAM's research trees as the game lays them out (scripts/extract-mam.mjs), by tree name. */
+  mam: Record<string, MamTree>;
+}
+
+export interface MamNode {
+  id: string;
+  x: number;
+  y: number;
+  parents: string[];
+  hiddenBy: string[];
+  /** A line to a child: the grid cells it runs through, ending in the child's own cell. */
+  roads: { to: string; points: [number, number][] }[];
+}
+
+export interface MamTree {
+  cols: number;
+  rows: number;
+  nodes: MamNode[];
 }
 
 export interface Phase {
@@ -134,6 +156,7 @@ export const CATEGORIES: Category[] = [
 
 export type GuideId =
   | 'start'
+  | 'numbers'
   | 'elevator'
   | 'power'
   | 'overclock'
@@ -149,6 +172,7 @@ export type GuideId =
   | 'crashsites';
 export const GUIDES: GuideId[] = [
   'start',
+  'numbers',
   'elevator',
   'power',
   'overclock',
@@ -167,6 +191,7 @@ export const GUIDES: GuideId[] = [
 /** A game icon for each guide. */
 export const GUIDE_ICON: Record<GuideId, string> = {
   start: 'Build_TradingPost_C',
+  numbers: 'Desc_CartridgeStandard_C',
   elevator: 'Desc_SpaceElevatorPart_1_C',
   power: 'Build_GeneratorCoal_C',
   oil: 'Desc_LiquidOil_C',
@@ -209,12 +234,16 @@ export function loadCodex(): Promise<CodexData> {
     import('../data/creatures.json'),
     import('../data/insights.json'),
     import('../data/elevator.json'),
-  ]).then(([m, c, i, e]) => {
+    import('../data/stats.json'),
+    import('../data/mam.json'),
+  ]).then(([m, c, i, e, s, mam]) => {
     loaded = {
-      ...(m.default as unknown as Omit<CodexData, 'creatures' | 'counts' | 'insights' | 'phases'>),
+      ...(m.default as unknown as Omit<CodexData, 'creatures' | 'counts' | 'insights' | 'phases' | 'stats' | 'mam'>),
+      mam: mam.default as unknown as CodexData['mam'],
       ...(c.default as Pick<CodexData, 'creatures' | 'counts'>),
       insights: i.default as unknown as Insights,
       phases: e.default.phases,
+      stats: s.default as unknown as CodexData['stats'],
     };
     return loaded;
   });
@@ -236,8 +265,33 @@ export interface Entry {
   name: string;
   icon?: string;
   /** Short line under the name: a tier, a group, points. */
-  note?: string;
+  note?: ReactNode;
+  /** More words a search finds it by (the numbers it holds: health, damage, fuel ...), after the ones in its name. */
+  words?: string;
 }
+
+/** What a player types to find a page by one of its numbers. */
+const STAT_WORDS: Record<string, string> = {
+  damage: 'damage hit dps',
+  blastDamage: 'damage blast explosion',
+  blastRadius: 'radius blast area explosion',
+  pellets: 'pellets shotgun spread',
+  fireRate: 'fire rate speed',
+  dps: 'damage per second dps',
+  magazine: 'magazine clip ammo',
+  range: 'range distance',
+  reload: 'reload',
+  reach: 'reach range melee',
+  scanRange: 'scan range detect',
+  filter: 'filter gas radiation',
+  hoverSpeed: 'hover speed',
+  power: 'power mw',
+  heals: 'heal health hp food',
+  fuelUse: 'fuel use power consumption mw',
+  footprint: 'size footprint width length dimensions space area',
+  burn: 'fuel burn flight time jetpack',
+};
+const CREATURE_WORDS = 'health hp hit points speed run sprint drop spawn damage attack';
 
 export interface CodexIndex {
   data: CodexData;
@@ -287,11 +341,16 @@ export function indexOf(codex: CodexData): CodexIndex {
   }
 
   const entries: Entry[] = [];
-  for (const [id, it] of Object.entries(codex.items)) entries.push({ page: { kind: 'item', id }, name: it.name, icon: id });
-  for (const [id, b] of Object.entries(codex.buildings)) entries.push({ page: { kind: 'building', id }, name: b.name, icon: id });
-  for (const [id, v] of Object.entries(codex.vehicles)) entries.push({ page: { kind: 'vehicle', id }, name: v.name, icon: id });
+  const wordsOf = (id: string) =>
+    [...new Set((codex.stats[id] ?? []).map(([key]) => STAT_WORDS[key.split(':')[0]]).filter(Boolean))].join(' ') || undefined;
+  for (const [id, it] of Object.entries(codex.items))
+    entries.push({ page: { kind: 'item', id }, name: it.name, icon: id, words: wordsOf(id) });
+  for (const [id, b] of Object.entries(codex.buildings))
+    entries.push({ page: { kind: 'building', id }, name: b.name, icon: id, words: wordsOf(id) });
+  for (const [id, v] of Object.entries(codex.vehicles))
+    entries.push({ page: { kind: 'vehicle', id }, name: v.name, icon: id, words: `slots inventory ${wordsOf(id) ?? ''}`.trim() });
   for (const s of codex.schematics) entries.push({ page: { kind: 'schematic', id: s.id }, name: s.name, icon: schematicIcon(s, codex) });
-  for (const c of codex.creatures) entries.push({ page: { kind: 'creature', id: c.id }, name: c.name, icon: c.id });
+  for (const c of codex.creatures) entries.push({ page: { kind: 'creature', id: c.id }, name: c.name, icon: c.id, words: CREATURE_WORDS });
 
   cached = {
     data: codex,
@@ -329,6 +388,8 @@ export function partSource(id: string, index: Pick<CodexIndex, 'data' | 'schemat
 
 /** A picture for a schematic, which has none of its own: what it unlocks or hands over, else what it costs. */
 export function schematicIcon(s: Schematic, codex: CodexData): string | undefined {
+  // A research wears the picture the game gives it (scripts/extract-mam.mjs).
+  if (s.id in mamIcons) return s.id;
   for (const u of s.unlocks) {
     const r = recipeById.get(u);
     if (r) return r.outputs[0].item;
@@ -371,8 +432,11 @@ export function nameOf(id: string, codex: CodexData): string {
 export function search(index: CodexIndex, text: string, guides: Entry[] = [], limit = 60): Entry[] {
   const q = searchKey(text.trim());
   if (!q) return [];
-  const hits = [...guides, ...index.entries].filter((e) => searchKey(e.name).includes(q));
-  hits.sort((a, b) => Number(!searchKey(a.name).startsWith(q)) - Number(!searchKey(b.name).startsWith(q)) || a.name.localeCompare(b.name));
+  const inName = (e: Entry) => searchKey(e.name).includes(q);
+  const hits = [...guides, ...index.entries].filter((e) => inName(e) || (e.words && searchKey(e.words).includes(q)));
+  // A name match first, one that starts with it before one that only holds it, then the ones found by a number.
+  const rank = (e: Entry) => (searchKey(e.name).startsWith(q) ? 0 : inName(e) ? 1 : 2);
+  hits.sort((a, b) => rank(a) - rank(b) || a.name.localeCompare(b.name));
   return hits.slice(0, limit);
 }
 

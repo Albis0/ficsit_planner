@@ -5,6 +5,8 @@ import { Glyph } from '../Glyph';
 import { openMapOn } from '../MapNav';
 import { Icon } from '../Icon';
 import { CodexLink } from './route';
+import { numberRows } from './numbers';
+import { Health } from './Hearts';
 import { Amount, Amounts, Head, Section, UnlockLine } from './parts';
 
 /** Game speeds are in cm/s; km/h reads better next to the game's own vehicles. */
@@ -15,9 +17,10 @@ export function CreaturePage({ id, index }: { id: string; index: CodexIndex }) {
   const c = index.data.creatures.find((x) => x.id === id);
   if (!c) return <p className="hint">{t('codexMissing')}</p>;
   const stats: [string, ReactNode][] = [];
-  if (c.health) stats.push([t('statHealth'), num(c.health)]);
+  if (c.health) stats.push([t('statHealth'), <Health key="health" hp={c.health} />]);
   if (c.run) stats.push([t('statRun'), t('kmh', { n: kmh(c.run) })]);
   if (c.sprint) stats.push([t('statSprint'), t('kmh', { n: kmh(c.sprint) })]);
+  stats.push(...numberRows(id, index, t, num));
   stats.push([t('statInWorld'), num(c.count)]);
   const kin = index.data.creatures.filter((x) => x.family === c.family && x.id !== c.id);
   return (
@@ -52,7 +55,11 @@ export function CreaturePage({ id, index }: { id: string; index: CodexIndex }) {
               <CodexLink key={k.id} page={{ kind: 'creature', id: k.id }} className="codex-use">
                 <Icon id={k.id} size={30} />
                 <span className="codex-use-name">{k.name}</span>
-                {k.health && <span className="codex-use-where">{t('healthN', { n: num(k.health) })}</span>}
+                {k.health && (
+                  <span className="codex-use-where">
+                    <Health hp={k.health} />
+                  </span>
+                )}
               </CodexLink>
             ))}
           </div>
@@ -68,6 +75,7 @@ export function VehiclePage({ id, index }: { id: string; index: CodexIndex }) {
   if (!v) return <p className="hint">{t('codexMissing')}</p>;
   const stats: [string, ReactNode][] = [];
   if (v.slots) stats.push([v.fluid ? t('statTank') : t('stat_slots'), num(v.slots)]);
+  stats.push(...numberRows(id, index, t, num));
   return (
     <>
       <Head icon={id} name={v.name} tag={t('kind_vehicle')} stats={stats} desc={v.desc} />

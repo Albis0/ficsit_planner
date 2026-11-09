@@ -367,6 +367,8 @@ interface State {
   moveTab: (id: string, to: number, power?: boolean) => void;
 
   addTarget: (item: string) => void;
+  /** From the Codex: puts an item among the active Auto factory's products and goes to that factory. */
+  addToFactory: (item: string) => void;
   setTarget: (i: number, rate: number) => void;
   removeTarget: (i: number) => void;
   addSupply: (item: string, rate?: number, from?: string) => void;
@@ -771,6 +773,10 @@ export const useStore = create<State>()(
         },
 
         addTarget: (item) => update((p) => (p.targets.some((t) => t.item === item) ? {} : { targets: [...p.targets, { item, rate: 10 }] })),
+        addToFactory: (item) => {
+          get().addTarget(item);
+          set({ mode: 'factory', tab: 'targets', pane: 'floor', inspect: undefined });
+        },
         setTarget: (i, rate) => update((p) => ({ targets: p.targets.map((t, j) => (j === i ? { ...t, rate } : t)) }), `target:${i}`),
         removeTarget: (i) => update((p) => ({ targets: p.targets.filter((_, j) => j !== i) })),
         addSupply: (item, rate = 10, from) =>

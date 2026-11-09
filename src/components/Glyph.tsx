@@ -16,6 +16,9 @@ const PATHS = {
   bulb: 'M9 18h6 M10 21h4 M12 3a6 6 0 0 0-3.5 10.9c.6.5 1 1.2 1 2V17h5v-1.1c0-.8.4-1.5 1-2A6 6 0 0 0 12 3z',
   check: 'M4 12.5 9.5 18 20 6.5',
   close: 'M6 6l12 12 M18 6 6 18',
+  // Speaker with sound waves, and a stop square.
+  speaker: 'M4 9v6h4l5 4V5L8 9z M16.5 9a4 4 0 0 1 0 6 M19 6.5a8 8 0 0 1 0 11',
+  stop: 'M7 7h10v10H7z',
   layout: 'M3 4h18v16H3z M3 9h18 M9 9v11',
   floor: 'M3 3h18v18H3z M3 9h18 M3 15h18 M9 3v18 M15 3v18',
   palette:

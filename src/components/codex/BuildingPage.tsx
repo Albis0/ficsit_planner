@@ -8,6 +8,7 @@ import { recipeLabel } from '../../lib/text';
 import { BUILDING_NOTES } from '../../locales/codex-notes.en';
 import { shardsFor } from '../../lib/solver';
 import { Icon } from '../Icon';
+import { numberRows } from './numbers';
 import { CodexLink } from './route';
 import { Amounts, Head, Notes, Section, UnlockLine } from './parts';
 import { PhaseList } from './parts';
@@ -32,6 +33,7 @@ export function BuildingPage({ id, index }: { id: string; index: CodexIndex }) {
         `${num(Math.min(...ranges.map((r) => r[0])))}–${num(Math.max(...ranges.map((r) => r[1])))}${t('statUnit_power')}`,
       ]);
   }
+  stats.push(...numberRows(id, index, t, num));
   if (generator?.kind === 'geothermal')
     stats.push([t('stat_makes'), t('geyserRange', { impure: generator.power / 2, pure: generator.power * 2 })]);
   if (generator?.kind === 'augmenter') stats.push([t('stat_makes'), `${num(generator.power)}${t('statUnit_power')}`]);

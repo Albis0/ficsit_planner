@@ -56,6 +56,7 @@ import { useUndoKeys } from './lib/undoKeys';
 import { startAutoBackup } from './lib/autobackup';
 import { startPolls } from './lib/polls';
 import { SaveButton, SaveFlow } from './components/SaveButton';
+import { AdaBar } from './components/codex/Ada';
 import { LATEST_UPDATE } from './locales/updates.en';
 import { useSolverLoading, useSolverReady } from './lib/solverClient';
 import { bootDone, bootText } from './lib/boot';
@@ -582,6 +583,7 @@ export default function App() {
       <PollCard />
       <ClosedTab />
       <PwaStatus />
+      <AdaBar />
     </div>
   );
 }
