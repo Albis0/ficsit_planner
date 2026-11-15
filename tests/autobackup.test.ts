@@ -34,6 +34,8 @@ describe('automatic copies', () => {
   });
 
   test('the fingerprint follows the plans and plants, not the clock or the settings', () => {
+    // No parked worlds left over from another test file: they would be in the export.
+    useStore.setState({ worlds: [] });
     const a = { plans: [worked()], power: [] };
     const same = { ...buildExport(), ...a };
     expect(fingerprint(a)).toBe(fingerprint({ plans: [...a.plans], power: [] }));

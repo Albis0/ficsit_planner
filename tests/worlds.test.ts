@@ -25,6 +25,8 @@ const fresh = () => {
   const plan = newPlan('Factory 1');
   const pp = newPowerPlan('Plant 1');
   useStore.setState({
+    // An earlier test file may have left the power planner open, which sends plan edits to a plant.
+    mode: 'factory',
     world: { id: 'main', name: 'World 1' },
     worlds: [],
     plans: [plan],
