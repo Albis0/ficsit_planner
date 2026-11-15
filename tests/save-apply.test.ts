@@ -138,7 +138,8 @@ describe('choosing among the saves', () => {
     expect([46, 52, 58, 60].map(gameVersion)).toEqual(['1.0', '1.1', '1.2', '1.2']);
     expect(isNewer({ saveVersion: 60, build: 502094 })).toBe(false);
     expect(isNewer({ saveVersion: 61, build: 502094 })).toBe(true);
-    expect(isNewer({ saveVersion: 60, build: 510000 })).toBe(true);
+    expect(isNewer({ saveVersion: 60, build: 517554 })).toBe(false);
+    expect(isNewer({ saveVersion: 60, build: 520000 })).toBe(true);
     expect(isSupported({ saveVersion: 42 })).toBe(false);
   });
 });
@@ -172,6 +173,21 @@ describe('the followed save in the planner', () => {
     expect(s.inventory.sloops).toBe(3);
     expect(s.plans.every((p) => p.enabled.includes(alt[0]))).toBe(true);
     expect(s.save).toMatchObject({ session: 's1', game: 'ela', file: 'SPACE', savedAt: 1000, seen: { tier: 4, sloops: 3 } });
+    useStore.setState(before);
+  });
+
+  test('an import sets random nodes from the save: on when it has nodes of its own, off when it has not', async () => {
+    const before = useStore.getState();
+    useStore.setState({ randomNodes: undefined, save: undefined });
+    await take(found({}), data0({ random: true }), ALL_ANSWERS, []);
+    expect(useStore.getState().randomNodes).toBe(true);
+    expect(useStore.getState().save?.map?.random).toBe(true);
+    await take(found({}), data0({}), ALL_ANSWERS, []);
+    expect(useStore.getState().randomNodes).toBeUndefined();
+    // A world made random by hand is not random once a plain save says otherwise.
+    useStore.setState({ randomNodes: true });
+    await take(found({}), data0({}), ALL_ANSWERS, []);
+    expect(useStore.getState().randomNodes).toBeUndefined();
     useStore.setState(before);
   });
 

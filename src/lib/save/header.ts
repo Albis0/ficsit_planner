@@ -4,7 +4,7 @@ import { Reader, SaveError } from './reader';
 export type SaveHeader = {
   headerVersion: number;
   saveVersion: number;
-  /** The game build that wrote it (502094 is 1.2). */
+  /** The game build that wrote it (517554 is 1.2.5). */
   build: number;
   saveName: string;
   mapName: string;

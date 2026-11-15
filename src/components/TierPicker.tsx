@@ -31,6 +31,44 @@ const chipIcon = (m: Milestone) => {
   return building ?? recipeById.get(m.unlocks[0])?.outputs[0]?.item ?? m.unlocks[0];
 };
 
+/** The phases and their tiers on one line, the chosen one marked: shared by the tier window and the New world window. */
+export function TierSteps({ tier, onPick }: { tier: number; onPick: (tier: number) => void }) {
+  const { t } = useT();
+  return (
+    <div className="phase-list">
+      {GROUPS.map((g) => {
+        const done = g.tiers.every((x) => x < tier);
+        const current = g.tiers.includes(tier);
+        // How far along the line of this phase the orange runs: to the centre of the chosen tier.
+        const at = done ? 1 : current ? (g.tiers.indexOf(tier) + 0.5) / g.tiers.length : 0;
+        return (
+          <section
+            key={g.phase}
+            className={`phase ${done ? 'done' : current ? 'here' : ''}`}
+            style={{ '--n': g.tiers.length } as CSSProperties}
+          >
+            <h3 className="phase-name">{g.phase === 0 ? t('phaseStart') : `${t('phase')} ${g.phase}`}</h3>
+            <div className="phase-tiers" style={{ '--at': at } as CSSProperties}>
+              {g.tiers.map((step) => (
+                <button
+                  key={step}
+                  type="button"
+                  className={`tier-card ${tier === step ? 'current' : step < tier ? 'passed' : ''}`}
+                  aria-pressed={tier === step}
+                  onClick={() => onPick(step)}
+                >
+                  <span className="sr-only">{t('tier')} </span>
+                  <span className="tier-card-num">{step}</span>
+                </button>
+              ))}
+            </div>
+          </section>
+        );
+      })}
+    </div>
+  );
+}
+
 /** The tier window: asked once on first launch, reopened from the top bar. */
 export function TierDialog({ onClose }: { onClose: () => void }) {
   const { t, name } = useT();
@@ -94,37 +132,7 @@ export function TierDialog({ onClose }: { onClose: () => void }) {
         <h2 className="quick-title">{t('unlockedTier')}</h2>
       </header>
       <div className="tier-body">
-        <div className="phase-list">
-          {GROUPS.map((g) => {
-            const done = g.tiers.every((x) => x < tier);
-            const current = g.tiers.includes(tier);
-            // How far along the line of this phase the orange runs: to the centre of the chosen tier.
-            const at = done ? 1 : current ? (g.tiers.indexOf(tier) + 0.5) / g.tiers.length : 0;
-            return (
-              <section
-                key={g.phase}
-                className={`phase ${done ? 'done' : current ? 'here' : ''}`}
-                style={{ '--n': g.tiers.length } as CSSProperties}
-              >
-                <h3 className="phase-name">{g.phase === 0 ? t('phaseStart') : `${t('phase')} ${g.phase}`}</h3>
-                <div className="phase-tiers" style={{ '--at': at } as CSSProperties}>
-                  {g.tiers.map((step) => (
-                    <button
-                      key={step}
-                      type="button"
-                      className={`tier-card ${tier === step ? 'current' : step < tier ? 'passed' : ''}`}
-                      aria-pressed={tier === step}
-                      onClick={() => pick(step)}
-                    >
-                      <span className="sr-only">{t('tier')} </span>
-                      <span className="tier-card-num">{step}</span>
-                    </button>
-                  ))}
-                </div>
-              </section>
-            );
-          })}
-        </div>
+        <TierSteps tier={tier} onPick={pick} />
         <div className="tier-panel">
           <section>
             <h3 className="tier-panel-title">{t('tierOpens')}</h3>

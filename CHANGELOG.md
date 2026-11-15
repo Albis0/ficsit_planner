@@ -2,6 +2,25 @@
 
 All notable changes to FICSIT Planner. Dates are when the version was finished.
 
+## 0.14.7 — 2026-11-15
+
+### Added
+
+- Worlds: keep more than one game apart. Each world has its own factories, power plants, tier, unlocked recipes, skipped milestones, inventory, game settings and save. Settings › Worlds lists them; open, rename or delete one (it asks first), or make a New world with its name, tier, game settings and Random resource nodes. Backup files carry every world.
+- Map: randomized resource nodes. Import a save from a game with random nodes and the map, its pins, bubbles and counts show each node where your game put it, with its ore and purity. With Random resource nodes on and no save yet, the map draws no nodes and asks for the save. Thanks to nuit_apache.
+
+### Changed
+
+- Settings: sections grouped as Look (Layout, Factory floor, Colours, Interface), Game (Worlds, Game settings, Game save) and App (Your data, Help, Updates), with bigger headings and one focus ring on every control. On a phone, a list of sections opens one at a time with All settings to go back. On touch screens, reset buttons, switches, sliders and choice buttons are bigger.
+- The world button left the top bar; worlds are under Settings › Worlds.
+- Game data checked against Satisfactory 1.2.5.0; nothing in recipes, items or the map changed.
+
+### Fixed
+
+- Both floors: a belt with several lanes no longer folds over itself where it turns; the turn is wide enough for the outer lane.
+- Auto floor: a belt no longer goes past a card’s end and back, which drew fans and dark triangles on wide belts. Belts into one card take its ends in the order they come from, so they no longer cross in front of it. A small step between two ends is one smooth bend.
+- Area names set to Always no longer grow over the machines of their area. Zoomed far out, the name sits in the middle of its area, never bigger than the area.
+
 ## 0.14.6 — 2026-11-09
 
 ### Added

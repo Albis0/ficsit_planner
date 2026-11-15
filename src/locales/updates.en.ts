@@ -11,6 +11,30 @@ export type UpdateNote = [UpdateKind, string];
 /** `ask` puts a question with a rating and a note under the version in Settings › Updates. */
 export const UPDATES: { version: string; date: string; title?: string; notes: UpdateNote[]; ask?: string }[] = [
   {
+    version: '0.14.7',
+    date: '2026-11-15',
+    title: 'Worlds',
+    notes: [
+      [
+        'added',
+        'Worlds: keep more than one game apart. Each world has its own factories, power plants, tier, unlocked recipes, game settings and save. Open, rename or delete them, or make a New world with its name, tier and game settings, under Settings › Worlds.',
+      ],
+      [
+        'added',
+        'Map: randomized resource nodes. Import a save from a game with random nodes and the map shows each node where your game put it, with its ore and purity. A New world can start with Random resource nodes on, and the map waits for the save. Thanks to nuit_apache.',
+      ],
+      [
+        'changed',
+        'Settings: sections grouped as Look, Game and App, with bigger headings. On a phone, a list of sections opens one at a time, and buttons, switches and sliders are bigger to touch.',
+      ],
+      [
+        'fixed',
+        'Both floors: a wide belt no longer folds over itself where it turns. Auto floor: a belt no longer goes past a card’s end and back, and belts into one card no longer cross in front of it.',
+      ],
+      ['fixed', 'Area names set to Always no longer grow over the machines. Zoomed far out, the name sits in the middle of its area.'],
+    ],
+  },
+  {
     version: '0.14.6',
     date: '2026-11-09',
     title: 'Codex',

@@ -223,15 +223,27 @@ function meet(p: Point, s: { w: number; h: number }, dir: Direction, side: 'in' 
 }
 
 /**
- * For each machine card, the items on its ends in the order that keeps its belts from crossing: as the other ends of
- * the belts stand across the flow (an item with no belt comes last, in the recipe's order).
+ * For each machine card, the items on its ends in the order that keeps its belts from crossing: as the belts come up to
+ * the card across the flow, or with no route as their other ends stand (an item with no belt comes last, in the recipe's order).
  */
-function orderEnds(nodes: Node[], edges: Edge[], pos: Map<string, Point>, dir: Direction): Map<string, { in: string[]; out: string[] }> {
+function orderEnds(
+  nodes: Node[],
+  edges: Edge[],
+  pos: Map<string, Point>,
+  dir: Direction,
+  routes?: Map<string, Point[]>,
+): Map<string, { in: string[]; out: string[] }> {
   const size = new Map(nodes.map((n) => [n.id, n]));
-  const across = (id: string) => {
+  const middle = (id: string) => {
     const n = size.get(id)!;
     const p = pos.get(id)!;
     return dir === 'TB' ? p.x + (n.width ?? 0) / 2 : p.y + (n.height ?? 0) / 2;
+  };
+  // A belt's last bend before the card (its first after it): a belt from a card below may still come in from above.
+  const across = (e: Edge, far: 'source' | 'target') => {
+    const r = routes?.get(e.id);
+    const p = r && r.length > 2 ? (far === 'source' ? r[r.length - 2] : r[1]) : undefined;
+    return p ? (dir === 'TB' ? p.x : p.y) : middle(e[far]);
   };
   const by = (end: 'source' | 'target') => {
     const m = new Map<string, Edge[]>();
@@ -241,7 +253,7 @@ function orderEnds(nodes: Node[], edges: Edge[], pos: Map<string, Point>, dir: D
   const [from, into] = [by('source'), by('target')];
   const sorted = (keys: string[], belts: Edge[], far: 'source' | 'target') => {
     const where = (key: string) => {
-      const x = belts.filter((e) => keyOf(e) === key).map((e) => across(e[far]));
+      const x = belts.filter((e) => keyOf(e) === key).map((e) => across(e, far));
       return x.length ? x.reduce((a, b) => a + b, 0) / x.length : Number.POSITIVE_INFINITY;
     };
     return keys
@@ -923,13 +935,15 @@ function placeIn(
     pos.set(n.id, { x: p.x - (n.width ?? 0) / 2, y: p.y - (n.height ?? 0) / 2 });
   }
   const routes = new Map<string, { points: Point[]; label: Point }>();
+  const whole = new Map<string, Point[]>();
   for (const e of edges) {
     const r = g.edge({ v: e.source, w: e.target, name: e.id });
     // The first and last points sit on the machines' borders; the handles replace them.
     routes.set(e.id, { points: r.points.slice(1, -1), label: { x: r.x, y: r.y } });
+    whole.set(e.id, r.points);
   }
   const { width = 0, height = 0 } = g.graph();
-  const order = orderEnds(nodes, edges, pos, dir);
+  const order = orderEnds(nodes, edges, pos, dir, whole);
   const handles = endsOfBelts(edges, order);
   const ends = endsFor(nodes, edges, order, dir, opts.scale ?? 1);
   return { dir, pos, routes, width, height, crossings: crossings(nodes, edges, pos, dir, ends, handles), order, handles };

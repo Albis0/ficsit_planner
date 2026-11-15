@@ -6,6 +6,10 @@ import type { Members } from './factories';
 const DB = 'ficsit-planner-save';
 const STORE = 'save';
 
+/** The world a player has before they make another. What was kept before worlds is filed under its plain keys, so it still resolves. */
+export const FIRST_WORLD = 'main';
+const key = (name: 'last' | 'members', world: string) => (world === FIRST_WORLD ? name : `${name}:${world}`);
+
 const open = () =>
   new Promise<IDBDatabase>((resolve, reject) => {
     const req = indexedDB.open(DB, 1);
@@ -21,17 +25,18 @@ const finished = (tx: IDBTransaction) =>
   });
 
 /**
- * Keeps a save file, and the buildings of each of its factories, in place of all kept before. Quiet:
+ * Keeps a world's save file, and the buildings of each of its factories, in place of all kept for it before. Quiet:
  * without IndexedDB (some private windows) nothing is kept.
  */
-export async function keepSave(file: File, factories?: { members: Members }): Promise<void> {
+export async function keepSave(world: string, file: File, factories?: { members: Members }): Promise<void> {
   try {
     const db = await open();
     const tx = db.transaction(STORE, 'readwrite');
     const store = tx.objectStore(STORE);
-    store.clear();
-    store.put(file, 'last');
-    if (factories) store.put(factories.members, 'members');
+    store.delete(key('last', world));
+    store.delete(key('members', world));
+    store.put(file, key('last', world));
+    if (factories) store.put(factories.members, key('members', world));
     await finished(tx);
     db.close();
   } catch {}
@@ -52,12 +57,21 @@ async function read<T>(key: string): Promise<T | undefined> {
   }
 }
 
-/** The buildings of each factory at the last import. */
-export const keptMembers = async (): Promise<Members> => (await read<Members>('members')) ?? {};
+/** The buildings of each factory at the world's last import. */
+export const keptMembers = async (world: string): Promise<Members> => (await read<Members>(key('members', world))) ?? {};
 
-/** Deletes the kept save file. */
-export async function forgetSave(): Promise<void> {
+/** Deletes a world's kept save file; without a world, every kept file. */
+export async function forgetSave(world?: string): Promise<void> {
   try {
+    if (world !== undefined) {
+      const db = await open();
+      const tx = db.transaction(STORE, 'readwrite');
+      tx.objectStore(STORE).delete(key('last', world));
+      tx.objectStore(STORE).delete(key('members', world));
+      await finished(tx);
+      db.close();
+      return;
+    }
     await new Promise<void>((resolve) => {
       const req = indexedDB.deleteDatabase(DB);
       req.onsuccess = req.onerror = req.onblocked = () => resolve();

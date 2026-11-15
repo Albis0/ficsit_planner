@@ -19,7 +19,9 @@ export function mine(): Values {
  * in this browser. Returns the fields taken.
  */
 export async function takeSave(found: Found, save: SaveData, answers: Answers, keep: readonly Field[]): Promise<{ taken: Field[] }> {
-  const factories = answers.factories ? findFactories(save, await keptMembers()) : undefined;
+  // The world the save goes into, whatever is opened by the time the factories are found.
+  const world = useStore.getState().world.id;
+  const factories = answers.factories ? findFactories(save, await keptMembers(world)) : undefined;
   const s = useStore.getState();
   const game = valuesOf(save);
   const taken = fieldsOf(answers).filter((f) => !keep.includes(f));
@@ -52,7 +54,11 @@ export async function takeSave(found: Found, save: SaveData, answers: Answers, k
       return missing.length ? { ...p, enabled: [...p.enabled, ...missing] } : p;
     }),
     save: info,
+    // The save is the truth about the nodes: random when it has nodes of its own, plain when it does not.
+    randomNodes: info.map?.random ? true : undefined,
+    // A world still called "World 2" takes the game's name.
+    ...(/^World \d+$/.test(s.world.name) && info.game ? { world: { ...s.world, name: info.game.slice(0, 80) } } : {}),
   });
-  await keepSave(found.file, factories);
+  await keepSave(world, found.file, factories);
   return { taken };
 }

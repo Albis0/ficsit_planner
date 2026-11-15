@@ -129,7 +129,7 @@ dialog.tier-dialog {
   background: linear-gradient(90deg, var(--ficsit) calc(var(--at, 0) * 100%), #4a4a4a 0);
 }
 
-dialog.tier-dialog .tier-card {
+dialog .phase-list .tier-card {
   position: relative;
   z-index: 1;
   display: grid;
@@ -146,17 +146,17 @@ dialog.tier-dialog .tier-card {
   color: #9a9a9a;
 }
 
-dialog.tier-dialog .tier-card:hover {
+dialog .phase-list .tier-card:hover {
   border-color: var(--ficsit);
 }
 
-dialog.tier-dialog .tier-card.passed {
+dialog .phase-list .tier-card.passed {
   background: var(--ficsit);
   border-color: var(--ficsit);
   color: var(--ficsit-ink);
 }
 
-dialog.tier-dialog .tier-card.current {
+dialog .phase-list .tier-card.current {
   background: #161616;
   border-color: var(--ficsit);
   color: #fff;

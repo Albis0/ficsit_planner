@@ -28,12 +28,14 @@ export function SaveSection() {
   const line = useSaveLine();
   if (!save)
     return (
-      <p className="save-small save-line">
-        {t('saveNoneYet')}{' '}
-        <button type="button" className="text-button" onClick={openImport}>
-          {t('saveImport')}
-        </button>
-      </p>
+      <>
+        <p className="save-small save-line">
+          {t('saveNoneYet')}{' '}
+          <button type="button" className="text-button" onClick={openImport}>
+            {t('saveImport')}
+          </button>
+        </p>
+      </>
     );
   const answer = (patch: Partial<Answers>) => useStore.setState({ save: { ...save, answers: { ...save.answers, ...patch } } });
   return (
@@ -54,7 +56,7 @@ export function SaveSection() {
           title={t('saveForgetHint')}
           onClick={() => {
             useStore.setState({ save: undefined });
-            void forgetSave();
+            void forgetSave(useStore.getState().world.id);
           }}
         >
           {t('saveForget')}

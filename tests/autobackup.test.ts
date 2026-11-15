@@ -41,6 +41,18 @@ describe('automatic copies', () => {
     expect(fingerprint({ plans: [{ ...a.plans[0], name: 'B' }], power: [] })).not.toBe(fingerprint(a));
   });
 
+  test('the other worlds count: they change the fingerprint and make a blank open world worth a copy', () => {
+    const blank = { plans: [newPlan('A')], power: [newPowerPlan('Plant 1')] };
+    const parked = (plans = [worked()]) => [{ name: 'W', data: { ...blank, plans } }];
+    expect(hasPlans(blank)).toBe(false);
+    expect(hasPlans({ ...blank, worlds: parked([newPlan('A')]) })).toBe(false);
+    expect(hasPlans({ ...blank, worlds: parked() })).toBe(true);
+    const a = { plans: [worked()], power: [] };
+    expect(fingerprint({ ...a, worlds: undefined })).toBe(fingerprint(a));
+    expect(fingerprint({ ...blank, worlds: parked() })).not.toBe(fingerprint(blank));
+    expect(fingerprint({ ...blank, worlds: parked() })).not.toBe(fingerprint({ ...blank, worlds: parked([{ ...worked(), name: 'B' }]) }));
+  });
+
   test('an untouched session has nothing worth a copy', () => {
     expect(hasPlans({ plans: [newPlan('A')], power: [newPowerPlan('Plant 1')] })).toBe(false);
     expect(hasPlans({ plans: [worked()], power: [] })).toBe(true);

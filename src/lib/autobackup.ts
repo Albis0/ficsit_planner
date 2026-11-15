@@ -11,9 +11,10 @@ const OPEN_WAIT = 60 * 1000;
 
 export type Backup = { at: number; hash: string; factories: number; plants: number; file: ExportFile };
 
-/** A short fingerprint of the plans and plants, to tell whether they changed since the last copy. */
-export function fingerprint(file: Pick<ExportFile, 'plans' | 'power'>): string {
-  const text = JSON.stringify([file.plans, file.power]);
+/** A short fingerprint of the plans and plants, and of the other worlds', to tell whether they changed since the last copy. */
+export function fingerprint(file: Pick<ExportFile, 'plans' | 'power' | 'worlds'>): string {
+  // Without other worlds the text is what it always was, so a copy taken before them still matches.
+  const text = JSON.stringify(file.worlds ? [file.plans, file.power, file.worlds] : [file.plans, file.power]);
   let h = 5381;
   for (let i = 0; i < text.length; i++) h = ((h << 5) + h + text.charCodeAt(i)) | 0;
   return `${(h >>> 0).toString(36)}-${text.length}`;

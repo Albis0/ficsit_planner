@@ -39,7 +39,7 @@ export function lanePaths(path: string, lanes: number, pitch = LANE_PITCH, wide 
   const len = probe.getTotalLength();
   if (!(len > 1)) return null;
   const n = Math.min(MAX_POINTS, Math.max(2, Math.ceil(len / STEP)));
-  const out = Array.from({ length: lanes }, () => '');
+  const out: [number, number][][] = Array.from({ length: lanes }, () => []);
   for (let k = 0; k <= n; k++) {
     const at = (k / n) * len;
     const a = probe.getPointAtLength(Math.max(0, at - 1));
@@ -55,13 +55,45 @@ export function lanePaths(path: string, lanes: number, pitch = LANE_PITCH, wide 
     const spread = edge * edge * (3 - 2 * edge);
     for (let i = 0; i < lanes; i++) {
       const o = (i - (lanes - 1) / 2) * pitch * spread;
-      out[i] += `${k === 0 ? 'M' : 'L'}${(p.x - (ty / m) * o).toFixed(1)},${(p.y + (tx / m) * o).toFixed(1)} `;
+      out[i].push([p.x - (ty / m) * o, p.y + (tx / m) * o]);
     }
   }
-  const paths = out.map((d) => d.trim());
+  const paths = out.map((pts) =>
+    untangle(pts)
+      .map(([x, y], k) => `${k === 0 ? 'M' : 'L'}${x.toFixed(1)},${y.toFixed(1)}`)
+      .join(' '),
+  );
   lanesCache.set(key, paths);
   if (lanesCache.size > 400) lanesCache.delete(lanesCache.keys().next().value as string);
   return paths;
+}
+
+/** How far along a lane, in points, a loop it makes over itself is looked for. */
+const LOOP_REACH = 40;
+
+/**
+ * A lane on the inside of a bend tighter than its distance from the middle runs past the bend and back, a small loop
+ * over itself. Cut each such loop where the lane crosses itself, so the lane turns there in a corner.
+ */
+export function untangle(pts: [number, number][]): [number, number][] {
+  const cross = (p: number[], q: number[], r: number[]) => (q[0] - p[0]) * (r[1] - p[1]) - (q[1] - p[1]) * (r[0] - p[0]);
+  const out: [number, number][] = [];
+  for (let k = 0; k < pts.length; k++) {
+    out.push(pts[k]);
+    if (k + 1 >= pts.length) break;
+    const [a, b] = [pts[k], pts[k + 1]];
+    // The farthest piece ahead that this one crosses: everything between is the loop.
+    for (let j = Math.min(pts.length - 2, k + LOOP_REACH); j >= k + 2; j--) {
+      const [c, d] = [pts[j], pts[j + 1]];
+      const [d1, d2, d3, d4] = [cross(a, b, c), cross(a, b, d), cross(c, d, a), cross(c, d, b)];
+      if (d1 * d2 >= 0 || d3 * d4 >= 0) continue;
+      const t = d3 / (d3 - d4);
+      out.push([a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t]);
+      k = j;
+      break;
+    }
+  }
+  return out;
 }
 
 /** How many short pieces each rounded turn is cut into when a belt is walked. */

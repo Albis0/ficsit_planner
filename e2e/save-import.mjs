@@ -366,6 +366,178 @@ try {
   ok('Forget drops the followed save', !s.save && (await page.locator('.save-line').textContent()).includes('No save imported yet'));
   ok('…but keeps the tier', s.tier === 6);
 
+  section = 'worlds';
+  await page.locator('.settings-nav button', { hasText: 'Worlds' }).click();
+  await page.getByRole('button', { name: 'New world' }).click();
+  await page.waitForSelector('.new-world-dialog');
+  await wait(500);
+  await shot('new-world-window');
+  s = await state();
+  ok(
+    'New world opens a window in place of the settings and makes nothing yet',
+    (await page.locator('.settings-dialog').count()) === 0 && s.worlds.length === 0 && s.world.name === 'ela',
+  );
+  ok(
+    'the name is filled in and has the focus',
+    (await page.locator('.new-world .text-field').inputValue()) === 'World 1' &&
+      (await page.evaluate(() => document.activeElement === document.querySelector('.new-world .text-field'))),
+  );
+  ok(
+    'it asks for the tier, the three multipliers and random nodes',
+    (await page.locator('.new-world .tier-card.current').textContent()).includes('9') &&
+      (await page.locator('.new-world .game-mult input').count()) === 3 &&
+      (await page.getByRole('switch', { name: 'Random resource nodes' }).getAttribute('aria-checked')) === 'false',
+  );
+  await page.keyboard.press('Escape');
+  await wait(400);
+  s = await state();
+  ok('Escape cancels', (await page.locator('.new-world-dialog').count()) === 0 && s.worlds.length === 0);
+  await page.click('.chrome-button.settings');
+  await page.locator('.settings-nav button', { hasText: 'Worlds' }).click();
+  await page.getByRole('button', { name: 'New world' }).click();
+  await page.waitForSelector('.new-world-dialog');
+  await page.getByRole('button', { name: 'Cancel' }).click();
+  await wait(300);
+  s = await state();
+  ok('Cancel opens nothing', (await page.locator('.new-world-dialog').count()) === 0 && s.worlds.length === 0);
+  await page.click('.chrome-button.settings');
+  await page.locator('.settings-nav button', { hasText: 'Worlds' }).click();
+  await page.getByRole('button', { name: 'New world' }).click();
+  await page.waitForSelector('.new-world-dialog');
+  await page.locator('.new-world .text-field').press('Enter');
+  await wait(500);
+  s = await state();
+  ok(
+    'New world leaves the settings and opens a blank world',
+    s.world.name === 'World 1' && s.worlds[0].name === 'ela' && (await page.locator('.settings-dialog').count()) === 0,
+  );
+  ok(
+    'with one blank factory tab and the default progress',
+    s.plans.length === 1 && s.plans[0].name === 'Factory 1' && s.plans[0].targets.length === 0 && s.tier === 9,
+  );
+  ok(
+    'the world left behind is parked with its tabs and tier',
+    s.worlds.length === 1 && s.worlds[0].data.plans[0].name === 'Modular Frames' && s.worlds[0].data.tier === 6,
+  );
+  await page.click('.chrome-button.settings');
+  await page.locator('.settings-nav button', { hasText: 'Worlds' }).click();
+  await page.waitForSelector('.world-list');
+  await shot('worlds-list');
+  ok(
+    'Settings › Worlds lists both, the open one marked',
+    (await page.locator('.world-item').count()) === 2 &&
+      (await page.locator('.world-item[data-open] .world-name').textContent()) === 'World 1',
+  );
+  ok('the top bar has no world button', (await page.locator('.world-button').count()) === 0);
+  await page.getByRole('button', { name: 'Open: ela' }).click();
+  await wait(400);
+  s = await state();
+  ok('going back shows the old tabs and tier', s.world.name === 'ela' && s.plans[0].name === 'Modular Frames' && s.tier === 6);
+  ok('the tab on screen is the old one', (await page.locator('.plan-current').textContent()).includes('Modular Frames'));
+  ok('the list moved its mark', (await page.locator('.world-item[data-open] .world-name').textContent()) === 'ela');
+  await page.getByRole('button', { name: 'Delete world: World 1' }).click();
+  await shot('worlds-delete-ask');
+  ok('deleting asks first', (await page.locator('.world-ask').textContent()).startsWith('Delete World 1?'));
+  await page.locator('.world-ask').getByRole('button', { name: 'Delete world' }).click();
+  await wait(400);
+  s = await state();
+  ok('the world is gone', s.worlds.length === 0 && (await page.locator('.world-item').count()) === 1);
+  await page.keyboard.press('Escape');
+  await wait(300);
+
+  // A game started with random resource nodes, if its save is at hand: the map shows the save's nodes.
+  const RANDOM = `${SAVES}/random`;
+  if (fs.existsSync(`${RANDOM}/as.sav`)) {
+    section = 'random nodes';
+    await page.click('.chrome-button.settings');
+    await page.locator('.settings-nav button', { hasText: 'Worlds' }).click();
+    await page.getByRole('button', { name: 'New world' }).click();
+    await page.waitForSelector('.new-world-dialog');
+    await page.locator('.new-world .text-field').fill('Random');
+    await page.getByRole('switch', { name: 'Random resource nodes' }).click();
+    await shot('new-world-random');
+    await page.getByRole('button', { name: 'Create' }).click();
+    await wait(500);
+    s = await state();
+    ok('Create opens the world with random nodes on', s.world.name === 'Random' && s.randomNodes === true && s.worlds.length === 1);
+    await page.click('.mode-switch [role=radio] >> nth=3');
+    await page.waitForSelector('.map-note');
+    await wait(1500);
+    await shot('map-random-no-save');
+    ok(
+      'the map says to import the save',
+      (await page.locator('.map-note').textContent()).startsWith('This world has random resource nodes.'),
+    );
+    ok('the filter has no counts for resources', (await page.locator('.map-items .map-counts', { hasText: '—' }).count()) > 10);
+    await page.locator('.map-note .text-button').click();
+    await page.waitForSelector('.save-dialog');
+    await choose(() => page.click('.save-dialog .save-big'), RANDOM);
+    await page.waitForSelector('.save-side-row');
+    await page.click('.save-foot .primary-button');
+    await reading();
+    await page.waitForSelector('.save-dialog .toggle');
+    await page.click('.save-foot .primary-button');
+    await page.waitForSelector('.save-came');
+    await page.click('.save-foot .primary-button');
+    await wait(1500);
+    s = await state();
+    ok(
+      'the save sets random nodes and keeps only the nodes that differ',
+      s.randomNodes === true && s.save?.map?.random === true && s.save.map.nodes.length === 491 && s.save.map.wells.length === 10,
+    );
+    ok('the note is gone', (await page.locator('.map-note').count()) === 0);
+    await shot('map-random-save');
+    // Only copper ore on show; click a copper node the planner's map has as something else.
+    const names = JSON.parse(fs.readFileSync('src/data/world-names.json', 'utf8'));
+    const world = JSON.parse(fs.readFileSync('src/data/world.json', 'utf8'));
+    const shown = world.nodes.map((n, i) => {
+      const o = s.save.map.nodes.find((x) => x[0] === i);
+      return o ? { ...n, item: o[1] } : n;
+    });
+    const hit = names.node.indexOf('BP_ResourceNode13');
+    await page.getByRole('button', { name: 'Hide all' }).click();
+    await page.locator('.map-item', { hasText: 'Copper Ore' }).click();
+    await wait(800);
+    await shot('map-random-copper');
+    ok(
+      'the planner map has another resource on that node',
+      world.nodes[hit].item !== 'Desc_OreCopper_C' && shown[hit].item === 'Desc_OreCopper_C',
+    );
+    // Where it is on screen: the picture fills the map at the zoom Leaflet fit it to, centred.
+    const box = await page.locator('.world-map').boundingBox();
+    const z = Math.floor(Math.log2(Math.min(box.width, box.height) / 256) * 4) / 4;
+    const scale = (256 * 2 ** z) / world.size;
+    const at = (n) => ({
+      x: box.x + box.width / 2 + (n.x - world.size / 2) * scale,
+      y: box.y + box.height / 2 + (n.y - world.size / 2) * scale,
+    });
+    const target = shown[hit];
+    const spot = at(target);
+    await page.mouse.click(spot.x, spot.y);
+    await page.waitForSelector('.map-pop', { timeout: 3000 });
+    await shot('map-random-popup');
+    ok(
+      'its popup shows the save’s item',
+      (await page.locator('.map-pop b').first().textContent()) === 'Copper Ore',
+      await page.locator('.map-pop').first().textContent(),
+    );
+    // The map goes with the world: in the first world, oil has the planner's counts and no note.
+    const oil = async () => await page.locator('.map-item', { hasText: 'Crude Oil' }).locator('.map-counts').textContent();
+    const randomOil = await oil();
+    await page.keyboard.press('Escape');
+    await page.click('.chrome-button.settings');
+    await page.locator('.settings-nav button', { hasText: 'Worlds' }).click();
+    await page.getByRole('button', { name: 'Open: ela' }).click();
+    await page.keyboard.press('Escape');
+    await wait(1000);
+    await shot('map-first-world');
+    ok(
+      'going to the other world gives its map back',
+      (await page.locator('.map-note').count()) === 0 && (await oil()) !== randomOil,
+      `${await oil()} against ${randomOil}`,
+    );
+  }
+
   section = 'many games';
   await open(1280, 800, seed({}));
   await page.click('.save-button');

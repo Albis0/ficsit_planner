@@ -20,6 +20,8 @@ const PATHS = {
   speaker: 'M4 9v6h4l5 4V5L8 9z M16.5 9a4 4 0 0 1 0 6 M19 6.5a8 8 0 0 1 0 11',
   stop: 'M7 7h10v10H7z',
   layout: 'M3 4h18v16H3z M3 9h18 M9 9v11',
+  // Two windows, one behind the other: a world is a desktop of its own.
+  worlds: 'M8 8h13v12H8z M8 12h13 M3 16V4h13',
   floor: 'M3 3h18v18H3z M3 9h18 M3 15h18 M9 3v18 M15 3v18',
   palette:
     'M12 3a9 9 0 1 0 0 18c1 0 1.6-.8 1.6-1.6 0-.9-.7-1.3-.7-2.1 0-.9.7-1.6 1.6-1.6H17a4 4 0 0 0 4-4C21 6.6 17 3 12 3z M7.5 11.5h.01 M10 7.5h.01 M14.5 7.5h.01',

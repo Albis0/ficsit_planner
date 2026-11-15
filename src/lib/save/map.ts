@@ -1,6 +1,6 @@
 import { data, generatorById } from '../data';
 import { PURITIES, type Purity } from '../extraction';
-import { NODES } from '../world';
+import { NODES, RAW_ITEMS, WELLS } from '../world';
 
 /** The map layers a save says were picked up: Somersloops, Mercer Spheres, the three slugs, and looted drop pods. */
 export const PICKED_LAYERS = ['sloop', 'sphere', 'slug1', 'slug2', 'slug3', 'pod'] as const;
@@ -29,6 +29,12 @@ export type SaveMap = {
   miners: [node: number, extractor: string, clock: number][];
   landmarks: [cls: string, x: number, y: number][];
   factories: SaveFactory[];
+  /** A random-nodes game's nodes that differ from the planner's map: node index, item, purity (0 impure to 2 pure). */
+  nodes?: [node: number, item: string, purity: number][];
+  /** Its resource wells that differ: well index, item. */
+  wells?: [well: number, item: string][];
+  /** The save's nodes have items of their own, whether or not any differs. */
+  random?: true;
   /** Pickups and nodes the save names that this map does not have. */
   missed: number;
 };
@@ -50,6 +56,12 @@ export function cleanSaveMap(v: unknown): SaveMap | undefined {
     const list = arr(p[l]).filter((i) => int(i, 10_000));
     if (list.length) picked[l] = [...new Set(list)];
   }
+  const nodes = arr(m.nodes).filter(
+    (x): x is NonNullable<SaveMap['nodes']>[number] => Array.isArray(x) && int(x[0], NODES.length) && RAW_ITEMS.has(x[1]) && int(x[2], 3),
+  );
+  const wells = arr(m.wells).filter(
+    (x): x is NonNullable<SaveMap['wells']>[number] => Array.isArray(x) && int(x[0], WELLS.length) && RAW_ITEMS.has(x[1]),
+  );
   return {
     picked,
     miners: arr(m.miners).filter(
@@ -74,6 +86,9 @@ export function cleanSaveMap(v: unknown): SaveMap | undefined {
           (f.recipes === undefined || counts(f.recipes)),
       )
       .map((f) => ({ ...f, recipes: f.recipes ?? {} })),
+    ...(nodes.length ? { nodes } : {}),
+    ...(wells.length ? { wells } : {}),
+    ...(m.random === true ? { random: true as const } : {}),
     missed: int(m.missed, 1e6) ? m.missed : 0,
   };
 }

@@ -26,19 +26,37 @@ import { Dialog } from './Dialog';
 import { Glyph, type GlyphName } from './Glyph';
 import { Preview, SpotContext, type Spot } from './SettingsPreview';
 import { SaveSection } from './SaveSection';
+import { WorldsSection } from './WorldsSection';
 
-type Section = 'layout' | 'floor' | 'colors' | 'interface' | 'game' | 'data' | 'save' | 'help' | 'updates';
+type Section = 'layout' | 'floor' | 'colors' | 'interface' | 'worlds' | 'game' | 'save' | 'data' | 'help' | 'updates';
 
-const SECTIONS: { id: Section; glyph: GlyphName }[] = [
-  { id: 'layout', glyph: 'layout' },
-  { id: 'floor', glyph: 'floor' },
-  { id: 'colors', glyph: 'palette' },
-  { id: 'interface', glyph: 'sliders' },
-  { id: 'game', glyph: 'factory' },
-  { id: 'data', glyph: 'database' },
-  { id: 'save', glyph: 'import' },
-  { id: 'help', glyph: 'help' },
-  { id: 'updates', glyph: 'news' },
+/** The sections in three groups: how the app looks, the game being planned for, the app itself. */
+const GROUPS: { title: 'setGroupLook' | 'setGroupGame' | 'setGroupApp'; items: { id: Section; glyph: GlyphName }[] }[] = [
+  {
+    title: 'setGroupLook',
+    items: [
+      { id: 'layout', glyph: 'layout' },
+      { id: 'floor', glyph: 'floor' },
+      { id: 'colors', glyph: 'palette' },
+      { id: 'interface', glyph: 'sliders' },
+    ],
+  },
+  {
+    title: 'setGroupGame',
+    items: [
+      { id: 'worlds', glyph: 'worlds' },
+      { id: 'game', glyph: 'factory' },
+      { id: 'save', glyph: 'import' },
+    ],
+  },
+  {
+    title: 'setGroupApp',
+    items: [
+      { id: 'data', glyph: 'database' },
+      { id: 'help', glyph: 'help' },
+      { id: 'updates', glyph: 'news' },
+    ],
+  },
 ];
 
 type Dir = 'LR' | 'TB' | undefined;
@@ -57,13 +75,23 @@ export function SettingsDialog({ onClose }: { onClose: () => void }) {
   const { t } = useT();
   const unseen = useStore((s) => s.seenUpdates !== LATEST_UPDATE);
   // Opened from the dot on the gear: straight to what's new.
-  const [section, setSection] = useState<Section>(() => useStore.getState().settingsAt ?? (unseen ? 'updates' : 'layout'));
-  // On a phone the sections scroll sideways; bring the one it opened on into view.
+  const [picked, setPicked] = useState<Section | undefined>(() => useStore.getState().settingsAt ?? (unseen ? 'updates' : undefined));
+  // A computer opens on Layout. A phone shows the list of sections first and one section at a time, with a way back.
+  const phone = useMediaQuery(PHONE);
+  const section = picked ?? (phone ? undefined : 'layout');
   const nav = useRef<HTMLElement>(null);
-  // In braces: newer browsers return a promise from scrolling, and an effect may only return its clean-up.
+  const main = useRef<HTMLDivElement>(null);
+  const heading = useRef<HTMLHeadingElement>(null);
   useEffect(() => {
-    nav.current?.querySelector('[aria-current]')?.scrollIntoView({ block: 'nearest', inline: 'nearest' });
-  }, []);
+    if (main.current) main.current.scrollTop = 0;
+    // A section opened on a phone starts at its name, so a screen reader says where it is.
+    if (phone && section) heading.current?.focus({ preventScroll: true });
+  }, [section, phone]);
+  const back = (from: Section) => {
+    setPicked(undefined);
+    setSpot(undefined);
+    requestAnimationFrame(() => nav.current?.querySelector<HTMLElement>(`[data-section="${from}"]`)?.focus());
+  };
   const saved = useStore((s) => s.settings);
   const savedDir = useStore((s) => s.graphDir);
   const setSettings = useStore((s) => s.setSettings);
@@ -101,6 +129,7 @@ export function SettingsDialog({ onClose }: { onClose: () => void }) {
     floor: t('setFloor'),
     colors: t('setColors'),
     interface: t('setInterface'),
+    worlds: t('worlds'),
     game: t('setGame'),
     data: t('setData'),
     save: t('saveMenu'),
@@ -122,38 +151,62 @@ export function SettingsDialog({ onClose }: { onClose: () => void }) {
     >
       <Draft.Provider value={{ settings: draft, set: (patch) => setDraft((d) => ({ ...d, ...patch })), dir, setDir }}>
         <SpotContext.Provider value={{ spot, set: setSpot }}>
-          <div className="settings-body">
+          <div className="settings-body" data-view={phone && section ? 'section' : 'list'}>
             <nav className="settings-nav" aria-label={t('settings')} ref={nav}>
-              {SECTIONS.map((s) => (
-                <button
-                  key={s.id}
-                  type="button"
-                  aria-current={section === s.id ? 'page' : undefined}
-                  onClick={() => {
-                    setSection(s.id);
-                    setSpot(undefined);
-                  }}
-                >
-                  <Glyph name={s.glyph} size={20} />
-                  <span>{titles[s.id]}</span>
-                  {s.id === 'updates' && unseen && <span className="new-dot" role="img" aria-label={t('newUpdates')} />}
-                </button>
+              {GROUPS.map((g) => (
+                <div key={g.title} className="nav-group" role="group" aria-label={t(g.title)}>
+                  <span className="nav-title" aria-hidden>
+                    {t(g.title)}
+                  </span>
+                  {g.items.map((s) => (
+                    <button
+                      key={s.id}
+                      type="button"
+                      data-section={s.id}
+                      aria-current={section === s.id ? 'page' : undefined}
+                      onClick={() => {
+                        setPicked(s.id);
+                        setSpot(undefined);
+                      }}
+                    >
+                      <Glyph name={s.glyph} size={20} />
+                      <span>{titles[s.id]}</span>
+                      {s.id === 'updates' && unseen && <span className="new-dot" role="img" aria-label={t('newUpdates')} />}
+                      <Glyph name="chevronRight" size={18} className="nav-go" />
+                    </button>
+                  ))}
+                </div>
               ))}
             </nav>
-            <div className="settings-main">
-              <div className="settings-controls" key={section}>
-                <h3 className="settings-heading">{titles[section]}</h3>
-                {(section === 'floor' || section === 'colors') && <Preview settings={draft} spot={spot} />}
-                {section === 'layout' && <LayoutSection />}
-                {section === 'floor' && <FloorSection />}
-                {section === 'colors' && <ColorsSection />}
-                {section === 'interface' && <InterfaceSection />}
-                {section === 'game' && <GameSection />}
-                {section === 'data' && <DataSection />}
-                {section === 'save' && <SaveSection />}
-                {section === 'help' && <HelpSection />}
-                {section === 'updates' && <UpdatesSection />}
-              </div>
+            <div className="settings-main" ref={main}>
+              {section && (
+                <div className="settings-controls" key={section}>
+                  <header className="settings-head">
+                    {phone && (
+                      <button type="button" className="settings-back" onClick={() => back(section)}>
+                        <Glyph name="chevronLeft" size={20} />
+                        {t('setAll')}
+                      </button>
+                    )}
+                    <h3 className="settings-heading" tabIndex={-1} ref={heading}>
+                      {titles[section]}
+                    </h3>
+                  </header>
+                  {(section === 'floor' || section === 'colors') && <Preview settings={draft} spot={spot} />}
+                  {section === 'layout' && <LayoutSection />}
+                  {section === 'floor' && <FloorSection />}
+                  {section === 'colors' && <ColorsSection />}
+                  {section === 'interface' && <InterfaceSection />}
+                  {section === 'worlds' && (
+                    <WorldsSection onSwitched={() => setDraft((d) => ({ ...d, game: useStore.getState().settings.game }))} />
+                  )}
+                  {section === 'game' && <GameSection />}
+                  {section === 'data' && <DataSection />}
+                  {section === 'save' && <SaveSection />}
+                  {section === 'help' && <HelpSection />}
+                  {section === 'updates' && <UpdatesSection />}
+                </div>
+              )}
             </div>
           </div>
         </SpotContext.Provider>
@@ -207,7 +260,7 @@ function useSettings(): [Settings, (patch: Partial<Settings>) => void] {
  * One setting: a label, what it does, and the control. `onReset` null keeps the reset button's place
  * while there's nothing to reset, so the slider beside it doesn't move when it appears.
  */
-function Row({
+export function Row({
   label,
   hint,
   children,
@@ -310,7 +363,7 @@ function Percent({ k, label, hint, spot }: { k: keyof typeof LIMITS & keyof Sett
   );
 }
 
-function Toggle({ on, label, onChange }: { on: boolean; label: string; onChange: (v: boolean) => void }) {
+export function Toggle({ on, label, onChange }: { on: boolean; label: string; onChange: (v: boolean) => void }) {
   return (
     <button type="button" role="switch" aria-checked={on} aria-label={label} className="toggle" onClick={() => onChange(!on)}>
       <span className="toggle-knob" />
@@ -396,21 +449,20 @@ function LayoutSection() {
   );
 }
 
-/** The multipliers the save was started with, so the numbers match the game. */
-function GameSection() {
+/** The three multipliers a game is started with; the New world window has them too, without the hints. */
+export function GameRows({ game, onChange, hints }: { game: GameRules; onChange: (game: GameRules) => void; hints?: boolean }) {
   const { t } = useT();
-  const [s, set] = useSettings();
   const row = (k: keyof GameRules, label: string, hint: string) => (
     <Row
       label={label}
-      hint={hint}
-      onReset={s.game[k] !== DEFAULT_GAME[k] ? () => set({ game: { ...s.game, [k]: DEFAULT_GAME[k] } }) : null}
+      hint={hints ? hint : undefined}
+      onReset={game[k] !== DEFAULT_GAME[k] ? () => onChange({ ...game, [k]: DEFAULT_GAME[k] }) : null}
     >
       <span className="game-mult">
         <RateInput
-          value={s.game[k]}
+          value={game[k]}
           label={label}
-          onChange={(v) => v >= GAME_RANGE.min && v <= GAME_RANGE.max && set({ game: { ...s.game, [k]: Math.round(v * 1000) / 1000 } })}
+          onChange={(v) => v >= GAME_RANGE.min && v <= GAME_RANGE.max && onChange({ ...game, [k]: Math.round(v * 1000) / 1000 })}
         />
         <span className="unit">×</span>
       </span>
@@ -418,10 +470,21 @@ function GameSection() {
   );
   return (
     <>
-      <p className="setting-hint game-intro">{t('gameIntro')}</p>
       {row('parts', t('gameParts'), t('gamePartsHint'))}
       {row('power', t('gamePower'), t('gamePowerHint'))}
       {row('elevator', t('gameElevator'), t('gameElevatorHint'))}
+    </>
+  );
+}
+
+/** The multipliers the save was started with, so the numbers match the game. */
+function GameSection() {
+  const { t } = useT();
+  const [s, set] = useSettings();
+  return (
+    <>
+      <p className="setting-hint game-intro">{t('gameIntro')}</p>
+      <GameRows game={s.game} onChange={(game) => set({ game })} hints />
     </>
   );
 }

@@ -1,4 +1,4 @@
-import { type Node, NodeResizer, type NodeProps, useStore as useFlowStore } from '@xyflow/react';
+import { type Node, NodeResizer, type NodeProps, useStore as useFlowStore, ViewportPortal } from '@xyflow/react';
 import { snapHalf } from '../../lib/model/layout';
 import { useT } from '../../lib/i18n';
 import { AREA_COLOR } from '../../lib/model/color';
@@ -49,15 +49,19 @@ const zoomOf = (s: { transform: [number, number, number] }) => s.transform[2];
  * A coloured area behind the cards. Only its title strip and its edge take the pointer, so the floor inside it pans,
  * takes right-click menus and passes clicks to the cards as before.
  */
-export function AreaNode({ data }: NodeProps) {
+export function AreaNode({ data, positionAbsoluteX, positionAbsoluteY, width, height }: NodeProps) {
   const n = (data as AreaData).node;
   const labels = useStore((s) => s.settings.areaLabels);
   const picked = useStore((s) => s.inspect === n.id);
   const zoom = useFlowStore(zoomOf);
   const { t } = useT();
   const edit = useContext(EditCard);
-  const show = labels === 'always' || (labels === 'auto' && zoom >= FAR_ZOOM);
-  const scale = labels === 'always' ? READABLE / zoom : 1;
+  // Zoomed far out with Always, the name leaves the strip for the middle of the area: grown in the strip it covered the
+  // cards and areas round it. Nearer in it stays in the strip, never bigger than the strip.
+  const far = labels === 'always' && zoom < FAR_ZOOM;
+  const [w, h] = [width ?? n.w, height ?? n.h];
+  const show = !far && (labels === 'always' || (labels === 'auto' && zoom >= FAR_ZOOM));
+  const scale = labels === 'always' ? Math.min(1, READABLE / zoom) : 1;
   return (
     <div
       className={`area-node ${picked ? 'picked' : ''}`}
@@ -86,6 +90,31 @@ export function AreaNode({ data }: NodeProps) {
           </>
         )}
       </div>
+      {far && (n.label || n.icon) && (
+        // Over the cards, which are too small to read this far out, so no card hides it.
+        <ViewportPortal>
+          <div
+            className="area-far"
+            style={
+              {
+                // Where the floor has it now, so it goes along while the area is dragged or resized.
+                left: positionAbsoluteX,
+                top: positionAbsoluteY,
+                width: w,
+                height: h,
+                '--area': n.color ?? AREA_COLOR,
+                // Readable on screen, but never wider or taller than the area. A letter is about 0.6 of the size wide.
+                fontSize: Math.min((28 * READABLE) / zoom, (0.9 * w) / (0.6 * (n.label?.length ?? 0) + 1.8), 0.4 * h),
+              } as React.CSSProperties
+            }
+          >
+            <span>
+              {n.icon && <Icon id={n.icon} size={64} />}
+              {n.label && <b>{n.label}</b>}
+            </span>
+          </div>
+        </ViewportPortal>
+      )}
     </div>
   );
 }

@@ -56,7 +56,7 @@ import { COARSE, useMediaQuery } from '../lib/useMediaQuery';
 import type { SolveResult } from '../lib/solver';
 import { activePowerPlan, toggleBuilt, usePlan, useStore, useTier } from '../store';
 import { beltStroke } from './floor/BeltStroke';
-import { longestRunMid, SQUARE_TURN, squarePath } from './floor/squarePath';
+import { keepBetween, longestRunMid, squarePath, turnFor } from './floor/squarePath';
 import { Glyph } from './Glyph';
 import { Icon } from './Icon';
 import { autoAreas } from '../lib/autoAreas';
@@ -551,10 +551,12 @@ export function routePath(pts: Point[], dir: Direction): string {
   /** Which way stretch i heads where it starts and ends. */
   const heading = (i: number): V => {
     if (!across[i]) return [Math.sign(delta(i)[0]) || 1, 0];
+    // The first and last runs across are drawn straight across, from or into their ease at the handle.
+    if (i === 0 || i === n - 1) return [0, Math.sign(delta(i)[1]) || 1];
     const l = len(i) || 1;
     return [delta(i)[0] / l, delta(i)[1] / l];
   };
-  const room = (i: number) => (across[i] ? len(i) : Math.abs(delta(i)[0])) / 2;
+  const room = (i: number) => (across[i] ? (i === 0 || i === n - 1 ? Math.abs(delta(i)[1]) : len(i)) : Math.abs(delta(i)[0])) / 2;
   // A rounded corner at each point inside the route where an along stretch meets an across one.
   const turn = (k: number) => (k > 0 && k < n && across[k - 1] !== across[k] ? Math.min(TURN, room(k - 1), room(k)) : 0);
   /** How far across the ease at a handle reaches: a little more than it goes along, within half the run. */
@@ -611,6 +613,9 @@ function nodeName(node: unknown, name: (x: { name: string }) => string): string 
   return item ? name(item) : (d.label ?? '');
 }
 
+/** How long a belt runs straight into a card's end after its last turn. */
+const FAN_RUN = 12;
+
 const moved = (a: Point | undefined, b: Point) => !a || Math.abs(a.x - b.x) > 0.5 || Math.abs(a.y - b.y) > 0.5;
 
 /** A conveyor belt (rails, bed, moving slats) or a pipe (casing, flowing fluid) along the edge. */
@@ -631,23 +636,32 @@ function FlowEdge({ id, source, target, sourceX, sourceY, targetX, targetY, sour
   const to = toNode?.internals.positionAbsolute;
   const pick = useContext(PickEdge);
   const picked = focused === 'picked';
+  // Belts side by side take a wider turn, or the inner ones fold over themselves in the bend.
+  const radius = turnFor(Math.min(lanes, MAX_LANES), LANE_PITCH);
   let path: string;
   let lx: number;
   let ly: number;
   if (route && !moved(from, route.from) && !moved(to, route.to)) {
     // As laid out: follow the route around the machines, through the label's reserved spot.
+    const [a, b] = [
+      { x: sourceX, y: sourceY },
+      { x: targetX, y: targetY },
+    ];
     if ((square || route.loop) && route.square) {
       // Straight runs with square turns, as on the Manual floor, the label on the longest run.
-      const sq = squarePath({ x: sourceX, y: sourceY }, route.square, { x: targetX, y: targetY }, dir === 'TB');
+      // Room for the turn and a short straight run into the end, so the belts side by side meet it square.
+      const bends = route.loop ? route.square : keepBetween(route.square, a, b, dir === 'TB', radius + FAN_RUN);
+      const sq = squarePath(a, bends, b, dir === 'TB', false, radius);
       path = sq.path;
       [lx, ly] = route.labelAt ? [route.labelAt.x, route.labelAt.y] : longestRunMid(sq.runs);
     } else {
-      path = routePath([{ x: sourceX, y: sourceY }, ...route.points, { x: targetX, y: targetY }], dir);
+      // A curve eases out of the run across into its end, so it needs about twice the room of a square turn.
+      path = routePath([a, ...keepBetween(route.points, a, b, dir === 'TB', 2 * radius + FAN_RUN), b], dir);
       lx = route.label.x;
       ly = route.label.y;
     }
   } else if (square) {
-    [path, lx, ly] = getSmoothStepPath({ sourceX, sourceY, targetX, targetY, sourcePosition, targetPosition, borderRadius: SQUARE_TURN });
+    [path, lx, ly] = getSmoothStepPath({ sourceX, sourceY, targetX, targetY, sourcePosition, targetPosition, borderRadius: radius });
   } else {
     [path, lx, ly] = getBezierPath({ sourceX, sourceY, targetX, targetY, sourcePosition, targetPosition });
   }

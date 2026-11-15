@@ -12,13 +12,15 @@ import { cleanChoice, cleanNumber, cleanPlan, cleanPowerPlan, cleanSettings, gri
 import { DEFAULT_SETTINGS, type Settings } from './lib/settings';
 import type { RecipeMod, Target } from './lib/solver';
 import { cleanMapFilter, DEFAULT_MAP_FILTER, type MapFilter } from './lib/world';
-import { autoScope, powerScope, record, redo, undo } from './lib/model/history';
+import { autoScope, forget, powerScope, record, redo, undo } from './lib/model/history';
 import { floorTargets, sameTargets } from './lib/model/targets';
 import { cleanSkipped, setSkipped } from './lib/unlocks';
 import { emptyModel, type Model } from './lib/model/types';
 import type { Carrier } from './lib/transport';
 import type { SaveInfo } from './lib/save/apply';
 import { cleanGrids, cleanSaveMap, type SaveGrid } from './lib/save/map';
+import { FIRST_WORLD, forgetSave } from './lib/save/store-idb';
+import type { GameRules } from './lib/game';
 
 export const MAX_TIER = Math.max(...data.recipes.map((r) => r.tier ?? 0));
 
@@ -227,6 +229,35 @@ export const newPlan = (name: string, unlocked: string[] = [], off: string[] = [
   extraction: DEFAULT_EXTRACTION,
 });
 
+/** What one world keeps apart from the others; the open world's copy of these sits at the top level of the store. */
+export interface WorldData {
+  plans: Plan[];
+  active: string;
+  power: PowerPlan[];
+  activePower: string;
+  tier: number;
+  unlocked: string[];
+  standardOff: string[];
+  skipped: string[];
+  inventory: { sloops: number; shards: number };
+  save?: SaveInfo;
+  /** `settings.game` of the world. */
+  game: GameRules;
+  /** The game was started with random resource nodes: the planner's map is not this world's. */
+  randomNodes?: true;
+}
+
+/** A world apart from the open one. */
+export interface ParkedWorld {
+  id: string;
+  name: string;
+  data: WorldData;
+}
+
+export const MAX_WORLDS = 12;
+/** Longest tab or world name. */
+const NAME_MAX = 80;
+
 interface State {
   lang: Lang;
   /** What's on screen: the factory planner, the power planner, the Codex or the world map. */
@@ -237,12 +268,18 @@ interface State {
   mapFocus?: string;
   /** Codex page on screen, as in the address: '' for its home, 'item/Desc_Motor_C' for a part. */
   codexPage: string;
+  /** The open world. Its tabs, progress, inventory and followed save are the fields below; the other worlds are parked in `worlds`. */
+  world: { id: string; name: string };
+  // shortcut: parked worlds live in localStorage with everything else, so many large Manual factories can fill it; move them to IndexedDB if that happens.
+  worlds: ParkedWorld[];
+  /** The open world has random resource nodes; see `WorldData`. */
+  randomNodes?: true;
   /** Power plant tabs, and the one on screen. */
   power: PowerPlan[];
   activePower: string;
   settings: Settings;
   /** Open modal. Not persisted. */
-  dialog?: 'settings' | 'report' | 'save';
+  dialog?: 'settings' | 'report' | 'save' | 'newWorld';
   /** The Settings section to open on, when something else than the usual is asked for. Not persisted. */
   settingsAt?: 'save';
   /** The game save last imported and what it said; unset until the first import. Never in a backup or a shared link. */
@@ -363,6 +400,13 @@ interface State {
   duplicatePlan: (id: string) => void;
   removePlan: (id: string) => void;
   renamePlan: (id: string, name: string) => void;
+  /** Parks the open world and opens a new one: blank, or as the New world window asked. */
+  addWorld: (start?: { name?: string; tier?: number; game?: GameRules; randomNodes?: boolean }) => void;
+  /** Parks the open world and opens another. */
+  openWorld: (id: string) => void;
+  renameWorld: (id: string, name: string) => void;
+  /** Never the last one; removing the open world opens another. */
+  removeWorld: (id: string) => void;
   /** Puts a factory tab (or, with `power`, a power plant tab) at a new place in the list. */
   moveTab: (id: string, to: number, power?: boolean) => void;
 
@@ -455,6 +499,47 @@ function freeName(base: string, taken: string[]): string {
   return `${base} ${n}`;
 }
 
+/** What a world holds, read off the store. */
+export const worldOf = (s: Pick<State, keyof Omit<WorldData, 'game'>> & { settings: Settings }): WorldData => ({
+  plans: s.plans,
+  active: s.active,
+  power: s.power,
+  activePower: s.activePower,
+  tier: s.tier,
+  unlocked: s.unlocked,
+  standardOff: s.standardOff,
+  skipped: s.skipped,
+  inventory: s.inventory,
+  save: s.save,
+  game: s.settings.game,
+  randomNodes: s.randomNodes,
+});
+
+/** What a first launch starts with. */
+const blankWorld = (): WorldData => {
+  const plan = newPlan('Factory 1');
+  const pp = newPowerPlan('Plant 1');
+  return {
+    plans: [plan],
+    active: plan.id,
+    power: [pp],
+    activePower: pp.id,
+    tier: MAX_TIER,
+    unlocked: [],
+    standardOff: [],
+    skipped: [],
+    inventory: { sloops: 0, shards: 0 },
+    game: DEFAULT_SETTINGS.game,
+  };
+};
+
+/** "World 1", or the first number that's free. */
+export const freeWorldName = (taken: string[]) => {
+  let n = 1;
+  while (taken.includes(`World ${n}`)) n++;
+  return `World ${n}`;
+};
+
 /** What the plans keep down, from the choice on the Resources tab. */
 export const aimOf = (s: Pick<State, 'equalWeights' | 'fewestBuildings' | 'customWeights'>): Aim =>
   s.fewestBuildings ? 'buildings' : s.customWeights ? 'custom' : s.equalWeights ? 'equal' : 'rarity';
@@ -477,6 +562,9 @@ export const persisted = (s: State): Persisted => ({
   mode: s.mode,
   codexPage: s.codexPage,
   mapFilter: s.mapFilter,
+  world: s.world,
+  worlds: s.worlds,
+  randomNodes: s.randomNodes,
   power: s.power,
   activePower: s.activePower,
   settings: s.settings,
@@ -559,12 +647,39 @@ export const useStore = create<State>()(
         set({ plans: get().plans.map((p) => (p.id === id ? { ...rest, name: p.name } : p)), inspect: undefined });
       };
       const plants = (fn: (list: Plant[]) => Plant[], merge?: string) => power((pp) => ({ plants: fn(pp.plants) }), merge);
+      /** Opens a world over the open one, which the caller has parked in `rest` or dropped. */
+      const enter = (next: ParkedWorld, rest: ParkedWorld[]) => {
+        const s = get();
+        // Undo lists belong to the world they were made in (a Manual floor's is kept under its tab's id).
+        for (const p of s.plans) {
+          forget(p.id);
+          forget(autoScope(p.id));
+        }
+        for (const pp of s.power) forget(powerScope(pp.id));
+        const { game, ...data } = next.data;
+        set({
+          // A world with no followed save, or not random, has no such key, which would leave the old one in place.
+          save: undefined,
+          randomNodes: undefined,
+          ...data,
+          world: { id: next.id, name: next.name },
+          worlds: rest,
+          settings: { ...s.settings, game },
+          inspect: undefined,
+          renaming: undefined,
+          // Undo of a closed tab would put the old world's tabs back.
+          closed: undefined,
+        });
+      };
+      const parkOpen = (): ParkedWorld => ({ ...get().world, data: worldOf(get()) });
 
       return {
         lang: 'en',
         mode: 'factory',
         codexPage: '',
         mapFilter: DEFAULT_MAP_FILTER,
+        world: { id: FIRST_WORLD, name: 'World 1' },
+        worlds: [],
         power: [firstPower],
         activePower: firstPower.id,
         settings: DEFAULT_SETTINGS,
@@ -759,6 +874,42 @@ export const useStore = create<State>()(
           set({ plans: dropSource(plans, id), active, power, inspect: undefined });
         },
         renamePlan: (id, name) => set({ plans: get().plans.map((p) => (p.id === id ? { ...p, name } : p)) }),
+        addWorld: (start = {}) => {
+          const s = get();
+          if (s.worlds.length + 1 >= MAX_WORLDS) return;
+          const taken = [s.world.name, ...s.worlds.map((w) => w.name)];
+          const blank = blankWorld();
+          const data: WorldData = {
+            ...blank,
+            tier: Math.round(cleanNumber(start.tier, 0, MAX_TIER, blank.tier)),
+            game: cleanSettings({ game: start.game }).game,
+            ...(start.randomNodes ? { randomNodes: true } : {}),
+          };
+          enter({ id: uid(), name: worldName(start.name, taken), data }, [...s.worlds, parkOpen()]);
+        },
+        openWorld: (id) => {
+          const next = get().worlds.find((w) => w.id === id);
+          if (next)
+            enter(
+              next,
+              get().worlds.map((w) => (w.id === id ? parkOpen() : w)),
+            );
+        },
+        renameWorld: (id, name) => {
+          const clean = name.trim().slice(0, NAME_MAX);
+          if (!clean) return;
+          if (id === get().world.id) set({ world: { ...get().world, name: clean } });
+          else set({ worlds: get().worlds.map((w) => (w.id === id ? { ...w, name: clean } : w)) });
+        },
+        removeWorld: (id) => {
+          const { world, worlds } = get();
+          if (id === world.id) {
+            if (!worlds.length) return;
+            enter(worlds[0], worlds.slice(1));
+          } else if (worlds.some((w) => w.id === id)) set({ worlds: worlds.filter((w) => w.id !== id) });
+          else return;
+          void forgetSave(id);
+        },
         moveTab: (id, to, power) => {
           const move = <T extends { id: string }>(list: T[]): T[] | undefined => {
             const from = list.findIndex((p) => p.id === id);
@@ -922,6 +1073,9 @@ type Persisted = Partial<
     | 'mode'
     | 'codexPage'
     | 'mapFilter'
+    | 'world'
+    | 'worlds'
+    | 'randomNodes'
     | 'power'
     | 'activePower'
     | 'settings'
@@ -969,10 +1123,9 @@ export function migrateState(persisted: unknown, version: number): Persisted {
   return old as Persisted;
 }
 
-/** Drops ids that no longer exist after a game data re-extract, and a language this build doesn’t ship. */
-export function mergeState<S extends State>(persisted: unknown, current: S): S {
-  const p = (persisted && typeof persisted === 'object' ? persisted : {}) as Persisted;
-  const saved = Array.isArray(p.plans) && p.plans.length ? p.plans : current.plans;
+/** One world's tabs and progress, cleaned like a saved session; what is missing or unusable comes from `fallback`. */
+function cleanWorld(p: Partial<WorldData> & { grid?: unknown }, fallback: Omit<WorldData, 'game'>): Omit<WorldData, 'game'> {
+  const saved = Array.isArray(p.plans) && p.plans.length ? p.plans : fallback.plans;
   const plans = saved.map((x) => cleanPlan(x, newPlan('Factory')));
   // Two tabs with one id would edit each other; give later ones a fresh id.
   const ids = new Set<string>();
@@ -994,7 +1147,7 @@ export function mergeState<S extends State>(persisted: unknown, current: S): S {
               plans.map((x) => x.id),
             ),
           ]
-        : current.power;
+        : fallback.power;
   const powerIds = new Set<string>();
   for (const pp of power) {
     if (powerIds.has(pp.id)) pp.id = uid();
@@ -1002,28 +1155,85 @@ export function mergeState<S extends State>(persisted: unknown, current: S): S {
   }
   const activePower = power.some((x) => x.id === p.activePower) ? p.activePower! : power[0].id;
   return {
-    ...current,
-    lang: isLang(p.lang) ? p.lang : current.lang,
-    mode: cleanChoice(p.mode, ['factory', 'power', 'codex', 'map'] as const, 'factory'),
-    codexPage: typeof p.codexPage === 'string' ? p.codexPage.slice(0, 200) : '',
-    mapFilter: cleanMapFilter(p.mapFilter),
+    plans,
+    active,
     power,
     activePower,
-    settings: cleanSettings(p.settings),
-    tier: Math.round(cleanNumber(p.tier, 0, MAX_TIER, current.tier)),
+    tier: Math.round(cleanNumber(p.tier, 0, MAX_TIER, fallback.tier)),
     unlocked: cleanUnlocked(p.unlocked),
     standardOff: cleanStandardOff(p.standardOff),
     skipped: cleanSkipped(p.skipped),
-    equalWeights: p.equalWeights === true,
-    customWeights: p.customWeights === true,
-    fewestBuildings: p.fewestBuildings === true,
-    seenUpdates: typeof p.seenUpdates === 'string' ? p.seenUpdates.slice(0, 20) : undefined,
-    onboarded: p.onboarded === true,
     inventory: {
       sloops: Math.round(cleanNumber(p.inventory?.sloops, 0, 1e4, 0)),
       shards: Math.round(cleanNumber(p.inventory?.shards, 0, 1e4, 0)),
     },
     save: cleanSave(p.save),
+    randomNodes: p.randomNodes === true ? true : undefined,
+  };
+}
+
+/* Read while the store is created, like cleanWorld, so a function and not a const. */
+function worldName(v: unknown, taken: string[]) {
+  return typeof v === 'string' && v.trim() ? v.trim().slice(0, NAME_MAX) : freeWorldName(taken);
+}
+
+/** A parked world as saved or read from a backup, checked like the open one; undefined when nothing valid can be made of it. */
+export function cleanParked(raw: unknown, ids: Set<string>, names: string[]): ParkedWorld | undefined {
+  try {
+    const w = raw as Partial<ParkedWorld> | undefined;
+    const d = w?.data;
+    if (
+      !w ||
+      typeof w.id !== 'string' ||
+      !w.id ||
+      !d ||
+      !Array.isArray(d.plans) ||
+      !d.plans.length ||
+      !Array.isArray(d.power) ||
+      !d.power.length
+    )
+      return undefined;
+    const id = w.id.slice(0, 40);
+    if (ids.has(id)) return undefined;
+    ids.add(id);
+    return {
+      id,
+      name: worldName(w.name, names),
+      data: { ...cleanWorld(d, blankWorld()), game: cleanSettings({ game: d.game }).game },
+    };
+  } catch {
+    return undefined;
+  }
+}
+
+/** Drops ids that no longer exist after a game data re-extract, and a language this build doesn’t ship. */
+export function mergeState<S extends State>(persisted: unknown, current: S): S {
+  const p = (persisted && typeof persisted === 'object' ? persisted : {}) as Persisted;
+  const w = cleanWorld(p, worldOf(current));
+  const id = typeof p.world?.id === 'string' && p.world.id ? p.world.id.slice(0, 40) : current.world.id;
+  const ids = new Set([id]);
+  const names: string[] = [];
+  const own = worldName(p.world?.name, []);
+  const worlds = (Array.isArray(p.worlds) ? p.worlds : []).slice(0, MAX_WORLDS - 1).flatMap((x) => {
+    const parked = cleanParked(x, ids, [own, ...names]);
+    if (parked) names.push(parked.name);
+    return parked ? [parked] : [];
+  });
+  return {
+    ...current,
+    ...w,
+    world: { id, name: own },
+    worlds,
+    lang: isLang(p.lang) ? p.lang : current.lang,
+    mode: cleanChoice(p.mode, ['factory', 'power', 'codex', 'map'] as const, 'factory'),
+    codexPage: typeof p.codexPage === 'string' ? p.codexPage.slice(0, 200) : '',
+    mapFilter: cleanMapFilter(p.mapFilter),
+    settings: cleanSettings(p.settings),
+    equalWeights: p.equalWeights === true,
+    customWeights: p.customWeights === true,
+    fewestBuildings: p.fewestBuildings === true,
+    seenUpdates: typeof p.seenUpdates === 'string' ? p.seenUpdates.slice(0, 20) : undefined,
+    onboarded: p.onboarded === true,
     view: cleanChoice(p.view, ['graph', 'table', 'transport'] as const, current.view),
     tab: cleanChoice(p.tab, ['targets', 'recipes', 'resources'] as const, current.tab),
     deckHeight: typeof p.deckHeight === 'number' ? cleanNumber(p.deckHeight, 100, 4000, 320) : undefined,
@@ -1031,8 +1241,6 @@ export function mergeState<S extends State>(persisted: unknown, current: S): S {
     deckClosed: p.deckClosed === true,
     summaryClosed: p.summaryClosed === true,
     graphDir: p.graphDir === 'LR' || p.graphDir === 'TB' ? p.graphDir : undefined,
-    plans,
-    active,
   };
 }
 

@@ -3,7 +3,7 @@ import { deflateSync } from 'node:zlib';
 import finds from '../src/data/finds.json';
 import names from '../src/data/world-names.json';
 import world from '../src/data/world.json';
-import { extract } from '../src/lib/save/extract';
+import { extract, want } from '../src/lib/save/extract';
 import { readHeader } from '../src/lib/save/header';
 import { inflateBody } from '../src/lib/save/inflate';
 import { type Parsed, type ReadContext, readProps } from '../src/lib/save/objects';
@@ -231,6 +231,63 @@ describe('what the planner takes', () => {
     expect(s.collected.sort()).toEqual(['BP_Crystal_mk3_5', 'BP_DropPod3', 'BP_DropPod7', 'BP_WAT2_C_UAID_1']);
     expect(s.sloops).toEqual({ free: 0, inMachines: 0, inDepot: 4 });
     expect(s.shards).toEqual({ free: 0, inMachines: 0, inDepot: 30 });
+  });
+});
+
+describe('random resource nodes', () => {
+  const item = (id: string) => ({ level: '', path: `/Game/FactoryGame/Resource/RawResources/X.${id}` });
+  const at = (cls: string, name: string, props?: Record<string, unknown>) => ({
+    type: `/Game/FactoryGame/Resource/${cls}.${cls}_C`,
+    name: `Persistent_Level:PersistentLevel.${name}`,
+    pos: [0, 0, 0] as [number, number, number],
+    props,
+  });
+  const parse = (objects: Parsed['objects']): Parsed => ({ objects, collected: [], total: objects.length, unknown: {} });
+
+  test('nodes, satellites and cores with an item of their own are read; the purity when the save gives one', () => {
+    const s = extract(
+      parse([
+        at('BP_ResourceNode', 'BP_ResourceNode13', { mResourceClassOverride: item('Desc_OreCopper_C') }),
+        at('BP_FrackingSatellite', 'BP_FrackingSatellite5', {
+          mResourceClassOverride: item('Desc_LiquidOil_C'),
+          mPurityOverride: 'RP_Pure',
+        }),
+        at('BP_FrackingSatellite', 'BP_FrackingSatellite6', { mResourceClassOverride: item('Desc_Water_C'), mPurityOverride: 'RP_Inpure' }),
+        at('BP_FrackingCore', 'BP_FrackingCore2', { mResourceClassOverride: item('Desc_NitrogenGas_C') }),
+        // Geysers carry nothing; an item the planner does not know as a resource is not kept.
+        at('BP_ResourceNodeGeyser', 'BP_ResourceNodeGeyser1'),
+        at('BP_ResourceNode', 'BP_ResourceNode14', { mResourceClassOverride: item('Desc_Modded_C') }),
+      ]),
+      readHeader(header().bytes),
+    );
+    expect(s.nodes).toEqual({
+      BP_ResourceNode13: { item: 'Desc_OreCopper_C' },
+      BP_FrackingSatellite5: { item: 'Desc_LiquidOil_C', purity: 2 },
+      BP_FrackingSatellite6: { item: 'Desc_Water_C', purity: 0 },
+      BP_FrackingCore2: { item: 'Desc_NitrogenGas_C' },
+    });
+    expect(s.random).toBe(true);
+  });
+
+  test('a save that only has an unknown item is still a random game; a normal save has none', () => {
+    const only = extract(
+      parse([at('BP_ResourceNode', 'BP_ResourceNode14', { mResourceClassOverride: item('Desc_Modded_C') })]),
+      readHeader(header().bytes),
+    );
+    expect([only.nodes, only.random]).toEqual([{}, true]);
+    const plain = extract(
+      parse([at('BP_ResourceNode', 'BP_ResourceNode1', {}), at('BP_FrackingCore', 'BP_FrackingCore1', {})]),
+      readHeader(header().bytes),
+    );
+    expect([plain.nodes, plain.random]).toEqual([{}, undefined]);
+  });
+
+  test('nodes are read in full, geysers and deposits only by their header', () => {
+    expect(want('/Game/FactoryGame/Resource/BP_ResourceNode.BP_ResourceNode_C')).toBe('full');
+    expect(want('/Game/X/BP_FrackingSatellite.BP_FrackingSatellite_C')).toBe('full');
+    expect(want('/Game/X/BP_FrackingCore.BP_FrackingCore_C')).toBe('full');
+    expect(want('/Game/X/BP_ResourceNodeGeyser.BP_ResourceNodeGeyser_C')).toBe('head');
+    expect(want('/Game/X/BP_ResourceDeposit.BP_ResourceDeposit_C')).toBe('head');
   });
 });
 

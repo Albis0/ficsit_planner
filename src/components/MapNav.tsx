@@ -2,7 +2,7 @@ import { data } from '../lib/data';
 import { useT } from '../lib/i18n';
 import { PURITIES } from '../lib/extraction';
 import { type Layer, LAYER_GROUPS, LAYER_ITEM, LAYER_RING, CREATURE_RING, layerCount, layerOfItem, useWorld } from '../lib/finds';
-import { DEFAULT_MAP_FILTER, MAP_GROUPS, NODES, purityCounts } from '../lib/world';
+import { DEFAULT_MAP_FILTER, MAP_GROUPS, nodesUnknown, purityCounts, worldNodes } from '../lib/world';
 import { PICKED_LAYERS } from '../lib/save/map';
 import type { SaveInfo } from '../lib/save/apply';
 import { useStore } from '../store';
@@ -11,7 +11,14 @@ import { Glyph } from './Glyph';
 import { Icon } from './Icon';
 
 /** Whether a resource has nodes on the map. */
-export const onMap = (item: string) => NODES.some((n) => n.item === item);
+export const onMap = (item: string) => worldNodes(useStore.getState().save?.map).some((n) => n.item === item);
+
+/** The nodes the Map page shows for the open world: its save's when the game has random nodes, and until that save is imported only the geysers. */
+export function useMapNodes() {
+  const map = useStore((s) => s.save?.map);
+  const random = useStore((s) => s.randomNodes);
+  return { nodes: worldNodes(map, random), unknown: nodesUnknown(map, random) };
+}
 
 /** Whether an item has points of its own on the map: a resource's nodes, or a find like somersloops. */
 export const onMapAny = (item: string) => onMap(item) || !!layerOfItem(item);
@@ -110,6 +117,7 @@ export function MapNav() {
   const world = useWorld();
   const filter = useStore((s) => s.mapFilter);
   const save = useStore((s) => s.save);
+  const { nodes, unknown } = useMapNodes();
   const layers = new Set(filter.layers);
   const flip = (id: string) =>
     set({ mapFilter: { ...filter, layers: layers.has(id) ? filter.layers.filter((l) => l !== id) : [...filter.layers, id] } });
@@ -189,17 +197,22 @@ export function MapNav() {
           </div>
           <ul className="map-items">
             {g.items.map((item) => {
-              const [impure, normal, pure] = purityCounts(item);
+              const [impure, normal, pure] = purityCounts(item, nodes);
               return (
                 <li key={item}>
                   <button type="button" className="map-item" aria-pressed={!hidden.has(item)} onClick={() => toggle(item)}>
                     <Icon id={item === 'Desc_Geyser_C' ? 'Build_GeneratorGeoThermal_C' : item} size={30} />
                     <span className="map-item-name">{item === 'Desc_Geyser_C' ? t('geyser') : name(data.items[item])}</span>
-                    <span className="map-counts" title={`${t('impure')} ${impure} · ${t('normal')} ${normal} · ${t('pure')} ${pure}`}>
-                      <span className="purity-0">{impure}</span>
-                      <span className="purity-1">{normal}</span>
-                      <span className="purity-2">{pure}</span>
-                    </span>
+                    {item === 'Desc_Geyser_C' || !unknown ? (
+                      <span className="map-counts" title={`${t('impure')} ${impure} · ${t('normal')} ${normal} · ${t('pure')} ${pure}`}>
+                        <span className="purity-0">{impure}</span>
+                        <span className="purity-1">{normal}</span>
+                        <span className="purity-2">{pure}</span>
+                      </span>
+                    ) : (
+                      // A random-nodes world with no save: the planner's map is not its map.
+                      <span className="map-counts">—</span>
+                    )}
                   </button>
                 </li>
               );

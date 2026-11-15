@@ -1,8 +1,10 @@
 import {
+  cleanParked,
   cleanStandardOff,
   cleanUnlocked,
   dropSource,
   MAX_TIER,
+  MAX_WORLDS,
   newPlan,
   newPowerPlan,
   type Plan,
@@ -32,7 +34,7 @@ export async function wipeLocal() {
   await forgetSave();
 }
 
-/** Everything worth keeping in one file: factories, power plants and the settings. */
+/** Everything worth keeping in one file: factories, power plants and the settings, and the other worlds. */
 export function buildExport() {
   const s = useStore.getState();
   return {
@@ -46,6 +48,9 @@ export function buildExport() {
     unlocked: s.unlocked,
     standardOff: s.standardOff,
     skipped: s.skipped,
+    ...(s.randomNodes ? { randomNodes: true } : {}),
+    // The followed save never goes into a file.
+    ...(s.worlds.length ? { worlds: s.worlds.map(({ name, data: { save: _, ...data } }) => ({ name, data })) } : {}),
   };
 }
 
@@ -72,8 +77,10 @@ export const applyProgress = (p: Progress) =>
 export type ExportFile = ReturnType<typeof buildExport>;
 
 /** Whether a copy holds anything worth keeping: a factory with something in it, a plant, a hand-built floor. */
-export const hasPlans = (f: Pick<ExportFile, 'plans' | 'power'>) =>
-  f.plans.some((p) => p.targets.length > 0 || p.supplies.length > 0 || !!p.model?.nodes.length) || f.power.some((p) => p.plants.length > 0);
+export const hasPlans = (f: Pick<ExportFile, 'plans' | 'power' | 'worlds'>): boolean =>
+  f.plans.some((p) => p.targets.length > 0 || p.supplies.length > 0 || !!p.model?.nodes.length) ||
+  f.power.some((p) => p.plants.length > 0) ||
+  !!f.worlds?.some((w) => hasPlans(w.data));
 
 export function exportAll() {
   const file = buildExport();
@@ -126,6 +133,7 @@ export function importData(parsed: unknown): ImportResult {
       skipped?: unknown;
       unlocked?: unknown;
       standardOff?: unknown;
+      worlds?: unknown;
     };
     if (file?.kind !== KIND || !Array.isArray(file.plans)) return { ok: false };
     const s = useStore.getState();
@@ -180,9 +188,18 @@ export function importData(parsed: unknown): ImportResult {
     const settings = file.settings ? cleanSettings(file.settings) : undefined;
     const settingsIn = !!settings && !sameSettings(settings, DEFAULT_SETTINGS);
     const takeSettings = settingsIn && sameSettings(s.settings, DEFAULT_SETTINGS);
+    // The file's other worlds come in as worlds of their own, under new ids.
+    const worldIds = new Set([s.world.id, ...s.worlds.map((w) => w.id)]);
+    const names = [s.world.name, ...s.worlds.map((w) => w.name)];
+    const worlds = (Array.isArray(file.worlds) ? file.worlds : []).flatMap((w: unknown) => {
+      const parked = cleanParked({ ...(w as object), id: uid() }, worldIds, names);
+      if (parked) names.push(parked.name);
+      return parked ? [parked] : [];
+    });
     const mine = power.length && untouchedPower(s.power) ? [] : s.power;
     const myPlans = added.length && blankPlans(s.plans) ? [] : s.plans;
     useStore.setState({
+      worlds: [...s.worlds, ...worlds].slice(0, MAX_WORLDS - 1),
       plans: [...myPlans, ...added],
       power: [...mine, ...power],
       activePower: mine.length ? s.activePower : (power[0]?.id ?? s.activePower),

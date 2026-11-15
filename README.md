@@ -274,7 +274,7 @@ saved factories when they load.
 | `src/data/creatures.json` | each creature's name, description, health, speed and remains, and how many of everything the world holds | `bun run extract:world` |
 | `src/data/world-icons.json`, `public/icons/Desc_Hog*.webp` … | creature icons and the textures they come from | `bun run extract:world`, `bun run icons:world` |
 
-Last extract: **Satisfactory 1.2.4.0**, build 502094, Unreal Engine 5.6.1, on 2026-09-24 (see `src/data/meta.json`).
+Last extract: **Satisfactory 1.2.4.0**, build 517554, Unreal Engine 5.6.1, on 2026-09-24 (see `src/data/meta.json`).
 
 ## Refreshing data after a game update (needs the game installed)
 

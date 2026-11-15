@@ -3,6 +3,7 @@ import { readHeader, type SaveHeader } from './header';
 import { inflateBody } from './inflate';
 import { type Parsed, type Props, type Ref, readObjects, type Want } from './objects';
 import { SaveError } from './reader';
+import { RAW_ITEMS } from '../world';
 import { LANDMARKS } from './map';
 import type { BuildingKind, SaveBuilding, SaveCircuit, SaveCount, SaveData, SaveLink } from './types';
 
@@ -76,16 +77,19 @@ const MANAGERS = /\.(FGRecipeManager|BP_SchematicManager_C|BP_GamePhaseManager_C
 const PICKUP = /^(BP_WAT[12]|BP_Crystal(_mk[23])?|BP_DropPod)(_|\d|$)/;
 const COMPONENTS = /\.(FGFactoryConnectionComponent|FGPipeConnectionComponent|FGPipeConnectionFactory|FGInventoryComponent)$/;
 const NODES = /\.(BP_ResourceNode|BP_ResourceNodeGeyser|BP_FrackingSatellite|BP_FrackingCore|BP_ResourceDeposit)_C$/;
+/** The nodes a random-nodes game gives an item of their own (geysers and deposits never get one). */
+const RANDOMIZABLE = /\.(BP_ResourceNode|BP_FrackingSatellite|BP_FrackingCore)_C$/;
 const SWITCH = /^Build_(Priority)?PowerSwitch_C$/;
 
-/** Reads in full what the planner uses; keeps only the header of nodes (for their place) and of other factory buildings (to count them). */
+/** Reads in full what the planner uses; keeps only the header of geysers and deposits (for their place) and of other factory buildings (to count them). */
 export const want: Want = (type) =>
-  MANAGERS.test(type) || COMPONENTS.test(type) || kindOf(idOf(type)) || SWITCH.test(idOf(type))
+  MANAGERS.test(type) || RANDOMIZABLE.test(type) || COMPONENTS.test(type) || kindOf(idOf(type)) || SWITCH.test(idOf(type))
     ? 'full'
     : NODES.test(type) || type.includes('/Buildable/Factory/')
       ? 'head'
       : 'skip';
 
+const PURITY = ['RP_Inpure', 'RP_Normal', 'RP_Pure'];
 const SLOOP = 'Desc_WAT1_C';
 const SHARD = 'Desc_CrystalShard_C';
 
@@ -122,6 +126,7 @@ export function extract(p: Parsed, header: SaveHeader): SaveData {
     collected: p.collected.map(short).filter((name) => PICKUP.test(name)),
     other: {},
     landmarks: [],
+    nodes: {},
     unknown,
     objects: p.total,
   };
@@ -165,6 +170,19 @@ export function extract(p: Parsed, header: SaveHeader): SaveData {
           ],
         });
         continue;
+      case 'BP_ResourceNode_C':
+      case 'BP_FrackingSatellite_C':
+      case 'BP_FrackingCore_C': {
+        const item = ref(props.mResourceClassOverride);
+        if (!item) continue;
+        out.random = true;
+        const id = idOf(item.path);
+        if (!RAW_ITEMS.has(id)) continue;
+        // RP_Inpure, RP_Normal or RP_Pure; a plain node has none of its own.
+        const purity = PURITY.indexOf(String(props.mPurityOverride).replace(/^.*::/, ''));
+        out.nodes[short(o.name)] = purity < 0 ? { item: id } : { item: id, purity: purity as 0 | 1 | 2 };
+        continue;
+      }
       case 'BP_DropPod_C':
         if (props.mHasBeenLooted === true) out.collected.push(short(o.name));
         continue;

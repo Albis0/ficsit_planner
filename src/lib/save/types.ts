@@ -79,6 +79,10 @@ export type SaveData = {
   other: Record<string, number>;
   /** Where the HUB, the Space Elevator, the MAM, the AWESOME Shop and radar towers stand, cm. */
   landmarks: { cls: string; x: number; y: number }[];
+  /** Resource nodes, well satellites and well cores of a random-nodes game, by actor name: the item each holds and, when the save says, its purity. Raw resources only. */
+  nodes: Record<string, { item: string; purity?: 0 | 1 | 2 }>;
+  /** The save has resource nodes with an item of their own: the game was started with random nodes, even if every one happens to match the planner's map. */
+  random?: true;
   /** What this version could not read or does not know, with how often. */
   unknown: Record<string, number>;
   /** Objects in the save, read or not. */

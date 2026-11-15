@@ -770,28 +770,47 @@
     padding-right: 10px;
   }
 
+  /* One screen at a time: the list of sections, then the section with a way back. */
   .settings-body {
     grid-template-columns: minmax(0, 1fr);
-    grid-template-rows: auto minmax(0, 1fr);
+    grid-template-rows: minmax(0, 1fr);
+  }
+
+  .settings-body[data-view='section'] .settings-nav,
+  .settings-body[data-view='list'] .settings-main {
+    display: none;
   }
 
   .settings-nav {
-    flex-direction: row;
-    overflow-x: auto;
-    padding: 6px;
+    padding: 8px 16px calc(20px + env(safe-area-inset-bottom));
     border-right: 0;
-    border-bottom: 1px solid var(--line);
-    scrollbar-width: none;
+    background: var(--panel);
   }
 
   .settings-nav button {
-    flex: none;
-    padding: 9px 12px;
-    font-size: 16px;
+    min-height: 54px;
+    padding: 12px 8px;
+    font-size: 20px;
+    border-bottom: 1px solid var(--line);
   }
 
   .settings-nav button[aria-current='page'] {
-    box-shadow: inset 0 -3px var(--ficsit);
+    box-shadow: none;
+    background: transparent;
+  }
+
+  .nav-title {
+    padding: 14px 8px 6px;
+  }
+
+  .nav-go {
+    display: block;
+    margin-left: auto;
+    color: var(--faint);
+  }
+
+  .new-dot + .nav-go {
+    margin-left: 10px;
   }
 
   .settings-controls {

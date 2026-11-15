@@ -56,6 +56,7 @@ import { useUndoKeys } from './lib/undoKeys';
 import { startAutoBackup } from './lib/autobackup';
 import { startPolls } from './lib/polls';
 import { SaveButton, SaveFlow } from './components/SaveButton';
+import { NewWorldDialog } from './components/NewWorldDialog';
 import { AdaBar } from './components/codex/Ada';
 import { LATEST_UPDATE } from './locales/updates.en';
 import { useSolverLoading, useSolverReady } from './lib/solverClient';
@@ -145,6 +146,7 @@ function Dialogs() {
     <>
       {dialog === 'settings' && <SettingsDialog onClose={() => set({ dialog: undefined, settingsAt: undefined })} />}
       {dialog === 'report' && <ReportDialog onClose={() => set({ dialog: undefined })} />}
+      {dialog === 'newWorld' && <NewWorldDialog onClose={() => set({ dialog: undefined })} />}
     </>
   );
 }

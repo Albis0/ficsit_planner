@@ -17,7 +17,7 @@ import type { MLink } from '../../lib/model/types';
 import { useStore } from '../../store';
 import { beltStroke } from '../floor/BeltStroke';
 import { PORT_CELL } from './PartNode';
-import { longestRunMid, SQUARE_TURN as TURN, squarePath, stopTurns } from '../floor/squarePath';
+import { longestRunMid, squarePath, stopTurns, turnFor } from '../floor/squarePath';
 import { Icon } from '../Icon';
 
 export interface BeltData extends Record<string, unknown> {
@@ -63,6 +63,9 @@ export function BeltLink({ sourceX, sourceY, targetX, targetY, sourcePosition, t
   const [live, setLive] = useState<Stops>();
   const stops = live ?? link.pts ?? [];
   const own = !!link.own;
+  const lanes = link.lanes ?? 1;
+  // Side by side belts round a bend need a wider turn, or the inner ones fold over themselves.
+  const radius = turnFor(Math.min(lanes, 6), PORT_CELL);
   const geo = { sourceX, sourceY, targetX, targetY, sourcePosition, targetPosition };
   let path: string;
   let lx: number;
@@ -77,13 +80,13 @@ export function BeltLink({ sourceX, sourceY, targetX, targetY, sourcePosition, t
       { x: targetX, y: targetY },
       down,
       own,
+      radius,
     );
     path = square.path;
     [lx, ly] = longestRunMid(square.runs);
-  } else [path, lx, ly] = getSmoothStepPath({ ...geo, borderRadius: TURN });
+  } else [path, lx, ly] = getSmoothStepPath({ ...geo, borderRadius: radius });
   if (link.lbl) [lx, ly] = link.lbl;
   const state = `${selected ? 'lit' : ''} ${still ? 'still' : ''} ${calc && calc.rate < 1e-6 ? 'stopped' : ''}`;
-  const lanes = link.lanes ?? 1;
   const { body, color, ink } = beltStroke({
     path,
     item: item ?? 'Desc_OreIron_C',

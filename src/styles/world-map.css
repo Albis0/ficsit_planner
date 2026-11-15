@@ -346,3 +346,25 @@
 .map-reset {
   align-self: flex-start;
 }
+
+/* Over the map when a random-nodes world has no save yet: one line and the way to import it. */
+.map-note {
+  position: absolute;
+  top: 14px;
+  right: 0;
+  left: 0;
+  z-index: 1000;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 4px 12px;
+  width: fit-content;
+  max-width: calc(100% - 28px);
+  margin: 0 auto;
+  padding: 8px 14px;
+  background: rgb(21 21 22 / 0.94);
+  border-radius: var(--radius);
+  font: 500 15px var(--font-body);
+  color: var(--dim);
+}

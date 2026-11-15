@@ -134,7 +134,18 @@ for (const size of sizes) {
       await page.click('.menu-button');
       await page.click('.sheet-links button >> nth=0');
     } else await page.click('.topbar-controls .chrome-button >> nth=-2');
-    await page.waitForSelector('.settings-nav button');
+    // Opened on the news when there is some unseen: on a phone that is a section, not the list.
+    await page.waitForSelector('.settings-body');
+  });
+  // On a phone the dialog opens on the list of sections; one section too, with its way back.
+  await step('settings section', async () => {
+    await open(saved({ mode: 'factory', plans: [plan()], active: 'f1', seenUpdates: '0.14.7' }));
+    if (phone) {
+      await page.click('.menu-button');
+      await page.click('.sheet-links button >> nth=0');
+    } else await page.click('.topbar-controls .chrome-button >> nth=-2');
+    await page.locator('.settings-nav button', { hasText: 'Worlds' }).click();
+    await page.waitForSelector('.world-list');
   });
   await ctx.close();
 }

@@ -521,3 +521,39 @@ test('belts that would cross at a machine are put on its ends the other way roun
   }
   expect(checked).toBeGreaterThan(0);
 });
+
+test('a belt takes the end on the side it comes up to the card from, even from a card on the other side', () => {
+  // A belt from a card below may run round and come in from above; its end is then the upper one, so the belts don't cross.
+  let checked = 0;
+  const big = solve(highs, {
+    targets: [
+      { item: 'Desc_Computer_C', rate: 60 },
+      { item: 'Desc_ModularFrame_C', rate: 120 },
+      { item: 'Desc_SteelPlate_C', rate: 3000 },
+      { item: 'Desc_IronPlateReinforced_C', rate: 400 },
+    ],
+    supplies: [],
+    enabledRecipes: standard(),
+    resourceCaps: {},
+    objective: 'resources',
+  });
+  for (const r of [big, factory('Desc_SpaceElevatorPart_5_C', 10)]) {
+    const { nodes, edges } = buildGraph(r, 9, { dir: 'LR' });
+    for (const n of machines(nodes)) {
+      const into = edges.filter((e) => e.target === n.id && (e.data as { route?: { points: unknown[] } }).route?.points.length);
+      if (new Set(into.map((e) => (e.data as { item: string }).item)).size < 2) continue;
+      checked++;
+      // Where each belt last bends before the card, across the flow, against the end it was given.
+      const came = into.map((e) => ({
+        y: (e.data as { route: { points: { y: number }[] } }).route.points.at(-1)!.y,
+        slot: Number(e.targetHandle!.slice(1)),
+        item: (e.data as { item: string }).item,
+      }));
+      const first = new Map<string, { y: number; slot: number }>();
+      for (const c of [...came].sort((a, b) => a.y - b.y)) if (!first.has(c.item)) first.set(c.item, c);
+      const slots = [...first.values()].map((c) => c.slot);
+      expect(slots).toEqual([...slots].sort((a, b) => a - b));
+    }
+  }
+  expect(checked).toBeGreaterThan(0);
+});

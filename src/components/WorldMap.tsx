@@ -6,8 +6,10 @@ import { PURITIES, PURITY } from '../lib/extraction';
 import { CREATURE_RING, type Layer, LAYER_GROUPS, LAYER_ITEM, LAYER_RING, type PointLayer, useWorld } from '../lib/finds';
 import { useT } from '../lib/i18n';
 import { buildingOf, type PickedLayer } from '../lib/save/map';
-import { MAP_SIZE, MAX_TILE_ZOOM, NODES, type WorldNode } from '../lib/world';
+import { MAP_SIZE, MAX_TILE_ZOOM, type WorldNode } from '../lib/world';
 import { useStore } from '../store';
+import { useMapNodes } from './MapNav';
+import { openImport } from './SaveButton';
 
 const base = import.meta.env.BASE_URL;
 /** Leaflet's flat map: at zoom 0 the picture is one 256 px tile, so a picture pixel is 1/(size/256) of a unit. */
@@ -162,6 +164,7 @@ export default function WorldMap() {
   const focus = useStore((s) => s.mapFocus);
   const saved = useStore((s) => s.save?.map);
   const set = useStore((s) => s.set);
+  const { nodes, unknown } = useMapNodes();
   const world = useWorld();
   const box = useRef<HTMLDivElement>(null);
   const map = useRef<L.Map>(undefined);
@@ -316,7 +319,7 @@ export default function WorldMap() {
     };
     requestAnimationFrame(() => declutter.current());
     const mined = new Map((saved?.miners ?? []).map(([i, cls, clock]) => [i, { cls, clock }]));
-    NODES.forEach((n, i) => {
+    nodes.forEach((n, i) => {
       if (hidden.has(n.item) || !filter.purities.includes(n.purity)) return;
       const m = mined.get(i);
       add(n.x, n.y, {
@@ -390,7 +393,7 @@ export default function WorldMap() {
         });
       }
     });
-  }, [filter, itemName, yields, t, num, name, world, saved]);
+  }, [filter, itemName, yields, t, num, name, world, saved, nodes]);
 
   // Asked to show one resource or layer (from the Codex): frame its points.
   useEffect(() => {
@@ -403,7 +406,7 @@ export default function WorldMap() {
       set({ mapFocus: undefined });
       return;
     }
-    let pts = NODES.filter((n) => n.item === focus).map((n) => at(n.x, n.y));
+    let pts = nodes.filter((n) => n.item === focus).map((n) => at(n.x, n.y));
     if (!pts.length && world) {
       const i = world.creatures.findIndex((c) => c.id === focus);
       const list: number[][] =
@@ -413,7 +416,19 @@ export default function WorldMap() {
     if (!pts.length && !world) return;
     if (pts.length) map.current.flyToBounds(L.latLngBounds(pts).pad(0.2), { duration: 0.6, maxZoom: MAX_TILE_ZOOM - 1 });
     set({ mapFocus: undefined });
-  }, [focus, set, world, saved]);
+  }, [focus, set, world, saved, nodes]);
 
-  return <div ref={box} className="world-map" />;
+  return (
+    <>
+      <div ref={box} className="world-map" />
+      {unknown && (
+        <p className="map-note">
+          {t('mapRandomNeedsSave')}
+          <button type="button" className="text-button" onClick={openImport}>
+            {t('saveImport')}
+          </button>
+        </p>
+      )}
+    </>
+  );
 }

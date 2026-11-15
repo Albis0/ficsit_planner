@@ -1,8 +1,8 @@
 import { OLDEST_SAVE_VERSION } from './extract';
 import type { SaveHeader } from './header';
 
-/** The newest game build and save version this reader was checked against (1.2). */
-export const KNOWN_BUILD = 502094;
+/** The newest game build and save version this reader was checked against (1.2.5). */
+export const KNOWN_BUILD = 517554;
 export const KNOWN_SAVE_VERSION = 60;
 
 /** The game version that writes a save version: 46 is 1.0, 51-52 are 1.1, 58 and up are 1.2. */

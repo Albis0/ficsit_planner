@@ -1284,9 +1284,47 @@
   border-style: dashed;
 }
 
+/* Its cards start just under the name, so a name kept readable when zoomed out grows up out of the area, not over them. */
 .react-flow__node.auto-area .area-grip {
+  top: auto;
+  bottom: calc(100% - 36px);
   height: 36px;
   padding: 4px 12px;
+  transform-origin: 0 100%;
+}
+
+/* An area's name zoomed far out with Always: in the middle of the area, over its cards, which are too small to read there. */
+.area-far {
+  position: absolute;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+}
+
+.area-far span {
+  display: flex;
+  align-items: center;
+  gap: 0.35em;
+  max-width: 100%;
+  padding: 0.2em 0.5em;
+  color: #fff;
+  border: 0.06em solid var(--area);
+  border-radius: 0.3em;
+  background: color-mix(in srgb, var(--area) 30%, rgb(20 20 20 / 0.88));
+  box-sizing: border-box;
+}
+
+.area-far .icon {
+  width: 1.3em;
+  height: 1.3em;
+}
+
+.area-far b {
+  overflow: hidden;
+  font: 700 1em / 1.2 var(--font-body);
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .react-flow__node.auto-area .area-name {

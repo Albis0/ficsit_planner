@@ -1,5 +1,6 @@
 import names from '../../data/world-names.json';
 import world from '../../data/world.json';
+import { NODES, WELLS } from '../world';
 import { PICKED_LAYERS, type PickedLayer, type SaveFactory, type SaveMap } from './map';
 import type { SaveData } from './types';
 
@@ -11,6 +12,7 @@ for (const l of PICKED_LAYERS)
   });
 const NODE = new Map(names.node.map((n, i) => [n, i]));
 const WELL = new Set(names.well);
+const WELL_AT = new Map(names.well.map((n, i) => [n, i]));
 
 const { size, bounds } = world;
 const round = (v: number) => Math.round(v * 10) / 10;
@@ -41,11 +43,27 @@ export function toMap(save: SaveData, factories: SaveFactory[]): SaveMap {
     // Water extractors stand in water, not on a node; mods bring nodes of their own.
     else if (/^BP_(ResourceNode|Fracking)/.test(b.node) && !WELL.has(b.node)) missed++;
   }
+  // Only what differs from the planner's map: in a random-nodes game most nodes do, in a normal one none.
+  const nodes: NonNullable<SaveMap['nodes']> = [];
+  const wells: NonNullable<SaveMap['wells']> = [];
+  for (const [name, o] of Object.entries(save.nodes)) {
+    const i = NODE.get(name);
+    if (i !== undefined) {
+      const purity = o.purity ?? NODES[i].purity;
+      if (o.item !== NODES[i].item || purity !== NODES[i].purity) nodes.push([i, o.item, purity]);
+      continue;
+    }
+    const w = WELL_AT.get(name);
+    if (w !== undefined && o.item !== WELLS[w].item) wells.push([w, o.item]);
+  }
   return {
     picked,
     miners,
     landmarks: save.landmarks.map((l) => [l.cls, ...toPx(l.x, l.y)]),
     factories,
+    ...(nodes.length ? { nodes } : {}),
+    ...(wells.length ? { wells } : {}),
+    ...(save.random ? { random: true as const } : {}),
     missed,
   };
 }

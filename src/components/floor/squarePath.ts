@@ -4,11 +4,37 @@ export const SQUARE_TURN = 12;
 export type Pt = { x: number; y: number };
 
 /**
+ * The turn radius for a belt of `lanes` side by side, `pitch` apart: more than the outer lane's distance from the middle,
+ * or the inner lane's line folds over itself in the bend.
+ */
+export const turnFor = (lanes: number, pitch: number) => Math.max(SQUARE_TURN, ((lanes - 1) / 2) * pitch + 12);
+
+/**
+ * A laid-out belt's bends kept between its two ends along the flow, `lead` clear of each. The layout puts a belt's first
+ * and last bends on the cards' borders, but the ends stand out from them, so the belt would run past its end and turn
+ * back into it; belts side by side then swing round that point like a fan. A belt running back against the flow is left as it is.
+ */
+export function keepBetween(bends: Pt[], from: Pt, to: Pt, down: boolean, lead: number): Pt[] {
+  const k = down ? 'y' : 'x';
+  if (to[k] <= from[k]) return bends;
+  let [lo, hi] = [from[k] + lead, to[k] - lead];
+  if (lo > hi) lo = hi = (from[k] + to[k]) / 2;
+  return bends.map((p) => ({ ...p, [k]: Math.min(hi, Math.max(lo, p[k])) }));
+}
+
+/**
  * A belt in straight runs with rounded square turns, from one end through its bends to the other. The ends are where
  * the cards draw them, so the first and last bends line up with them; with no bends it steps across half way. On a
  * floor running down the same holds turned a quarter: it leaves and reaches its ends going down.
  */
-export function squarePath(from: Pt, bends: Pt[], to: Pt, down = false, free = false): { path: string; runs: [Pt, Pt][] } {
+export function squarePath(
+  from: Pt,
+  bends: Pt[],
+  to: Pt,
+  down = false,
+  free = false,
+  radius = SQUARE_TURN,
+): { path: string; runs: [Pt, Pt][] } {
   // Worked out as if left to right, then turned back.
   const turn = (p: Pt) => (down ? { x: p.y, y: p.x } : { ...p });
   const [a0, b0] = [turn(from), turn(to)];
@@ -30,9 +56,28 @@ export function squarePath(from: Pt, bends: Pt[], to: Pt, down = false, free = f
     .map(turn)
     .filter((p, i, all) => i === 0 || Math.abs(p.x - all[i - 1].x) + Math.abs(p.y - all[i - 1].y) > 0.5);
   let d = `M${pts[0].x},${pts[0].y}`;
+  const far = (p: Pt, q: Pt) => Math.hypot(q.x - p.x, q.y - p.y);
   for (let i = 1; i < pts.length - 1; i++) {
     const [a, b, c] = [pts[i - 1], pts[i], pts[i + 1]];
-    const r = Math.min(SQUARE_TURN, Math.hypot(b.x - a.x, b.y - a.y) / 2, Math.hypot(c.x - b.x, c.y - b.y) / 2);
+    const e = pts[i + 2];
+    // Belts side by side stepping aside less than their turns need, and going on the same way: one easy S, since two
+    // square turns that close fold the inner belts over themselves.
+    if (radius > SQUARE_TURN && e && i + 1 < pts.length - 1 && far(b, c) < 2 * radius) {
+      const [u, w] = [far(a, b), far(c, e)];
+      if ((b.x - a.x) * (e.x - c.x) + (b.y - a.y) * (e.y - c.y) > 0) {
+        const s1 = Math.min(radius, u / (i === 1 ? 1 : 2)) / (u || 1);
+        const s2 = Math.min(radius, w / (i + 1 === pts.length - 2 ? 1 : 2)) / (w || 1);
+        d += ` L${b.x - (b.x - a.x) * s1},${b.y - (b.y - a.y) * s1} C${b.x},${b.y} ${c.x},${c.y} ${c.x + (e.x - c.x) * s2},${c.y + (e.y - c.y) * s2}`;
+        i++;
+        continue;
+      }
+    }
+    // A run between two turns gives each half of it; the first and last runs have only the one turn.
+    const r = Math.min(
+      radius,
+      Math.hypot(b.x - a.x, b.y - a.y) / (i === 1 ? 1 : 2),
+      Math.hypot(c.x - b.x, c.y - b.y) / (i === pts.length - 2 ? 1 : 2),
+    );
     const k1 = r / (Math.hypot(b.x - a.x, b.y - a.y) || 1);
     const k2 = r / (Math.hypot(c.x - b.x, c.y - b.y) || 1);
     d += ` L${b.x - (b.x - a.x) * k1},${b.y - (b.y - a.y) * k1} Q${b.x},${b.y} ${b.x + (c.x - b.x) * k2},${b.y + (c.y - b.y) * k2}`;

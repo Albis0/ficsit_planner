@@ -394,6 +394,8 @@ async function run(size) {
       await openDialog(0);
       const nav = page.locator('.settings-nav button');
       for (let i = 0; i < (await nav.count()); i++) {
+        // A phone shows one screen at a time: back to the list of sections before the next one.
+        if (phone && !(await nav.first().isVisible())) await page.click('.settings-back');
         await nav.nth(i).click();
         await page.waitForTimeout(250);
         await check(`settings dialog ${i}`);

@@ -8,6 +8,7 @@ import { findFactories } from '../src/lib/save/factories';
 import { cleanSaveMap } from '../src/lib/save/map';
 import { toMap, toPx } from '../src/lib/save/toMap';
 import type { SaveBuilding, SaveData, SaveLink } from '../src/lib/save/types';
+import { NODES, nodesUnknown, WELLS, worldNodes, worldWells } from '../src/lib/world';
 
 const at = (id: string, kind: SaveBuilding['kind'], x: number, more: Partial<SaveBuilding> = {}): SaveBuilding => ({
   id,
@@ -59,6 +60,7 @@ const save = (over: Partial<SaveData>): SaveData =>
     collected: [],
     other: {},
     landmarks: [],
+    nodes: {},
     unknown: {},
     objects: 0,
     ...over,
@@ -86,6 +88,70 @@ describe('a save on the map', () => {
     expect(m.landmarks).toEqual([['Build_TradingPost_C', 0, world.size]]);
   });
 
+  test('a random-nodes save keeps only the nodes and wells that differ from the planner map, and says it was random', () => {
+    const [a, b, c] = [names.node[0], names.node[1], names.node[2]];
+    const other = NODES[0].item === 'Desc_Coal_C' ? 'Desc_OreIron_C' : 'Desc_Coal_C';
+    const m = toMap(
+      save({
+        random: true,
+        nodes: {
+          // Same item, no purity given: as the map has it.
+          [a]: { item: NODES[0].item },
+          // Another item, no purity given: keeps the map's purity.
+          [b]: { item: other },
+          // Same item, another purity.
+          [c]: { item: NODES[2].item, purity: ((NODES[2].purity + 1) % 3) as 0 | 1 | 2 },
+          [names.well[0]]: { item: WELLS[0].item === 'Desc_Water_C' ? 'Desc_LiquidOil_C' : 'Desc_Water_C' },
+          [names.well[1]]: { item: WELLS[1].item },
+          BP_ResourceNode_mod: { item: other },
+        },
+      }),
+      [],
+    );
+    expect(m.nodes).toEqual([
+      [1, other, NODES[1].purity],
+      [2, NODES[2].item, (NODES[2].purity + 1) % 3],
+    ]);
+    expect(m.wells).toEqual([[0, WELLS[0].item === 'Desc_Water_C' ? 'Desc_LiquidOil_C' : 'Desc_Water_C']]);
+    expect(m.random).toBe(true);
+    // Randomized, but every node happens to match: still known as random.
+    const same = toMap(save({ random: true, nodes: { [a]: { item: NODES[0].item } } }), []);
+    expect([same.nodes, same.wells, same.random]).toEqual([undefined, undefined, true]);
+    // A normal save has none of it.
+    const plain = toMap(save({}), []);
+    expect([plain.nodes, plain.wells, plain.random]).toEqual([undefined, undefined, undefined]);
+  });
+
+  test('the nodes of the world on screen: the overrides applied, the same list for the same map, the planner map without one', () => {
+    const other = NODES[3].item === 'Desc_Coal_C' ? 'Desc_OreIron_C' : 'Desc_Coal_C';
+    const map = cleanSaveMap({
+      picked: {},
+      miners: [],
+      landmarks: [],
+      factories: [],
+      nodes: [[3, other, 0]],
+      wells: [[2, other]],
+      random: true,
+    })!;
+    const list = worldNodes(map);
+    expect(list).toHaveLength(NODES.length);
+    expect(list[3]).toEqual({ ...NODES[3], item: other, purity: 0 });
+    expect(list[4]).toBe(NODES[4]);
+    expect(worldNodes(map)).toBe(list);
+    expect(worldWells(map)[2]).toEqual({ ...WELLS[2], item: other });
+    expect(worldWells(map)).toBe(worldWells(map));
+    expect(worldNodes(undefined)).toBe(NODES);
+    expect(worldNodes({ ...map, nodes: undefined })).toBe(NODES);
+    expect(worldWells(undefined)).toBe(WELLS);
+    // A random-nodes world without its save has only its geysers to show; with one, its own.
+    expect(worldNodes(undefined, true)).toEqual(NODES.filter((n) => n.kind === 'geyser'));
+    expect(nodesUnknown(undefined, true)).toBe(true);
+    expect(nodesUnknown(map, true)).toBe(false);
+    expect(nodesUnknown(undefined, false)).toBe(false);
+    expect(worldNodes(map, true)).toBe(list);
+    expect(worldNodes(undefined, false)).toBe(NODES);
+  });
+
   test('a factory is named after what it makes and does not use itself; a power plant on its own is not a factory', () => {
     const b = [
       at('s', 'machine', 0, { cls: 'Build_SmelterMk1_C', recipe: 'Recipe_IngotIron_C' }),
@@ -101,6 +167,34 @@ describe('a save on the map', () => {
     const [x0, y0] = toPx(-1500, -1500);
     expect(list[0].box.slice(0, 2)).toEqual([x0, y0]);
     expect(toMap(save({ buildings: b }), list).factories).toBe(list);
+  });
+
+  test('a stored map keeps good nodes, wells and the random mark, drops broken ones, and loads without them', () => {
+    const base = { picked: {}, miners: [], landmarks: [], factories: [], missed: 0 };
+    const ore = 'Desc_OreIron_C';
+    expect(
+      cleanSaveMap({
+        ...base,
+        nodes: [[0, ore, 2], [99999, ore, 1], [1, 'Desc_Nope_C', 1], [2, ore, 3], [3, ore, 1.5], [4, 'Desc_Geyser_C', 1], 'x', [5, ore, 0]],
+        wells: [
+          [0, 'Desc_Water_C'],
+          [99, 'Desc_Water_C'],
+          [1, 'bad'],
+          [-1, ore],
+        ],
+        random: true,
+      }),
+    ).toEqual({
+      ...base,
+      nodes: [
+        [0, ore, 2],
+        [5, ore, 0],
+      ],
+      wells: [[0, 'Desc_Water_C']],
+      random: true,
+    });
+    expect(cleanSaveMap({ ...base, random: 'yes', nodes: 'x' })).toEqual(base);
+    expect(cleanSaveMap(base)).toEqual(base);
   });
 
   test('a stored save map is checked', () => {
@@ -142,12 +236,35 @@ describe('a save on the map', () => {
 
 const SPACE = 'C:/code/ficsit-ekler/ficsit-saves/ela/SPACEDELAELEVATORE.sav';
 
+const RANDOM = 'C:/code/ficsit-ekler/ficsit-saves/random/as.sav';
+
+describe.skipIf(!existsSync(RANDOM))('the random-nodes save on the map', () => {
+  test('as.sav: 577 node and satellite overrides and 17 cores read, the differing ones kept, marked random', async () => {
+    const data = await readSave(new Uint8Array(readFileSync(RANDOM)));
+    expect(Object.keys(data.nodes)).toHaveLength(577 + 17);
+    expect(data.random).toBe(true);
+    expect(data.nodes.BP_ResourceNode13.item).toBe('Desc_OreCopper_C');
+    const m = toMap(data, []);
+    expect(m.random).toBe(true);
+    // 462 of the 577 hold another item than the planner's map; 29 more differ only in purity.
+    expect(m.nodes?.filter(([i, item]) => item !== NODES[i].item)).toHaveLength(462);
+    expect(m.nodes).toHaveLength(491);
+    expect(m.wells).toHaveLength(10);
+    expect(m.nodes?.find(([i]) => i === names.node.indexOf('BP_ResourceNode13'))?.[1]).toBe('Desc_OreCopper_C');
+    // Everything it keeps is valid.
+    expect(cleanSaveMap(m)).toEqual(m);
+    const shown = worldNodes(m);
+    expect(shown.filter((n) => n.kind !== 'geyser')).toHaveLength(NODES.filter((n) => n.kind !== 'geyser').length);
+  });
+});
+
 describe.skipIf(!existsSync(SPACE))('the player save on the map', () => {
   test('SPACEDELAELEVATORE: every miner on a node, what was picked up, three factories', async () => {
     const data = await readSave(new Uint8Array(readFileSync(SPACE)));
     const m = toMap(data, findFactories(data).list);
     expect(m.miners).toHaveLength(21);
     expect(m.missed).toBe(0);
+    expect([m.nodes, m.wells, m.random]).toEqual([undefined, undefined, undefined]);
     expect(Object.fromEntries(Object.entries(m.picked).map(([l, i]) => [l, i.length]))).toEqual({
       slug1: 15,
       slug2: 5,

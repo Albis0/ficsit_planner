@@ -1063,7 +1063,8 @@ const clash = (a, b) => a && b && a.x < b.x + b.width && b.x < a.x + a.width && 
     await wait(500);
     gs = await groups();
     ok('named, with a note', gs[0].label === 'Steel' && gs[0].note === 'Pipe for the stator');
-    ok('the name is on the floor, readable at any zoom', (await page.locator('.area-name').innerText()) === 'Steel');
+    // In its strip, or zoomed far out in the middle of the area.
+    ok('the name is on the floor, readable at any zoom', (await page.locator('.area-name, .area-far b').first().innerText()) === 'Steel');
     await page.locator('.color-wheel').scrollIntoViewIfNeeded();
     const wheel = await page.locator('.color-wheel').boundingBox();
     await page.mouse.move(wheel.x + wheel.width * 0.5, wheel.y + wheel.height * 0.2);
@@ -1166,6 +1167,35 @@ const clash = (a, b) => a && b && a.x < b.x + b.width && b.x < a.x + a.width && 
     ok('and undo brings it back', (await groups()).length === 1);
     const res = await page.locator('.area-node .react-flow__resize-control.handle.bottom.right').count();
     ok('picked, its corners show handles', res === 0 || res === 1);
+    // Zoomed far out, the name sits in the middle of the area over the cards, not grown out of its strip.
+    const flowAt = await page.locator('.react-flow__pane').boundingBox();
+    await page.mouse.move(flowAt.x + flowAt.width / 2, flowAt.y + flowAt.height / 2);
+    for (let i = 0; i < 12; i++) {
+      await page.keyboard.down('Control');
+      await page.mouse.wheel(0, 200);
+      await page.keyboard.up('Control');
+      await wait(80);
+    }
+    await wait(500);
+    const far = await page.evaluate(() => {
+      const label = document.querySelector('.area-far span')?.getBoundingClientRect();
+      const area = document.querySelector('.area-node').getBoundingClientRect();
+      return {
+        name: document.querySelector('.area-far b')?.textContent,
+        strip: document.querySelectorAll('.area-name').length,
+        inside:
+          !!label &&
+          label.left >= area.left - 1 &&
+          label.right <= area.right + 1 &&
+          label.top >= area.top - 1 &&
+          label.bottom <= area.bottom + 1,
+      };
+    });
+    ok(
+      'zoomed far out, the name is in the middle of its area and inside it',
+      far.name === 'Steel' && far.strip === 0 && far.inside,
+      JSON.stringify(far),
+    );
   }
 
   // ── A11b: areas on the Auto floor ──
